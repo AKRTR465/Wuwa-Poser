@@ -16,5 +16,5 @@
     <Description>鸣潮 MMD 播放器</Description>
     <RepositoryUrl>https://github.com/AKRTR465/Wuwa-Poser</RepositoryUrl>
   </PropertyGroup>
-  <ItemGroup><InternalsVisibleTo Include="ServiceChecks" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="ServiceChecks" /><InternalsVisibleTo Include="UnifiedUiChecks" /></ItemGroup>
 </Project>

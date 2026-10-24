@@ -16,14 +16,30 @@ public sealed class RecordingService
 {
     private readonly object gate = new();
     private readonly string ffmpeg, ffprobe;
+    private readonly Func<string, int, int, CancellationToken, Task> capture;
     private string? session;
     private MusicPreset? preset;
     private CancellationTokenSource? stop;
     private Task? worker;
     private RecordingSnapshot snapshot = new("idle", "仅录鸣潮窗口");
-    public RecordingService(string repositoryRoot)
+    public RecordingService(string repositoryRoot) : this(repositoryRoot, null) { }
+    internal RecordingService(string repositoryRoot, Func<string, int, int, CancellationToken, Task>? capture)
     {
         ffmpeg = Path.Combine(repositoryRoot, "tools", "recording_bin", "ffmpeg.exe"); ffprobe = Path.Combine(repositoryRoot, "tools", "recording_bin", "ffprobe.exe");
+        this.capture = capture ?? CaptureAsync; OutputDirectory = DefaultOutputDirectory(repositoryRoot);
+    }
+    public string OutputDirectory { get; }
+    internal static string DefaultOutputDirectory(string runtimeRoot)
+    {
+        var original = Path.GetFullPath(runtimeRoot);
+        // Local builds live under dist/<version> or desktop/WWPoser/publish.
+        // Share the workspace output across those builds without redirecting
+        // a standalone portable package to a stale source_root from its manifest.
+        for (var directory = new DirectoryInfo(original); directory is not null; directory = directory.Parent)
+            if (File.Exists(Path.Combine(directory.FullName, "desktop", "WWPoser", "WWPoser.csproj")) &&
+                File.Exists(Path.Combine(directory.FullName, "data", "characters", "index.json")))
+                return Path.Combine(directory.FullName, "playback", "recordings");
+        return Path.Combine(original, "playback", "recordings");
     }
     public RecordingSnapshot Snapshot { get { lock (gate) return snapshot; } }
     public bool IsBusy { get { lock (gate) return worker is { IsCompleted: false }; } }
@@ -38,7 +54,7 @@ public sealed class RecordingService
             if (worker is { IsCompleted: false }) throw new InvalidOperationException("录屏尚未结束");
             stop?.Dispose(); stop = new CancellationTokenSource();
             snapshot = new RecordingSnapshot("starting", "正在连接鸣潮窗口");
-            worker = Task.Run(() => CaptureAsync(Path.GetFullPath(folder), fps, height, stop.Token));
+            worker = Task.Run(() => capture(Path.GetFullPath(folder), fps, height, stop.Token));
         }
         return Task.CompletedTask;
     }

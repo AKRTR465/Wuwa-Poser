@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows;
@@ -22,15 +23,16 @@ public sealed partial class MainWindow : Window
     private readonly List<Button> actions = [];
     private readonly List<Button> sessionActions = [];
     private readonly ObservableCollection<ActorCard> actors = [];
-    private string? session, preparedDirectory, previewSession;
+    private string? session, preparedDirectory, previewSession, automaticRecordingSession;
     private PlaybackSessionRequest? activeRequest;
     private readonly Dictionary<uint, SquadPlacement> livePlacements = [];
     private bool busy, polling, closeReady, sessionControllable;
     private CancellationToken Token => operationCancellation?.Token ?? lifetime.Token;
 
-    public MainWindow(string repositoryRoot, bool startPolling = true)
+    public MainWindow(string repositoryRoot, bool startPolling = true) : this(repositoryRoot, startPolling, new RecordingService(repositoryRoot)) { }
+    internal MainWindow(string repositoryRoot, bool startPolling, RecordingService recordingService)
     {
-        root = repositoryRoot; player = new(root); recorder = new(root); characterCatalog = OwnedCharacterCatalog.Load(root);
+        root = repositoryRoot; player = new(root); recorder = recordingService; characterCatalog = OwnedCharacterCatalog.Load(root);
         player.Progress += message => Dispatcher.Invoke(() => status.Text = message);
         BuildWindow();
         native.Checked += (_, _) => UpdatePhysics(); native.Unchecked += (_, _) => UpdatePhysics();
@@ -110,13 +112,19 @@ public sealed partial class MainWindow : Window
             result = await Task.Run(() => player.LaunchAsync(preparedDirectory, request, Token), Token);
         }
         else result = await Task.Run(() => player.StartAsync(request, Token), Token);
+        await CompletePlaybackStartAsync(result, request);
+    }
+    private async Task CompletePlaybackStartAsync(JsonObject result, PlaybackSessionRequest request)
+    {
         if (Contract.True(result, "cleanup_restored")) { status.Text = result["message"]?.GetValue<string>() ?? "本次启动已结束并恢复。"; return; }
-        session = result["session_dir"]!.GetValue<string>(); activeRequest = request; sessionControllable = true;
+        session = result["session_dir"]!.GetValue<string>(); activeRequest = request; sessionControllable = Contract.True(result, "loaded");
+        if (!sessionControllable) { status.Text = result["message"]?.GetValue<string>() ?? "播放尚未开始，请先停止并恢复。"; return; }
         sessionLabel.Text = $"正在表演 · {request.Actors.Count(actor => actor.Enabled)} 位演员同步";
         var catalog = characterCatalog;
         placementTarget.ItemsSource = request.Actors.Select((actor, index) => new ActorTarget(actor.Slot == 0 ? checked((uint)index + 1) : actor.Slot,
             $"{index + 1}. {catalog.Characters.FirstOrDefault(item => item.CharacterId == actor.CharacterId)?.DisplayName ?? actor.CharacterId}", actor)).Where(item => item.Actor.Enabled).ToArray();
-        livePlacements.Clear(); placementTarget.SelectedIndex = 0; await ApplyMusicAsync(); status.Text = result["message"]?.GetValue<string>() ?? "播放已开始。";
+        livePlacements.Clear(); placementTarget.SelectedIndex = 0; await ApplyMusicAsync(); await StartAutomaticRecordingAsync();
+        status.Text = automaticRecordingSession == session ? "播放已开始，正在自动录制鸣潮窗口。" : result["message"]?.GetValue<string>() ?? "播放已开始。";
     }
     private async Task PreviewAsync()
     {
@@ -175,17 +183,23 @@ public sealed partial class MainWindow : Window
     }
     private async Task StopCurrentAsync()
     {
-        await EndPreviewAsync();
-        var current = session ?? player.ActiveSession;
-        if (current is null) { await music.StopAsync(); return; }
-        var result = await player.StopAsync(current, lifetime.Token);
-        if (result["restored"] is JsonValue restored && !restored.GetValue<bool>()) throw new InvalidOperationException(result["message"]?.GetValue<string>() ?? "恢复尚未完成，请查看会话状态。");
-        // The game restoration is already confirmed. Clear frontend ownership
-        // before awaiting audio shutdown, which can fail independently.
-        session = null; activeRequest = null; sessionControllable = false;
-        livePlacements.Clear(); placementTarget.ItemsSource = null;
-        try { await music.StopAsync(); }
-        finally { UpdateActions(); }
+        // Send capture stop immediately, then restore the game while the video
+        // saves. Only a recording started automatically belongs to this session.
+        var recordingStop = automaticRecordingSession is not null ? StopRecordingAsync() : Task.CompletedTask;
+        try
+        {
+            await EndPreviewAsync();
+            var current = session ?? player.ActiveSession;
+            if (current is null) { await music.StopAsync(); return; }
+            var result = await player.StopAsync(current, lifetime.Token);
+            if (result["restored"] is JsonValue restored && !restored.GetValue<bool>()) throw new InvalidOperationException(result["message"]?.GetValue<string>() ?? "恢复尚未完成，请查看会话状态。");
+            // The game restoration is already confirmed. Clear frontend ownership
+            // before awaiting audio shutdown, which can fail independently.
+            session = null; activeRequest = null; sessionControllable = false;
+            livePlacements.Clear(); placementTarget.ItemsSource = null;
+            await music.StopAsync();
+        }
+        finally { await recordingStop; UpdateActions(); }
     }
     private async Task StopAsync() { status.Text = "正在停止并恢复…"; await StopCurrentAsync(); await player.StopPendingAsync(lifetime.Token); status.Text = "停止与恢复流程已结束，请确认游戏画面。"; }
     private async Task ApplyMusicAsync()
@@ -194,10 +208,26 @@ public sealed partial class MainWindow : Window
         var preset = Optional(audio) is { } path ? new MusicPreset(path, Number(offset, -3600, 3600), Number(volume, 0, 1)) : null;
         music.UpdateContext(session, preset); await music.StartSynchronizationAsync(); recorder.UpdateAudioContext(session, preset);
     }
-    private async Task RecordAsync()
+    private Task RecordAsync() => StartRecordingAsync(automatic: false);
+    private async Task StartRecordingAsync(bool automatic)
     {
-        var directory = Path.Combine(root, "playback", "recordings"); Directory.CreateDirectory(directory);
-        await recorder.StartAsync(directory, recordingFps.SelectedIndex == 0 ? 30 : 60, recordingSize.SelectedIndex == 0 ? 1080 : 0); status.Text = "正在录制鸣潮窗口。";
+        var directory = recorder.OutputDirectory; Directory.CreateDirectory(directory);
+        await recorder.StartAsync(directory, recordingFps.SelectedIndex == 0 ? 30 : 60, recordingSize.SelectedIndex == 0 ? 1080 : 0);
+        automaticRecordingSession = automatic ? session : null; UpdateRecordingControls(); status.Text = "正在录制鸣潮窗口。";
+    }
+    private Task StartAutomaticRecordingAsync() => autoRecord.IsChecked == true && session is not null && sessionControllable && !recorder.IsBusy
+        ? StartRecordingAsync(automatic: true) : Task.CompletedTask;
+    private async Task StopRecordingAsync()
+    {
+        automaticRecordingSession = null;
+        try { await recorder.StopAsync(); }
+        finally { UpdateRecordingControls(); }
+    }
+    private Task OpenRecordingFolderAsync()
+    {
+        Directory.CreateDirectory(recorder.OutputDirectory);
+        using var folder = Process.Start(new ProcessStartInfo(recorder.OutputDirectory) { UseShellExecute = true });
+        return Task.CompletedTask;
     }
     private Task SaveBookmarkAsync()
     {
@@ -212,6 +242,7 @@ public sealed partial class MainWindow : Window
     private async Task PollAsync()
     {
         var recording = recorder.Snapshot; recordingStatus.Text = recording.Message + (recorder.IsBusy ? $" · {recording.Elapsed:F1} 秒" : "");
+        recordingStatus.ToolTip = recording.OutputPath ?? recorder.OutputDirectory; UpdateRecordingControls();
         if (polling || busy || session is null) return; polling = true;
         try
         {
@@ -224,6 +255,20 @@ public sealed partial class MainWindow : Window
             var mode = Contract.S(state, "mode"); var label = mode switch { "playing" => "播放中", "paused" => "已暂停", "ended" => "动作结束", "closed" => "会话结束", "stopped" => "已停止", _ => mode };
             time.Text = $"{Clock(seconds)} / {Clock(length)}"; modeLabel.Text = label;
             if (state["message"] is JsonValue message) status.Text = message.GetValue<string>();
+            if (mode == "ended" && !Contract.True(state, "loop") && automaticRecordingSession == session)
+            {
+                // Ended holds the actors' last pose; it is not a restored
+                // session. Save the automatic capture without releasing actors.
+                busy = true; UpdateActions(); status.Text = "动作已播完，正在自动保存录屏…";
+                try
+                {
+                    await StopRecordingAsync();
+                    var saved = recorder.Snapshot;
+                    status.Text = saved.State == "error" ? "动作已播完，录屏保存失败：" + saved.Message
+                        : saved.State == "saved" ? "动作已播完，录屏" + saved.Message : "动作已播完，录屏已停止。";
+                }
+                finally { busy = false; UpdateActions(); }
+            }
             // A terminal timeline alone is not release evidence. Keep recovery
             // ownership until both native and managed restoration are confirmed.
             if (mode == "closed" && Contract.True(state, "restoration_complete") && OwnedMmdPlaybackService.RestorationConfirmed(session))
@@ -240,7 +285,7 @@ public sealed partial class MainWindow : Window
         if (closeReady) return; args.Cancel = true;
         if (busy) { operationCancellation?.Cancel(); status.Text = "正在取消当前操作，请等待恢复后关闭。"; return; }
         busy = true; UpdateActions();
-        try { await recorder.StopAsync(); await StopCurrentAsync(); await player.StopPendingAsync(lifetime.Token); await music.StopAsync(); closeReady = true; lifetime.Cancel(); Close(); }
+        try { await StopRecordingAsync(); await StopCurrentAsync(); await player.StopPendingAsync(lifetime.Token); await music.StopAsync(); closeReady = true; lifetime.Cancel(); Close(); }
         catch (Exception error) { status.Text = "关闭尚未完成：" + error.Message; } finally { busy = false; UpdateActions(); }
     }
     public void SelectOwnedMmdPage() { if (actors.Count == 0) _ = AddActorAsync(); actorList.SelectedIndex = 0; }

@@ -11,6 +11,16 @@ static void Save(string path, JsonObject value) { var next = path + ".next"; Fil
 static JsonObject Timeline(string mode = "playing") => new() { ["clip_epoch"] = 123UL, ["last_sequence"] = 0UL, ["session_active"] = true, ["mode"] = mode, ["seconds"] = 2d, ["duration_seconds"] = 10d, ["speed"] = 1d, ["loop"] = false, ["restore_requested"] = false };
 var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(fixture);
+var localWorkspace = Path.Combine(fixture, "workspace");
+Directory.CreateDirectory(Path.Combine(localWorkspace, "desktop", "WWPoser")); Directory.CreateDirectory(Path.Combine(localWorkspace, "data", "characters"));
+File.WriteAllText(Path.Combine(localWorkspace, "desktop", "WWPoser", "WWPoser.csproj"), "<Project />"); File.WriteAllText(Path.Combine(localWorkspace, "data", "characters", "index.json"), "{}");
+var sharedRecordings = Path.Combine(localWorkspace, "playback", "recordings");
+Check(RecordingService.DefaultOutputDirectory(localWorkspace) == sharedRecordings, "source workspace records into its own playback directory");
+foreach (var localBuild in new[] { Path.Combine(localWorkspace, "dist", "version-a"), Path.Combine(localWorkspace, "dist", "version-b"), Path.Combine(localWorkspace, "desktop", "WWPoser", "publish") })
+    Check(RecordingService.DefaultOutputDirectory(localBuild) == sharedRecordings, "local builds and publish share recordings across versions");
+var standalone = Path.Combine(Path.GetTempPath(), "wwposer-portable-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(Path.Combine(standalone, "data", "characters")); File.WriteAllText(Path.Combine(standalone, "data", "characters", "index.json"), "{}");
+Save(Path.Combine(standalone, "manifest.json"), new JsonObject { ["source_root"] = localWorkspace });
+Check(RecordingService.DefaultOutputDirectory(standalone) == Path.Combine(standalone, "playback", "recordings"), "standalone portable recordings stay local even with a stale source workspace in the manifest");
 var wire = PlaybackControl.Encode(123, 45, "time_limit", 0, 3);
 Check(wire.Length == 64 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(32)) == 16 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(36)) == 3, "wire fields");
 uint checksum = 2166136261; foreach (var b in wire.AsSpan(0, 60)) checksum = unchecked((checksum ^ b) * 16777619);

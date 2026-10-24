@@ -19,6 +19,7 @@ public sealed partial class MainWindow
     private readonly TextBlock sessionLabel = Text("还没有开始表演", 13, "Ink", FontWeights.SemiBold);
     private readonly TextBlock time = new() { Text = "00:00.00 / 00:00.00", FontSize = 30, FontWeight = FontWeights.SemiBold };
     private readonly TextBlock modeLabel = Text("等待开始", 12, "AccentPressed"), recordingStatus = Text("录屏尚未开始", 12, "Muted");
+    private readonly TextBlock recordingLocation = Text("", 12, "Muted");
     private readonly TextBox camera = new(), audio = new();
     private readonly TextBox speed = new() { Text = "1", Tag = "倍" }, duration = new() { Text = "0", Tag = "秒" }, spacing = new() { Text = "180", Tag = "厘米" };
     private readonly TextBox offset = new() { Text = "0", Tag = "秒" }, volume = new() { Text = "1", Tag = "0–1" };
@@ -28,6 +29,7 @@ public sealed partial class MainWindow
     private readonly ComboBox placementMode = new() { ItemsSource = new[] { "站位舞台", "原作队形（共用原点）" }, SelectedIndex = 0, Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly ComboBox recordingFps = new() { ItemsSource = new[] { "30 FPS", "60 FPS" }, SelectedIndex = 0, Width = 120, Margin = new(0, 0, 8, 0) };
     private readonly ComboBox recordingSize = new() { ItemsSource = new[] { "1080p", "原始尺寸" }, SelectedIndex = 0, Width = 120, Margin = new(0, 0, 8, 0) };
+    private readonly CheckBox autoRecord = new() { Content = "开始播放时自动录屏", IsChecked = false };
     private readonly Slider progress = new() { Minimum = 0, Maximum = 1, IsMoveToPointEnabled = true, Margin = new(0, 14, 0, 10) };
     private readonly ComboBox placementTarget = new() { DisplayMemberPath = nameof(ActorTarget.Name), Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly TextBox liveX = new() { Text = "0", Tag = "厘米" }, liveY = new() { Text = "0", Tag = "厘米" }, liveHeight = new() { Text = "0", Tag = "厘米" }, liveYaw = new() { Text = "0", Tag = "度" };
@@ -41,8 +43,8 @@ public sealed partial class MainWindow
     private readonly List<FrameworkElement> pages = [];
     private readonly List<StepEntry> steps = [];
     private readonly List<(Button Chip, string Value)> speedChips = [];
-    private FrameworkElement emptyRoster = null!, idlePanel = null!, livePanel = null!;
-    private Button stopButton = null!, applySettings = null!;
+    private FrameworkElement emptyRoster = null!, idlePanel = null!, livePanel = null!, recordingPanel = null!;
+    private Button stopButton = null!, applySettings = null!, recordButton = null!, stopRecordingButton = null!;
     private int page;
     private bool wasLive;
 
@@ -193,6 +195,17 @@ public sealed partial class MainWindow
         playStyle.Children.Add(Hint("自动结束按开始后的真实时间计算，暂停时也会计时。表演中修改后点「应用播放设置」。"));
         content.Children.Add(Card("播放方式", "速度、循环和时长，随时都能改。", "\uE916", playStyle));
 
+        var rec = new StackPanel(); rec.Children.Add(autoRecord); rec.Children.Add(Spacer(12));
+        var recOptions = new WrapPanel(); recOptions.Children.Add(recordingFps); recOptions.Children.Add(recordingSize); rec.Children.Add(recOptions);
+        rec.Children.Add(Hint("提前选好帧率和尺寸；开启后播放时自动录制，播完自动保存。循环播放会持续录制，直到手动停止。"));
+        var recButtons = new WrapPanel { Margin = new(0, 12, 0, 0) };
+        recordButton = Action("录制鸣潮窗口", RecordAsync, "\uE7C8", "PrimaryButton"); recButtons.Children.Add(recordButton);
+        stopRecordingButton = Action("停止并保存录屏", StopRecordingAsync, "\uE74E"); recButtons.Children.Add(stopRecordingButton);
+        recButtons.Children.Add(Action("打开录屏文件夹", OpenRecordingFolderAsync, "\uE8B7", "LinkButton"));
+        rec.Children.Add(recButtons); rec.Children.Add(Hint("只录鸣潮窗口，配乐也会写进视频。录制中更改设置需先停止录屏。"));
+        recordingLocation.Text = "保存位置：" + recorder.OutputDirectory; recordingLocation.TextWrapping = TextWrapping.Wrap; recordingLocation.Margin = new(0, 8, 0, 0); rec.Children.Add(recordingLocation);
+        recordingPanel = Card("录屏设置", "开始前就能选好，也可以随时手动录制。", "\uE714", rec); content.Children.Add(recordingPanel);
+
         var idle = new StackPanel();
         var check = new StackPanel(); check.Children.Add(readiness);
         check.Children.Add(Tip("点「开始播放」后请切回鸣潮窗口，演员会出现在你的角色身边。"));
@@ -238,11 +251,6 @@ public sealed partial class MainWindow
         var applyPlace = Action("应用位置与朝向", ApplyPlacementAsync, "\uE73E", "SoftButton", needsSession: true); applyPlace.HorizontalAlignment = HorizontalAlignment.Left; applyPlace.Margin = new(0, 8, 0, 0); adjust.Children.Add(applyPlace);
         live.Children.Add(Card("挪一挪站位", "某位演员站歪了？不用重来，直接在这里调整。", "\uE7C9", new Expander { Header = "展开调整位置与朝向", Content = adjust }));
 
-        var rec = new StackPanel();
-        var recRow = new WrapPanel(); recRow.Children.Add(recordingFps); recRow.Children.Add(recordingSize);
-        recRow.Children.Add(Action("录制鸣潮窗口", RecordAsync, "\uE7C8", "PrimaryButton")); recRow.Children.Add(Action("停止并保存录屏", () => recorder.StopAsync(), "\uE74E"));
-        rec.Children.Add(recRow); rec.Children.Add(Hint("只会录下鸣潮窗口，配乐也会一起写进视频。录好的文件在 playback/recordings 文件夹。"));
-        live.Children.Add(Card("录下这一段", "把精彩的表演保存成视频。", "\uE714", rec));
         livePanel = live; content.Children.Add(live);
 
         return Page("第三步 · 开始表演", "确认一下准备情况，然后就可以开演了。", content, NavButton("上一步", 1, primary: false));
@@ -333,7 +341,16 @@ public sealed partial class MainWindow
         foreach (var button in actions) button.IsEnabled = !busy;
         foreach (var button in sessionActions) button.IsEnabled = !busy && session is not null && sessionControllable;
         if (stopButton is not null) stopButton.IsEnabled = (!busy && (session is not null || previewSession is not null || player.ActiveSession is not null)) || (busy && operationCancellation is { IsCancellationRequested: false });
-        busyBar.Visibility = busy ? Visibility.Visible : Visibility.Hidden; UpdateSessionView();
+        UpdateRecordingControls(); busyBar.Visibility = busy ? Visibility.Visible : Visibility.Hidden; UpdateSessionView();
+    }
+
+    private void UpdateRecordingControls()
+    {
+        var recording = recorder.IsBusy;
+        autoRecord.IsEnabled = !busy && session is null && player.ActiveSession is null;
+        recordingFps.IsEnabled = recordingSize.IsEnabled = !busy && !recording;
+        if (recordButton is not null) recordButton.IsEnabled = !busy && !recording;
+        if (stopRecordingButton is not null) stopRecordingButton.IsEnabled = !busy && recording;
     }
 
     private Button NavButton(string label, int target, bool primary)
