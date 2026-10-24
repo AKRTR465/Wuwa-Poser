@@ -34,7 +34,8 @@ $files=@(
  'docs\owned_character_catalog_20261023.md','docs\shared_native_physics_implementation_20261023.md','docs\native_target_handshake_review_20261023.md',
  'docs\all_characters_native_mmd_20261023.md','docs\all_characters_native_mmd_offline_20261023.json','docs\native_mmd_resume_20261023.md'
  'docs\native_physics_catalog_adaptation_20261023.md',
- 'README.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','docs\BUILDING.md'
+ 'README.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','docs\BUILDING.md',
+ 'data\dependencies\ffmpeg.json','data\dependencies\ffmpeg.README.txt'
 )
 foreach($directory in @('licenses')){$files+=@(Get-ChildItem -LiteralPath (Join-Path $repo $directory) -Recurse -File|ForEach-Object {$_.FullName.Substring($repo.Length+1)})}
 foreach($directory in @('data\characters','data\runtime_contracts')){$files+=@(Get-ChildItem -LiteralPath (Join-Path $repo $directory) -Recurse -File|ForEach-Object {$_.FullName.Substring($repo.Length+1)})}
