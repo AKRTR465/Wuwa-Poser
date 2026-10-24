@@ -229,11 +229,12 @@ inline bool MaintainSceneFrame(void*){auto& r=runtime;if(!r.maintenanceEnabled.l
     const bool ok=r.maintainScene(r.maintainUser);if(!ok)Fail(Error::Plan);return ok;
 }
 inline bool InstallSceneMaintenance(bool(*callback)(void*),void* user) noexcept {auto& r=runtime;
-    r.maintainScene=callback;r.maintainUser=user;bool borrowed=false;for(const auto& actor:r.actors)borrowed=borrowed||actor->ownership==native_animation_target::OwnerPolicy::SceneTeamMember;
-    r.maintenanceEnabled.store(borrowed,std::memory_order_release);r.cameraFeatures.on_game_frame=&MaintainSceneFrame;r.cameraFeatures.game_frame_user=nullptr;
+    r.maintainScene=callback;r.maintainUser=user;
+    r.maintenanceEnabled.store(callback!=nullptr,std::memory_order_release);r.cameraFeatures.on_game_frame=&MaintainSceneFrame;r.cameraFeatures.game_frame_user=nullptr;
     // This same PCM hook also hosts playback camera tracks later. Installing
     // it before graph observation keeps borrowed actors evaluable throughout
-    // a large scene's sequential native preparation.
+    // a large scene's sequential native preparation. Created-only scenes also
+    // maintain the visibility lease of a non-performing controlled player.
     return features::InstallCamera(r.cameraFeatures);
 }
 inline bool Install() noexcept {auto& r=runtime;r.observing.store(true);r.writing.store(false);
@@ -284,7 +285,7 @@ inline Json Status(){auto& r=runtime;WorkerLock lock;const auto state=r.transpor
         {"camera_mode",state.camera_mode},{"camera_anchor_slot",r.cameraAnchor?r.cameraAnchor->slot:0},{"camera_available",r.cameraFeatures.available},{"camera_clip_available",r.cameraFeatures.clip_available},{"camera_failed",r.cameraFeatures.failed.load()},
         {"camera_stage_reference_used",r.cameraFeatures.stage.present},{"camera_stage_floor_used",r.cameraFeatures.stage.present},
         {"camera_anchor_coordinate_frame","world_local"},
-        {"borrowed_stage_maintenance",r.maintenanceEnabled.load()},
+        {"borrowed_stage_maintenance",r.maintenanceEnabled.load()&&borrowed!=0},{"scene_maintenance",r.maintenanceEnabled.load()},
         {"native_physics",anyNative},{"body_backend","per_actor"},{"native_input_frames",nativeFrames},{"native_input_error",nativeError},{"physics_available",allPhysics},{"expression_enabled",face},
         {"last_control_code",r.lastControlCode.load()},{"rejected_commands",r.rejectedCommands.load()},{"play_started_tick_ms",r.playStart.load()},{"body_elapsed_ms",r.playStart.load()?GetTickCount64()-r.playStart.load():0}};
     if(!members.empty()){value["placement"]=members[0]["placement"];value["physics_enabled"]=members[0]["physics_enabled"];}
@@ -299,8 +300,9 @@ inline bool CloseAndRestore(uint64_t deadline) noexcept {auto& r=runtime;r.writi
     for(auto& actor:r.actors)if(actor->nativePrepared)v20_shared_native_physics::CloseAdmission(actor->native);
     while((FeaturePending()||NativePending())&&GetTickCount64()<deadline)Sleep(10);if(FeaturePending()||NativePending())return false;
     // Keep borrowed actors visible/evaluable until their input and expression
-    // ownership has drained. Disable maintenance before managed Stop restores
-    // the original transform, visibility and tick policy.
+    // ownership has drained. Keep non-performing player visibility leased until
+    // that point too. Disable maintenance before managed Stop restores display
+    // flags and the borrowed actors' original transform and tick policy.
     r.maintenanceEnabled.store(false,std::memory_order_release);
     while(!features::UninstallCamera(r.cameraFeatures)&&GetTickCount64()<deadline)Sleep(10);
     if(r.cameraFeatures.hook.changed||r.cameraFeatures.hook.protection_pending)return false;

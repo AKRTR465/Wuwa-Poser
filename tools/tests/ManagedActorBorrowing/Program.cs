@@ -30,6 +30,7 @@ ManagedBridge.CheckLoaded(); manager.Created[0].FailLocations = 1;
 Throws(ManagedBridge.ShowAtLocal, "partial show must report placement failure");
 Check(first.Actor.Location.Y == 2100, "first borrowed actor moves once");
 ManagedBridge.ShowAtLocal(); ManagedBridge.CheckLoaded();
+Check(!first.Actor.bHidden && first.Mesh.bVisible && !first.Mesh.bHiddenInGame && first.Handle.HoldEntityMap.Count == 1, "a participating controlled instance stays visible without a spectator visibility hold");
 Check(manager.Created[0].Location.Y == 2200 && second.Actor.Location.Y == 2300, "retry must retain original stage anchor");
 Check(first.Actor.Location.Z == 90 && manager.Created[0].Location.Z == 0 && second.Actor.Location.Z == 90, "borrowed capsule and created model feet align");
 Check(second.Mesh.VisibilityBasedAnimTickOption == EVisibilityBasedAnimTickOption.AlwaysTickPoseAndRefreshBones && !second.Mesh.bPauseAnims && !second.Mesh.bNoSkeletonUpdate && !second.Mesh.bEnableUpdateRateOptimizations && !second.Mesh.bOnlyAllowAutonomousTickPose && !second.Mesh.bRenderStatic && second.Mesh.Tick && second.Mesh.Active, "hidden borrowed mesh evaluates offscreen");
@@ -148,4 +149,78 @@ foreach (var borrowFirst in new[] { true, false })
         "shutdown writes the saved camera reference without reading released actor meshes");
 }
 UGameplayStatics.WorldOrigin = new(); first.Mesh.RelativeLocation = new();
-Console.WriteLine($"PASS: {assertions} synthetic managed borrowing assertions; mixed actors, heading offsets, rebased camera references, global placement, saved fields, and restoration retries. No game assemblies loaded.");
+string VisibilitySession(string name, params string[] rows)
+{
+    var directory = Path.Combine(root, "visibility-" + name); Directory.CreateDirectory(directory);
+    File.WriteAllLines(Path.Combine(directory, "actors.tsv"), rows.Length == 0 ? new[] { "1\t90\t900\t0\t0\t0\tRole90Skin900\t0" } : rows);
+    Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", directory); ManagedBridge.BindSession(); ManagedBridge.BeginTarget(); ManagedBridge.CheckLoaded();
+    return directory;
+}
+void VisiblePlayer()
+{
+    UGameplayStatics.Pawn = first.Actor; first.Actor.bHidden = false; first.Mesh.bVisible = true; first.Mesh.bHiddenInGame = false;
+}
+// Preserve all eight original visibility combinations, including a model that
+// was already hidden. The non-performer's transform and evaluation are unowned.
+for (int flags = 0; flags < 8; flags++)
+{
+    first.Actor.bHidden = (flags & 1) != 0; first.Mesh.bVisible = (flags & 2) != 0; first.Mesh.bHiddenInGame = (flags & 4) != 0;
+    var before = first.Actor.Location; var actorTick = first.Actor.Tick; var meshTick = first.Mesh.Tick; var active = first.Mesh.Active; var paused = first.Mesh.bPauseAnims;
+    var directory = VisibilitySession("flags-" + flags);
+    Check(first.Actor.bHidden == ((flags & 1) != 0) && first.Mesh.bVisible == ((flags & 2) != 0) && first.Mesh.bHiddenInGame == ((flags & 4) != 0) && first.Handle.HoldEntityMap.Count == 0, "preparation alone does not hide or retain a non-performer");
+    ManagedBridge.ShowAtLocal(); ManagedBridge.ShowAtLocal();
+    Check(first.Actor.bHidden && !first.Mesh.bVisible && first.Mesh.bHiddenInGame && first.Handle.HoldEntityMap.Count == 1, "created-only playback hides the non-performing player and acquires one hold across retries");
+    Check(first.Actor.Location.X == before.X && first.Actor.Location.Y == before.Y && first.Actor.Tick == actorTick && first.Mesh.Tick == meshTick && first.Mesh.Active == active && first.Mesh.bPauseAnims == paused, "hiding does not move the player or change its tick and animation policy");
+    first.Actor.bHidden = false; first.Mesh.bVisible = true; first.Mesh.bHiddenInGame = false; first.Actor.Location = new(123, 456, 789);
+    ManagedBridge.MaintainStage();
+    Check(first.Actor.bHidden && !first.Mesh.bVisible && first.Mesh.bHiddenInGame && first.Actor.Location.X == 123, "created-only scene repairs visibility overwrites without freezing the player transform");
+    ManagedBridge.Stop(); ManagedBridge.CheckReleased(); ManagedBridge.Stop();
+    Check(first.Actor.bHidden == ((flags & 1) != 0) && first.Mesh.bVisible == ((flags & 2) != 0) && first.Mesh.bHiddenInGame == ((flags & 4) != 0) && first.Handle.HoldEntityMap.Count == 0 && first.Actor.Location.X == 123, "stop restores exact original visibility without restoring an unowned transform");
+    var released = JsonNode.Parse(File.ReadAllText(Path.Combine(directory, "managed_actor_lifecycle.json")))!;
+    Check(released["all_released"]!.GetValue<bool>() && released["nonperforming_player"]!["restored"]!.GetValue<bool>() && !released["nonperforming_player"]!["retained"]!.GetValue<bool>(), "terminal lifecycle accounts for the visibility lease");
+}
+VisiblePlayer();
+VisibilitySession("same-role-copy", "1\t10\t999\t0\t0\t0\tRole10Skin999\t0"); ManagedBridge.ShowAtLocal();
+Check(first.Actor.bHidden && !first.Mesh.bVisible, "a created copy with the same role but different skin does not count as the controlled instance performing");
+ManagedBridge.Stop(); ManagedBridge.CheckReleased();
+VisiblePlayer();
+VisibilitySession("mixed", "1\t20\t200\t0\t0\t0\tRole20Skin200\t0", "2\t90\t900\t100\t0\t0\tRole90Skin900\t0"); ManagedBridge.ShowAtLocal();
+Check(first.Actor.bHidden && !second.Actor.bHidden && second.Mesh.bVisible, "mixed playback hides only the non-performing player, preserving the borrowed dancer");
+second.Mesh.FailVisibilityRestores = 1; Throws(ManagedBridge.Stop, "borrowed dancer restoration can fail independently");
+Check(!first.Actor.bHidden && first.Mesh.bVisible && !first.Mesh.bHiddenInGame && first.Handle.HoldEntityMap.Count == 0, "a dancer restore failure cannot skip player visibility restoration");
+ManagedBridge.Stop(); ManagedBridge.CheckReleased();
+VisiblePlayer();
+VisibilitySession("partial-hide"); first.Mesh.FailVisibilityRestores = 1;
+Throws(ManagedBridge.ShowAtLocal, "partial visibility setup failure is recoverable");
+Check(first.Actor.bHidden && first.Mesh.bVisible, "failure happens after the actor flag changes and before mesh visibility changes");
+ManagedBridge.Stop(); ManagedBridge.CheckReleased();
+Check(!first.Actor.bHidden && first.Mesh.bVisible && !first.Mesh.bHiddenInGame && first.Handle.HoldEntityMap.Count == 0, "startup failure restores the partially hidden player");
+VisiblePlayer();
+var visibilityRetry = VisibilitySession("restore-retry"); ManagedBridge.ShowAtLocal(); first.Mesh.FailVisibilityShows = 1;
+Throws(ManagedBridge.Stop, "visibility restoration failure must remain pending");
+Check(manager.UiSceneRoleActorMap.Count == 0 && first.Handle.HoldEntityMap.Count == 1, "failed player restore retains its own hold after every created dancer is removed");
+Throws(ManagedBridge.CheckReleased, "actors removed alone cannot complete release while player visibility is pending");
+var pendingVisibility = JsonNode.Parse(File.ReadAllText(Path.Combine(visibilityRetry, "managed_actor_lifecycle.json")))!;
+Check(!pendingVisibility["all_released"]!.GetValue<bool>() && !pendingVisibility["nonperforming_player"]!["restored"]!.GetValue<bool>(), "lifecycle exposes incomplete visibility restoration");
+var blockedSession = Path.Combine(root, "visibility-blocked"); Directory.CreateDirectory(blockedSession);
+Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", blockedSession); Throws(ManagedBridge.BindSession, "pending visibility restoration cannot be discarded by a new session");
+Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", visibilityRetry); ManagedBridge.MaintainStage();
+Check(!first.Actor.bHidden && !first.Mesh.bHiddenInGame, "maintenance stays disabled during a visibility restoration retry");
+ManagedBridge.Stop(); ManagedBridge.CheckReleased();
+Check(first.Mesh.bVisible && first.Handle.HoldEntityMap.Count == 0, "retry completes the remaining visibility restoration and releases retention");
+VisiblePlayer();
+VisibilitySession("identity-change"); ManagedBridge.ShowAtLocal();
+var firstComponent = first.Handle.Entity.GetComponent<CharacterActorComponent>();
+var replacementMesh = new USkeletalMeshComponent { Owner = first.Actor, bVisible = true, bHiddenInGame = false }; firstComponent.SkeletalMesh = replacementMesh;
+Throws(ManagedBridge.MaintainStage, "replacement player mesh is rejected before hiding"); Throws(ManagedBridge.Stop, "restoration never writes to a replacement mesh");
+Check(replacementMesh.bVisible && !replacementMesh.bHiddenInGame && first.Handle.HoldEntityMap.Count == 1, "replacement stays untouched and original visibility ownership remains pending");
+firstComponent.SkeletalMesh = first.Mesh; ManagedBridge.Stop(); ManagedBridge.CheckReleased();
+Check(!first.Actor.bHidden && first.Mesh.bVisible && !first.Mesh.bHiddenInGame, "verified original identity can finish restoration after replacement rejection");
+VisiblePlayer();
+VisibilitySession("control-change"); ManagedBridge.ShowAtLocal(); UGameplayStatics.Pawn = second.Actor;
+var secondHidden = second.Actor.bHidden; var secondVisible = second.Mesh.bVisible;
+Throws(ManagedBridge.MaintainStage, "control switch ends maintenance of the captured player");
+Check(second.Actor.bHidden == secondHidden && second.Mesh.bVisible == secondVisible, "control switch never hides an unacquired replacement player");
+ManagedBridge.Stop(); ManagedBridge.CheckReleased(); UGameplayStatics.Pawn = first.Actor;
+Check(!first.Actor.bHidden && first.Mesh.bVisible && !first.Mesh.bHiddenInGame, "cleanup restores the original player even after control changes");
+Console.WriteLine($"PASS: {assertions} synthetic managed borrowing assertions; mixed actors, rebased camera references, non-performing player visibility, and restoration retries. No game assemblies loaded.");

@@ -77,9 +77,16 @@ int main(){
     native::Access access;access.read=[](void*,uintptr_t from,void* to,size_t size){std::memcpy(to,(void*)from,size);return true;};
     Check(scene::NativeAuthority(authority.get(),access),"borrowed actor authority uses its own live graph without requiring player control");
     put(uint64_t(mesh.data())+0xa8,404);Check(!scene::NativeAuthority(authority.get(),access),"changed actor owner rejects publication authority");
-    unsigned maintenanceCalls=0;runtime.maintainUser=&maintenanceCalls;
-    runtime.maintainScene=[](void* value){++*static_cast<unsigned*>(value);return true;};runtime.maintenanceEnabled=true;
-    Check(scene::MaintainSceneFrame(nullptr)&&maintenanceCalls==1,"borrowed stage maintenance uses the configured game-thread action");
+    unsigned maintenanceCalls=0;
+    const auto maintenance=[](void* value){++*static_cast<unsigned*>(value);return true;};
+    // No camera target is available in this synthetic fixture, so installation
+    // cannot patch a hook. Exercise callback admission for both ownership sets.
+    for(auto& actor:runtime.actors)actor->ownership=native_animation_target::OwnerPolicy::OwnedUiActor;
+    Check(scene::InstallSceneMaintenance(maintenance,&maintenanceCalls)&&runtime.maintenanceEnabled.load(),"created-only scenes enable player visibility maintenance");
+    Check(scene::MaintainSceneFrame(nullptr)&&maintenanceCalls==1,"created-only visibility maintenance reaches the configured game-thread action");
+    report=scene::Status();Check(report.at("scene_maintenance")==true&&report.at("borrowed_stage_maintenance")==false,"created-only maintenance is not reported as borrowed-actor maintenance");
+    for(unsigned i=0;i<3;++i)runtime.actors[i]->ownership=native_animation_target::OwnerPolicy::SceneTeamMember;
+    report=scene::Status();Check(report.at("borrowed_stage_maintenance")==true,"mixed scene continues to report borrowed stage maintenance");
     runtime.actors[37]->features.face_state.backup[0].pending=true;
     Check(!scene::CloseAndRestore(GetTickCount64())&&runtime.maintenanceEnabled.load(),"borrowed evaluation maintenance stays active while late-actor restoration is pending");
     runtime.actors[37]->features.face_state.backup[0].pending=false;

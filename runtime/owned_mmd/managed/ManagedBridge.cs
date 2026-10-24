@@ -65,6 +65,13 @@ namespace WwPoser.ColdLoad
             public USkeletalMeshComponent Mesh;
             public string AssetName;
         }
+        private sealed class PlayerVisibility
+        {
+            public Candidate Target;
+            public ulong ActorAddress, MeshAddress;
+            public string HoldReason;
+            public bool ActorHidden, MeshVisible, MeshHidden, HoldAdded, Released;
+        }
         private sealed class Stage
         {
             public FVectorDouble Origin;
@@ -80,6 +87,7 @@ namespace WwPoser.ColdLoad
         private static string s_session;
         private static bool s_began, s_graphExported, s_maintenanceEnabled;
         private static Stage s_stage;
+        private static PlayerVisibility s_playerVisibility;
         private const string SessionVariable = "WWPOSER_OWNED_SESSION_DIR";
 
         private static FieldInfo Field(Type owner, string name)
@@ -119,7 +127,7 @@ namespace WwPoser.ColdLoad
         private static Dictionary<int, TsUiSceneRoleActor> Map(Owner owner) { return (Dictionary<int, TsUiSceneRoleActor>)Bind().Map.GetValue(owner.Manager); }
         private static bool Valid(UnrealObject value) { return !Object.ReferenceEquals(value, null) && value.IsValid(); }
         private static ulong Address(UnrealObject wrapper) { return (ulong)((IntPtr)Bind().NativePointer.GetValue(wrapper)).ToInt64(); }
-        private static bool AllReleased() { foreach (var owner in s_owners) if (!owner.Released) return false; return true; }
+        private static bool AllReleased() { foreach (var owner in s_owners) if (!owner.Released) return false; return s_playerVisibility == null || s_playerVisibility.Released; }
         public static void Probe() { Bind(); }
         public static void VerifySession()
         {
@@ -131,7 +139,7 @@ namespace WwPoser.ColdLoad
             var next = Path.GetFullPath(Environment.GetEnvironmentVariable(SessionVariable));
             if (String.Equals(next, s_session, StringComparison.OrdinalIgnoreCase)) return;
             if (!AllReleased()) throw new InvalidOperationException("Previous actors still require restoration.");
-            s_owners.Clear(); s_session = next; s_began = false; s_graphExported = false; s_maintenanceEnabled = false; s_stage = null;
+            s_owners.Clear(); s_session = next; s_began = false; s_graphExported = false; s_maintenanceEnabled = false; s_stage = null; s_playerVisibility = null;
         }
         private static List<Owner> Requests()
         {
@@ -250,6 +258,67 @@ namespace WwPoser.ColdLoad
             mesh.bPauseAnims = false; mesh.bNoSkeletonUpdate = false; mesh.bOnlyAllowAutonomousTickPose = false; mesh.bEnableUpdateRateOptimizations = false; mesh.bRenderStatic = false;
             mesh.VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption.AlwaysTickPoseAndRefreshBones;
         }
+        private static void ValidatePlayerVisibility(PlayerVisibility saved)
+        {
+            var target = saved.Target; var character = target.Actor as ACharacter;
+            if (!HandleCurrent(target.Handle, target.Entity) || !Valid(target.Actor) || !Valid(target.Mesh) ||
+                !Valid(character) || !Valid(character.Mesh) || Address(character.Mesh) != saved.MeshAddress ||
+                !Object.ReferenceEquals(target.Entity.GetComponent<CharacterActorComponent>(), target.Component) ||
+                Address(target.Actor) != saved.ActorAddress || Address(target.Mesh) != saved.MeshAddress ||
+                !Valid((AActor)Bind().ActorInternal.GetValue(target.Component)) || !Valid(target.Component.SkeletalMesh) ||
+                Address((AActor)Bind().ActorInternal.GetValue(target.Component)) != saved.ActorAddress || Address(target.Component.SkeletalMesh) != saved.MeshAddress)
+                throw new InvalidOperationException("Non-performing player identity changed; no replacement model will be modified.");
+        }
+        private static void HidePlayerModel(PlayerVisibility saved)
+        {
+            ValidatePlayerVisibility(saved);
+            var pawn = UGameplayStatics.GetPlayerPawn(s_owners[0].Actor, 0);
+            if (!Valid(pawn) || Address(pawn) != saved.ActorAddress) throw new InvalidOperationException("Controlled player changed during staging.");
+            if (!saved.Target.Actor.bHidden) saved.Target.Actor.SetActorHiddenInGame(true);
+            if (saved.Target.Mesh.bVisible) saved.Target.Mesh.SetVisibility(false, false);
+            if (!saved.Target.Mesh.bHiddenInGame) saved.Target.Mesh.SetHiddenInGame(true, false);
+        }
+        private static void HideNonPerformingPlayer()
+        {
+            if (s_playerVisibility != null) { if (!s_playerVisibility.Released) HidePlayerModel(s_playerVisibility); return; }
+            var pawn = UGameplayStatics.GetPlayerPawn(s_owners[0].Actor, 0) as ACharacter;
+            if (!Valid(pawn) || !Valid(pawn.Mesh)) throw new InvalidOperationException("Controlled player model is unavailable.");
+            var actorAddress = Address(pawn); var meshAddress = Address(pawn.Mesh);
+            // Instance identity matters: a created copy of the same character
+            // does not make the original controlled model a performer.
+            foreach (var owner in s_owners) if (Address(owner.Actor) == actorAddress || Address(owner.Mesh) == meshAddress) return;
+            Candidate target = null;
+            foreach (var candidate in CurrentTeam()) if (Address(candidate.Actor) == actorAddress && Address(candidate.Mesh) == meshAddress) { target = candidate; break; }
+            if (target == null) throw new InvalidOperationException("Cannot verify the non-performing controlled player's team identity.");
+            var saved = new PlayerVisibility { Target = target, ActorAddress = actorAddress, MeshAddress = meshAddress,
+                ActorHidden = pawn.bHidden, MeshVisible = pawn.Mesh.bVisible, MeshHidden = pawn.Mesh.bHiddenInGame,
+                HoldReason = "WWPoser:" + s_session + ":nonperforming-player" };
+            // Record ownership before the first mutation so partial failures
+            // use the same recovery path as actor setup failures.
+            s_playerVisibility = saved;
+            target.Handle.AddHoldEntity(saved.HoldReason); saved.HoldAdded = target.Handle.HoldEntityMap.ContainsKey(saved.HoldReason);
+            if (!saved.HoldAdded) throw new InvalidOperationException("Could not retain the non-performing player model.");
+            HidePlayerModel(saved);
+        }
+        private static void RestorePlayerVisibility()
+        {
+            var saved = s_playerVisibility; if (saved == null || saved.Released) return;
+            ValidatePlayerVisibility(saved); var target = saved.Target; var errors = new List<string>();
+            // Only display flags belong to this lease. Movement, collisions,
+            // animation and tick settings of the non-performer remain its own.
+            Attempt(delegate { target.Actor.SetActorHiddenInGame(saved.ActorHidden); }, errors, "actor_hidden");
+            Attempt(delegate { target.Mesh.SetVisibility(saved.MeshVisible, false); }, errors, "visible");
+            Attempt(delegate { target.Mesh.SetHiddenInGame(saved.MeshHidden, false); }, errors, "mesh_hidden");
+            Attempt(delegate { if (target.Actor.bHidden != saved.ActorHidden || target.Mesh.bVisible != saved.MeshVisible || target.Mesh.bHiddenInGame != saved.MeshHidden) throw new InvalidOperationException("player visibility readback differs"); }, errors, "readback");
+            if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
+            if (saved.HoldAdded || target.Handle.HoldEntityMap.ContainsKey(saved.HoldReason))
+            {
+                if (target.Handle.HoldEntityMap.ContainsKey(saved.HoldReason)) target.Handle.RemoveHoldEntity(saved.HoldReason);
+                if (target.Handle.HoldEntityMap.ContainsKey(saved.HoldReason)) throw new InvalidOperationException("Player visibility retention is still active.");
+                saved.HoldAdded = false;
+            }
+            saved.Released = true;
+        }
         public static void ShowAtLocal()
         {
             VerifySession(); foreach (var owner in s_owners) { Loaded(owner); if (owner.Before == null) owner.Before = Capture(owner); }
@@ -283,6 +352,7 @@ namespace WwPoser.ColdLoad
                 if (!owner.Borrowed) { UKuroRenderingRuntimeBPPluginBPLibrary.SetActorUISceneRendering(owner.Role, false); owner.Data.SetVisible(true); }
                 EnableEvaluation(owner); owner.Shown = true;
             }
+            HideNonPerformingPlayer();
             if (!s_stage.CameraReferenceCaptured)
             {
                 // Subtract in D_/global space, then let native camera code add
@@ -323,6 +393,7 @@ namespace WwPoser.ColdLoad
         {
             VerifySession(); if (!s_maintenanceEnabled) return; var errors = new List<string>();
             foreach (var owner in s_owners) if (owner.Borrowed && owner.Shown && !owner.Released) Attempt(delegate { Maintain(owner); }, errors, "slot " + owner.Slot.ToString(CultureInfo.InvariantCulture));
+            if (s_playerVisibility != null && !s_playerVisibility.Released) Attempt(delegate { HidePlayerModel(s_playerVisibility); }, errors, "non-performing player visibility");
             if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
         private static void Pointer(StringBuilder output, string name, UnrealObject value) { output.Append('"').Append(name).Append("\":\"0x").Append(Address(value).ToString("x", CultureInfo.InvariantCulture)).Append('"'); }
@@ -391,11 +462,14 @@ namespace WwPoser.ColdLoad
         {
             VerifySession(); s_maintenanceEnabled = false; var errors = new List<string>();
             foreach (var owner in s_owners) { if (owner.Released) continue; Attempt(delegate { if (owner.Borrowed) RestoreBorrowed(owner); else DestroyCreated(owner); }, errors, "slot " + owner.Slot.ToString(CultureInfo.InvariantCulture)); }
+            Attempt(RestorePlayerVisibility, errors, "non-performing player visibility");
             WriteLifecycle(); if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
         public static void CheckReleased()
         {
-            VerifySession(); foreach (var owner in s_owners)
+            VerifySession();
+            if (s_playerVisibility != null && (!s_playerVisibility.Released || s_playerVisibility.HoldAdded)) throw new InvalidOperationException("Non-performing player visibility still requires restoration.");
+            foreach (var owner in s_owners)
                 if (!owner.Released || (owner.Borrowed && owner.HoldAdded) || (!owner.Borrowed && owner.HasIndex && Map(owner).ContainsKey(owner.Index))) throw new InvalidOperationException("Actor slot still requires restoration: " + owner.Slot.ToString(CultureInfo.InvariantCulture));
         }
         private static void WriteLifecycle()
@@ -414,6 +488,15 @@ namespace WwPoser.ColdLoad
                 output.Append('}');
             }
             output.Append("],\"all_released\":").Append(AllReleased() ? "true" : "false");
+            if (s_playerVisibility != null)
+            {
+                var saved = s_playerVisibility;
+                output.Append(",\"nonperforming_player\":{\"actor\":\"0x").Append(saved.ActorAddress.ToString("x", CultureInfo.InvariantCulture))
+                    .Append("\",\"mesh\":\"0x").Append(saved.MeshAddress.ToString("x", CultureInfo.InvariantCulture))
+                    .Append("\",\"restored\":").Append(saved.Released ? "true" : "false").Append(",\"retained\":").Append(saved.HoldAdded ? "true" : "false")
+                    .Append(",\"original_actor_hidden\":").Append(saved.ActorHidden ? "true" : "false").Append(",\"original_mesh_visible\":").Append(saved.MeshVisible ? "true" : "false")
+                    .Append(",\"original_mesh_hidden\":").Append(saved.MeshHidden ? "true" : "false").Append('}');
+            }
             if (s_stage != null)
             {
                 // Absolute D_ coordinates remain placement diagnostics. Camera

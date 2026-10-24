@@ -68,6 +68,21 @@ stage transforms, visibility, and animation/tick settings. It never replaces
 the original snapshot. Stop disables this maintenance before attempting any
 restoration, including when a failed restore is retried later.
 
+When the controlled pawn's actual Actor/Mesh instance is absent from the staged
+performers, `ShowAtLocal` hides its Actor and main mesh by default, including in
+standing previews. A created copy of the same role is a separate instance. The
+bridge verifies the pawn against the same current-team/entity-version chain,
+retains it with a distinct session hold, and saves only its three display flags.
+It does not change its transform, collision, ticks or animation policy. Playback
+maintenance repairs those display flags in created-only scenes as well as mixed
+scenes. A control or mesh replacement stops maintenance without writing to the
+replacement. Native callbacks drain before `Stop` restores the original flags,
+checks readback and returns the hold. Partial setup and restoration failures
+remain retryable; `CheckReleased` and session rebinding also require this display
+lease to be restored. `managed_actor_lifecycle.json` records the lease under
+`nonperforming_player`, and `all_released` includes it. Previews apply the same
+initial hide and stop restoration without installing a playback callback.
+
 Static factory inspection found `UiSceneRoleActorManager.CreateUiSceneRoleActor`
 (`Aki.Game`, method `0x06017bee`) increments `CreateIndex`, calls
 `ActorSystem.Spawn<TsUiSceneRoleActor>`, initializes the result with the new index

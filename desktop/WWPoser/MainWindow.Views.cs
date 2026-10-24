@@ -141,7 +141,7 @@ public sealed partial class MainWindow
 
         var next = NavButton("下一步：站位与舞台", 1, primary: true);
         return Page("第一步 · 演员与动作", "选几位角色，再告诉 TA 们要跳什么。同一个角色可以添加好几次。", body, next, fill: true,
-            footnote: "开始时会优先请出当前队伍里的角色，其余演员会自动创建；演员和动作的更改在下次开始时生效。");
+            footnote: "开始时会优先请出当前队伍里的角色，其余演员会自动创建；主控未参演时自动隐藏模型，结束后恢复。演员和动作的更改在下次开始时生效。");
     }
 
     private FrameworkElement BuildStagePage()
