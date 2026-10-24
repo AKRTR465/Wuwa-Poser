@@ -1,0 +1,18 @@
+{
+  "hook_mode": "vmt_slot",
+  "publish_rva": "0x4ff3cd0",
+  "gobjects_rva": "0x99a3ff0",
+  "name_pool_rva": "0x9967340",
+  "vmt_rva": "0x843eb78",
+  "vmt_slot_offset": "0xab8",
+  "slot_rva": "0x843f630",
+  "component_owner": "0xa8",
+  "actor_root": "0x1a0",
+  "component_asset": "0x5d0",
+  "asset_skeleton": "0xd8",
+  "asset_ref_bone_info": "0x3b8",
+  "component_main_anim": "0x910",
+  "schema": 1,
+  "registered_game_thread_id_rva": "0x992f300",
+  "registered_game_thread_initialized_rva": "0x992f310"
+}

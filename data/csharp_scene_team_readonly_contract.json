@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "source_route": "csharp_managed_readonly",
+  "source_contract": "scene-team-csharp-managed-readonly-20261021-v1",
+  "status": "offline_business_implementation_pending_live_validation",
+  "diagnostic_only": true,
+  "binding_authorized": false,
+  "runtime_origin_verified": false,
+  "roster_two_frame_verified": false,
+  "native_join_verified": false,
+  "three_person_visual_verified": false,
+  "semantic_source": "analysis/stage_scan_20261021_offline/managed_il_review/roster_read_contract.json",
+  "game_assembly_sha256": "3a2e4684e387b43f075f60cd5a726f367a1eca1a0dc5389596b11be103ff2c21",
+  "core_assembly_sha256": "cc80f3b2c130dce51fbdea7b86a0fb44b71a2d1612a69d977b9f796a034e9b6c",
+  "physical_view_contract": "data/mono_managed_readonly_contract.json",
+  "entrypoint": "csharp_scene_team_readonly::Capture(View&, Origins) -> {roster,csharp_witness}",
+  "origin_requirement": "All class addresses and Game/Core/CoreLib image origins must come from fresh loaded assembly hashes plus cached class metadata/layout capture on the authorized current process. The business layer checks exact image/token identities and uses View.StaticReference to revalidate initialized static storage, field type/slot and singleton pointers. No saved address is an origin.",
+  "integer_contract": {
+    "player_id": "positive int32",
+    "role_id_and_config_id": "positive int32, exact equality without normalization",
+    "creature_data_id": "positive int64 JSON integer, preserved above JS safe integer limit",
+    "entity_id": "positive int32, uint32 index<<16 | generation",
+    "entity_index": "0..32767 including zero",
+    "entity_generation": "1..65535",
+    "group_type": "present Nullable<ETeamGroupType> from both player and model, exact equality, known -1..4; Default=0 is valid",
+    "living_state": "recorded known 0..2; Alive is a later display policy, not a roster filter"
+  },
+  "business_chain": [
+    "Read existing PlayerInfoModel._Instance, SceneTeamModel._Instance, CharacterModel._Instance, ObjectSystem._instance; reject null or uninitialized storage without getter.",
+    "PlayerInfoModel.Id -> TeamPlayerMap[pid], check player.PlayerId; present player/model CurrentGroupType -> GroupMap[group], check group PlayerId and GroupType.",
+    "RoleList exactly three nonnull distinct object references with positive distinct CreatureDataId/RoleId; CurrentRole must be one of those same references.",
+    "Enumerate bounded TeamItems, filter by PlayerId first, require exactly three local items and IsMyRoleInternal/group agreement; exact (RoleId==ConfigId,CreatureDataId) bijection, output RoleList order.",
+    "CurrentItem must be the exact matched local item for CurrentRole. Read only EntityHandleInternal cached reference, reject missing, PendingRemoving or CID mismatch.",
+    "Handle.Id/index -> CharacterModel.Handles[index] same handle reference; require initialized verified derived WorldEntity parent chain to Game WorldEntity then Core Entity/ObjectBase.",
+    "Read Id/Index under Core ObjectBase field_scope and FlagInternal under Core Entity field_scope; require handle/entity Id/index equality and init bit0x10 without clear bit0x80.",
+    "ObjectSystem.Objects[index] same entity reference and Versions[index]==Id&65535. Sparse access only requested slots with validated list counts/headers.",
+    "View.Revalidate compares all observed static, metadata, object, collection and field bytes before returning. One cached View is one observation, not two frames.",
+    "The caller must create fresh View captures in two strictly increasing engine frames, compare StableIdentity and complete the independent native/current-Pawn join. Display requires its own policy and user visual confirmation/restoration."
+  ],
+  "strict_idle_policy": {
+    "IsTeamReady": true,
+    "WaitTask": "null",
+    "LoadTeamPromise": "null",
+    "RequestingChangeRole": false,
+    "ChangingRoleTime": 0,
+    "IsSeamlessUpdateTeam": false,
+    "SeamlessUpdateTeamStartTime": 0,
+    "IsSeamlessUpdateTeamBlockInput": false,
+    "SeamlessDelayRemoveEntityHandle": "null",
+    "SeamlessWaitUpdateTeamTimer": "null",
+    "limitation": "This is a conservative initial capture policy. ChangingRoleTime may retain an expired nonzero timestamp until the game getter clears it; the reader never calls the getter or clears fields. FinishSeamlessUpdateTeam directly clears IsSeamlessUpdateTeam and SeamlessUpdateTeamStartTime, so the zero seamless timestamp check follows the observed finish lifecycle but is still a capture policy rather than proof of all possible writers."
+  },
+  "seamless_finish_evidence": {
+    "method_token": "0x06015e10",
+    "rva": "0x584448",
+    "body_sha256": "0a36c8d9c0e575ec3f496effadd87d48378b9afb02c132af1eb272e81b47f8ff",
+    "source_json": "analysis/stage_scan_20261021_offline/managed_il_review/game_team_il.json",
+    "il": "0..2 stfld IsSeamlessUpdateTeam=false; 7..10 stfld SeamlessUpdateTeamStartTime=0; 23..25 clears IsSeamlessUpdateTeamBlockInput when set. Saved IL evidence only, not executed by the reader."
+  },
+  "subtype_policy": "WorldEntity is not sealed. Derived runtime classes are accepted only when View validates initialized current metadata/layout and an acyclic bounded parent chain to each exact required base class. Field lookup always uses explicit declared field_scope; shadow fields cannot replace Core identity.",
+  "context_retained": ["IsPhantomTeam", "IsFixedLocation", "LivingState", "IsAutoRoleInternal", "RemoteIsControl", "OnStageWithoutControl"],
+  "forbidden": ["getter or runtime API", "class initialization", "cache repair", "field writes", "character switching", "take first three TeamItems", "visibility/Active roster filter", "Owner/name/camp membership inference", "missing slot fallback", "old address reuse"],
+  "witness": "Independent csharp_witness contains roots, current refs, collections/counts, transition fields, declared/runtime class scopes, handle/object slot agreement, raw entity flags and View revalidation evidence. It never supplies or impersonates V8 source witnesses.",
+  "fixture_validation": {
+    "target": "probes/v20_recon/build_csharp_scene_team_readonly_fixture.bat",
+    "scope": "Invented typed View checks business invariants and revalidation dependency; no game process access or runtime invocation. This fixture does not validate Mono physical offsets. Existing mono_managed_readonly_fixture is separately responsible for the real byte-level View.",
+    "status": "passed_offline_typed_view_only",
+    "checks_passed": 101,
+    "live_binding_proved": false
+  }
+}

@@ -1,0 +1,770 @@
+{
+  "schema": 1,
+  "offline_only": true,
+  "image_sha256": "7480ba1b3fa5efa319c12f29890c949eafa36cf7dd932602774f111a8dcffea5",
+  "PlayerController_PCM_offset": "0x360",
+  "PCM_static_base_vtable": "0x851ce50",
+  "native_update_slot": "0x790",
+  "native_base_update_rva": "0x542faa0",
+  "abi": {
+    "rcx": "PlayerCameraManager*",
+    "xmm1": "float DeltaTime",
+    "return": "void"
+  },
+  "post_update_overlay": {
+    "cache_pov": "0x2e50",
+    "previous_cache_pov": "0x38f0",
+    "fields": {
+      "location": [
+        0,
+        12
+      ],
+      "rotation": [
+        12,
+        12
+      ],
+      "fov": [
+        24,
+        4
+      ]
+    },
+    "timestamps_preserved": true,
+    "viewtarget_and_pawn_pointers_preserved": true
+  },
+  "functions": [
+    {
+      "label": "UpdateCamera",
+      "rva": "0x542faa0",
+      "end_rva": "0x542fe76",
+      "bytes": 982,
+      "sha256": "21edb5c33aa09ea9706cbf2401a02eb8261e49e7c85d237a0766766849e665d8",
+      "function_bytes_hex": "48895c242055488dac2420ebffffb8e0150000e8a8b7e201482be00f29b424d0150000488b057e1f25044833c448898570140000488bd90f28f1488b89b00200004883b938030000007416f6812c03000002740d488b01ff90c807000084c075148b838844000084c0790a0fbae0080f8339030000488b030f28ce488bcb440f29942490150000ff9038080000488bcbe8ebad95fff7838844000000020000f3440f10151c3bfd01f3410f5fc2f30f5ef0f30f58b3a4440000f30f11b3a44400000f84de0200008b8b2801000033d2e8ec37dcfd84c0740983bb300100000074108b8b28010000ba1a010000e8cf37dcfd488bcbe8870e96ff83f8030f85a30200004889bc24001600000f29bc24c0150000440f298424b0150000440f298c24a0150000440f299c2480150000e8ae693b00488bf8488b80280100004885c07513488b17488bcfff92c8030000488b8728010000f3440f109834030000488d95e0090000f30f10b038030000488bcb488b03ff9070070000488b03488d542450488bcbff90780700004c8bc3488d95e0090000488d4c2420e8034dcbff4c8bc3488d542450488d4c2430e8f14ccbfff3440f104c2420f3440f10442424f3440f5c4c2430f3440f5c442434f30f107c2428f30f5c7c2438488bbc2400160000410f28c1f30f59f6410f28d0f3410f59c1f3410f59d00f28cff30f59cff30f58d0f30f58d10f2fd6770e440f2f9ba44400000f830f010000f30f102569aba702f30f101dddd32a02f30f102d5dcdfc01f30f108df0090000f30f1095ec090000f30f59ccf30f59d4f30f59cbf30f59d3f30f58c9f30f58d2f30f58cdf30f58d5f30f2dc1f30f104c2460d1f8440fb7c0f30f2dc241c1e010f30f1054245cd1f80fb7c8f30f59cc440bc1f30f59d4f30f59cbf30f59d3f30f58c9f30f58d2f30f58cdf30f58d5f30f2dc1d1f80fb7d0c1e210f30f2dc2d1f80fb7c80bd1443bc27536f30f10059787fc01440f54c8450f2fca7724440f54c0450f2fc2771a0f54f8410f2ffa7711f30f1083a84400000f2f83a4440000732ff20f10442420488d5424408b442428488b8bb0020000f20f1144244089442448e8e42b4c00c783a44400000000000081a388440000fffdffff488b8d78090000440f289c2480150000440f288c24a0150000440f288424b01500000f28bc24c0150000c685d0090000004885c97405e85588cbfd488b8d100600004885c97405e84488cbfd488b8d08140000c68560140000004885c97405e82c88cbfd488b8da01000004885c97405e81b88cbfd440f28942490150000488b8d701400004833cce823afe201488b9c24081600000f28b424d01500004881c4e01500005dc3",
+      "range_rule": "manually validated contiguous unwind fragments through terminal ret, excludes jump-table/padding"
+    },
+    {
+      "label": "DoUpdateCamera",
+      "rva": "0x541f490",
+      "end_rva": "0x541fbf5",
+      "bytes": 1893,
+      "sha256": "89916523bb8bde019cd42d011c8aed9406b6fbf4e9ef5d64fac60a427d5c751d",
+      "function_bytes_hex": "4c8bdc4881ec680b0000488b05a72526044833c448898424d00a000049895b18488d919018000049896b20498973f849897bf0488bf94d8973e8488d4c2440450f2943b8450f294ba8450f295b88450f29a378ffffff440f28e1e81138aafff6878844000020450f57c9f3440f100531d5fd010f84de000000488b8fb00200004885c9741fe826cf030084c07416488b07488bcfff9070010000f30f10a888060000eb14488b07488bcfff9070010000f30f10a880060000f30f5caf30030000f30f5eaf2c030000410f2fe973050f57edeb05f3410f5de8410f2ee8f30f108720030000f30f10a714030000f30f109f28030000f30f5ce0f30f108f24030000f30f109718030000f30f5cd1f30f59e5f30f59d5f30f58e0f30f10871c030000f30f5cc3f30f58d1f30f59c5f30f58c3f30f114424380f28c48b4424380f14c2f20f118708030000898710030000750783a788440000df488db73023000048833e007409f687f42d000001752a488b97b0020000488d8f80180000e820cdffff488b07488d9780180000410f28d4488bcfff90680800000f29b424400b0000488d9790180000488d4c24400f29bc24300b0000e8c86bfffff3440f101ddbd3fd0133ed48392e0f8474020000f30f1087e02d0000488bce488b97b0020000f3410f5cc4f30f1187e02d0000e8b0ccffff488b07410f28d4488bd6488bcfff9068080000f30f108fe02d0000410f2fc90f86dd010000f30f1087e82d00000f57ff0fb687ec2d00000f28d0f30f5cd1f30f5ed083f8050f87d0000000488d152e09befa8b8c82f8fb41054803caffe10f28faf30f59fa0f28c7f30f593d48d3fd01f30f59c2f30f58c0f30f5cf8e99a000000f30f108ff02d00000f28c2e8a704e4010f28f8e982000000410f28c80f28c2f30f5e8ff02d0000e88b04e4010f28f8eb69410f2fd3f30f108ff02d00000f28daf30f58da73120f28c3e86904e4010f28f8f3410f59fbeb42f3410f5cd8410f28c0f30f5cc3e84d04e401410f28f8f30f5cf8f3410f58f8f3410f59fbeb1c488b8f002e00004885c9740d0f28cae82da3c5ff0f28f8eb030f28fa4038aff82d00000f84b3000000f6442470010f84a8000000f68770230000010f859b000000488b05716776044885c00f848b000000488b88c00c00004885c9747f488d542430440f299424000b0000e881d6d1fff3440f10542430450f2fd17656f30f10442434410f2fc1764af30f10b76c230000f3440f5ed0f30f108758230000f30f5905bb590502f3440f11976c230000e8a303e401f3440f5ed6f3410f59c2e83004e401f30f5905c671fe01f30f118758230000440f289424000b0000488d9790180000488d4c2440e8a469ffff488d97402300000f28d7488d4c2440e860b4aaffeb4e488b06488d5610488d8f9018000048898780180000e87469ffff488b86a00a0000488d974023000048898720230000488d4c244048892e89afe02d0000e84c69ffff488d8f082e0000e8c03c5efb8b9f884400004c8bb424500b0000488bb424600b0000f6c3040f84fa0100008bc30fbae30c0f8399010000f30f10bfdc430000f30f108fd8430000f3410f5cfc410f2fc9f3410f5ff9f30f11bfdc4300000f864d0100000fb68f040300000f28c7410f28d0f30f5ec1f30f5cd085c90f840b01000083e9010f84f400000083e9010f848d00000083e901744f83f90174118b87d0430000898700030000e902010000f30f108fd0430000f30f59c0f30f59c0f3440f5cc0f30f1087d4430000f30f5cc1f3440f59c0f3440f58c1f3440f118700030000e9c9000000f30f59154d70fe01f30f10b7d04300000f28c2e8e301e401f30f108fd4430000f30f5ccef30f59c1f30f58c6f30f118700030000e990000000410f2fd37318440f28c2f3440f59c2f30f5915fde0ff01f3440f59c2eb25f30f100d7e3cfe01f30f58d2f30f5cca0f28c1f30f59c1f3410f59cbf30f59c1f3440f5cc0f30f1087d0430000f30f108fd4430000f30f5cc8f3410f59c8eb268b87d4430000898700030000eb24f30f1087d0430000f30f108fd4430000f30f5cc8f30f59caf30f58c8f30f118f000300008bc30fbae30b7218410f2ff97712488b07488bcfff90f00800008b8788440000a808740c488b07488bcfff9058080000392d26607504743d892d1e607504488bcf488b07ff90f0080000803d13fd5004057222488d056226100341b9050000004c8d0501fd5004488944242033d233c9e8a775d3fd488b07488bcfff9050080000440f28a424e00a0000440f289c24f00a0000440f288c24100b0000440f288424200b00000f28bc24300b00000f28b424400b0000488b9c24800b000084c07432488b07488d542440488bcfff90400800008b8f884400000fbae10a720484c07405bd000400000fbaf10a0bcd898f88440000488d542440488bcfe8fc2400008b87203900003387802e0000488bac24880b0000a8017511f30f10877c2e00000f2e871c390000740c488d8f202e0000e8e7395efb488b8c24680a0000488bbc24580b0000c68424c00a0000004885c97405e8958accfd488b8c24000700004885c97405e8838accfd488b8c24d00a00004833cce893b1e3014881c4680b0000c3",
+      "range_rule": "manually validated contiguous unwind fragments through terminal ret, excludes jump-table/padding"
+    },
+    {
+      "label": "UpdateViewTarget",
+      "rva": "0x5430b30",
+      "end_rva": "0x543155e",
+      "bytes": 2606,
+      "sha256": "eb85e291bf26d7e6e87404d13f2c135237047a07e97bfec315ee1cae08e33ee9",
+      "function_bytes_hex": "40555357488dac2470eaffffb890160000e81aa7e201482be0440f299c2410160000488b05ef0e25044833c4488985001500004883b93023000000440f28da488bfa488bd97446f681f42d000001743d488b81801800004839027531488b8120230000483982a00a00007521488d4a10488d9390180000e83441aaff84c0740d80bbf82d0000000f84a90700004889b424c8160000488d57104c89ac2480160000488d8d700a00004c89b42478160000e81b21a9ff8b83cc0200008947288b83d40200008947308b83dc02000089473c8b8b884400008b474083e10283c90483e0fed1e90bc8894f40488d4df08b838844000083e001884744e8f2a80a00488bd0488d4f50e8c6a407fc488b8dd80900004885c97405e8157acbfd488b8d700600004885c97405e8047acbfd4533ed4c89a424881600004489af080600004489af3c080000488b374c89bc2470160000c747480000803f4885f60f848d000000e80baa3700488b56104c8d4038486340403b42407f77488bc8488b42384c3904c8756a488b8eb80200004c8d4710410f28cb488b01ff90b00500008b152f1a800465488b04255800000041b8f8050000488b04d0418b0c00390d864e74040f8fd80600008b056e4e74043983c00200000f85a00500008b05644e74043983c80200000f858e050000e96805000065488b0425580000008b0dd419800441b8f8050000458bf84c8b24c8438b04043905414e74040f8fc6060000438b043c3905414e74040f8ff9060000438b043c3905414e74040f8f2c070000438b043c3905414e74040f8f5f070000438b043c3905414e74040f8f920700008b8bc00200003b0de34d740475238b05e34d74043983c80200007515488d95700a0000488d4f10e85b54feffe9cb0400003b0dc84d7404750e8b05c84d74043983c802000074343b0dc24d7404750e8b05c24d74043983c8020000741e3b0dbc4d74040f85660400008b05b84d74043983c80200000f8554040000488b0f0f29b424601600000f29bc2450160000440f29842440160000488b81a0010000440f298c2430160000440f299424201600004885c074260f1088f00100000f28c1f30f114c24600fc6c1550fc6c9aaf30f114c2468f30f11442464eb18f20f1005b4424d048b05b6424d04f20f1144246089442468488d442460f20f10008b4008f20f11442478894580488bb1a00100004885f6745a0f108ee00100000f1086a00100000fc2c1040f50c00f294da085c0742d488d542450488d4da00f118ea0010000e84116d4fdf20f1000f20f1186b00100008b40088986b8010000488b0ff20f1086b00100008b86b8010000eb0ef20f100531424d048b0533424d044c8b83b002000089442458488d442450f20f11442450f20f10008b4008f20f114588894590493bc87521498b00488d542450498bc8ff90900e0000f20f1000f20f114424788b40088945808b8bc00200003b0d3c4c7404750e8b053c4c74043983c802000074163b0d364c740475328b05364c74043983c80200007524488b8bb0020000488d542450488b01ff9080070000f20f1000f20f1145888b4008894590f30f107580488d5588f3440f1044247c488d4db0f3440f10542478f30f58b3b8430000f3440f5883b4430000f3440f5893b0430000e8805db4fbf30f1083a8430000488d542450f30f108bac430000488d4d88f3440f108ba44300000f57d2450fc6c9e1f3440f10c8450fc6c9c6f3440f10c9450fc6c927f3440f10ca450fc6c939440f294c2450410f28c1410f28d1410fc6c1550f594010410f28c9410fc6c9000f5908410fc6d1ff0f595030450fc6c9aa0f58c8440f594820440f58ca440f58c9410f28f9410fc6f9aaf30f58fe410f28f1410fc6f155f3410f58f0e88759d4fdf30f1093a0430000f3450f58ca440f289424201600000f28c2440f288424401600000f28caf30f594008f30f594804f30f5910f30f5cf8438b043c39050a4b7404f30f5cf1f3440f5ccaf30f117c24680f28bc2450160000f30f117424640f28b42460160000f3440f114c2460440f288c24301600000f8f84020000f20f1005bb4a74044c8d4424708b05b84a7404488d5424504533c9f20f11442450488d8df00900008944245848895c2420e845bcabff488b17488d8df0090000e896ccabff0f57c033c00f1145f0898580000000488bcb488b030f1145000f1145100f1145200f1145300f1145400f1145500f1145600f114570f30f1005adb8fc01f30f1145f8ff90700100006644896c2448488d0d01d9710448894c24404c8d4c2460488d8df0090000c74424500100000048894c24384c8d442478488d4c2450c74424540000404148894c2430488d55f0488d0d31ddfe03c74424280400000048894c2420488bc8c744245800004041c744245c00004041e80c0ab0fff645f001488d4d00488d442460480f45c1488b8d580a0000f20f10008b4008f20f114710f20f1045888947188b4590f20f11471c8947244885c97405e81b74cbfd488b8d380a00004885c97434e80a74cbfdeb2d3b0d5a49740475338b055a4974043983c80200007525488b0f4c8d471c4533c9488d5710488b01ff9008070000f78388440000002000007432eb13488b03410f28d3488bd7488bcbff9038090000f3440f599bac4400004c8d4710488b03488bcb410f28cbff90c0070000f20f10471c4c8d4424508b4724488d542460f20f114424504533c9f20f104710488bcb894424588b471844886c2428f20f11442460894424684c896c2420e82a8796ff488b03488bd7488bcbff9070080000488b8d981400004c8bbc24701600004c8bb424781600004c8ba42488160000488bb424c81600004488adf01400004c8bac24801600004885c97405e80b73cbfd488b8d301100004885c97405e8fa72cbfd488b8d001500004833cce80b9ae201440f289c24101600004881c4901600005f5b5dc3488d0d44487404e8f794e201833d38487404ff0f8563fdffff41b801000000488d15f90c0f03488d0d12487404e865e6dbfd488d0d12487404e86594e201e939fdffff488d0da1477404e8b494e201833d95477404ff0f850ff9ffff41b801000000488d15be0c0f03488d0d6f477404e852e7dbfd488d0d6f477404e82294e201e9e5f8ffff488d0d6e477404e87194e201833d62477404ff0f8521f9ffff41b801000000488d15930c0f03488d0d3c477404e80fe7dbfd488d0d3c477404e8df93e201e9f7f8ffff488d0d3b477404e82e94e201833d2f477404ff0f85eef8ffff41b801000000488d15100dfe02488d0d09477404e8cce6dbfd488d0d09477404e89c93e201e9c4f8ffff488d0d08477404e8eb93e201833dfc467404ff0f85bbf8ffff41b801000000488d1505360e03488d0dd6467404e889e6dbfd488d0dd6467404e85993e201e991f8ffff488d0dd5467404e8a893e201833dc9467404ff0f8588f8ffff41b801000000488d15d2350e03488d0da3467404e846e6dbfd488d0da3467404e81693e201e95ef8ffff488d0da2467404e86593e201833d96467404ff0f8555f8ffff41b801000000488d15970b0f03488d0d70467404e803e6dbfd488d0d70467404e8d392e201e92bf8ffff",
+      "range_rule": "manually validated contiguous unwind fragments through terminal ret, excludes jump-table/padding"
+    },
+    {
+      "label": "PlayerController_UpdateCameraManager",
+      "rva": "0x545e290",
+      "end_rva": "0x545e3d1",
+      "bytes": 321,
+      "sha256": "eb88a8949eb2576e2e7cd137398c49df8bccbbd6e0a4183ab878d7978284aa11",
+      "function_bytes_hex": "4053574883ec38486391700300000f297424200f28f14c896c24604c8be985d20f84bb000000488b816803000033ff48896c24504889742458488bf24c897424684533f64839384c897c2430410f95c733db4c63cf48ffc3ffc7483bde7d2b498b8568030000410fb6d7488d0cd8669033c04839010f95c03bd0750effc748ffc34883c108483bde7ce68bef412be94584ff7426453bf1741e498b8d680300004963c64c63c549c1e0034a8d14c9488d0cc1e8b117e0014403f54180f701418bd6483bde7c8c4c8b7c2430488b742458488b6c24504589b5700300004c8b742468498b8d600300004885c97413488b010f28ceff9090070000418b9570030000498b9d680300004c8b6c24604863c2488d3cc3483bdf741d488b0b4885c9740c488b010f28ceff90900700004883c308483bdf75e30f287424204883c4385f5bc3",
+      "range_rule": "manually validated contiguous unwind fragments through terminal ret, excludes jump-table/padding"
+    },
+    {
+      "label": "callee_of_PCM_vslot_0x798",
+      "rva": "0x5422070",
+      "end_rva": "0x542218e",
+      "bytes": 286,
+      "sha256": "5c5230e5955b67fcf3428767f0458eb8bc96592555ec1f544cb9b6df2be017ea",
+      "function_bytes_hex": "488bc448897020574881ece00a00000f2970e80f2978d8488b05baf925044833c448898424b00a0000f30f10b9402e0000488bf9488b89b0020000488bf24885c9741fe888a3030084c07416488b07488bcfff9070010000f30f10b088060000eb14488b07488bcfff9070010000f30f10b0800600000f2efe746148899c24000b0000488d542420488b1f488bcfff9370070000488bd0488bcfff9368070000488b8c24480a0000488b9c24000b0000c68424a00a0000004885c97405e82e65ccfd488b8c24e00600004885c97405e81c65ccfdf30f11bfe0380000488b07488bd6488bcfff9060070000f30f11b7402e0000488b8c24b00a00004833cce80d8ce3014c8d9c24e00a0000498b7328410f2873f0410f287be0498be35fc3",
+      "unwind_fragment": [
+        "0x5422070",
+        "0x54220eb",
+        "0x9172598"
+      ],
+      "end_rule": "decode through first unwind fragment end; stop at subsequent INT3 padding after a RET",
+      "instructions": [
+        {
+          "rva": "0x5422070",
+          "bytes": "488bc4",
+          "text": "mov rax, rsp"
+        },
+        {
+          "rva": "0x5422073",
+          "bytes": "48897020",
+          "text": "mov qword ptr [rax + 0x20], rsi"
+        },
+        {
+          "rva": "0x5422077",
+          "bytes": "57",
+          "text": "push rdi"
+        },
+        {
+          "rva": "0x5422078",
+          "bytes": "4881ece00a0000",
+          "text": "sub rsp, 0xae0"
+        },
+        {
+          "rva": "0x542207f",
+          "bytes": "0f2970e8",
+          "text": "movaps xmmword ptr [rax - 0x18], xmm6"
+        },
+        {
+          "rva": "0x5422083",
+          "bytes": "0f2978d8",
+          "text": "movaps xmmword ptr [rax - 0x28], xmm7"
+        },
+        {
+          "rva": "0x5422087",
+          "bytes": "488b05baf92504",
+          "text": "mov rax, qword ptr [rip + 0x425f9ba]",
+          "rip_references": [
+            {
+              "base": "rip",
+              "index": null,
+              "scale": 1,
+              "disp": "0x425f9ba",
+              "operand_size": 8,
+              "target_rva": "0x9681a48"
+            }
+          ]
+        },
+        {
+          "rva": "0x542208e",
+          "bytes": "4833c4",
+          "text": "xor rax, rsp"
+        },
+        {
+          "rva": "0x5422091",
+          "bytes": "48898424b00a0000",
+          "text": "mov qword ptr [rsp + 0xab0], rax"
+        },
+        {
+          "rva": "0x5422099",
+          "bytes": "f30f10b9402e0000",
+          "text": "movss xmm7, dword ptr [rcx + 0x2e40]"
+        },
+        {
+          "rva": "0x54220a1",
+          "bytes": "488bf9",
+          "text": "mov rdi, rcx"
+        },
+        {
+          "rva": "0x54220a4",
+          "bytes": "488b89b0020000",
+          "text": "mov rcx, qword ptr [rcx + 0x2b0]"
+        },
+        {
+          "rva": "0x54220ab",
+          "bytes": "488bf2",
+          "text": "mov rsi, rdx"
+        },
+        {
+          "rva": "0x54220ae",
+          "bytes": "4885c9",
+          "text": "test rcx, rcx"
+        },
+        {
+          "rva": "0x54220b1",
+          "bytes": "741f",
+          "text": "je 0x1454220d2"
+        },
+        {
+          "rva": "0x54220b3",
+          "bytes": "e888a30300",
+          "text": "call 0x14545c440"
+        },
+        {
+          "rva": "0x54220b8",
+          "bytes": "84c0",
+          "text": "test al, al"
+        },
+        {
+          "rva": "0x54220ba",
+          "bytes": "7416",
+          "text": "je 0x1454220d2"
+        },
+        {
+          "rva": "0x54220bc",
+          "bytes": "488b07",
+          "text": "mov rax, qword ptr [rdi]"
+        },
+        {
+          "rva": "0x54220bf",
+          "bytes": "488bcf",
+          "text": "mov rcx, rdi"
+        },
+        {
+          "rva": "0x54220c2",
+          "bytes": "ff9070010000",
+          "text": "call qword ptr [rax + 0x170]"
+        },
+        {
+          "rva": "0x54220c8",
+          "bytes": "f30f10b088060000",
+          "text": "movss xmm6, dword ptr [rax + 0x688]"
+        },
+        {
+          "rva": "0x54220d0",
+          "bytes": "eb14",
+          "text": "jmp 0x1454220e6"
+        },
+        {
+          "rva": "0x54220d2",
+          "bytes": "488b07",
+          "text": "mov rax, qword ptr [rdi]"
+        },
+        {
+          "rva": "0x54220d5",
+          "bytes": "488bcf",
+          "text": "mov rcx, rdi"
+        },
+        {
+          "rva": "0x54220d8",
+          "bytes": "ff9070010000",
+          "text": "call qword ptr [rax + 0x170]"
+        },
+        {
+          "rva": "0x54220de",
+          "bytes": "f30f10b080060000",
+          "text": "movss xmm6, dword ptr [rax + 0x680]"
+        },
+        {
+          "rva": "0x54220e6",
+          "bytes": "0f2efe",
+          "text": "ucomiss xmm7, xmm6"
+        },
+        {
+          "rva": "0x54220e9",
+          "bytes": "7461",
+          "text": "je 0x14542214c"
+        },
+        {
+          "rva": "0x54220eb",
+          "bytes": "48899c24000b0000",
+          "text": "mov qword ptr [rsp + 0xb00], rbx"
+        },
+        {
+          "rva": "0x54220f3",
+          "bytes": "488d542420",
+          "text": "lea rdx, [rsp + 0x20]"
+        },
+        {
+          "rva": "0x54220f8",
+          "bytes": "488b1f",
+          "text": "mov rbx, qword ptr [rdi]"
+        },
+        {
+          "rva": "0x54220fb",
+          "bytes": "488bcf",
+          "text": "mov rcx, rdi"
+        },
+        {
+          "rva": "0x54220fe",
+          "bytes": "ff9370070000",
+          "text": "call qword ptr [rbx + 0x770]"
+        },
+        {
+          "rva": "0x5422104",
+          "bytes": "488bd0",
+          "text": "mov rdx, rax"
+        },
+        {
+          "rva": "0x5422107",
+          "bytes": "488bcf",
+          "text": "mov rcx, rdi"
+        },
+        {
+          "rva": "0x542210a",
+          "bytes": "ff9368070000",
+          "text": "call qword ptr [rbx + 0x768]"
+        },
+        {
+          "rva": "0x5422110",
+          "bytes": "488b8c24480a0000",
+          "text": "mov rcx, qword ptr [rsp + 0xa48]"
+        },
+        {
+          "rva": "0x5422118",
+          "bytes": "488b9c24000b0000",
+          "text": "mov rbx, qword ptr [rsp + 0xb00]"
+        },
+        {
+          "rva": "0x5422120",
+          "bytes": "c68424a00a000000",
+          "text": "mov byte ptr [rsp + 0xaa0], 0"
+        },
+        {
+          "rva": "0x5422128",
+          "bytes": "4885c9",
+          "text": "test rcx, rcx"
+        },
+        {
+          "rva": "0x542212b",
+          "bytes": "7405",
+          "text": "je 0x145422132"
+        },
+        {
+          "rva": "0x542212d",
+          "bytes": "e82e65ccfd",
+          "text": "call 0x1430e8660"
+        },
+        {
+          "rva": "0x5422132",
+          "bytes": "488b8c24e0060000",
+          "text": "mov rcx, qword ptr [rsp + 0x6e0]"
+        },
+        {
+          "rva": "0x542213a",
+          "bytes": "4885c9",
+          "text": "test rcx, rcx"
+        },
+        {
+          "rva": "0x542213d",
+          "bytes": "7405",
+          "text": "je 0x145422144"
+        },
+        {
+          "rva": "0x542213f",
+          "bytes": "e81c65ccfd",
+          "text": "call 0x1430e8660"
+        },
+        {
+          "rva": "0x5422144",
+          "bytes": "f30f11bfe0380000",
+          "text": "movss dword ptr [rdi + 0x38e0], xmm7"
+        },
+        {
+          "rva": "0x542214c",
+          "bytes": "488b07",
+          "text": "mov rax, qword ptr [rdi]"
+        },
+        {
+          "rva": "0x542214f",
+          "bytes": "488bd6",
+          "text": "mov rdx, rsi"
+        },
+        {
+          "rva": "0x5422152",
+          "bytes": "488bcf",
+          "text": "mov rcx, rdi"
+        },
+        {
+          "rva": "0x5422155",
+          "bytes": "ff9060070000",
+          "text": "call qword ptr [rax + 0x760]"
+        },
+        {
+          "rva": "0x542215b",
+          "bytes": "f30f11b7402e0000",
+          "text": "movss dword ptr [rdi + 0x2e40], xmm6"
+        },
+        {
+          "rva": "0x5422163",
+          "bytes": "488b8c24b00a0000",
+          "text": "mov rcx, qword ptr [rsp + 0xab0]"
+        },
+        {
+          "rva": "0x542216b",
+          "bytes": "4833cc",
+          "text": "xor rcx, rsp"
+        },
+        {
+          "rva": "0x542216e",
+          "bytes": "e80d8ce301",
+          "text": "call 0x14725ad80"
+        },
+        {
+          "rva": "0x5422173",
+          "bytes": "4c8d9c24e00a0000",
+          "text": "lea r11, [rsp + 0xae0]"
+        },
+        {
+          "rva": "0x542217b",
+          "bytes": "498b7328",
+          "text": "mov rsi, qword ptr [r11 + 0x28]"
+        },
+        {
+          "rva": "0x542217f",
+          "bytes": "410f2873f0",
+          "text": "movaps xmm6, xmmword ptr [r11 - 0x10]"
+        },
+        {
+          "rva": "0x5422184",
+          "bytes": "410f287be0",
+          "text": "movaps xmm7, xmmword ptr [r11 - 0x20]"
+        },
+        {
+          "rva": "0x5422189",
+          "bytes": "498be3",
+          "text": "mov rsp, r11"
+        },
+        {
+          "rva": "0x542218c",
+          "bytes": "5f",
+          "text": "pop rdi"
+        },
+        {
+          "rva": "0x542218d",
+          "bytes": "c3",
+          "text": "ret "
+        }
+      ],
+      "direct_edges": [
+        {
+          "from_rva": "0x54220b3",
+          "target_rva": "0x545c440",
+          "kind": "call"
+        },
+        {
+          "from_rva": "0x54220d0",
+          "target_rva": "0x54220e6",
+          "kind": "jmp"
+        },
+        {
+          "from_rva": "0x542212d",
+          "target_rva": "0x30e8660",
+          "kind": "call"
+        },
+        {
+          "from_rva": "0x542213f",
+          "target_rva": "0x30e8660",
+          "kind": "call"
+        },
+        {
+          "from_rva": "0x542216e",
+          "target_rva": "0x725ad80",
+          "kind": "call"
+        }
+      ],
+      "memory_operands": [
+        {
+          "instruction_rva": "0x5422073",
+          "text": "mov qword ptr [rax + 0x20], rsi",
+          "base": "rax",
+          "index": null,
+          "scale": 1,
+          "disp": "0x20",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x542207f",
+          "text": "movaps xmmword ptr [rax - 0x18], xmm6",
+          "base": "rax",
+          "index": null,
+          "scale": 1,
+          "disp": "-0x18",
+          "operand_size": 16
+        },
+        {
+          "instruction_rva": "0x5422083",
+          "text": "movaps xmmword ptr [rax - 0x28], xmm7",
+          "base": "rax",
+          "index": null,
+          "scale": 1,
+          "disp": "-0x28",
+          "operand_size": 16
+        },
+        {
+          "instruction_rva": "0x5422091",
+          "text": "mov qword ptr [rsp + 0xab0], rax",
+          "base": "rsp",
+          "index": null,
+          "scale": 1,
+          "disp": "0xab0",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x5422099",
+          "text": "movss xmm7, dword ptr [rcx + 0x2e40]",
+          "base": "rcx",
+          "index": null,
+          "scale": 1,
+          "disp": "0x2e40",
+          "operand_size": 4
+        },
+        {
+          "instruction_rva": "0x54220a4",
+          "text": "mov rcx, qword ptr [rcx + 0x2b0]",
+          "base": "rcx",
+          "index": null,
+          "scale": 1,
+          "disp": "0x2b0",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x54220c2",
+          "text": "call qword ptr [rax + 0x170]",
+          "base": "rax",
+          "index": null,
+          "scale": 1,
+          "disp": "0x170",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x54220c8",
+          "text": "movss xmm6, dword ptr [rax + 0x688]",
+          "base": "rax",
+          "index": null,
+          "scale": 1,
+          "disp": "0x688",
+          "operand_size": 4
+        },
+        {
+          "instruction_rva": "0x54220d8",
+          "text": "call qword ptr [rax + 0x170]",
+          "base": "rax",
+          "index": null,
+          "scale": 1,
+          "disp": "0x170",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x54220de",
+          "text": "movss xmm6, dword ptr [rax + 0x680]",
+          "base": "rax",
+          "index": null,
+          "scale": 1,
+          "disp": "0x680",
+          "operand_size": 4
+        },
+        {
+          "instruction_rva": "0x54220eb",
+          "text": "mov qword ptr [rsp + 0xb00], rbx",
+          "base": "rsp",
+          "index": null,
+          "scale": 1,
+          "disp": "0xb00",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x54220f3",
+          "text": "lea rdx, [rsp + 0x20]",
+          "base": "rsp",
+          "index": null,
+          "scale": 1,
+          "disp": "0x20",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x54220fe",
+          "text": "call qword ptr [rbx + 0x770]",
+          "base": "rbx",
+          "index": null,
+          "scale": 1,
+          "disp": "0x770",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x542210a",
+          "text": "call qword ptr [rbx + 0x768]",
+          "base": "rbx",
+          "index": null,
+          "scale": 1,
+          "disp": "0x768",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x5422110",
+          "text": "mov rcx, qword ptr [rsp + 0xa48]",
+          "base": "rsp",
+          "index": null,
+          "scale": 1,
+          "disp": "0xa48",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x5422118",
+          "text": "mov rbx, qword ptr [rsp + 0xb00]",
+          "base": "rsp",
+          "index": null,
+          "scale": 1,
+          "disp": "0xb00",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x5422120",
+          "text": "mov byte ptr [rsp + 0xaa0], 0",
+          "base": "rsp",
+          "index": null,
+          "scale": 1,
+          "disp": "0xaa0",
+          "operand_size": 1
+        },
+        {
+          "instruction_rva": "0x5422132",
+          "text": "mov rcx, qword ptr [rsp + 0x6e0]",
+          "base": "rsp",
+          "index": null,
+          "scale": 1,
+          "disp": "0x6e0",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x5422144",
+          "text": "movss dword ptr [rdi + 0x38e0], xmm7",
+          "base": "rdi",
+          "index": null,
+          "scale": 1,
+          "disp": "0x38e0",
+          "operand_size": 4
+        },
+        {
+          "instruction_rva": "0x5422155",
+          "text": "call qword ptr [rax + 0x760]",
+          "base": "rax",
+          "index": null,
+          "scale": 1,
+          "disp": "0x760",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x542215b",
+          "text": "movss dword ptr [rdi + 0x2e40], xmm6",
+          "base": "rdi",
+          "index": null,
+          "scale": 1,
+          "disp": "0x2e40",
+          "operand_size": 4
+        },
+        {
+          "instruction_rva": "0x5422163",
+          "text": "mov rcx, qword ptr [rsp + 0xab0]",
+          "base": "rsp",
+          "index": null,
+          "scale": 1,
+          "disp": "0xab0",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x5422173",
+          "text": "lea r11, [rsp + 0xae0]",
+          "base": "rsp",
+          "index": null,
+          "scale": 1,
+          "disp": "0xae0",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x542217b",
+          "text": "mov rsi, qword ptr [r11 + 0x28]",
+          "base": "r11",
+          "index": null,
+          "scale": 1,
+          "disp": "0x28",
+          "operand_size": 8
+        },
+        {
+          "instruction_rva": "0x542217f",
+          "text": "movaps xmm6, xmmword ptr [r11 - 0x10]",
+          "base": "r11",
+          "index": null,
+          "scale": 1,
+          "disp": "-0x10",
+          "operand_size": 16
+        },
+        {
+          "instruction_rva": "0x5422184",
+          "text": "movaps xmm7, xmmword ptr [r11 - 0x20]",
+          "base": "r11",
+          "index": null,
+          "scale": 1,
+          "disp": "-0x20",
+          "operand_size": 16
+        }
+      ]
+    }
+  ],
+  "runtime_helper": "playback/ww_camera_runtime.h",
+  "source_hashes": {
+    "playback/ww_camera_runtime.h": "8b376002650ab3ebc9a0c6a70d0cbd04898770d83354e3de4a6e7d89bd8d32f6",
+    "playback/ww_camera_runtime_test.cpp": "1dff48e6a9b6c1f5fecb305e5700c6fdc1f3a8c069b2dd95870c853f0fc953b9",
+    "playback/ww_camera_runtime_test.bat": "76b4761aa07e8870c1f83aaf65b4d494ba46ff05fa92c2617b11ca8861394d07",
+    "playback/ww_world_snapshot.h": "be0391d36aaafb716aa1b22ebab79c5d58296cf14d51189195a8fc1dda737665",
+    "playback/ww_world_snapshot_test.cpp": "d5cb498ffc41edfdc557ed3abe9b7e6a401523d15ffc6f52b6ebef0c47934788",
+    "playback/ww_camera_basis_test.cpp": "348523744a415f2dfba07c7c5503a586780dc80d3ab767488eb81f68e326ff8d",
+    "playback/ww_retarget.h": "f19a188b54f7a2d6a472cb37fc92e9bc56cf4e397801d5bf1ec20bdba594d9a4"
+  },
+  "fixture": {
+    "cases": 11,
+    "checks": 231302,
+    "failures": 0
+  },
+  "scope": {
+    "live_pcm_token": "fresh controller+360 pointer; GObjects item index/serial, class, outer, vtable; class ancestry verified PlayerCameraManager",
+    "native_update_target": "fresh read live_pcm.vtable+790; validate bytes from exact current module; do not assume base implementation for derived override",
+    "installed_dispatch_target": "set Prepared.installed_dispatch_target to exact installed detour address while shared slot patched; phase.update_target remains original native function",
+    "thread_phase": "post original UpdateCamera on observed game thread; separate camera busy guard/cursor; no callback allocation",
+    "restore": "at stop on same PCM/controller/update/session/thread, restore exact still-owned fields; preserve original native recompute; uncertainty stays pending"
+  },
+  "limitations": [
+    "Static base vtable facts do not select a live Kuro subclass override.",
+    "Fixed overlay writes only location/rotation/FOV; actor root transforms, viewtarget pointers, aspect, orthographic flags and postprocess remain engine owned.",
+    "No camera native API, game process, IDA or hook installation was executed by the offline fixture.",
+    "World placement must use explicit session actor ComponentToWorld/basis/units; local Root0 pose is not a world camera anchor.",
+    "Camera renderer consumption after this phase and live visual behavior still require the root controlled test."
+  ],
+  "world_anchor": {
+    "Actor_RootComponent_offset": "0x1a0",
+    "SceneComponent_ComponentToWorld_offset": "0x1e0",
+    "FTransform48": {
+      "rotation_xyzw": [
+        0,
+        16
+      ],
+      "translation": [
+        16,
+        12
+      ],
+      "scale": [
+        32,
+        12
+      ],
+      "preserve_padding": [
+        28,
+        44
+      ]
+    },
+    "mesh_owner_offset": "0xa8",
+    "source_to_target_basis_xyzw": [
+      0.707106829,
+      -4.33074632e-07,
+      -4.33074689e-07,
+      0.707106829
+    ],
+    "source_unit_scale": 8.41577339,
+    "axes": {
+      "MMD_X": "component +X (body lateral)",
+      "MMD_Y": "component +Z (up)",
+      "MMD_Z": "component -Y"
+    },
+    "world_source_quaternion": "Norm(meshComponentToWorld.rotation * Compiler.SourceToTargetBasis())",
+    "world_position": "mesh.translation + mesh.rotation * (mesh.scale * (sourceToTargetBasis * sourceModelPosition * sourceUnitScale))",
+    "uniform_scale_requirement": "camera Settings scalar scale requires uniform positive mesh world scale; signed or nonuniform scales require explicit optical basis policy, not quaternion-only silent discard",
+    "helper": "playback/ww_world_snapshot.h",
+    "fixture_checks": 9,
+    "basis_cases": 12,
+    "basis_failures": 0,
+    "native_witnesses": [
+      {
+        "label": "SceneComponent_copy_ComponentToWorld48",
+        "rva": "0x4ffab50",
+        "bytes": 41,
+        "sha256": "915b660e43d7618f20aff2a0ccbe3b1ad1d84f56da77a19debc1a793be3468af",
+        "function_bytes_hex": "0f2881e0010000488bc20f2889f00100000f29020f2881000200000f294a100f294220c3cccccccccc"
+      },
+      {
+        "label": "SceneComponent_GetWorldLocation",
+        "rva": "0xe75e10",
+        "bytes": 35,
+        "sha256": "a30707bf9a50f72c25d30f1d711a8d6fd9658087577c66c6518f1d711cdb8b25",
+        "function_bytes_hex": "0f1089f0010000488bc20f28c1f30f110a0fc6c1550fc6c9aaf30f114a08f30f114204"
+      },
+      {
+        "label": "execActor_GetActorLocation",
+        "rva": "0x576c140",
+        "bytes": 122,
+        "sha256": "3e94f85a8120db5687475bb7f442aeb8f68194ba81340e56c7987b199301718e",
+        "function_bytes_hex": "4883ec18488b42204533c94885c0410f95c14c03c84c894a20488b81a00100004885c074250f1088f00100000f28c1f30f110c240fc6c1550fc6c9aaf30f114c2408f30f11442404eb17f20f10058e8f19048b05908f1904f20f11042489442408488d0424f20f10008b4008f2410f1100418940084883c418c3"
+      }
+    ]
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "id": "scene-team-cached-data-20261020-v1",
+  "diagnostic_only": true,
+  "binding_authorized": false,
+  "game_runtime_verified": false,
+  "source_root": "analysis/stage_scan_20261020/script_research/raw/Client/Content/Aki/JavaScript",
+  "sources": [
+    {
+      "path": "Game/Manager/ModelManager.js",
+      "sha256": "69bd3bb7d6fd47f79a3c226bd45c29c8bc74c0e3f5af5783196fef102e461ae6"
+    },
+    {
+      "path": "Game/Module/SceneTeam/SceneTeamModel.js",
+      "sha256": "445b258098f1a7f2ec1de5b866c7505b141f59ad4c64dbab98a456e3a51d56c0"
+    },
+    {
+      "path": "Game/Module/SceneTeam/SceneTeamItem.js",
+      "sha256": "20168e6a04214a7488258c2c1d9ece6d60a330ea4ee117f727a0db101be978ea"
+    },
+    {
+      "path": "Game/Module/SceneTeam/SceneTeamData.js",
+      "sha256": "6edb02095a3b60d7a0b0860585aab8e858b3898cde3e9acae6c51ee413a3f9de"
+    },
+    {
+      "path": "Game/Module/SceneTeam/SceneTeamDefine.js",
+      "sha256": "741674fd163638f943ef5250d726c69ddd9a1add2c63e7c00ac17b98656d8880"
+    },
+    {
+      "path": "Game/NewWorld/Character/EntityHandle.js",
+      "sha256": "27c3ab2fcdba733fe43b7d6812479961af187d6bae3789aac7978cfa71cfd4eb"
+    },
+    {
+      "path": "Game/NewWorld/Character/CharacterModel.js",
+      "sha256": "1e3172474c52d209b53fa5fe8de590554a7482e1754a056677478943441cd950"
+    },
+    {
+      "path": "Game/Module/PlayerInfo/PlayerInfoModel.js",
+      "sha256": "2fc1ba77523b059bb5d3e2ef7a75265013d832e1bd92236e5b2e990beb40b56c"
+    },
+    {
+      "path": "Core/Object/ObjectBase.js",
+      "sha256": "ebef8a29512e8307fee3791ae6d285366d532321f82173c3f673a852d5b0c65a"
+    },
+    {
+      "path": "Core/Object/ObjectSystem.js",
+      "sha256": "48c0ef3fee89f594e1be1ed6318b03e3f551a7c0138f2ce7e80678dedbb7068b"
+    },
+    {
+      "path": "Core/Entity/Entity.js",
+      "sha256": "976d2c8fd74a786d35345839fd6fe924248159414552f1b7c06d5db66d7528da"
+    },
+    {
+      "path": "Core/Entity/EntitySystem.js",
+      "sha256": "f9d283c41bb8598afb26d1dbcac6171797607278dfc9cd1f4e220d60cf88bbf3"
+    },
+    {
+      "path": "Game/World/Model/CreatureModel.js",
+      "sha256": "6642c2686abb6fd9276411dc405ba95fcdc32f5528f3243abf8ccd297a0ff411"
+    },
+    {
+      "path": "Game/World/Define/EntityContainer.js",
+      "sha256": "adab9e2570629d6ea9127a37c62a6ed874007c0c9b7e0251569e2e0e7dfcdc4b"
+    },
+    {
+      "path": "Game/World/Define/CustomMap.js",
+      "sha256": "36eb4aa3a23619c22163b25398ab41514e2e0bdbb4a17bbfe6a756fa0f94cf08"
+    }
+  ],
+  "required_cached_exports": [
+    "Game/Manager/ModelManager.js: ModelManager",
+    "Core/Object/ObjectSystem.js: ObjectSystem"
+  ],
+  "upstream_requirements": [
+    "Exports must come from already loaded module records; never require missing modules.",
+    "Reject any selected module record whose own __forceReload data field is true; accessor module metadata is not safe to evaluate.",
+    "Confirm selected loaded script sources match the hashes above before treating fields as current-build evidence. The reader does not attest loaded-source hashes.",
+    "Use ordinary JS cache objects, not Proxies or host interceptors, and trusted ECMAScript intrinsics. Descriptor operations themselves can execute Proxy traps; portable JS cannot establish this precondition."
+  ],
+  "field_semantics": {
+    "local_player": "CreatureModel.GetPlayerId -> ModelManager.PlayerInfoModel.GetId -> own xe; never CreatureModel._Mr (world owner).",
+    "current_group": "SceneTeamModel.CurrentGroupType and $po.get(playerId); SceneTeamPlayer.j8/hTn/Npo; SceneTeamGroup.j8/Opo/Vlo/kpo.",
+    "roster": "SceneTeamModel.aPr; SceneTeamItem.jpo(local flag),j8(player),Opo(group),Mne(role config),Wpo(CreatureDataId),Kpo(cached EntityHandle),zZa(auto role).",
+    "current": "SceneTeamModel.YBi must be the identical local item, and its paired SceneTeamRole must be SceneTeamGroup.kpo.",
+    "creature_cache": "CreatureModel.GetEntity -> hPr.EntityMap.Get; CustomMap.mvr(creature key to array index), K7(index to handle), dvr(index to creature key). EntityContainer.EntityIdMap maps runtime EntityId to CreatureDataId.",
+    "handle_valid": "EntityHandle.Valid -> CharacterModel.IsValid(Id) -> nK[Id >>> ObjectSystem.VersionDigit]?.Id === Id. Reader additionally requires exact registered handle identity.",
+    "entity_valid": "ObjectBase.Id and Index are own constructor fields. EntitySystem.Get and ObjectSystem.IsValid consult ObjectSystem.Objects[index] and Id. Reader also matches ObjectSystem.rY[index] to low generation bits.",
+    "entity_init": "EntityHandle.IsInit = Valid && Entity.IsInit; Entity.IsInit is bool(pW & 8). Reader additionally rejects End(32)/Clear(64), PendingRemoving, and selected entries in pending/removal containers.",
+    "transition": "Require IsTeamReady=true, BKl=0, Kq1=false; Vpo and LoadTeamPromise undefined; seamless flags/timestamp/timer/delayed handle idle; CreatureModel.CMr and LeavingLevel false. ChangingRole getter can mutate BKl on timeout and is never called."
+  },
+  "id_policy": "Accept only positive safe Number IDs, preserving the original Map key. BigInt, numeric strings, coercible objects and unsafe Numbers are explicitly rejected, never converted. Wpo and EntityHandle.Id are separate domains.",
+  "stage_member_count": "expectedMemberCount defaults to the requested three-person stage and is configurable. Exported SCENE_TEAM_MAX_NUM is 4; the reader does not claim a game-wide three-member limit.",
+  "output_boundary": "ready=true means cached roster/group/entity registrations agreed and the consumed observations were repeated. It never authorizes native binding, writes, rendering claims, or an atomic snapshot."
+}

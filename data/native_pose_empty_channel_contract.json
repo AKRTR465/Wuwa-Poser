@@ -1,0 +1,2788 @@
+{
+  "schema": 1,
+  "kind": "native_pose_empty_channel_contract",
+  "policy_id": "native-pose-canonical-empty-extra-v1",
+  "source_sha256": "c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18",
+  "snapshot_sha256": "7480ba1b3fa5efa319c12f29890c949eafa36cf7dd932602774f111a8dcffea5",
+  "snapshot_file": "Client-runtime-20261018.exe",
+  "evidence_scope": "offline_instruction_analysis_with_saved_live_observation_crosscheck",
+  "game_accessed_during_analysis": false,
+  "functions": [
+    {
+      "label": "ConvertLocalToComponentEvaluate",
+      "rva": "0x4e0ba10",
+      "end_rva": "0x4e0bc2e",
+      "bytes": 542,
+      "sha256": "5430fa89824e4f988ab3b5a6e1ac3094f88b8fcc356e82c7b8dd95ad1678905f",
+      "function_bytes_hex": "48895c2418488974242055574156488d6c24804881ec80010000488b05176087044833c4488945704c8bf2488bd9488b12488d4c24204533c0e8725dffff488d4b10488d542420e8a4fbffff488b542450498d7608488bcee8535891fc448b44244033db8b5424304585c07e32443bc2752d498d4e18488d442438483bc87436488b4424384889018b44244489410c48895c244048895c243844894108eb17498d4e1889590839590c740b33d2e8cea02bfc8b542430488d442428483bf0741e488b4424284889068b44243489460c48895c243048895c2428895608eb038b56080fb6442448488d7e308846208b4f0c48895c2450895f083bca740e488bcfe81c19ccfb8b4f0c8b5f08486376088d04338947083bc17e0a8bd3488bcfe8feecc1fb4863cb4c8bc648030f33d2e8bc3f4502488b07488d542458498d4e68c60001e8cab0b8fd498d4e78488d442468483bc8740a488d542468e882cf8cfc488b442478488d559049898688000000498d8ea00000000fb7458066418986900000000fb64582418886920000000fb64583418886930000000fb6458441888694000000e81968ffff0f284520488b4d580f284d30410f1186300100000f284540410f118650010000410f118e400100004885c97405e877ca2dfe8b7d18488b5d1085ff7416488b0b4885c97405e85fca2dfe4883c31083ef0175ea488b4d704833cce86af144024c8d9c2480010000498b5b30498b7338498be3415e5f5dc3",
+      "range_basis": "complete current-image witness through all contiguous unwind fragments and final return; the 8-byte leaf ends at its direct RET",
+      "snapshot_bytes_verified": true
+    },
+    {
+      "label": "PoseSetBoneContainer",
+      "rva": "0x17212c0",
+      "end_rva": "0x17213cf",
+      "bytes": 271,
+      "sha256": "a9e078dcc4968f9265d1e45f539a19377c55518c28ad81e24f43edbdbc5f052b",
+      "function_bytes_hex": "40534883ec2048895128488bd98b490c488974243048637208c74308000000003bf17f0433d2eb108bd6488bcbe82ef5ffff8b53088b4b0c8d04328943083bc17e08488bcbe876f0ffff488b43288b88b800000085c97e703b88a800000075688b4b1c48897c24384c89742440c74318000000003bf17e0e8bd6488d4b10e84d489aff8b4b1c4c637318418d04368943183bc17e0c418bd6488d4b10e8df469aff488b43104c8d04764b8d0c7649c1e00233d2488d0c88e882e7b3054c8b742440488b7c2438eb18837b1c00488d4b10c7410800000000740733d2e8f0479aff488b4328488b742430488b48484885c97413e8098764ff84c0740ac64320014883c4205bc3c64320004883c4205bc3",
+      "range_basis": "complete current-image witness through all contiguous unwind fragments and final return; the 8-byte leaf ends at its direct RET",
+      "snapshot_bytes_verified": true
+    },
+    {
+      "label": "ContainerFlagSourceByte",
+      "rva": "0xd69ac0",
+      "end_rva": "0xd69ac8",
+      "bytes": 8,
+      "sha256": "ee8bcfce1eefa144981f37e52ebbc4081d8798b8863f8dadfc8998fb6eb22e73",
+      "function_bytes_hex": "0fb68111010000c3",
+      "range_basis": "complete current-image witness through all contiguous unwind fragments and final return; the 8-byte leaf ends at its direct RET",
+      "snapshot_bytes_verified": true
+    },
+    {
+      "label": "ComponentSpaceTransformGetter",
+      "rva": "0xa3f270",
+      "end_rva": "0xa3f332",
+      "bytes": 194,
+      "sha256": "1b7ae81a13a23605c0f32806fce32474401f5c43612580d8b897af150631eadc",
+      "function_bytes_hex": "48895c24084889742410574883ec30488b4130488bf94863da803c030075078bd3e80ab6ffff0f280d53929b06488d345b488b0f0f28c148c1e6040f54040e0fc2c1000f50c085c075260f28c10f54440e100fc2c1000f50c085c075130f28c10f54440e200fc2c1000f50c085c0743c803d99bd1009027222488d0588729c0641b9020000004c8d0587bd1009488944242033d233c9e8857d7102b102e8ae3e74028bd3488bcfe824180000488b07488b5c24404803c6488b7424484883c4305fc3",
+      "range_basis": "complete current-image witness through all contiguous unwind fragments and final return; the 8-byte leaf ends at its direct RET",
+      "snapshot_bytes_verified": true
+    },
+    {
+      "label": "ComponentTransformBuild",
+      "rva": "0xa3a8a0",
+      "end_rva": "0xa3bfc2",
+      "bytes": 5922,
+      "sha256": "488a9249b7f2d14c6cb3d08339174385234aa5668864962587d3ed2c0e6c1d04",
+      "function_bytes_hex": "488bc489501055535741564157488da8a8feffff4881ec300200000f2970c80f2978b8440f2940a8440f294898440f295088440f299878ffffff440f29a068ffffff440f29b048ffffff440f29b838ffffff488b054f71c4084833c448898580000000488bd94c8d8568010000488b4928488d542430e835034a044863442430488b5330803c1000750e8bd0488bcbe86cffffff8b44243048638d68010000440f2825a9db9b06410f28c4488d3c494863c848c1e70448033b4c8d344949c1e6044c0333410f5406410fc2c4000f50c885c9740541b701eb31410f28c4410f544610410fc2c4000f50c885c9740541b701eb17410f28c4410f544620410fc2c4000f50c885c9410f95c7410f28c40f5407410fc2c4000f50c885c97528410f28c40f544710410fc2c4000f50c885c97514410f28c40f544720410fc2c4000f50c885c97440803d9406110902722c8b85680100004c8d05890611098944242841b902000000488d05b4bb9c0633d233c94889442420e876c67102b102e89f8774028b4424304584ff743a803d4f061109027226894424284c8d0546061109488d05dbbb9c0641b90200000033d2488944242033c9e837c67102b102e8608774028b4424300f28357539da080f57c00f283d7b39da080f57d2440f281d103bda080f28cef3440f103dd48b9c06f3440f10359f1f9c060f12ca0fc6c1c40f28ce0f2945d00f54cf0f294df00f2955e0440f105720450f104e20410f28c2410f5dc1440f29ac24b0010000410fc2c3010f50c8440f294c2470440f2954246085c90f8465050000410f100e450f28ea450f1046100f28d90f58d9450f59e90f28e10f28c10fc6c104410f28e90fc6c9ff0f59e30f28d30fc6d3290f59d0410fc6e9c90f28c40fc6c41a0fc6db120f59d90f28ce0fc6e4010f58c4440f28d3440f58d20f5cd30f5cc8450f59d10f59ea410f59c9450f28ca0f28c50f54cf0f28fd0fc6c132440fc6c900440fc6c882410f28c20fc6c1310fc6f9100fc6f8880f28c6410f12c0440fc6c0c4440fc6d512440fc6d1e80f100f0f28d90f28e10f58d90f28c10fc6c1040fc6c9ff0f59e30f28d30fc6d3290f59d00f284424600f28e80fc6db120f59d90f280d1438da080fc6e8c90f28f30f58f20f5cd30f59f00f28c40f59ea0fc6c41a0fc6e4010f28d60f58c40f28dd0f5cc80f28c50f594c24600f540deb37da080fc6d1000fc6c1320fc6d0820f1067100f28c60fc6c1310fc6d9100fc6d8880f2805b537da080f12c40fc6e0c40f28c20fc6c200410f59c10fc6f5120f28ea0fc6ea550fc6f1e80f28ca0fc6caaa0fc6d2ff410f59d0410f59ca0f59ef0f58e80f28c30fc6c300410f59c10f58e90f28cb0fc6cbaa410f59ca0f58ea0f28d30fc6d3550f59d70fc6dbff410f59d80f58d00f296c24600f28c60f296d000fc6c600410f59c10f58d10f28ce0fc6ceaa410f59ca0f58d30f28ddf30f59dd0f295424500f2955100f28d60fc6d6550f59d70fc6f6ff410f59f00f58d00f28c40fc6c400410f59c10f58d10f28cc0fc6ccaa410f59ca0f58d60f295424400f2955200f28d40fc6d4550f59d70fc6e4ff410f59e00f58d00f58d10f28cd0fc6cd550f28c10f294db0f30f59c10f58d4f30f58d80f295530440f284c24500f28cd440f28542440410f28f9f30f1035d71c9c06450f28c20fc6cdaa0f28d60f28c10f294dc0f30f59c1410f28c9410fc6c9550f294c2450f30f58d8f3410f59f90f28c1f3450f59c2f30f59c1410f28c9410f2fdff30f58f8410fc6c9aa0f294d800f28e30f28c10f28ebf30f59c1410f28ca410fc6ca55f30f52ecf30f58f80f294c24400f28c1f30f59e6f30f59c1410f28ca410fc6caaa0f294c2470f3440f58c00f28c1f30f59c10f28ccf3440f58c00f28c5f30f59c5f30f59c80f28c5f30f5cd1f30f59c2f30f58e8721f0f28c50f28cef30f59c5f30f59e00f28c5f30f5cccf30f59c1f30f58e8eb04410f28ee410f2fff0f28df0f28e7f30f52e30f28d6f30f59de0f28c4f30f59c40f28cbf30f59c80f28c4f30f5cd1f30f59c2f30f58e0721f0f28c40f28cef30f59c4f30f59d80f28c4f30f5ccbf30f59c1f30f58e0eb04410f28e6450f2fc7410f28f80f28d60f28dff30f52dff30f59fe0f28c3f30f59c30f28cff30f59c80f28c3f30f5cd1f30f59c2f30f58d8721c0f28c3f30f59c3f30f59f80f28c3f30f5cf7f30f59c6f30f58d8eb04410f28de0f28059b36da08488d55000f5705f034da08488d4c24700f28cd0f28d4f30f594c2460450fc2dd02440f54d8f3410f59d1440f571d6936da080f28c5f30f5945b0f30f596dc0f3410f59c3f3410f59cbf30f1145040f28c4f30f59442450f30f596580f30f114d00410f28cb410fc6cb55f30f59c1f30f59d1f30f59e10f28cbf30f1145140f28c3f30f59442440f30f595c2470f3410f59eb450fc6dbaaf3410f59caf3410f59c3f3410f59cbf3410f59dbf30f114524f30f116d08f30f115510f30f116518f30f114d20f30f115d28e8cd71ffff0f28742470440f2805e034da080f28cef30f105538410f28d8f2440f104d308b4424300f59ce440f16ca0f28c10fc6c14e0f58c80f28e90fc6e9390f58e90f52cd0f28e5410f59e00f28c10f59c10f59c40f5cd80f59d90f58d90f28c30f59c30f59c4440f5cc00f28053fd39b060fc2c502440f59c3440f58c3440f59c6440f57055734da08440f54c0440f57054b34da08e9d1000000410f102e410f28d90f10170f28c50f106710440f28c2410f107e100f28f50fc6c5000f28cd440fc6c21b450f28ea440f596c2470440f59c00fc6cd550f59dc440f59059f33da080fc6f5ff0f28c60f59c2440f58c00f28c20fc6c24e0f59c80f28c50fc6c5aa0fc6d2b10f59c20f28d50f590d5f33da080fc6d5d20f59054433da08440f58c10fc6edc90f28cb0fc6cbd20f59cd440f58c00f28c30fc6c3c90f59c20f5cc80f58c9440f28c90f59f1440fc6c9d20f28c1440f59cd0fc6c1c90f58f30f59c2440f5cc8440f58ce440f58cf410f28c4440f296df0410f54c0440f294de0410fc2c4000f50c8440f2945d085c9752c410f28c4410f54c1410fc2c4000f50c885c97518410f28c4410f54c5410fc2c4000f50c885c90f843d0d000048638d68010000410f28c44c8b034889b424700200004c89a42478020000488d14494803d2410f5404d0410fc2c4000f50c885c97404b101eb31410f28c4410f5444d010410fc2c4000f50c885c97404b101eb17410f28c4410f5444d020410fc2c4000f50c885c90f95c184c9488d3d2aa49c064863c84c8d0d10a49c06488bf7410f28c4490f45f1488d14494803d2410f5404d0410fc2c4000f50c085c07404b001eb31410f28c4410f5444d010410fc2c4000f50c085c07404b001eb17410f28c4410f5444d020410fc2c4000f50c085c00f95c084c0488d4c2460490f45f94533e44c896424604c89642468418d542431e82e5afdff8b5424688d4231894424683b44246c7e0a488d4c2460e82356fdff488b4c2460488d15f7b39c0641b862000000e8fcfe68028b9568010000488d4d00e85d6978028b542430488d4d20e850697802488bd6488d4d40e8a4697802488bd7488d4d60e898697802488d45004889442440488d542440488d8580000000488d4c24504889442448e80462ffff4c8d442450488d15f8b39c06488d4c2470e80efc78028b480885c9488b10448d41ff450f44c4488d4c2460e834906702488b4c24704885c97405e835d36a02488d4c2450e86b72ffffbf04000000488db5900000000f1f40006666660f1f840000000000488b4ee0488d76e048ffcf4885c97405e8fbd26a024885ff75e648638568010000488d55a0488d0c4048c1e10448030be87b9d7302488bd0488d4d80e8ef687802488d45804889442450488d542450488d45a0488d4c24404889442458e83e61ffff4c8d442440488d15dab39c06488d4c2470e848fb78028b480885c9488b10448d41ff450f44c4488d4c2460e86e8f6702488b4c2470488bb424700200004885c97405e867d26a02488d4c2440e89d71ffff488b4d904885c97405e84fd26a024863442430488d55a0488d0c4048c1e10448030be8d69c7302488bd0488d4d80e84a687802488d45804889442450488d542450488d45a0488d4c24404889442458e89960ffff4c8d442440488d154db39c06488d4c2470e8a3fa78028b480885c9488b10448d41ff450f44c4488d4c2460e8c98e6702488b4c24704885c97405e8cad16a02488d4c2440e80071ffff488b4d904885c97405e8b2d16a02488d55a0488d4dd0e8459c7302488bd0488d4d80e8b9677802488d45804889442450488d542450488d45a0488d4c24404889442458e80860ffff4c8d442440488d15dcb29c06488d4c2470e812fa78028b480885c9488b10448d41ff450f44c4488d4c2460e8388e6702488b4c24704885c97405e839d16a02488d4c2440e86f70ffff488b4d904885c97405e821d16a0248638568010000488d4da041b830000000488d144048c1e204480313e850947402488bd0488d4d80e814677802488d45804889442450488d542450488d45a0488d4c24404889442458e8635fffff4c8d442440488d1557b29c06488d4c2470e86df978028b480885c9488b10448d41ff450f44c4488d4c2460e8938d6702488b4c24704885c97405e894d06a02488d4c2440e8ca6fffff488b4d904885c97405e87cd06a024863442430488d4da041b830000000488d144048c1e204480313e8ad937402488bd0488d4d80e871667802488d45804889442450488d542450488d45a0488d4c24404889442458e8c05effff4c8d442440488d15d4b19c06488d4c2470e8caf878028b480885c9488b10448d41ff450f44c4488d4c2460e8f08c6702488b4c24704885c97405e8f1cf6a02488d4c2440e8276fffff488b4d904885c97405e8d9cf6a0241b830000000488d55d0488d4da0e816937402488bd0488d4d80e8da657802488d45804889442450488d542450488d45a0488d4c24404889442458e8295effff4c8d442440488d1565b19c06488d4c2470e833f878028b480885c9488b10448d41ff450f44c4488d4c2460e8598c6702488b4c24704c8ba424780200004885c97405e852cf6a02488d4c2440e8886effff488b4d904885c97405e83acf6a02803d53f91009027239837c246800488d0585ce9b0641b9020000004c8d053cf91009480f4544246033d2488944242833c9488d0502b19c064889442420e828b97102b102e8517a74024584ff746148634424300f2805a097ec08488d0c4048c1e10448030b0f11010f280d9b97ec080f1149100f2805a097ec080f1141200f280d7597ec080f28157e97ec08440f28c10f281d8397ec080f28fa0f294dd0440f28eb0f2955e00f295df0e97606000048638568010000410f107e20440f28ef488d0c40488b432848c1e104480388a00000000f1071200f28c60f5dc70fc205862dda08010f50c085c00f8454050000410f101e0f28ef450f104e100f28cb0f58cb0fc6efc90f28e3440f59ee0f28d30fc6d3040f59e10f28c10fc6c1290f59d00fc6c9120f28c40fc6c41a0fc6dbff0f59d90f280d812bda080fc6e4010f58c4440f28db440f58da0f5cd30f10190f28e30f5cc8440f59df0f59ea0f28d30f59cf0fc6d304450f28d30f28c5440f28c50f540d532bda080fc6c132440fc6d100440fc6d082410f28c30fc6c131440fc6c110440fc6c0880f28051c2bda08410f12c1440fc6c8c4440fc6dd120f28ee440fc6d9e80f28cb0f58cb0fc6eec90fc6dbff0f59e10f28c10fc6c1290f59d00fc6c9120f28c40f59d90f280dda2ada080fc6c41a0fc6e4010f58c40f28fb0f58fa0f5cd30f5cc80f59fe0f59ea0f59ce0f28d70f28c50f28dd0f540dba2ada080fc6c1320fc6d1000fc6d0820f28c70fc6d9100f1061100fc6c1310fc6d8880f2805842ada080f28f30f12c40fc6e0c40f28c20fc6c200410f59c20fc6fd120f28ea0fc6f9e80f28ca0fc6caaa0fc6ea55410f59cb0fc6d2ff410f59d10fc6f355410f59e8410f59f00f58e80f28c30fc6c300410f59c20f58e90f28cb0fc6cbaa410f59cb0f58f00f28c70fc6dbff0f58ea0fc6c700410f59c20f28d70fc6d7550f58f1410f59d00f28cf0fc6cfaa410f59cb0f58d0410f59d90f28c40fc6ffff0fc6c400410f59c20f58d1410f59f90f58f30f296d800f28cc0f296d000fc6ccaa0f28dd0f58d7410f59cb440f28ddf30f59dd440fc6dd550f295424700f2955200f28d40fc6d455410f59d00fc6e4ff410f59e10f58d00f2975b0410f28c30f297510f3410f59c30f58d10f28cd0fc6cdaaf30f58d80f294dc00f58d40f295530440f285424700f28c1f30f103da30f9c06440f28c6f30f59c1450f28caf3440f59c60f28cef30f58d80fc6ce550f294c24500f28d70f28c1f3450f59caf30f59c10f28ce410f2fdf0fc6ceaaf3440f58c00f294c24400f28e30f28c10f28f3f30f59c1410f28ca410fc6ca55f30f52f4f3440f58c00f294c24700f28c1f30f59e7f30f59c1410f28ca410fc6caaa0f294da0f3440f58c80f28c1f30f59c10f28ccf3440f58c80f28c6f30f59c6f30f59c80f28c6f30f5cd1f30f59c2f30f58f0721f0f28c60f28cff30f59c6f30f59e00f28c6f30f5cccf30f59c1f30f58f0eb04410f28f6450f2fc7410f28d80f28d70f28ebf30f52ebf30f59df0f28c5f30f59c50f28cbf30f59c80f28c5f30f5cd1f30f59c2f30f58e8721f0f28c50f28cff30f59c5f30f59d80f28c5f30f5ccbf30f59c1f30f58e8eb04410f28ee450f2fcf410f28d90f28d70f28e3f30f52e3f30f59df0f28c4f30f59c40f28cbf30f59c80f28c4f30f5cd1f30f59c2f30f58e0721c0f28c4f30f59c4f30f59d80f28c4f30f5cfbf30f59c7f30f58e0eb04410f28e60f281d6f29da08488d55000f571dc427da08488d4da00f280d6929da080f28c6410fc2cd020f54d9f3410f59c30f571d4229da080f28cef30f594d800f28d5f30f5955b0f30f5975c0f30f59c3f30f59cbf30f1145040f28c5f30f59442450f30f596c2440f30f114d000f28cb0fc6cb55f30f59c1f30f59d1f30f59e90f28ccf30f1145140f28c4f30f59442470f30f5965a0f30f59f30fc6dbaaf3410f59caf30f59c3f30f59cbf30f59e3f30f114524f30f117508f30f115510f30f116d18f30f114d20f30f116528e8a764ffff0f2875a0440f2805bb27da080f28cef30f105538410f28d8f20f107d300f59ce0f16fa0f28c10fc6c14e0f58c80f28e90fc6e9390f58e90f52cd0f28e5410f59e00f28c10f59c10f59c40f5cd80f59d90f58d90f28c30f59c30f59c4440f5cc00f280520c69b060fc2c502440f59c3440f58c3440f59c6440f57053827da08440f54c0440f57052c27da08e9bf000000410f1026410f28dd0f10110f28c40f595910440f28c20fc6c4000f28ec440fc6c21b0f28cc440f59c00f28c20fc6cc550fc6ecff0f59c5440f59058826da08440f59ee440f58c00f28c20fc6c24e0f59c80f28c40fc6c4aa0fc6d2b10f59c20f28d30f590d4e26da080fc6d3d20f59053326da08440f58c10f28cc0fc6ccd20fc6e4c90f59d4440f58c00f28c30fc6c3c90f59c10f5cd00f58d20f28fa0f28c20fc6fad20fc6c2c90f59fc0f59c10f59d50f5cf80f58d30f58fa410f587e100f281d1191ec080f2815fa90ec080f280de390ec08440f2945d00f297de0440f296df0410f28c4410f54c0410fc2c4000f50c085c07524410f28c40f54c7410fc2c4000f50c085c07511450f54ec450fc2ec00410f50c585c07410440f28c10f294dd00f2955e00f295df0488b4c24604885c9740ae8bec76a02440f2845d048638568010000440f28ac24b0010000488d0c4048c1e10448030b440f11010f2845e00f1141100f284df00f114920486385680100000f282dbc25da080f28dd0f28d5488d0c4048c1e10448030b0f10310f28ce0f59ce0f28c10fc6c14e0f58c80f28e10fc6e1390f58e10f52cc0f59dc0f28c10f59c10f59c30f5cd00f59d10f58d10f28c20f59c20f59c30f5ce80f28056326da080fc2c4020f59ea0f58ea0f59ee0f572d3f25da080f54e80f572d3525da080f112948638d68010000488b4330c6040101488b8d800000004833cce804ee81064c8d9c2430020000410f2873f0410f287be0450f2843d0450f284bc0450f2853b0450f285ba0450f286390450f28b370ffffff450f28bb60ffffff498be3415f415e5f5b5dc3",
+      "range_basis": "complete current-image witness through all contiguous unwind fragments and final return; the 8-byte leaf ends at its direct RET",
+      "snapshot_bytes_verified": true
+    },
+    {
+      "label": "LocalBlendCSBoneTransforms",
+      "rva": "0x1717730",
+      "end_rva": "0x1717bef",
+      "bytes": 1215,
+      "sha256": "72a43d1505b861d246298361156dd4608335171067b9488aa87077cf4c210843",
+      "function_bytes_hex": "4c8bdc55574154498d6ba14881ecf0000000410f2973b8450f294b88488b05f5a2f6074833c4488945c7f3440f100dfdbece050f28f2410f2ff14c8be2488bf90f8250040000450f294398f3440f1005b052ce05410f2ff0720ae831910000e9290400008b494c48899c24200100004889b424e80000004c89ac24e00000004c89b424d80000004533f64c89bc24d00000004489774885c9790e33d2488d4f40e85b5c3bff8b4f4c4863770848635f488d04338947483bc17e0b8bd3488d4f40e83b3031ff488bcb4c8bc648034f4033d2e8f882b405418b4c2408498bc648894587448975834489759385c97e16894d8f33d2488d4d87e8c4a132ff8b4d8f894d83eb147916894d8f488d4d87e8de573bff8b458f894583488b4587458bee45397424080f8ee600000049c7c6d0ffffff488d70304c2bf00f1f840000000000498b0424498d0c3648631c01488b4f308bc3895c2420803c0b01754a488b4f284c8d442420488d542428e8b1337c038b54242883faff742a488bcfe8c07932ff48634c2420488d55974c8bc0488d0c4948c1e10448030fe8443ea5010f285597eb2b8b4424204863c8488b07488d14494803d20f1014d00f2955970f1044d0100f2945a70f104cd0200f294db70f1156e0498d0c360f2845a741ffc50f1146f00f284db70f110e895ed0498b04240fb64c0140884e104883c650488b4740c6040301453b6c24080f8c33ffffff4533f6498bd4488bcfe8758f00008b5f084c8bac24e000000085db7445660f1f440000488b4f284c8d442420488d5424284489742420e8d8327c03486344242883f8ff74124c8b47404863542420420fb604004208040241ffc6443bf375c48b5f084c8bb424d8000000ffcb83fbff74714863f385db7460488b4740803c06007456488b47304863cb895c2420803c01017545488b4f284c8d442420488d542428e86d327c034863442428488d1440486344242048c1e204480317488d0c4048c1e10448030fe8c8bfa50148634c2420488b4730c6040100ffcb48ffce83fbff75928b45834c8bbc24d0000000488bb424e8000000488b9c24200100004c8b4d8785c00f8e6a0100000f29bc24b0000000498d5130410f28f8440f29942480000000440f2815d94d1008f30f5cfe448bc06690486342d0488d0c4048c1e10448030f410f2ff90f8608010000410f2ff8721b0f1042e00f11010f104af00f1149100f10020f114120e9e70000000f104af00f57f60f5c49100f28ef0fc6ed000f59cd0f5849100f1149100f10120f5c51200f59d50f5851200f1151200f57d20f10190f5cd30f28cb0f594ae00f28c10fc6c14e0f58c80f28c10fc6c1390f58c10fc2f0020f28c20f57c30f54f00f28050f4c10080f5cc50f57f20f596ae00f59f00f58f50f282dd84c10080f28d50f28ce0f59ce0f28c10fc6c14e0f58c80f28e10fc6e1390f58e10f52cc0f28dc0f59dd0f28c10f59c10f59c30f5cd00f59d10f58d10f28c20f59c20f59c30f5ce8410f28c20fc2c4020f59ea0f58ea0f59ee0f572d6c4c10080f54e80f572d624c10080f11294883c2504983e8010f85d1feffff440f289424800000000f28bc24b00000004d85c97408498bc9e8a30a9d01440f288424a0000000488b4dc74833cce8ae31b4050f28b424c0000000440f288c24900000004881c4f0000000415c5f5dc3",
+      "range_basis": "complete current-image witness through all contiguous unwind fragments and final return; the 8-byte leaf ends at its direct RET",
+      "snapshot_bytes_verified": true
+    },
+    {
+      "label": "SafeSetCSBoneTransforms",
+      "rva": "0x17208c0",
+      "end_rva": "0x17212a4",
+      "bytes": 2532,
+      "sha256": "e3391e03d30ecf53daa5925f3d74a5c64e4b4e5b1d22d9c25a16c211db2c324f",
+      "function_bytes_hex": "4c8bdc55535657498dab38ffffff4881eca8010000488b056c11f6074833c4488945f08b415c488bf14d8963084d896b104c8bea4d897318c741580000000085c0790b33d24883c150e842aa30ff498b7d00496345084c89bc24a00100008b1f4c8d248049c1e4044c03e7493bfc743c48630f488b4630803c010175264c637e58418d47018946583b465c7e0c418bd7488d4e50e807fc2eff488b4e508b07428904b94883c750493bfc75c44c6366588b7e08418bc43bdf0f84a10000006690488b4e284c8d442420488d542428895c2420e8b9a27b034863442420488b4e30803c0801756c4c8b56504c634e58498bd24d8bf94f8d048a4d3bd074558b4c2428390a740b4883c204493bd075f3eb42498bca3901740b4883c104493bc875f3eb0c492bca48c1f90283f9ff7524418d4901894e583b4e5c7e10418bd1488d4e50e85afb2eff8b442420488b4e50428904b9ffc33bdf0f8564ffffff8b46584c8bbc24a0010000ffc8498bfc4863d84c8ba424d0010000483bdf7c6b0f1f4000488b465048630c98894c242085c9744f488b4630803c01017545488b4e284c8d442420488d542428e8e3a17b034863442428488d1440486344242048c1e204480316488d0c4048c1e10448030ee83e2fa50148634c2420488b4630c604010048ffcb483bdf7d99498b5d00496345084c8bb424e00100004c8bac24d8010000488d3c8048c1e7044803fb483bdf0f84b9070000440f299c2440010000440f29a42430010000440f29b42410010000440f29bc2400010000f3440f103d34bfcd050f29b424900100000f29bc2480010000440f29842470010000440f298c2460010000440f29942450010000440f29ac24200100000f1f40000f1f8400000000008b034c8d442420488b4e28488d54242889442420e8f7a07b03486354242883faff7412488b4630803c02007508488bcee82b9d31ff807b4000440f105b10440f106320440f1073300f84730600004863442420410f28c6440f282d81bc0f08488d0c4048c1e10448030e0f1071200f10290f5dc6410fc2c5010f50c085c00f847b050000440f1041100f28e60fc6e6c90f28cd0f58cd0f28dd0f28d5410f28c60f59c60fc6d5040f59d90f2945800f28c10fc6c1290f59d00fc6c9120f28c30fc6c31a0fc6db010f58c30fc6edff0f59e90f280d08bb0f080f5cc8440f28d5440f58d20f5cd50f59ce440f59d60f59e2410f28d30f540df5ba0f08410fc6d304450f28ca440fc6c9000f28c40f28fc0fc6c132440fc6c882410f28c20fc6c1310fc6f9100fc6f8880f2805b1ba0f08410f12c0440fc6c0c4440fc6d412410f28e6440fc6d1e8410f28cb410f58cb410fc6e6c90f28d90f28c10fc6c1290f59d0410f59db0fc6c912450fc6dbff440f59d90f280d68ba0f080f28c30fc6c31a0fc6db010f58c3410f28f30f58f2410f5cd30f5cc8410f59f60f59e2410f59ce0f28d60f28c40f28dc0f540d41ba0f080fc6c1320fc6d1000fc6d0820f28c60fc6d9100fc6c131440f28da0fc6d8880f28050bba0f08410f12c4440fc6e0c40f28c20fc6c200410f59c1440fc6da550fc6f4120f28e30fc6f1e80f28ca0fc6caaa0f28ee410f59ca0fc6e3550fc6d2ff410f59d00fc6ee55440f59df0f59e70f59ef440f58d80f28c30fc6c300410f59c1440f58d90f28cb0fc6cbaa0f58e0410f59ca0fc6dbff0f28c6440f58da0fc6c600410f59c1410f28d4410fc6d4550f58e1410f59d80f28ce0f58e80fc6ceaa410f59ca410f28c4410fc6c4000f58e3410f59c1410f28db0f58e90f59d7410f28ccf3410f59db410fc6ccaa0f58d0410f59ca450fc6e4ff450f28d3450f59e0450fc6d3550f58d1410f28c20fc6f6fff3410f59c2410f59f0410f58d4440f295c2430f30f58d80f296590450f28e30f29642440450fc6e3aa0f58ee410f28c4f3410f59c40f295424600f296dc0f30f58d80f296c2450f30f1035debbcd05440f28cdf3440f10050528ce050f28cc410f2fd80fc6cc550f28fc0f28c10f294da0f30f59c10f28d6f3440f59cd0f28cc0fc6ccaa0f294db0f30f59fc0f28e3f30f58f80f28c1f30f59c10f28cd0fc6cd550f294dd0f30f58f80f28c1f30f59c10f28cd0fc6cdaa0f28ebf30f52ecf3440f58c80f294de00f28c1f30f59e6f30f59c10f28ccf3440f58c80f28c5f30f59c5f30f59c80f28c5f30f5cd1f30f59c2f30f58e8721f0f28c50f28cef30f59c5f30f59e00f28c5f30f5cccf30f59c1f30f58e8eb04410f28ef410f2ff80f28df0f28e7f30f52e30f28d6f30f59de0f28c4f30f59c40f28cbf30f59c80f28c4f30f5cd1f30f59c2f30f58e0721f0f28c40f28cef30f59c4f30f59d80f28c4f30f5ccbf30f59c1f30f58e0eb04410f28e7450f2fc8410f28f90f28d60f28dff30f52dff30f59fe0f28c3f30f59c30f28cff30f59c80f28c3f30f5cd1f30f59c2f30f58d8721c0f28c3f30f59c3f30f59f80f28c3f30f5cf7f30f59c6f30f58d8eb04410f28df0f280545b80f08488d5424300f570549b70f08488d4c2470440f2875800f28cdf3410f59cb0f28d4f30f595590450fc2ee02440f54e80f28c5440f572d0bb80f08f3410f59c2f3410f59cdf3410f59c5f30f114c2430410f28cd410fc6cd55f30f114424340f28c4f30f5945a0f30f5965b0f30f59c1f30f59d1f30f59e10f28cbf30f594dc0f30f114424440f28c3f30f5945d0f30f595de0f3410f59ecf30f11542440f30f11642448f3410f59ed450fc6edaaf3410f59c5f3410f59cdf3410f59ddf30f11442454f30f116c2438f30f114c2450f30f115c2458e8dc1031ff0f286c2470440f281d4fb70f080f28cdf2440f10642460410f28d30f59cd0f28c10fc6c14e0f58c80f28e10fc6e1390f58e10f52cc0f28dc410f59db0f28c10f59c10f59c30f5cd00f59d10f58d10f28c20f59c20f59c3440f5cd80f28055a72cd050fc2c402440f59da440f58daf30f10542468440f16e2440f59dd440f571dc8b60f08440f54d8440f571dbcb60f08440f295c2470e9c2000000440f59e6410f28d3410fc6d31b410f28cb410fc6cb4e0f28c50fc6c5000f28e50f59d0410f28dc410f28c30fc6e5ff0f59c40f591508b60f08450fc6dbb1440f59f60f58d00f28c50fc6c5550f59c80f28c50fc6c5aa410f59c30f590dd0b50f080f5905b9b50f080f58d10f28cd0fc6cdd20fc6edc9440f28da0f28d3440f58d80fc6d3d20f59d50f28c30fc6c3c90f59c10f5cd00f58d2440f28e20f28c2440fc6e2d20fc6c2c9440f59e50f59c10f59d4440f5ce00f58d3440f58e2440f58611048634c24204883c350488d044948c1e004480306440f1118440f116010440f117020488b4630c6040101483bdf0f850cf9ffff440f28bc2400010000440f28b42410010000440f28ac2420010000440f28a42430010000440f289c2440010000440f28942450010000440f288c2460010000440f288424700100000f28bc24800100000f28b42490010000488b4df04833cce8e89ab3054881c4a80100005f5e5b5dc3",
+      "range_basis": "complete current-image witness through all contiguous unwind fragments and final return; the 8-byte leaf ends at its direct RET",
+      "snapshot_bytes_verified": true
+    }
+  ],
+  "layout": {
+    "pose_offset_from_context": 8,
+    "transforms_header_offset_from_context": 8,
+    "extra_vectors_header_offset_from_context": 24,
+    "independent_flag_offset_from_context": 40,
+    "bone_container_offset_from_context": 48,
+    "component_space_flags_header_offset_from_context": 56,
+    "transform_stride": 48,
+    "extra_vector_stride": 12
+  },
+  "flag_semantics": {
+    "is_extra_array_presence_flag": false,
+    "high_level_cpp_field_name_confirmed": false,
+    "proven_source": "PoseSetBoneContainer normalizes the nonzero byte returned from *(bone_container + 0x48) + 0x111 independently of extra-array allocation.",
+    "formula": "flag = (p = *(bone_container + 0x48)) != 0 && byte(p + 0x111) != 0",
+    "getter_rva": "0xd69ac0",
+    "getter_function_bytes_hex": "0fb68111010000c3"
+  },
+  "instruction_evidence": [
+    {
+      "function": "ConvertLocalToComponentEvaluate",
+      "rvas": [
+        "0x4e0ba6d",
+        "0x4e0ba74",
+        "0x4e0ba78",
+        "0x4e0ba7d"
+      ],
+      "meaning": "Extra-array source count must be positive and equal to transform count to take the array transfer path."
+    },
+    {
+      "function": "ConvertLocalToComponentEvaluate",
+      "rvas": [
+        "0x4e0baaf",
+        "0x4e0bab3",
+        "0x4e0bab6",
+        "0x4e0babd"
+      ],
+      "meaning": "The other path clears destination extra-array count and releases its allocation when necessary."
+    },
+    {
+      "function": "ConvertLocalToComponentEvaluate",
+      "rvas": [
+        "0x4e0baf1",
+        "0x4e0bafa"
+      ],
+      "meaning": "After either array path, copies source mode byte to destination context+0x28 independently of whether extra-array storage is empty."
+    },
+    {
+      "function": "PoseSetBoneContainer",
+      "rvas": [
+        "0x172130e",
+        "0x1721314",
+        "0x1721318",
+        "0x172132d",
+        "0x1721388",
+        "0x1721390",
+        "0x172139b"
+      ],
+      "meaning": "Bone-container counts at +0xb8 and +0xa8 govern allocation/clearing of the 12-byte extra-vector array."
+    },
+    {
+      "function": "PoseSetBoneContainer",
+      "rvas": [
+        "0x17213a0",
+        "0x17213a9",
+        "0x17213ad",
+        "0x17213b2",
+        "0x17213b7",
+        "0x17213bb",
+        "0x17213c5"
+      ],
+      "meaning": "Then independently derives the pose+0x20/context+0x28 Boolean from the container-associated pointer and its +0x111 byte."
+    },
+    {
+      "function": "ComponentSpaceTransformGetter",
+      "rvas": [
+        "0xa3f27f",
+        "0xa3f289",
+        "0xa3f291",
+        "0xa3f29d",
+        "0xa3f2a1",
+        "0xa3f31c"
+      ],
+      "meaning": "Reads component-space flags and 48-byte transform storage; it does not use the extra-array header or the independent mode byte."
+    },
+    {
+      "function": "SafeSetCSBoneTransforms",
+      "rvas": [
+        "0x1721212",
+        "0x1721215",
+        "0x1721219",
+        "0x172121e",
+        "0x1721223",
+        "0x1721227"
+      ],
+      "meaning": "Commits normal 48-byte transform values and component-space flags; the extra channel/mode byte is not changed."
+    }
+  ],
+  "allowed_narrow_state": {
+    "independent_flag_values": [
+      0,
+      1
+    ],
+    "extra_vectors": {
+      "data": 0,
+      "num": 0,
+      "capacity": 0
+    },
+    "requires_canonical_empty_header": true,
+    "write_independent_flag": false,
+    "write_extra_array_header_or_payload": false,
+    "unsupported": [
+      "flag values outside 0 or 1",
+      "nonzero extra-array count",
+      "nonzero extra-array data or capacity despite zero count"
+    ]
+  },
+  "preserved_gates": [
+    "current build and complete runtime native witnesses",
+    "strong controlled/owner and weak-asset correspondence",
+    "complete bijective skeleton-to-compact mapping and correct parents",
+    "valid 48-byte transforms and component-space flags",
+    "current evaluation-thread exclusive lease",
+    "SameView includes independent flag and every extra-array header field",
+    "full before/after identity, layout, topology, lease checks and existing two-buffer rollback rules"
+  ],
+  "saved_observation_crosscheck": {
+    "path": "F:\\deeplearning\\UAV\\ww-poser-binding-repair\\analysis\\binding_repair_live_20261019\\trial_01\\native_graph_discovery\\native_graph_discovery.json",
+    "sha256": "37bbca14c96e1599156c1f9ca71ce3b1b9d4563c34905fa691ee3a0e86770715",
+    "pid": 50600,
+    "profile_id": "femalem--qianxia--r2t1qianxiamd10011",
+    "status": "complete",
+    "complete_frame_count": 7,
+    "valid_mapping_phases": 182,
+    "unprepared_mapping_phases": 98,
+    "owner_roles": [
+      "linked",
+      "main"
+    ],
+    "all_valid_flags_equal_one": true,
+    "all_valid_extra_headers_canonical_empty": true,
+    "all_valid_transform_counts": 397,
+    "all_valid_weak_assets_match": true,
+    "all_hooks_restored": true,
+    "callbacks_quiescent": true,
+    "pose_writes": 0,
+    "alpha_writes": 0,
+    "native_update_calls": 0,
+    "engine_getter_calls": 0,
+    "phase_details": [
+      {
+        "event_id": 11,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 12,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 13,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 14,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 15,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 16,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 17,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 18,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 19,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 20,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 21,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 22,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 23,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 24,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 25,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 25,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 26,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 26,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 27,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 27,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 28,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 28,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 29,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 29,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 30,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 30,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 42,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 43,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 44,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 45,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 46,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 47,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 48,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 49,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 50,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 51,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 52,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 53,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 54,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 55,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 56,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 56,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 57,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 57,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 58,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 58,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 59,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 59,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 60,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 60,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 61,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 61,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 73,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 74,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 75,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 76,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 77,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 78,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 79,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 80,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 81,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 82,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 83,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 84,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 85,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 86,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 87,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 87,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 88,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 88,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 89,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 89,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 90,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 90,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 91,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 91,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 92,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 92,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 104,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 105,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 106,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 107,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 108,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 109,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 110,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 111,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 112,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 113,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 114,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 115,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 116,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 117,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 118,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 118,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 119,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 119,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 120,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 120,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 121,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 121,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 122,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 122,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 123,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 123,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 135,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 136,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 137,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 138,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 139,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 140,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 141,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 142,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 143,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 144,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 145,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 146,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 147,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 148,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 149,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 149,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 150,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 150,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 151,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 151,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 152,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 152,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 153,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 153,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 154,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 154,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 166,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 167,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 168,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 169,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 170,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 171,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 172,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 173,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 174,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 175,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 176,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 177,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 178,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 179,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 180,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 180,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 181,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 181,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 182,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 182,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 183,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 183,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 184,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 184,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 185,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 185,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 197,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 198,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 199,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 200,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 201,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 202,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 203,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 204,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 205,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 206,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 207,
+        "when": "after",
+        "hook_kind": "group_base_cs",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 208,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 209,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 210,
+        "when": "after",
+        "hook_kind": "local_to_component",
+        "owner_role": "linked",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 211,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 211,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 212,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 212,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 213,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 213,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 214,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 214,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 215,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 215,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 216,
+        "when": "before",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      },
+      {
+        "event_id": 216,
+        "when": "after",
+        "hook_kind": "group_evaluate",
+        "owner_role": "main",
+        "flag": 1,
+        "extra_vectors": {
+          "capacity": 0,
+          "data": "0x0",
+          "num": 0
+        },
+        "transform_count": 397,
+        "weak_assets_match": true
+      }
+    ]
+  },
+  "limitations": [
+    "The high-level original C++ flag name and all nonempty extra-channel semantics remain unidentified.",
+    "This supports only the canonical empty-array state. It is not implementation support for an active/populated extra-vector channel.",
+    "Unprepared producer phases retain their existing narrow handling; this contract does not make incomplete mappings usable.",
+    "The saved observation demonstrates normal native production of flag=1 plus an empty array. It does not prove that the repaired player has passed a live playback test."
+  ]
+}

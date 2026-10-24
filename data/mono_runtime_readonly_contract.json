@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "id": "mono-runtime-readonly-inventory-20261021",
+  "source_dll_sha256": "fc205bf3c7baa98a21ab21bcb95b12a0df443eabcfc9aa4455e7ce5864fe41d3",
+  "source_dll_bytes": 4993736,
+  "source_image_extent": "0x4da000",
+  "runtime_family": "dotnet_mono",
+  "file_build_info": "9.0.6",
+  "diagnostic_only": true,
+  "mono_api_calls": 0,
+  "binding_authorized": false,
+  "snapshot_atomic": false,
+  "lifetime_locked": false,
+  "offsets": {
+    "root_domain_global": "0x49d3d8",
+    "assemblies_head_global": "0x49d3f0",
+    "list_node_bytes": 24,
+    "list_data": 0,
+    "list_next": 8,
+    "list_prev": 16,
+    "assembly_image": "0x68",
+    "image_filename": "0x20",
+    "image_name": "0x30"
+  },
+  "limits": {
+    "max_assemblies": 512,
+    "max_name_bytes": 512,
+    "max_filename_bytes": 2048,
+    "max_total_string_bytes": 262144,
+    "max_snapshot_bytes": 1048576
+  },
+  "functions": [
+    {
+      "label": "mono_get_root_domain",
+      "rva": "0x275e80",
+      "bytes": 8,
+      "sha256": "bf832bedaa5f0c16eda1a885f9df26b292ceb0a8da0a9d01c9a7b3166bd7ed69",
+      "function_bytes_hex": "488b0551752200c3"
+    },
+    {
+      "label": "mono_assembly_foreach",
+      "rva": "0x277b10",
+      "bytes": 137,
+      "sha256": "bccd8837e01cfff257ac92cd44d2ece9497e81aac49523e0b5e88a74b05033fc",
+      "function_bytes_hex": "48895c24084889742410574883ec20833d0a59220000488bf9488d0dd8582200488bda7408ff158db51400eb06ff157db51400488b0da6582200e8f152feff833dda58220000488d0dab582200488bf07408ff1568b51400eb06ff1548b51400488b0d795822004c8bc3488bd7e8de53feff488bce488b5c2430488b7424384883c4205fe91754feff"
+    },
+    {
+      "label": "mono_assembly_get_image",
+      "rva": "0x277fe0",
+      "bytes": 67,
+      "sha256": "71352206836c2fa6775b8ff07fa59259017619c57f4322d2acaefd95a511fc1f",
+      "function_bytes_hex": "40534883ec30488d442420488bd94889442420488d4c2420488d05e1ba18004889442428e8778dffff488b5b68488d542420488bc8e8a691ffff488bc34883c4305bc3"
+    },
+    {
+      "label": "mono_image_get_name",
+      "rva": "0x2b72a0",
+      "bytes": 5,
+      "sha256": "efbd103662ccda4c0f468ab461257f1b371879ef59acc4189da3ceb1394859cc",
+      "function_bytes_hex": "488b4130c3"
+    },
+    {
+      "label": "mono_image_get_filename",
+      "rva": "0x2b7280",
+      "bytes": 5,
+      "sha256": "8dd1a729f135c61d0575a363385037834e1c6af6f857a82d4cfa05db2b7cdcc7",
+      "function_bytes_hex": "488b4120c3"
+    },
+    {
+      "label": "g_list_copy",
+      "rva": "0x25ce40",
+      "bytes": 170,
+      "sha256": "918154af16f9cd273f626e1bb8754a29efa338d74d3da25e63a21633ef693cde",
+      "function_bytes_hex": "488974242041564883ec204533f6488bf14885c90f848100000048895c2430488b19b91800000048896c243848897c2440e82ad6ffff488bf8488be84889184c8970104c897008488b76084885f67430488b1eb918000000e803d6ffff488918488978104c8970084885ff740448894708488b7608488bf84885f675d3488bc5488b6c2438488b5c2430488b7c2440488b7424484883c420415ec3488b742448498bc64883c420415ec3"
+    },
+    {
+      "label": "g_list_foreach",
+      "rva": "0x25cf60",
+      "bytes": 72,
+      "sha256": "e5ef530d76d25e16696ec014664b9a57f0910e39460ab29bae41ba51b6b28e90",
+      "function_bytes_hex": "4885c9744248895c24084889742410574883ec20498bf8488bf2488bd90f1f00488b0b488bd7488bc6ff1509671600488b5b084885db75e8488b5c2430488b7424384883c4205fc3"
+    },
+    {
+      "label": "g_list_free",
+      "rva": "0x25cfb0",
+      "bytes": 43,
+      "sha256": "30797f73875d302a03c463ae46057b80c1b77885345f93a75850bad9a5cd33f7",
+      "function_bytes_hex": "4883ec284885c9741d48895c24206690488b5908e867d3ffff488bcb4885db75ef488b5c24204883c428c3"
+    }
+  ]
+}

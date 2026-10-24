@@ -1,0 +1,743 @@
+{
+  "alias_of": null,
+  "body_type": "FemaleXL",
+  "candidate_groups": [
+    {
+      "alpha_curve": "Kawaii_alpha_chazhi",
+      "alpha_input_type": "Curve",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_9",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Skirt002_R",
+        "Bone_Skirt002_L"
+      ],
+      "runtime_verified": false,
+      "simulate_default": true,
+      "source_id": "7b2b198760f03ce199504e1b97925eeefe5c5a5d77f054389808cf8442b50592",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "unmatched_root_bones": [],
+      "variant": "ABP_Seq_Kanteleila_Phy"
+    },
+    {
+      "alpha_curve": "Kawaii_alpha_chazhi",
+      "alpha_input_type": "Float",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_8",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Skirt014_L",
+        "Bone_Skirt014_R",
+        "Bone_Skirt026_L",
+        "Bone_Skirt026_R",
+        "Bone_Piao114_M",
+        "Bone_Piao094_L"
+      ],
+      "runtime_verified": false,
+      "simulate_default": true,
+      "source_id": "7b2b198760f03ce199504e1b97925eeefe5c5a5d77f054389808cf8442b50592",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "unmatched_root_bones": [],
+      "variant": "ABP_Seq_Kanteleila_Phy"
+    },
+    {
+      "alpha_curve": "Kawaii_alpha_chazhi",
+      "alpha_input_type": "Float",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_7",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Piao094_L",
+        "Bone_Piao100_L",
+        "Bone_Piao098_L",
+        "Bone_Piao122_L"
+      ],
+      "runtime_verified": false,
+      "simulate_default": true,
+      "source_id": "7b2b198760f03ce199504e1b97925eeefe5c5a5d77f054389808cf8442b50592",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "unmatched_root_bones": [],
+      "variant": "ABP_Seq_Kanteleila_Phy"
+    },
+    {
+      "alpha_curve": "None",
+      "alpha_input_type": "Float",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_6",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Chest001_R",
+        "Bone_Chest001_L"
+      ],
+      "runtime_verified": false,
+      "simulate_default": true,
+      "source_id": "7b2b198760f03ce199504e1b97925eeefe5c5a5d77f054389808cf8442b50592",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "unmatched_root_bones": [],
+      "variant": "ABP_Seq_Kanteleila_Phy"
+    },
+    {
+      "alpha_curve": "None",
+      "alpha_input_type": "Float",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_5",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Piao035_M"
+      ],
+      "runtime_verified": false,
+      "simulate_default": true,
+      "source_id": "7b2b198760f03ce199504e1b97925eeefe5c5a5d77f054389808cf8442b50592",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "unmatched_root_bones": [],
+      "variant": "ABP_Seq_Kanteleila_Phy"
+    },
+    {
+      "alpha_curve": "None",
+      "alpha_input_type": "Float",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_4",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Piao042_L",
+        "Bone_Piao042_R",
+        "Bone_Piao052_L",
+        "Bone_Piao052_R",
+        "Bone_Piao062_L",
+        "Bone_Piao062_R",
+        "Bone_Piao072_L",
+        "Bone_Piao072_R"
+      ],
+      "runtime_verified": false,
+      "simulate_default": true,
+      "source_id": "7b2b198760f03ce199504e1b97925eeefe5c5a5d77f054389808cf8442b50592",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "unmatched_root_bones": [],
+      "variant": "ABP_Seq_Kanteleila_Phy"
+    },
+    {
+      "alpha_curve": "None",
+      "alpha_input_type": "Float",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_3",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Piao021_R",
+        "Bone_Piao021_L",
+        "Bone_Piao002_M"
+      ],
+      "runtime_verified": false,
+      "simulate_default": true,
+      "source_id": "7b2b198760f03ce199504e1b97925eeefe5c5a5d77f054389808cf8442b50592",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "unmatched_root_bones": [],
+      "variant": "ABP_Seq_Kanteleila_Phy"
+    },
+    {
+      "alpha_curve": "None",
+      "alpha_input_type": "Float",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_2",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Hair043_R",
+        "Bone_Hair043_L",
+        "Bone_Hair053_R",
+        "Bone_Hair053_L"
+      ],
+      "runtime_verified": false,
+      "simulate_default": true,
+      "source_id": "7b2b198760f03ce199504e1b97925eeefe5c5a5d77f054389808cf8442b50592",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "unmatched_root_bones": [],
+      "variant": "ABP_Seq_Kanteleila_Phy"
+    },
+    {
+      "alpha_curve": "None",
+      "alpha_input_type": "Float",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_1",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Hair002_M",
+        "Bone_Hair002_L",
+        "Bone_Hair002_R",
+        "Bone_Hair012_L",
+        "Bone_Hair012_R",
+        "Bone_Hair015_R",
+        "Bone_Hair022_L",
+        "Bone_Hair022_R"
+      ],
+      "runtime_verified": false,
+      "simulate_default": true,
+      "source_id": "7b2b198760f03ce199504e1b97925eeefe5c5a5d77f054389808cf8442b50592",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "unmatched_root_bones": [],
+      "variant": "ABP_Seq_Kanteleila_Phy"
+    },
+    {
+      "alpha_curve": "None",
+      "alpha_input_type": "Float",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Piao002_L",
+        "Bone_Piao011_L",
+        "Bone_Piao011_R",
+        "Bone_Piao013_L",
+        "Bone_Piao013_R",
+        "Bone_Piao011_M",
+        "Bone_Piao013_M",
+        "Bone_Piao007_L",
+        "Bone_Piao009_L",
+        "Bone_Piao005_L"
+      ],
+      "runtime_verified": false,
+      "simulate_default": true,
+      "source_id": "7b2b198760f03ce199504e1b97925eeefe5c5a5d77f054389808cf8442b50592",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "unmatched_root_bones": [],
+      "variant": "ABP_Seq_Kanteleila_Phy"
+    },
+    {
+      "source_id": "14f696cc2efb06422fe9af071a11460aa84e2685d64b6627867e737603667e68",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "variant": "ABP_Performance_Kanteleila_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_9",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Skirt002_R",
+        "Bone_Skirt002_L"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Curve",
+      "alpha_curve": "Kawaii_alpha_chazhi",
+      "simulate_default": true
+    },
+    {
+      "source_id": "14f696cc2efb06422fe9af071a11460aa84e2685d64b6627867e737603667e68",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "variant": "ABP_Performance_Kanteleila_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_8",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Skirt014_L",
+        "Bone_Skirt014_R",
+        "Bone_Skirt026_L",
+        "Bone_Skirt026_R",
+        "Bone_Piao114_M",
+        "Bone_Piao094_L"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Float",
+      "alpha_curve": "Kawaii_alpha_chazhi",
+      "simulate_default": true
+    },
+    {
+      "source_id": "14f696cc2efb06422fe9af071a11460aa84e2685d64b6627867e737603667e68",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "variant": "ABP_Performance_Kanteleila_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_7",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Piao094_L",
+        "Bone_Piao100_L",
+        "Bone_Piao098_L",
+        "Bone_Piao122_L"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Float",
+      "alpha_curve": "Kawaii_alpha_chazhi",
+      "simulate_default": true
+    },
+    {
+      "source_id": "14f696cc2efb06422fe9af071a11460aa84e2685d64b6627867e737603667e68",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "variant": "ABP_Performance_Kanteleila_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_6",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Chest001_R",
+        "Bone_Chest001_L"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Float",
+      "alpha_curve": "None",
+      "simulate_default": true
+    },
+    {
+      "source_id": "14f696cc2efb06422fe9af071a11460aa84e2685d64b6627867e737603667e68",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "variant": "ABP_Performance_Kanteleila_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_5",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Piao035_M"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Float",
+      "alpha_curve": "None",
+      "simulate_default": true
+    },
+    {
+      "source_id": "14f696cc2efb06422fe9af071a11460aa84e2685d64b6627867e737603667e68",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "variant": "ABP_Performance_Kanteleila_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_4",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Piao042_L",
+        "Bone_Piao042_R",
+        "Bone_Piao052_L",
+        "Bone_Piao052_R",
+        "Bone_Piao062_L",
+        "Bone_Piao062_R",
+        "Bone_Piao072_L",
+        "Bone_Piao072_R"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Float",
+      "alpha_curve": "None",
+      "simulate_default": true
+    },
+    {
+      "source_id": "14f696cc2efb06422fe9af071a11460aa84e2685d64b6627867e737603667e68",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "variant": "ABP_Performance_Kanteleila_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_3",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Piao021_R",
+        "Bone_Piao021_L",
+        "Bone_Piao002_M"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Float",
+      "alpha_curve": "None",
+      "simulate_default": true
+    },
+    {
+      "source_id": "14f696cc2efb06422fe9af071a11460aa84e2685d64b6627867e737603667e68",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "variant": "ABP_Performance_Kanteleila_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_2",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Hair043_R",
+        "Bone_Hair043_L",
+        "Bone_Hair053_R",
+        "Bone_Hair053_L"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Float",
+      "alpha_curve": "None",
+      "simulate_default": true
+    },
+    {
+      "source_id": "14f696cc2efb06422fe9af071a11460aa84e2685d64b6627867e737603667e68",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "variant": "ABP_Performance_Kanteleila_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_1",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Hair002_M",
+        "Bone_Hair002_L",
+        "Bone_Hair002_R",
+        "Bone_Hair012_L",
+        "Bone_Hair012_R",
+        "Bone_Hair015_R",
+        "Bone_Hair022_L",
+        "Bone_Hair022_R"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Float",
+      "alpha_curve": "None",
+      "simulate_default": true
+    },
+    {
+      "source_id": "14f696cc2efb06422fe9af071a11460aa84e2685d64b6627867e737603667e68",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "variant": "ABP_Performance_Kanteleila_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Piao002_L",
+        "Bone_Piao011_L",
+        "Bone_Piao011_R",
+        "Bone_Piao013_L",
+        "Bone_Piao013_R",
+        "Bone_Piao011_M",
+        "Bone_Piao013_M",
+        "Bone_Piao007_L",
+        "Bone_Piao009_L",
+        "Bone_Piao005_L"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Float",
+      "alpha_curve": "None",
+      "simulate_default": true
+    }
+  ],
+  "candidate_sources": [
+    {
+      "kind": "bone_chains",
+      "selection": "direct_model",
+      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_body_type": "FemaleXL",
+      "source_character": "Kanteleila",
+      "source_model_id": "R2T1KanteleilaMd10011"
+    },
+    {
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "graph_scope": "sequence_candidate",
+      "group_signature": {
+        "curve_names": [
+          "Kawaii_alpha_chazhi"
+        ],
+        "kawaii_group_count": 10
+      },
+      "group_signatures": [
+        {
+          "alpha_curve": "Kawaii_alpha_chazhi",
+          "alpha_input_type": "Curve",
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_9",
+          "node_type": "KawaiiPhysicsGroup",
+          "root_bones": [
+            "Bone_Skirt002_R",
+            "Bone_Skirt002_L"
+          ]
+        },
+        {
+          "alpha_curve": "Kawaii_alpha_chazhi",
+          "alpha_input_type": "Float",
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_8",
+          "node_type": "KawaiiPhysicsGroup",
+          "root_bones": [
+            "Bone_Skirt014_L",
+            "Bone_Skirt014_R",
+            "Bone_Skirt026_L",
+            "Bone_Skirt026_R",
+            "Bone_Piao114_M",
+            "Bone_Piao094_L"
+          ]
+        },
+        {
+          "alpha_curve": "Kawaii_alpha_chazhi",
+          "alpha_input_type": "Float",
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_7",
+          "node_type": "KawaiiPhysicsGroup",
+          "root_bones": [
+            "Bone_Piao094_L",
+            "Bone_Piao100_L",
+            "Bone_Piao098_L",
+            "Bone_Piao122_L"
+          ]
+        },
+        {
+          "alpha_curve": "None",
+          "alpha_input_type": "Float",
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_6",
+          "node_type": "KawaiiPhysicsGroup",
+          "root_bones": [
+            "Bone_Chest001_R",
+            "Bone_Chest001_L"
+          ]
+        },
+        {
+          "alpha_curve": "None",
+          "alpha_input_type": "Float",
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_5",
+          "node_type": "KawaiiPhysicsGroup",
+          "root_bones": [
+            "Bone_Piao035_M"
+          ]
+        },
+        {
+          "alpha_curve": "None",
+          "alpha_input_type": "Float",
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_4",
+          "node_type": "KawaiiPhysicsGroup",
+          "root_bones": [
+            "Bone_Piao042_L",
+            "Bone_Piao042_R",
+            "Bone_Piao052_L",
+            "Bone_Piao052_R",
+            "Bone_Piao062_L",
+            "Bone_Piao062_R",
+            "Bone_Piao072_L",
+            "Bone_Piao072_R"
+          ]
+        },
+        {
+          "alpha_curve": "None",
+          "alpha_input_type": "Float",
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_3",
+          "node_type": "KawaiiPhysicsGroup",
+          "root_bones": [
+            "Bone_Piao021_R",
+            "Bone_Piao021_L",
+            "Bone_Piao002_M"
+          ]
+        },
+        {
+          "alpha_curve": "None",
+          "alpha_input_type": "Float",
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_2",
+          "node_type": "KawaiiPhysicsGroup",
+          "root_bones": [
+            "Bone_Hair043_R",
+            "Bone_Hair043_L",
+            "Bone_Hair053_R",
+            "Bone_Hair053_L"
+          ]
+        },
+        {
+          "alpha_curve": "None",
+          "alpha_input_type": "Float",
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_1",
+          "node_type": "KawaiiPhysicsGroup",
+          "root_bones": [
+            "Bone_Hair002_M",
+            "Bone_Hair002_L",
+            "Bone_Hair002_R",
+            "Bone_Hair012_L",
+            "Bone_Hair012_R",
+            "Bone_Hair015_R",
+            "Bone_Hair022_L",
+            "Bone_Hair022_R"
+          ]
+        },
+        {
+          "alpha_curve": "None",
+          "alpha_input_type": "Float",
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup",
+          "node_type": "KawaiiPhysicsGroup",
+          "root_bones": [
+            "Bone_Piao002_L",
+            "Bone_Piao011_L",
+            "Bone_Piao011_R",
+            "Bone_Piao013_L",
+            "Bone_Piao013_R",
+            "Bone_Piao011_M",
+            "Bone_Piao013_M",
+            "Bone_Piao007_L",
+            "Bone_Piao009_L",
+            "Bone_Piao005_L"
+          ]
+        }
+      ],
+      "kind": "seq_export",
+      "runtime_verified": false,
+      "sha256": "7b2b198760f03ce199504e1b97925eeefe5c5a5d77f054389808cf8442b50592",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "variant": "ABP_Seq_Kanteleila_Phy"
+    },
+    {
+      "kind": "ui_export",
+      "sha256": "14f696cc2efb06422fe9af071a11460aa84e2685d64b6627867e737603667e68",
+      "selection": "direct_model",
+      "source_model_id": "R2T1KanteleilaMd10011",
+      "source_profile_id": "femalexl--kanteleila--r2t1kanteleilamd10011",
+      "ui_class_asset": "/Game/Aki/Character/Role/FemaleXL/Kanteleila/R2T1KanteleilaMd10011/ABP_Performance_Kanteleila_PC.ABP_Performance_Kanteleila_PC_C",
+      "ui_skin_ids": [
+        81001607
+      ],
+      "variant": "ABP_Performance_Kanteleila_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "graph_scope": "ui_candidate",
+      "runtime_verified": false,
+      "group_signatures": [
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_9",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Curve",
+          "alpha_curve": "Kawaii_alpha_chazhi",
+          "root_bones": [
+            "Bone_Skirt002_R",
+            "Bone_Skirt002_L"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_8",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Float",
+          "alpha_curve": "Kawaii_alpha_chazhi",
+          "root_bones": [
+            "Bone_Skirt014_L",
+            "Bone_Skirt014_R",
+            "Bone_Skirt026_L",
+            "Bone_Skirt026_R",
+            "Bone_Piao114_M",
+            "Bone_Piao094_L"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_7",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Float",
+          "alpha_curve": "Kawaii_alpha_chazhi",
+          "root_bones": [
+            "Bone_Piao094_L",
+            "Bone_Piao100_L",
+            "Bone_Piao098_L",
+            "Bone_Piao122_L"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_6",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Float",
+          "alpha_curve": "None",
+          "root_bones": [
+            "Bone_Chest001_R",
+            "Bone_Chest001_L"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_5",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Float",
+          "alpha_curve": "None",
+          "root_bones": [
+            "Bone_Piao035_M"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_4",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Float",
+          "alpha_curve": "None",
+          "root_bones": [
+            "Bone_Piao042_L",
+            "Bone_Piao042_R",
+            "Bone_Piao052_L",
+            "Bone_Piao052_R",
+            "Bone_Piao062_L",
+            "Bone_Piao062_R",
+            "Bone_Piao072_L",
+            "Bone_Piao072_R"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_3",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Float",
+          "alpha_curve": "None",
+          "root_bones": [
+            "Bone_Piao021_R",
+            "Bone_Piao021_L",
+            "Bone_Piao002_M"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_2",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Float",
+          "alpha_curve": "None",
+          "root_bones": [
+            "Bone_Hair043_R",
+            "Bone_Hair043_L",
+            "Bone_Hair053_R",
+            "Bone_Hair053_L"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_1",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Float",
+          "alpha_curve": "None",
+          "root_bones": [
+            "Bone_Hair002_M",
+            "Bone_Hair002_L",
+            "Bone_Hair002_R",
+            "Bone_Hair012_L",
+            "Bone_Hair012_R",
+            "Bone_Hair015_R",
+            "Bone_Hair022_L",
+            "Bone_Hair022_R"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Float",
+          "alpha_curve": "None",
+          "root_bones": [
+            "Bone_Piao002_L",
+            "Bone_Piao011_L",
+            "Bone_Piao011_R",
+            "Bone_Piao013_L",
+            "Bone_Piao013_R",
+            "Bone_Piao011_M",
+            "Bone_Piao013_M",
+            "Bone_Piao007_L",
+            "Bone_Piao009_L",
+            "Bone_Piao005_L"
+          ]
+        }
+      ],
+      "group_signature": {
+        "kawaii_group_count": 10,
+        "curve_names": [
+          "Kawaii_alpha_chazhi"
+        ]
+      }
+    }
+  ],
+  "character": "Kanteleila",
+  "character_profile_sha256": "19858242b3bf182ae713f4f1844dea2a405678d8fd3927df21e57bbb2470b9f8",
+  "evidence_level": "actual_nodes",
+  "kind": "native_graph_runtime_descriptor",
+  "model_id": "R2T1KanteleilaMd10011",
+  "pc_binding": null,
+  "physics_model_id": "R2T1KanteleilaMd10011",
+  "profile_id": "femalexl--kanteleila--r2t1kanteleilamd10011",
+  "requires_live_discovery": true,
+  "runtime_verified": false,
+  "schema": 1,
+  "skeleton_sha256": "50ff71a800233cb8ccb6877389f4175bb2d5d1b7788e47dc0d87b0dee83cf886",
+  "source_profile_sha256": "4ba55fff42bc92c714492e5f6bf479ba1317488402bc1a53dbf8f162df6859db"
+}

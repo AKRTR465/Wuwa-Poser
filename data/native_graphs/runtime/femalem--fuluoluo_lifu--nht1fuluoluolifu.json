@@ -1,0 +1,89 @@
+{
+  "alias_of": null,
+  "body_type": "FemaleM",
+  "candidate_groups": [
+    {
+      "alpha_curve": null,
+      "alpha_input_type": null,
+      "evidence_kind": "heuristic",
+      "extraction_kind": "heuristic",
+      "node_property": "heuristic_family_chains",
+      "node_type": "heuristic_chain_family",
+      "root_bones": [
+        "Bone_Hair001_L",
+        "Bone_Hair005_M",
+        "Bone_Hair009_R",
+        "Bone_Hair013_L",
+        "Bone_Hair017_R",
+        "Bone_Hair034_M",
+        "Bone_Piao001_L",
+        "Bone_Piao003_L",
+        "Bone_Piao005_L",
+        "Bone_Piao007_L",
+        "Bone_Piao009_R",
+        "Bone_Piao011_R",
+        "Bone_Piao013_R",
+        "Bone_Piao015_R",
+        "Bone_Piao020_L",
+        "Bone_Piao020_R",
+        "Bone_Piao022_L",
+        "Bone_Piao022_R",
+        "Bone_Piao024_L",
+        "Bone_Piao024_R",
+        "Bone_Piao031_M",
+        "Bone_Piao051_M",
+        "Bone_Skirt001_L",
+        "Bone_Skirt008_R",
+        "Bone_Skirt012_L",
+        "Bone_Skirt019_R",
+        "Bone_Skirt024_L",
+        "Bone_Skirt031_R",
+        "L_ChestBone01",
+        "R_ChestBone01"
+      ],
+      "runtime_verified": false,
+      "source_id": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_model_id": "NHT1FuluoluoLifu",
+      "unmatched_root_bones": [],
+      "variant": "skeleton_heuristic"
+    }
+  ],
+  "candidate_sources": [
+    {
+      "kind": "bone_chains",
+      "selection": "direct_model",
+      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_body_type": "FemaleM",
+      "source_character": "Fuluoluo_Lifu",
+      "source_model_id": "NHT1FuluoluoLifu"
+    },
+    {
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "graph_scope": "sequence_candidate",
+      "group_signature": {
+        "curve_names": [],
+        "kawaii_group_count": 0
+      },
+      "group_signatures": [],
+      "kind": "seq_export",
+      "runtime_verified": false,
+      "sha256": "4bfa8fe9d80e76ad78770e4926babcbd642dfeb9b25b3a160dd326b552e8aa56",
+      "source_model_id": "NHT1FuluoluoLifu",
+      "variant": "ABP_Seq_NHT1FuluoluoLifu_Phy"
+    }
+  ],
+  "character": "Fuluoluo_Lifu",
+  "character_profile_sha256": "e96c80e719ab0d9816a86c03818ef7a1d958277166d69ce1493d85be12b805e6",
+  "evidence_level": "heuristic",
+  "kind": "native_graph_runtime_descriptor",
+  "model_id": "NHT1FuluoluoLifu",
+  "pc_binding": null,
+  "physics_model_id": "NHT1FuluoluoLifu",
+  "profile_id": "femalem--fuluoluo_lifu--nht1fuluoluolifu",
+  "requires_live_discovery": true,
+  "runtime_verified": false,
+  "schema": 1,
+  "skeleton_sha256": "749aa248e9740c17ef20ce2590523c28b2d9f11ed904f18e59ab206dc0b2b34d",
+  "source_profile_sha256": "8dc5a1f3f2c5da29998c208f47671f22de660e515c6608e65c7e179958d0b863"
+}

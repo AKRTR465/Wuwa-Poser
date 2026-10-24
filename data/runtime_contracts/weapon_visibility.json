@@ -1,0 +1,54 @@
+{
+  "static_build_verified": true,
+  "runtime_call_verified": false,
+  "game_source_sha256": "c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18",
+  "hidden": {
+    "owner": "SceneComponent",
+    "offset": "0x16f",
+    "mask": "0x10"
+  },
+  "visible": {
+    "owner": "SceneComponent",
+    "offset": "0x16e",
+    "mask": "0x20"
+  },
+  "attachment": {
+    "owner": "SceneComponent",
+    "parent_offset": "0xd0",
+    "socket_fname12_offset": "0xd8",
+    "children_array_offset": "0xe8"
+  },
+  "component_owner": {
+    "owner": "ActorComponent",
+    "offset": "0xa8",
+    "executor_rva": "0x5772c00",
+    "raw_pointer": true
+  },
+  "static_mesh_asset": {
+    "owner": "StaticMeshComponent",
+    "offset": "0x5e0"
+  },
+  "actor_owner": {
+    "owner": "Actor",
+    "offset": "0x120"
+  },
+  "set_hidden_native": {
+    "rva": "0x5009450",
+    "bytes": 492,
+    "sha256": "6abff1cfdb8797db1b0ee15d87043041ce8e8a94b28e8d38d8d9af1016307503",
+    "function_bytes_hex": "48895c2418488974242055574156488d6c24b94881ec00010000488b05d78567044833c4488945374180f802488bf90fb6896f010000410fb6f00f94c30fb6c1c0e804440fb6f224013ad074258d46ff3c010fb6c20f96c380e1efc0e0040ac8488b07888f6f010000488bcfff90d004000084db0f844e01000048639ff000000085db0f8e3f01000033c0c7453318000000488945278bd089452f83fb187e138bd3488d4c2420e894172afc8b552f488b45274c8bc3488d4c242049c1e0034885c0480f45c84863c2488b97e8000000488d0cc1e8c96525028b552f4c8b4d2703d389552f85d20f8ece0000000f1f004d85c9448d5aff4963c34c8d5424204d0f45d1498b1cc28bc2412bc383e80174254c63c0418d43014863c84963c349c1e003498d14ca498d0cc2e8796525028b552f4c8b4d27ffca89552f4885db74734863bbf000000085ff74448d043a3b45337e138bd0488d4c2420e8e1162afc8b552f4c8b4d274863c2488d4c2420488b93e80000004c8bc749c1e0034d85c9490f45c9488d0cc1e816652502017d2f4080fe02750f4533c0410fb6d6488bcbe85cfeffff488bcbe824c3f1ff8b552f4c8b4d2785d20f8f35ffffff4d85c97408498bc9e848f00dfe488b4d374833cce85c1725024c8d9c2400010000498b5b30498b7338498be3415e5f5dc3",
+    "candidate_declaration": "void (*)(void* sceneComponent, bool hidden, uint8_t propagation)",
+    "abi": {
+      "rcx": "SceneComponent* this",
+      "dl": "hidden bool0/1",
+      "r8b": "propagation enum0/1/2"
+    },
+    "propagation": {
+      "0": "NoPropagation: target bit+native notification only",
+      "1": "DirtyOnly: dirty descendants without changing their hidden bits",
+      "2": "Propagate: recursively change descendant bits"
+    },
+    "wrapper_rva": "0x591e6e0",
+    "wrapper_bool_mapping": "propagate false->1,true->2; setne r8b;inc r8b"
+  }
+}

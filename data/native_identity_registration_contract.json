@@ -1,0 +1,506 @@
+{
+  "schema": 1,
+  "kind": "native_identity_registration_contract",
+  "policy_id": "native-identity-registration-v2",
+  "evidence_scope": "offline_saved_PE_analysis",
+  "game_accessed": false,
+  "runtime_verified": false,
+  "caller_lifetime_or_gc_guard_verified": false,
+  "source_sha256": "c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18",
+  "snapshot_sha256": "7480ba1b3fa5efa319c12f29890c949eafa36cf7dd932602774f111a8dcffea5",
+  "snapshot_path": "F:\\deeplearning\\UAV\\ww-ida\\Client-runtime-20261018.exe",
+  "functions": [
+    {
+      "label": "FUObjectArray_AllocateSerialNumber",
+      "rva": "0x33f11d0",
+      "end_rva": "0x33f1279",
+      "bytes": 169,
+      "sha256": "d061ffb1798bb5262881a0842045a842350288a0a34a07728bb43bf0c70a106e",
+      "function_bytes_hex": "40574883ec304c8bc93b51247d2b8bc2990fb7d203c2448bc00fb7c02bc2488b5110489841c1f8104d63c0488d0c404a8b04c2488d3cc8eb0233ff8b471085c0756148895c2440bb01000000f0410fc19930010000ffc381fbe80300007f33488d05cae8a904895c242841b90100000048894424204c8d05502b5b06babe010000488d0d88810004e8335ed6ffe87e4fdaff33c0f00fb15f100f45d88bc3488b5c24404883c4305fc3",
+      "instructions": [
+        {
+          "rva": "0x33f11d0",
+          "bytes": "4057",
+          "text": "push rdi"
+        },
+        {
+          "rva": "0x33f11d2",
+          "bytes": "4883ec30",
+          "text": "sub rsp, 0x30"
+        },
+        {
+          "rva": "0x33f11d6",
+          "bytes": "4c8bc9",
+          "text": "mov r9, rcx"
+        },
+        {
+          "rva": "0x33f11d9",
+          "bytes": "3b5124",
+          "text": "cmp edx, dword ptr [rcx + 0x24]"
+        },
+        {
+          "rva": "0x33f11dc",
+          "bytes": "7d2b",
+          "text": "jge 0x1433f1209"
+        },
+        {
+          "rva": "0x33f11de",
+          "bytes": "8bc2",
+          "text": "mov eax, edx"
+        },
+        {
+          "rva": "0x33f11e0",
+          "bytes": "99",
+          "text": "cdq "
+        },
+        {
+          "rva": "0x33f11e1",
+          "bytes": "0fb7d2",
+          "text": "movzx edx, dx"
+        },
+        {
+          "rva": "0x33f11e4",
+          "bytes": "03c2",
+          "text": "add eax, edx"
+        },
+        {
+          "rva": "0x33f11e6",
+          "bytes": "448bc0",
+          "text": "mov r8d, eax"
+        },
+        {
+          "rva": "0x33f11e9",
+          "bytes": "0fb7c0",
+          "text": "movzx eax, ax"
+        },
+        {
+          "rva": "0x33f11ec",
+          "bytes": "2bc2",
+          "text": "sub eax, edx"
+        },
+        {
+          "rva": "0x33f11ee",
+          "bytes": "488b5110",
+          "text": "mov rdx, qword ptr [rcx + 0x10]"
+        },
+        {
+          "rva": "0x33f11f2",
+          "bytes": "4898",
+          "text": "cdqe "
+        },
+        {
+          "rva": "0x33f11f4",
+          "bytes": "41c1f810",
+          "text": "sar r8d, 0x10"
+        },
+        {
+          "rva": "0x33f11f8",
+          "bytes": "4d63c0",
+          "text": "movsxd r8, r8d"
+        },
+        {
+          "rva": "0x33f11fb",
+          "bytes": "488d0c40",
+          "text": "lea rcx, [rax + rax*2]"
+        },
+        {
+          "rva": "0x33f11ff",
+          "bytes": "4a8b04c2",
+          "text": "mov rax, qword ptr [rdx + r8*8]"
+        },
+        {
+          "rva": "0x33f1203",
+          "bytes": "488d3cc8",
+          "text": "lea rdi, [rax + rcx*8]"
+        },
+        {
+          "rva": "0x33f1207",
+          "bytes": "eb02",
+          "text": "jmp 0x1433f120b"
+        },
+        {
+          "rva": "0x33f1209",
+          "bytes": "33ff",
+          "text": "xor edi, edi"
+        },
+        {
+          "rva": "0x33f120b",
+          "bytes": "8b4710",
+          "text": "mov eax, dword ptr [rdi + 0x10]"
+        },
+        {
+          "rva": "0x33f120e",
+          "bytes": "85c0",
+          "text": "test eax, eax"
+        },
+        {
+          "rva": "0x33f1210",
+          "bytes": "7561",
+          "text": "jne 0x1433f1273"
+        },
+        {
+          "rva": "0x33f1212",
+          "bytes": "48895c2440",
+          "text": "mov qword ptr [rsp + 0x40], rbx"
+        },
+        {
+          "rva": "0x33f1217",
+          "bytes": "bb01000000",
+          "text": "mov ebx, 1"
+        },
+        {
+          "rva": "0x33f121c",
+          "bytes": "f0410fc19930010000",
+          "text": "lock xadd dword ptr [r9 + 0x130], ebx"
+        },
+        {
+          "rva": "0x33f1225",
+          "bytes": "ffc3",
+          "text": "inc ebx"
+        },
+        {
+          "rva": "0x33f1227",
+          "bytes": "81fbe8030000",
+          "text": "cmp ebx, 0x3e8"
+        },
+        {
+          "rva": "0x33f122d",
+          "bytes": "7f33",
+          "text": "jg 0x1433f1262"
+        },
+        {
+          "rva": "0x33f122f",
+          "bytes": "488d05cae8a904",
+          "text": "lea rax, [rip + 0x4a9e8ca]"
+        },
+        {
+          "rva": "0x33f1236",
+          "bytes": "895c2428",
+          "text": "mov dword ptr [rsp + 0x28], ebx"
+        },
+        {
+          "rva": "0x33f123a",
+          "bytes": "41b901000000",
+          "text": "mov r9d, 1"
+        },
+        {
+          "rva": "0x33f1240",
+          "bytes": "4889442420",
+          "text": "mov qword ptr [rsp + 0x20], rax"
+        },
+        {
+          "rva": "0x33f1245",
+          "bytes": "4c8d05502b5b06",
+          "text": "lea r8, [rip + 0x65b2b50]"
+        },
+        {
+          "rva": "0x33f124c",
+          "bytes": "babe010000",
+          "text": "mov edx, 0x1be"
+        },
+        {
+          "rva": "0x33f1251",
+          "bytes": "488d0d88810004",
+          "text": "lea rcx, [rip + 0x4008188]"
+        },
+        {
+          "rva": "0x33f1258",
+          "bytes": "e8335ed6ff",
+          "text": "call 0x143157090"
+        },
+        {
+          "rva": "0x33f125d",
+          "bytes": "e87e4fdaff",
+          "text": "call 0x1431961e0"
+        },
+        {
+          "rva": "0x33f1262",
+          "bytes": "33c0",
+          "text": "xor eax, eax"
+        },
+        {
+          "rva": "0x33f1264",
+          "bytes": "f00fb15f10",
+          "text": "lock cmpxchg dword ptr [rdi + 0x10], ebx"
+        },
+        {
+          "rva": "0x33f1269",
+          "bytes": "0f45d8",
+          "text": "cmovne ebx, eax"
+        },
+        {
+          "rva": "0x33f126c",
+          "bytes": "8bc3",
+          "text": "mov eax, ebx"
+        },
+        {
+          "rva": "0x33f126e",
+          "bytes": "488b5c2440",
+          "text": "mov rbx, qword ptr [rsp + 0x40]"
+        },
+        {
+          "rva": "0x33f1273",
+          "bytes": "4883c430",
+          "text": "add rsp, 0x30"
+        },
+        {
+          "rva": "0x33f1277",
+          "bytes": "5f",
+          "text": "pop rdi"
+        },
+        {
+          "rva": "0x33f1278",
+          "bytes": "c3",
+          "text": "ret "
+        }
+      ],
+      "range_basis": "complete contiguous unwind fragments through final RET before INT3 padding",
+      "snapshot_bytes_verified": true
+    },
+    {
+      "label": "FWeakObjectPtr_AssignObject",
+      "rva": "0x3404280",
+      "end_rva": "0x34042bb",
+      "bytes": 59,
+      "sha256": "165872ef14eebb05c725a39e381bf60d31d5b8e5beb16cc4f33627eff3eb2b1b",
+      "function_bytes_hex": "40534883ec20488bd94885d2741a8b520c8911488d0d46fd5906e831cffeff8943044883c4205bc3c701ffffffffc74104000000004883c4205bc3",
+      "instructions": [
+        {
+          "rva": "0x3404280",
+          "bytes": "4053",
+          "text": "push rbx"
+        },
+        {
+          "rva": "0x3404282",
+          "bytes": "4883ec20",
+          "text": "sub rsp, 0x20"
+        },
+        {
+          "rva": "0x3404286",
+          "bytes": "488bd9",
+          "text": "mov rbx, rcx"
+        },
+        {
+          "rva": "0x3404289",
+          "bytes": "4885d2",
+          "text": "test rdx, rdx"
+        },
+        {
+          "rva": "0x340428c",
+          "bytes": "741a",
+          "text": "je 0x1434042a8"
+        },
+        {
+          "rva": "0x340428e",
+          "bytes": "8b520c",
+          "text": "mov edx, dword ptr [rdx + 0xc]"
+        },
+        {
+          "rva": "0x3404291",
+          "bytes": "8911",
+          "text": "mov dword ptr [rcx], edx"
+        },
+        {
+          "rva": "0x3404293",
+          "bytes": "488d0d46fd5906",
+          "text": "lea rcx, [rip + 0x659fd46]"
+        },
+        {
+          "rva": "0x340429a",
+          "bytes": "e831cffeff",
+          "text": "call 0x1433f11d0"
+        },
+        {
+          "rva": "0x340429f",
+          "bytes": "894304",
+          "text": "mov dword ptr [rbx + 4], eax"
+        },
+        {
+          "rva": "0x34042a2",
+          "bytes": "4883c420",
+          "text": "add rsp, 0x20"
+        },
+        {
+          "rva": "0x34042a6",
+          "bytes": "5b",
+          "text": "pop rbx"
+        },
+        {
+          "rva": "0x34042a7",
+          "bytes": "c3",
+          "text": "ret "
+        },
+        {
+          "rva": "0x34042a8",
+          "bytes": "c701ffffffff",
+          "text": "mov dword ptr [rcx], 0xffffffff"
+        },
+        {
+          "rva": "0x34042ae",
+          "bytes": "c7410400000000",
+          "text": "mov dword ptr [rcx + 4], 0"
+        },
+        {
+          "rva": "0x34042b5",
+          "bytes": "4883c420",
+          "text": "add rsp, 0x20"
+        },
+        {
+          "rva": "0x34042b9",
+          "bytes": "5b",
+          "text": "pop rbx"
+        },
+        {
+          "rva": "0x34042ba",
+          "bytes": "c3",
+          "text": "ret "
+        }
+      ],
+      "range_basis": "complete contiguous unwind fragments through final RET before INT3 padding",
+      "snapshot_bytes_verified": true
+    }
+  ],
+  "allocator_abi": {
+    "entry_rva": "0x33f11d0",
+    "declaration": "int32_t (*)(void* fu_object_array, int32_t object_index)",
+    "calling_convention": "Windows x64",
+    "rcx": "FUObjectArray this pointer, NOT its embedded ObjObjects member",
+    "edx": "nonnegative valid InternalIndex",
+    "eax": "allocated or previously assigned int32 serial"
+  },
+  "weak_assignment_abi": {
+    "entry_rva": "0x3404280",
+    "rcx": "caller-owned 8-byte weak reference output (index at +0, serial at +4)",
+    "rdx": "live UObject pointer, or null",
+    "non_null_path": "read UObject+0x0c index; write output+0; call allocator with GUObjectArray; write output+4 serial",
+    "null_path": "write index=-1 and serial=0 only to caller-owned weak output",
+    "return_value_contract": "not used; no reliable general return value is established for the null path"
+  },
+  "layout": {
+    "gu_object_array_rva": 161103840,
+    "embedded_objobjects_rva": 161103856,
+    "embedded_objobjects_offset": 16,
+    "chunk_table_pointer_offset_from_this": 16,
+    "object_count_offset_from_this": 36,
+    "master_serial_offset_from_this": 304,
+    "objects_per_chunk": 65536,
+    "item_stride": 24,
+    "item_object_pointer_offset": 0,
+    "item_serial_offset": 16,
+    "uobject_internal_index_offset": 12
+  },
+  "algorithm": [
+    "Locate item from this+0x10 chunk table, index>>16 and (index&65535)*24. The native range comparison alone is not sufficient for untrusted or negative indices.",
+    "Read item+0x10. If serial is already nonzero, return it without allocating.",
+    "If zero, lock xadd int32(this+0x130),1 and increment the returned prior value to form the candidate.",
+    "If signed candidate <=1000, enter native overflow logging/fatal path; this is not a pose or animation call but must not be deliberately invoked.",
+    "Compare-exchange item+0x10 from 0 to candidate using lock cmpxchg. If another thread won, return that winner; otherwise return the candidate."
+  ],
+  "normal_engine_memory_write_set": [
+    {
+      "rva": "0x33f121c",
+      "instruction": "lock xadd dword ptr [r9 + 0x130], ebx",
+      "target": "GUObjectArray.MasterSerialNumber",
+      "width": 4,
+      "effect": "atomic increment"
+    },
+    {
+      "rva": "0x33f1264",
+      "instruction": "lock cmpxchg dword ptr [rdi + 0x10], ebx",
+      "target": "FUObjectItem.SerialNumber for selected index",
+      "width": 4,
+      "effect": "atomic assign-if-zero"
+    }
+  ],
+  "normal_direct_calls": [],
+  "overflow_direct_calls": [
+    "0x3157090",
+    "0x31961e0"
+  ],
+  "normal_pose_physics_or_animation_calls": false,
+  "atomicity_evidence": {
+    "increment_rva": "0x33f121c",
+    "assign_if_zero_rva": "0x33f1264",
+    "race_winner_return_rvas": [
+      "0x33f1269",
+      "0x33f126c"
+    ]
+  },
+  "current_failure_crosscheck": {
+    "session": "20261019_134243_711",
+    "game_pid": 45356,
+    "main_anim_index": 100582,
+    "observed_serial": 0,
+    "scanner_gobjects_rva": "0x99a3ff0",
+    "this_rva_from_native_weak_assignment": "0x99a3fe0",
+    "difference": 16,
+    "meaning": "The scanner anchor is embedded ObjObjects. Passing it directly as allocator this would use the wrong fields."
+  },
+  "required_before_any_runtime_call": [
+    "Verify current host build and complete allocator and weak-assignment function bytes against this evidence.",
+    "Require fresh scanner Go.address == current module base + 0x99a3ff0 and derive/verify GUObjectArray this == Go.address - 0x10.",
+    "Require 0 <= index < current count, valid chunk/item addresses, item.Object == target UObject, matching UObject.InternalIndex, classes/flags/outer and authorized target mesh-to-main_anim association.",
+    "Use a verified engine-owned phase or another independently justified lifetime/GC guard; this allocator performs no object retention, GC locking, or thread validation.",
+    "Retain the existing strong-serial gates. After allocation, require returned positive serial equal to the same item serial and re-capture complete strong identity before binding.",
+    "Do not call near counter exhaustion or deliberately exercise the native overflow path. A precheck cannot itself prove absence of concurrent GC or slot reuse.",
+    "Never write a made-up serial and never restore an assigned engine serial to zero; legitimate lazy serial assignment is engine lifetime metadata, not a temporary playback patch."
+  ],
+  "limitations": [
+    "This proves current saved-build code layout and the atomic serial-assignment algorithm, not a safe runtime invocation phase.",
+    "The CAS protects competing serial allocations. It does not protect UObject memory lifetime or exclude garbage-collection/slot-reuse ABA.",
+    "Normal-path engine writes are lifecycle metadata only; temporary stack writes and caller-owned weak-output writes are additional local effects.",
+    "No native function was invoked and no game memory was read or written during this analysis."
+  ],
+  "upstream_static_evidence_sha256": "098c4a781f7e1b4a750734eb16c5c3ccd06bbd6d7ccbb280919b2ba1addae4fb",
+  "runtime_policy": {
+    "min_master_serial": 1000,
+    "max_master_serial": 2146435071,
+    "counter_exhaustion_guard_margin": 1048576,
+    "max_native_registrations": 256,
+    "allowed_target_roles": [
+      "main_anim",
+      "linked_anim_owner",
+      "mesh_asset",
+      "skeleton_asset"
+    ],
+    "allow_worker_only_registration": false,
+    "require_live_function_byte_witnesses": true,
+    "require_precall_object_and_item_recheck": true,
+    "require_postcall_strong_token": true,
+    "allow_direct_serial_slot_write": false,
+    "allow_serial_rollback": false,
+    "allow_pose_writes": false,
+    "allow_alpha_writes": false,
+    "allow_native_animation_update_calls": false,
+    "counter_margin_note": "Conservative rejection bound, not a reservation against every engine thread. The native overflow guard remains in place.",
+    "allowed_owner_policies": [
+      "controlled_player",
+      "scene_team_member",
+      "owned_ui_actor"
+    ],
+    "require_real_target_animation_callback": true,
+    "require_unchanged_target_identity_and_owner_permission": true
+  },
+  "global_anchor_evidence": {
+    "weak_assignment_global_this_instruction_rva": "0x3404293",
+    "weak_assignment_allocator_call_rva": "0x340429a",
+    "gu_object_array_rva": "0x99a3fe0",
+    "required_scanner_gobjects_rva": "0x99a3ff0",
+    "relationship": "GUObjectArray this = fresh scanner Go.address - 0x10",
+    "native_count_read_rva": "0x33f11d9",
+    "native_chunk_table_read_rva": "0x33f11ee",
+    "scanner_contract": "ValidateGo reads table at embedded ObjObjects+0 and count at +20; native allocator reads the same fields at FUObjectArray+16 and +36."
+  },
+  "runtime_implementation_constraints": [
+    "The registration callback is supplemental preparation. It must not weaken any existing strong-serial check in graph discovery, binding, playback or restoration.",
+    "Register only the main/linked AnimInstance or exact mesh asset/skeleton actually identified by the current target animation callback, with its real controlled chain or published SceneTeam/owned permission, and recheck every object/outer relationship around the allocator call.",
+    "Never call the allocator solely because an address remained unchanged in two worker reads. Native atomic assignment does not prove UObject lifetime.",
+    "Verify complete allocator and weak-assignment witnesses and the fresh GObjects/global-this relationship before any attempted native registration.",
+    "Check the runtime master counter against runtime_policy immediately before each zero-serial registration; reject outside the bound.",
+    "If serial is already assigned, retain it and do not call the allocator. Otherwise call the witnessed engine allocator with this and index; never patch the item serial yourself.",
+    "After the call, require positive returned serial equal to the same current item serial and re-capture a complete strong token while owner/control context remains valid.",
+    "Count every native call and every assigned or already-assigned identity. Return failures and diagnostic tokens without promoting an unverified binding.",
+    "Allocated engine identity metadata is permanent for that UObject lifetime. Do not roll it back; stop and report failure if subsequent graph preparation cannot complete.",
+    "Restore all supplemental hook slots and protections, wait for callback quiescence, and report exact restoration/call/write accounting."
+  ]
+}

@@ -1,0 +1,1533 @@
+{
+  "schema": 1,
+  "scope": "Curated offline installed pak RoleInfo RoleType=1 IsTrial=false and every associated RoleSkin, exact ModelConfig mesh and registered Skeleton association. Source hashes locate raw evidence; no runtime identity.",
+  "counts": {
+    "role_info_rows": 157,
+    "character_configurations": 64,
+    "character_skin_selections": 80,
+    "default_skins": 64,
+    "additional_skins": 16,
+    "profile_assets": 68
+  },
+  "sources": [
+    {
+      "path": "raw/Client/Content/Aki/ConfigDB/db_role.db",
+      "sha256": "960d9f493479a0732aca9c5212a76c3fc5d755fda32bfaf41ce49b72ded6bda2",
+      "bytes": 1028096
+    },
+    {
+      "path": "raw/Client/Content/Aki/Data/Entity/Sub_DT_ModelConfig/DT_ModelConfig_Player.uasset",
+      "sha256": "145e91e13b984c41bdc4948a752e74478299b614d54189e8e38ab0bcc9161ffd",
+      "bytes": 1230645
+    },
+    {
+      "path": "raw/Client/Content/Aki/ConfigDB/zh-Hans/lang_multi_text.db",
+      "sha256": "72797893b8dd37d54dffa03406bd0a59bd8fee0ea12d980e5c6f4c5fbe37ee1c",
+      "bytes": 43782144
+    },
+    {
+      "path": "raw/Client/Content/Aki/JavaScript/Core/Define/Config/RoleInfo.js",
+      "sha256": "516d400422659b3654f6b8d240c968385d3ae8efb0f106f7185f1ab8f5b3b759",
+      "bytes": 16434
+    },
+    {
+      "path": "raw/Client/Content/Aki/JavaScript/Core/Define/Config/RoleSkin.js",
+      "sha256": "067dddedcf959d20570b053e46a7247ac3ebbe81f0548463e88190d40863405f",
+      "bytes": 15607
+    }
+  ],
+  "roles": [
+    {
+      "id": 1402,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001402,
+      "uimeshid": 100001
+    },
+    {
+      "id": 1202,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001202,
+      "uimeshid": 100002
+    },
+    {
+      "id": 1503,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001503,
+      "uimeshid": 100003
+    },
+    {
+      "id": 1501,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001501,
+      "uimeshid": 100004
+    },
+    {
+      "id": 1102,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001102,
+      "uimeshid": 100005
+    },
+    {
+      "id": 1601,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001601,
+      "uimeshid": 100109
+    },
+    {
+      "id": 1502,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001502,
+      "uimeshid": 100006
+    },
+    {
+      "id": 1103,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001103,
+      "uimeshid": 100007
+    },
+    {
+      "id": 1203,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001203,
+      "uimeshid": 100008
+    },
+    {
+      "id": 1602,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001602,
+      "uimeshid": 100010
+    },
+    {
+      "id": 1403,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001403,
+      "uimeshid": 100113
+    },
+    {
+      "id": 1404,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001404,
+      "uimeshid": 100014
+    },
+    {
+      "id": 1204,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001204,
+      "uimeshid": 100012
+    },
+    {
+      "id": 1603,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001603,
+      "uimeshid": 100015
+    },
+    {
+      "id": 1301,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001301,
+      "uimeshid": 100111
+    },
+    {
+      "id": 1302,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001302,
+      "uimeshid": 100017
+    },
+    {
+      "id": 1104,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001104,
+      "uimeshid": 100016
+    },
+    {
+      "id": 1303,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001303,
+      "uimeshid": 100019
+    },
+    {
+      "id": 1604,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001604,
+      "uimeshid": 100021
+    },
+    {
+      "id": 1605,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001605,
+      "uimeshid": 100022
+    },
+    {
+      "id": 1405,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001405,
+      "uimeshid": 100024
+    },
+    {
+      "id": 1304,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001304,
+      "uimeshid": 100020
+    },
+    {
+      "id": 1305,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001305,
+      "uimeshid": 100026
+    },
+    {
+      "id": 1205,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001205,
+      "uimeshid": 100027
+    },
+    {
+      "id": 1105,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001105,
+      "uimeshid": 100028
+    },
+    {
+      "id": 1504,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001504,
+      "uimeshid": 100030
+    },
+    {
+      "id": 1106,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001106,
+      "uimeshid": 100029
+    },
+    {
+      "id": 1505,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001505,
+      "uimeshid": 100023
+    },
+    {
+      "id": 1606,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001606,
+      "uimeshid": 100032
+    },
+    {
+      "id": 1107,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001107,
+      "uimeshid": 100133
+    },
+    {
+      "id": 1206,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001206,
+      "uimeshid": 100034
+    },
+    {
+      "id": 1506,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001506,
+      "uimeshid": 100035
+    },
+    {
+      "id": 1406,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001406,
+      "uimeshid": 100022
+    },
+    {
+      "id": 1607,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001607,
+      "uimeshid": 100037
+    },
+    {
+      "id": 1407,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001407,
+      "uimeshid": 100040
+    },
+    {
+      "id": 1507,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001507,
+      "uimeshid": 100039
+    },
+    {
+      "id": 1408,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001408,
+      "uimeshid": 100042
+    },
+    {
+      "id": 1207,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001207,
+      "uimeshid": 100044
+    },
+    {
+      "id": 1608,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001608,
+      "uimeshid": 100018
+    },
+    {
+      "id": 1409,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001409,
+      "uimeshid": 100038
+    },
+    {
+      "id": 1306,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001306,
+      "uimeshid": 100046
+    },
+    {
+      "id": 1410,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001410,
+      "uimeshid": 100049
+    },
+    {
+      "id": 1307,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001307,
+      "uimeshid": 100050
+    },
+    {
+      "id": 1208,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001208,
+      "uimeshid": 100051
+    },
+    {
+      "id": 1508,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001508,
+      "uimeshid": 100052
+    },
+    {
+      "id": 1411,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001411,
+      "uimeshid": 100145
+    },
+    {
+      "id": 1509,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001509,
+      "uimeshid": 100053
+    },
+    {
+      "id": 1209,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001209,
+      "uimeshid": 100054
+    },
+    {
+      "id": 1510,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001510,
+      "uimeshid": 100056
+    },
+    {
+      "id": 1210,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001210,
+      "uimeshid": 100057
+    },
+    {
+      "id": 1412,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001412,
+      "uimeshid": 100061
+    },
+    {
+      "id": 1211,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001211,
+      "uimeshid": 100062
+    },
+    {
+      "id": 1308,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001308,
+      "uimeshid": 100063
+    },
+    {
+      "id": 1109,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001109,
+      "uimeshid": 100065
+    },
+    {
+      "id": 1511,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001511,
+      "uimeshid": 100064
+    },
+    {
+      "id": 1108,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001108,
+      "uimeshid": 100066
+    },
+    {
+      "id": 1309,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001309,
+      "uimeshid": 100067
+    },
+    {
+      "id": 1310,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001310,
+      "uimeshid": 100068
+    },
+    {
+      "id": 1610,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001610,
+      "uimeshid": 100069
+    },
+    {
+      "id": 1110,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001110,
+      "uimeshid": 100070
+    },
+    {
+      "id": 1413,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001413,
+      "uimeshid": 10011413
+    },
+    {
+      "id": 1311,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001311,
+      "uimeshid": 100071
+    },
+    {
+      "id": 1212,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001212,
+      "uimeshid": 100073
+    },
+    {
+      "id": 1312,
+      "roletype": 1,
+      "istrial": 0,
+      "skinid": 81001312,
+      "uimeshid": 100074
+    }
+  ],
+  "skins": [
+    {
+      "id": 81011304,
+      "roleid": 1304,
+      "uimeshid": 1000201
+    },
+    {
+      "id": 81011102,
+      "roleid": 1102,
+      "uimeshid": 1000051
+    },
+    {
+      "id": 81011205,
+      "roleid": 1205,
+      "uimeshid": 1000271
+    },
+    {
+      "id": 81011107,
+      "roleid": 1107,
+      "uimeshid": 1001331
+    },
+    {
+      "id": 81011507,
+      "roleid": 1507,
+      "uimeshid": 1000391
+    },
+    {
+      "id": 81011502,
+      "roleid": 1502,
+      "uimeshid": 1000061
+    },
+    {
+      "id": 81011604,
+      "roleid": 1604,
+      "uimeshid": 1000211
+    },
+    {
+      "id": 81011408,
+      "roleid": 1408,
+      "uimeshid": 1000421
+    },
+    {
+      "id": 81011501,
+      "roleid": 1501,
+      "uimeshid": 1000041
+    },
+    {
+      "id": 81011605,
+      "roleid": 1605,
+      "uimeshid": 1000221
+    },
+    {
+      "id": 81011406,
+      "roleid": 1406,
+      "uimeshid": 1000361
+    },
+    {
+      "id": 81001402,
+      "roleid": 1402,
+      "uimeshid": 100001
+    },
+    {
+      "id": 81001202,
+      "roleid": 1202,
+      "uimeshid": 100002
+    },
+    {
+      "id": 81001503,
+      "roleid": 1503,
+      "uimeshid": 100003
+    },
+    {
+      "id": 81001501,
+      "roleid": 1501,
+      "uimeshid": 100004
+    },
+    {
+      "id": 81001102,
+      "roleid": 1102,
+      "uimeshid": 100005
+    },
+    {
+      "id": 81001601,
+      "roleid": 1601,
+      "uimeshid": 100109
+    },
+    {
+      "id": 81001502,
+      "roleid": 1502,
+      "uimeshid": 100006
+    },
+    {
+      "id": 81001103,
+      "roleid": 1103,
+      "uimeshid": 100007
+    },
+    {
+      "id": 81001203,
+      "roleid": 1203,
+      "uimeshid": 100008
+    },
+    {
+      "id": 81001602,
+      "roleid": 1602,
+      "uimeshid": 100010
+    },
+    {
+      "id": 81001403,
+      "roleid": 1403,
+      "uimeshid": 100113
+    },
+    {
+      "id": 81001404,
+      "roleid": 1404,
+      "uimeshid": 100014
+    },
+    {
+      "id": 81001204,
+      "roleid": 1204,
+      "uimeshid": 100012
+    },
+    {
+      "id": 81001603,
+      "roleid": 1603,
+      "uimeshid": 100015
+    },
+    {
+      "id": 81001301,
+      "roleid": 1301,
+      "uimeshid": 100111
+    },
+    {
+      "id": 81001302,
+      "roleid": 1302,
+      "uimeshid": 100017
+    },
+    {
+      "id": 81001104,
+      "roleid": 1104,
+      "uimeshid": 100016
+    },
+    {
+      "id": 81001303,
+      "roleid": 1303,
+      "uimeshid": 100019
+    },
+    {
+      "id": 81001604,
+      "roleid": 1604,
+      "uimeshid": 100021
+    },
+    {
+      "id": 81001605,
+      "roleid": 1605,
+      "uimeshid": 100022
+    },
+    {
+      "id": 81001405,
+      "roleid": 1405,
+      "uimeshid": 100024
+    },
+    {
+      "id": 81001304,
+      "roleid": 1304,
+      "uimeshid": 100020
+    },
+    {
+      "id": 81001305,
+      "roleid": 1305,
+      "uimeshid": 100026
+    },
+    {
+      "id": 81001205,
+      "roleid": 1205,
+      "uimeshid": 100027
+    },
+    {
+      "id": 81001105,
+      "roleid": 1105,
+      "uimeshid": 100028
+    },
+    {
+      "id": 81001106,
+      "roleid": 1106,
+      "uimeshid": 100029
+    },
+    {
+      "id": 81001505,
+      "roleid": 1505,
+      "uimeshid": 100023
+    },
+    {
+      "id": 81001504,
+      "roleid": 1504,
+      "uimeshid": 100030
+    },
+    {
+      "id": 81001606,
+      "roleid": 1606,
+      "uimeshid": 100032
+    },
+    {
+      "id": 81001107,
+      "roleid": 1107,
+      "uimeshid": 100133
+    },
+    {
+      "id": 81001206,
+      "roleid": 1206,
+      "uimeshid": 100034
+    },
+    {
+      "id": 81001506,
+      "roleid": 1506,
+      "uimeshid": 100035
+    },
+    {
+      "id": 81001406,
+      "roleid": 1406,
+      "uimeshid": 100022
+    },
+    {
+      "id": 81001408,
+      "roleid": 1408,
+      "uimeshid": 100042
+    },
+    {
+      "id": 81001607,
+      "roleid": 1607,
+      "uimeshid": 100037
+    },
+    {
+      "id": 81001407,
+      "roleid": 1407,
+      "uimeshid": 100040
+    },
+    {
+      "id": 81001507,
+      "roleid": 1507,
+      "uimeshid": 100039
+    },
+    {
+      "id": 81001207,
+      "roleid": 1207,
+      "uimeshid": 100144
+    },
+    {
+      "id": 81001409,
+      "roleid": 1409,
+      "uimeshid": 100038
+    },
+    {
+      "id": 81001608,
+      "roleid": 1608,
+      "uimeshid": 100018
+    },
+    {
+      "id": 81001306,
+      "roleid": 1306,
+      "uimeshid": 100046
+    },
+    {
+      "id": 81001410,
+      "roleid": 1410,
+      "uimeshid": 100049
+    },
+    {
+      "id": 81001208,
+      "roleid": 1208,
+      "uimeshid": 100051
+    },
+    {
+      "id": 81001411,
+      "roleid": 1411,
+      "uimeshid": 100145
+    },
+    {
+      "id": 81001508,
+      "roleid": 1508,
+      "uimeshid": 100052
+    },
+    {
+      "id": 81001307,
+      "roleid": 1307,
+      "uimeshid": 100050
+    },
+    {
+      "id": 81001509,
+      "roleid": 1509,
+      "uimeshid": 100053
+    },
+    {
+      "id": 81001209,
+      "roleid": 1209,
+      "uimeshid": 100054
+    },
+    {
+      "id": 81001510,
+      "roleid": 1510,
+      "uimeshid": 100056
+    },
+    {
+      "id": 81001210,
+      "roleid": 1210,
+      "uimeshid": 100057
+    },
+    {
+      "id": 81001412,
+      "roleid": 1412,
+      "uimeshid": 100061
+    },
+    {
+      "id": 81001211,
+      "roleid": 1211,
+      "uimeshid": 1000621
+    },
+    {
+      "id": 81001108,
+      "roleid": 1108,
+      "uimeshid": 100066
+    },
+    {
+      "id": 81001308,
+      "roleid": 1308,
+      "uimeshid": 100063
+    },
+    {
+      "id": 81001511,
+      "roleid": 1511,
+      "uimeshid": 100064
+    },
+    {
+      "id": 81001109,
+      "roleid": 1109,
+      "uimeshid": 1000652
+    },
+    {
+      "id": 81001309,
+      "roleid": 1309,
+      "uimeshid": 100067
+    },
+    {
+      "id": 81001310,
+      "roleid": 1310,
+      "uimeshid": 100068
+    },
+    {
+      "id": 81001610,
+      "roleid": 1610,
+      "uimeshid": 100069
+    },
+    {
+      "id": 81001110,
+      "roleid": 1110,
+      "uimeshid": 100070
+    },
+    {
+      "id": 81001413,
+      "roleid": 1413,
+      "uimeshid": 10011413
+    },
+    {
+      "id": 81011209,
+      "roleid": 1209,
+      "uimeshid": 1000541
+    },
+    {
+      "id": 81001311,
+      "roleid": 1311,
+      "uimeshid": 100071
+    },
+    {
+      "id": 81001212,
+      "roleid": 1212,
+      "uimeshid": 100073
+    },
+    {
+      "id": 81011508,
+      "roleid": 1508,
+      "uimeshid": 1000521
+    },
+    {
+      "id": 81001312,
+      "roleid": 1312,
+      "uimeshid": 100074
+    },
+    {
+      "id": 81011509,
+      "roleid": 1509,
+      "uimeshid": 1000531
+    },
+    {
+      "id": 81011310,
+      "roleid": 1310,
+      "uimeshid": 1000681
+    },
+    {
+      "id": 81011309,
+      "roleid": 1309,
+      "uimeshid": 1000671
+    }
+  ],
+  "associations": [
+    {
+      "skin_id": 81001102,
+      "model_id": "100005",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Sanhua/R2T1SanhuaMd10011/Model/R2T1SanhuaMd10011.R2T1SanhuaMd10011",
+      "model_asset_name": "R2T1SanhuaMd10011",
+      "profile_id": "femalem--sanhua--r2t1sanhuamd10011",
+      "skeleton_asset_name": "R2T1SanhuaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011102,
+      "model_id": "1000051",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Sanhua/R2T1SanhuaMd20011/Model/R2T1SanhuaMd20011.R2T1SanhuaMd20011",
+      "model_asset_name": "R2T1SanhuaMd20011",
+      "profile_id": "femalem--sanhua--r2t1sanhuamd20011",
+      "skeleton_asset_name": "R2T1SanhuaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001103,
+      "model_id": "100007",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/BaiLian/R2T1BaiLianMd10011/Model/R2T1BaiLianMd10011.R2T1BaiLianMd10011",
+      "model_asset_name": "R2T1BaiLianMd10011",
+      "profile_id": "femalexl--bailian--r2t1bailianmd10011",
+      "skeleton_asset_name": "R2T1BaiLianMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001104,
+      "model_id": "100016",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleS/Lingyang/R2T1LingyangMd10011/Model/R2T1LingyangMd10011.R2T1LingyangMd10011",
+      "model_asset_name": "R2T1LingyangMd10011",
+      "profile_id": "males--lingyang--r2t1lingyangmd10011",
+      "skeleton_asset_name": "R2T1LingyangMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001105,
+      "model_id": "100028",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Zhezhi/R2T1ZhezhiMd10011/Model/R2T1ZhezhiMd10011.R2T1ZhezhiMd10011",
+      "model_asset_name": "R2T1ZhezhiMd10011",
+      "profile_id": "femalem--zhezhi--r2t1zhezhimd10011",
+      "skeleton_asset_name": "R2T1ZhezhiMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001106,
+      "model_id": "100029",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleS/Youhu/R2T1YouHuMd10011/Model/R2T1YouHuMd10011.R2T1YouHuMd10011",
+      "model_asset_name": "R2T1YouHuMd10011",
+      "profile_id": "females--youhu--r2t1youhumd10011",
+      "skeleton_asset_name": "R2T1YouHuMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001107,
+      "model_id": "100133",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Kmola/R2T1KamolaMd10011/Model/R2T1KamolaMd10011_Body.R2T1KamolaMd10011_Body",
+      "model_asset_name": "R2T1KamolaMd10011_Body",
+      "profile_id": "femalems--kmola--r2t1kamolamd10011",
+      "skeleton_asset_name": "R2T1KamolaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011107,
+      "model_id": "1001331",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Kmola/R2T1KamolaMd20011/Model/R2T1KamolaMd20011_Body.R2T1KamolaMd20011_Body",
+      "model_asset_name": "R2T1KamolaMd20011_Body",
+      "profile_id": "femalems--kmola--r2t1kamolamd20011",
+      "skeleton_asset_name": "R2T1KamolaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001108,
+      "model_id": "100066",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/TaiDaoNv/R2T1TaidaonvMd10011/Model/R2T1TaidaonvMd10011.R2T1TaidaonvMd10011",
+      "model_asset_name": "R2T1TaidaonvMd10011",
+      "profile_id": "femalexl--taidaonv--r2t1taidaonvmd10011",
+      "skeleton_asset_name": "R2T1TaidaonvMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001109,
+      "model_id": "1000652",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/Luosela/R2T1LuoselaMd10011/Model/R2T1LuoselaMd10011.R2T1LuoselaMd10011",
+      "model_asset_name": "R2T1LuoselaMd10011",
+      "profile_id": "femalexl--luosela--r2t1luoselamd10011",
+      "skeleton_asset_name": "R2T1LuoselaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001110,
+      "model_id": "100070",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Suisui/R2T1SuisuiMd10011/Model/R2T1SuisuiMd10011.R2T1SuisuiMd10011",
+      "model_asset_name": "R2T1SuisuiMd10011",
+      "profile_id": "femalem--suisui--r2t1suisuimd10011",
+      "skeleton_asset_name": "R2T1SuisuiMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001202,
+      "model_id": "100002",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Maxiaofang/R2T1MaxiaofangMd10011/Model/R2T1MaxiaofangMd10011.R2T1MaxiaofangMd10011",
+      "model_asset_name": "R2T1MaxiaofangMd10011",
+      "profile_id": "femalem--maxiaofang--r2t1maxiaofangmd10011",
+      "skeleton_asset_name": "R2T1MaxiaofangMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001203,
+      "model_id": "100008",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleS/Anke/R2T1AnkeMd10011/Model/R2T1AnkeMd10011.R2T1AnkeMd10011",
+      "model_asset_name": "R2T1AnkeMd10011",
+      "profile_id": "females--anke--r2t1ankemd10011",
+      "skeleton_asset_name": "R2T1AnkeMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001204,
+      "model_id": "100012",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleXL/Baer/R2T1BaerMd10011/Model/R2T1BaerMd10011.R2T1BaerMd10011",
+      "model_asset_name": "R2T1BaerMd10011",
+      "profile_id": "malexl--baer--r2t1baermd10011",
+      "skeleton_asset_name": "R2T1BaerMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001205,
+      "model_id": "100027",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/ChangLi/R2T1ChangLiMd10011/Model/R2T1ChangLiMd10011.R2T1ChangLiMd10011",
+      "model_asset_name": "R2T1ChangLiMd10011",
+      "profile_id": "femalexl--changli--r2t1changlimd10011",
+      "skeleton_asset_name": "R2T1ChangLiMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011205,
+      "model_id": "1000271",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/ChangLi/R2T1ChangLiMd20011/Model/R2T1ChangLiMd20011.R2T1ChangLiMd20011",
+      "model_asset_name": "R2T1ChangLiMd20011",
+      "profile_id": "femalexl--changli--r2t1changlimd20011",
+      "skeleton_asset_name": "R2T1ChangLiMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001206,
+      "model_id": "100034",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleXL/Bulante/R2T1BulanteMd10011/Model/R2T1BulanteMd10011.R2T1BulanteMd10011",
+      "model_asset_name": "R2T1BulanteMd10011",
+      "profile_id": "malexl--bulante--r2t1bulantemd10011",
+      "skeleton_asset_name": "R2T1BulanteMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001207,
+      "model_id": "100144",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Lupa/R2T1LupaMd10011/Model/R2T1LupaMd10011_Body.R2T1LupaMd10011_Body",
+      "model_asset_name": "R2T1LupaMd10011_Body",
+      "profile_id": "femalem--lupa--r2t1lupamd10011",
+      "skeleton_asset_name": "R2T1LupaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001208,
+      "model_id": "100051",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/Jiabeilina/R2T1CalbrenaMd10011/Model/R2T1CalbrenaMd10011.R2T1CalbrenaMd10011",
+      "model_asset_name": "R2T1CalbrenaMd10011",
+      "profile_id": "femalexl--jiabeilina--r2t1calbrenamd10011",
+      "skeleton_asset_name": "R2T1CalbrenaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001209,
+      "model_id": "100054",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Mone/R2T1MoneMd10011/Model/R2T1MoneMd10011.R2T1MoneMd10011",
+      "model_asset_name": "R2T1MoneMd10011",
+      "profile_id": "femalems--mone--r2t1monemd10011",
+      "skeleton_asset_name": "R2T1MoneMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011209,
+      "model_id": "1000541",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Mone/R2T1MoneMd20011/Model/R2T1MoneMd20011.R2T1MoneMd20011",
+      "model_asset_name": "R2T1MoneMd20011",
+      "profile_id": "femalems--mone--r2t1monemd20011",
+      "skeleton_asset_name": "R2T1MoneMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001210,
+      "model_id": "100057",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Aimisi/R2T1AimisiMd10011/Model/R2T1AimisiMd10011.R2T1AimisiMd10011",
+      "model_asset_name": "R2T1AimisiMd10011",
+      "profile_id": "femalem--aimisi--r2t1aimisimd10011",
+      "skeleton_asset_name": "R2T1AimisiMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001211,
+      "model_id": "1000621",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Daniya/R2T1DaniyaMd10011/Model/R2T1DaniyaMd10011.R2T1DaniyaMd10011",
+      "model_asset_name": "R2T1DaniyaMd10011",
+      "profile_id": "femalems--daniya--r2t1daniyamd10011",
+      "skeleton_asset_name": "R2T1DaniyaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001212,
+      "model_id": "100073",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleM/Jingran/R2T1JingranMd10011/Model/R2T1JingranMd10011.R2T1JingranMd10011",
+      "model_asset_name": "R2T1JingranMd10011",
+      "profile_id": "malem--jingran--r2t1jingranmd10011",
+      "skeleton_asset_name": "R2T1JingranMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001301,
+      "model_id": "100111",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleXL/Kakaluo/R2T1KakaluoMd10011/Model/R2T1KakaluoMd10011_1.R2T1KakaluoMd10011_1",
+      "model_asset_name": "R2T1KakaluoMd10011_1",
+      "profile_id": "malexl--kakaluo--r2t1kakaluomd10011",
+      "skeleton_asset_name": "R2T1KakaluoMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001302,
+      "model_id": "100017",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/YinLin/R2T1YinlinMd10011/Model/R2T1YinlinMd10011.R2T1YinlinMd10011",
+      "model_asset_name": "R2T1YinlinMd10011",
+      "profile_id": "femalem--yinlin--r2t1yinlinmd10011",
+      "skeleton_asset_name": "R2T1YinlinMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001303,
+      "model_id": "100019",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleXL/Yuanwu/R2T1YuanwuMd10011/Model/R2T1YuanwuMd10011.R2T1YuanwuMd10011",
+      "model_asset_name": "R2T1YuanwuMd10011",
+      "profile_id": "malexl--yuanwu--r2t1yuanwumd10011",
+      "skeleton_asset_name": "R2T1YuanwuMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001304,
+      "model_id": "100020",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Jinxi/R2T1JinxiMd10011/Model/R2T1JinxiMd10011.R2T1JinxiMd10011",
+      "model_asset_name": "R2T1JinxiMd10011",
+      "profile_id": "femalem--jinxi--r2t1jinximd10011",
+      "skeleton_asset_name": "R2T1JinxiMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011304,
+      "model_id": "1000201",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Jinxi/R2T1JinxiMd20011/Model/R2T1JinxiMd20011.R2T1JinxiMd20011",
+      "model_asset_name": "R2T1JinxiMd20011",
+      "profile_id": "femalem--jinxi--r2t1jinximd20011",
+      "skeleton_asset_name": "R2T1JinxiMd20011_Skeleton"
+    },
+    {
+      "skin_id": 81001305,
+      "model_id": "100026",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleM/Xiangliyao/R2T1XiangLiYaoMd10011/Model/R2T1XiangLiYaoMd10011.R2T1XiangLiYaoMd10011",
+      "model_asset_name": "R2T1XiangLiYaoMd10011",
+      "profile_id": "malem--xiangliyao--r2t1xiangliyaomd10011",
+      "skeleton_asset_name": "R2T1XiangLiYaoMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001306,
+      "model_id": "100046",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/Aogusita/R2T1AogusitaMd10011/Model/R2T1AogusitaMd10011.R2T1AogusitaMd10011",
+      "model_asset_name": "R2T1AogusitaMd10011",
+      "profile_id": "femalexl--aogusita--r2t1aogusitamd10011",
+      "skeleton_asset_name": "R2T1AogusitaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001307,
+      "model_id": "100050",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Buling/R2T1BulingMd10011/Model/R2T1BulingMd10011.R2T1BulingMd10011",
+      "model_asset_name": "R2T1BulingMd10011",
+      "profile_id": "femalems--buling--r2t1bulingmd10011",
+      "skeleton_asset_name": "R2T1BulingMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001308,
+      "model_id": "100063",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Rebecca/R2T1RebeccaMd10011/Model/R2T1RebeccaMd10011_body.R2T1RebeccaMd10011_body",
+      "model_asset_name": "R2T1RebeccaMd10011_body",
+      "profile_id": "femalems--rebecca--r2t1rebeccamd10011",
+      "skeleton_asset_name": "R2T1RebeccaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001309,
+      "model_id": "100067",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleM/Nanzhu/R2T1PlayerMaleMd10011/Model/R2T1PlayerMaleMd10011.R2T1PlayerMaleMd10011",
+      "model_asset_name": "R2T1PlayerMaleMd10011",
+      "profile_id": "malem--nanzhu--r2t1playermalemd10011",
+      "skeleton_asset_name": "R2T1PlayerMaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011309,
+      "model_id": "1000671",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleM/Nanzhu/R2T1PlayerMaleMd20011/Model/R2T1PlayerMaleMd20011.R2T1PlayerMaleMd20011",
+      "model_asset_name": "R2T1PlayerMaleMd20011",
+      "profile_id": "malem--nanzhu--r2t1playermalemd20011",
+      "skeleton_asset_name": "R2T1PlayerMaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001310,
+      "model_id": "100068",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Nvzhu/R2T1PlayerFemaleMd10011/Model/R2T1PlayerFemaleMd10011.R2T1PlayerFemaleMd10011",
+      "model_asset_name": "R2T1PlayerFemaleMd10011",
+      "profile_id": "femalem--nvzhu--r2t1playerfemalemd10011",
+      "skeleton_asset_name": "R2T1PlayerFemaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011310,
+      "model_id": "1000681",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Nvzhu/R2T1PlayerFemaleMd20011/Model/R2T1PlayerFemaleMd20011.R2T1PlayerFemaleMd20011",
+      "model_asset_name": "R2T1PlayerFemaleMd20011",
+      "profile_id": "femalem--nvzhu--r2t1playerfemalemd20011",
+      "skeleton_asset_name": "R2T1PlayerFemaleMd20011_Skeleton"
+    },
+    {
+      "skin_id": 81001311,
+      "model_id": "100071",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/Xinyuehu/R2T1XinMd10011/Model/R2T1XinMd10011.R2T1XinMd10011",
+      "model_asset_name": "R2T1XinMd10011",
+      "profile_id": "femalexl--xinyuehu--r2t1xinmd10011",
+      "skeleton_asset_name": "R2T1XinMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001312,
+      "model_id": "100074",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleS/Suoming/R2T1SuomingMd10011/Model/R2T1SuomingMd10011.R2T1SuomingMd10011",
+      "model_asset_name": "R2T1SuomingMd10011",
+      "profile_id": "females--suoming--r2t1suomingmd10011",
+      "skeleton_asset_name": "R2T1SuomingMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001402,
+      "model_id": "100001",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Yangyang/R2T1YangyangMd10011/Model/R2T1YangyangMd10011.R2T1YangyangMd10011",
+      "model_asset_name": "R2T1YangyangMd10011",
+      "profile_id": "femalem--yangyang--r2t1yangyangmd10011",
+      "skeleton_asset_name": "R2T1YangyangMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001403,
+      "model_id": "100113",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleXL/Qiushui/R2T1QiushuiMd10011/Model/R2T1QiushuiMd10011.R2T1QiushuiMd10011",
+      "model_asset_name": "R2T1QiushuiMd10011",
+      "profile_id": "malexl--qiushui--r2t1qiushuimd10011",
+      "skeleton_asset_name": "R2T1QiushuiMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001404,
+      "model_id": "100014",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleXL/Jiyan/R2T1JiyanMd10011/Model/R2T1JiyanMd10011.R2T1JiyanMd10011",
+      "model_asset_name": "R2T1JiyanMd10011",
+      "profile_id": "malexl--jiyan--r2t1jiyanmd10011",
+      "skeleton_asset_name": "R2T1JiyanMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001405,
+      "model_id": "100024",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Jianxin/R2T1JianxinMd10011/Model/R2T1JianxinMd10011.R2T1JianxinMd10011",
+      "model_asset_name": "R2T1JianxinMd10011",
+      "profile_id": "femalem--jianxin--r2t1jianxinmd10011",
+      "skeleton_asset_name": "R2T1JianxinMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001406,
+      "model_id": "100022",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleM/Nanzhu/R2T1PlayerMaleMd10011/Model/R2T1PlayerMaleMd10011.R2T1PlayerMaleMd10011",
+      "model_asset_name": "R2T1PlayerMaleMd10011",
+      "profile_id": "malem--nanzhu--r2t1playermalemd10011",
+      "skeleton_asset_name": "R2T1PlayerMaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011406,
+      "model_id": "1000361",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleM/Nanzhu/R2T1PlayerMaleMd20011/Model/R2T1PlayerMaleMd20011.R2T1PlayerMaleMd20011",
+      "model_asset_name": "R2T1PlayerMaleMd20011",
+      "profile_id": "malem--nanzhu--r2t1playermalemd20011",
+      "skeleton_asset_name": "R2T1PlayerMaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001407,
+      "model_id": "100040",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Xiakong/R2T1XiakongMd10011/Model/R2T1XiakongMd10011.R2T1XiakongMd10011",
+      "model_asset_name": "R2T1XiakongMd10011",
+      "profile_id": "femalem--xiakong--r2t1xiakongmd10011",
+      "skeleton_asset_name": "R2T1XiakongMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001408,
+      "model_id": "100042",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Nvzhu/R2T1PlayerFemaleMd10011/Model/R2T1PlayerFemaleMd10011.R2T1PlayerFemaleMd10011",
+      "model_asset_name": "R2T1PlayerFemaleMd10011",
+      "profile_id": "femalem--nvzhu--r2t1playerfemalemd10011",
+      "skeleton_asset_name": "R2T1PlayerFemaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011408,
+      "model_id": "1000421",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Nvzhu/R2T1PlayerFemaleMd20011/Model/R2T1PlayerFemaleMd20011.R2T1PlayerFemaleMd20011",
+      "model_asset_name": "R2T1PlayerFemaleMd20011",
+      "profile_id": "femalem--nvzhu--r2t1playerfemalemd20011",
+      "skeleton_asset_name": "R2T1PlayerFemaleMd20011_Skeleton"
+    },
+    {
+      "skin_id": 81001409,
+      "model_id": "100038",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Katixiya/R2T1KatixiyaMd10011/Model/R2T1KatixiyaMd10011.R2T1KatixiyaMd10011",
+      "model_asset_name": "R2T1KatixiyaMd10011",
+      "profile_id": "femalems--katixiya--r2t1katixiyamd10011",
+      "skeleton_asset_name": "R2T1KatixiyaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001410,
+      "model_id": "100049",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Younuo/R2T1YounuoMd10011/Model/R2T1YounuoMd10011.R2T1YounuoMd10011",
+      "model_asset_name": "R2T1YounuoMd10011",
+      "profile_id": "femalem--younuo--r2t1younuomd10011",
+      "skeleton_asset_name": "R2T1YounuoMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001411,
+      "model_id": "100145",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleXL/Qiuyuan/R2T1QiuyuanMd10011/Model/R2T1QiuyuanMd10011.R2T1QiuyuanMd10011",
+      "model_asset_name": "R2T1QiuyuanMd10011",
+      "profile_id": "malexl--qiuyuan--r2t1qiuyuanmd10011",
+      "skeleton_asset_name": "R2T1QiuyuanMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001412,
+      "model_id": "100061",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Xigelika/R2T1XigelikaMd10011/Model/R2T1XigelikaMd10011.R2T1XigelikaMd10011",
+      "model_asset_name": "R2T1XigelikaMd10011",
+      "profile_id": "femalems--xigelika--r2t1xigelikamd10011",
+      "skeleton_asset_name": "R2T1XigelikaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001413,
+      "model_id": "10011413",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/Qingxiao/R2T1QingxiaoMd10011/Model/R2T1QingxiaoMd10011.R2T1QingxiaoMd10011",
+      "model_asset_name": "R2T1QingxiaoMd10011",
+      "profile_id": "femalexl--qingxiao--r2t1qingxiaomd10011",
+      "skeleton_asset_name": "R2T1QingxiaoMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001501,
+      "model_id": "100004",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleM/Nanzhu/R2T1PlayerMaleMd10011/Model/R2T1PlayerMaleMd10011.R2T1PlayerMaleMd10011",
+      "model_asset_name": "R2T1PlayerMaleMd10011",
+      "profile_id": "malem--nanzhu--r2t1playermalemd10011",
+      "skeleton_asset_name": "R2T1PlayerMaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011501,
+      "model_id": "1000041",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleM/Nanzhu/R2T1PlayerMaleMd20011/Model/R2T1PlayerMaleMd20011.R2T1PlayerMaleMd20011",
+      "model_asset_name": "R2T1PlayerMaleMd20011",
+      "profile_id": "malem--nanzhu--r2t1playermalemd20011",
+      "skeleton_asset_name": "R2T1PlayerMaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001502,
+      "model_id": "100006",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Nvzhu/R2T1PlayerFemaleMd10011/Model/R2T1PlayerFemaleMd10011.R2T1PlayerFemaleMd10011",
+      "model_asset_name": "R2T1PlayerFemaleMd10011",
+      "profile_id": "femalem--nvzhu--r2t1playerfemalemd10011",
+      "skeleton_asset_name": "R2T1PlayerFemaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011502,
+      "model_id": "1000061",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Nvzhu/R2T1PlayerFemaleMd20011/Model/R2T1PlayerFemaleMd20011.R2T1PlayerFemaleMd20011",
+      "model_asset_name": "R2T1PlayerFemaleMd20011",
+      "profile_id": "femalem--nvzhu--r2t1playerfemalemd20011",
+      "skeleton_asset_name": "R2T1PlayerFemaleMd20011_Skeleton"
+    },
+    {
+      "skin_id": 81001503,
+      "model_id": "100003",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleS/Jueyuan/R2T1JueyuanMd10011/Model/R2T1JueyuanMd10011.R2T1JueyuanMd10011",
+      "model_asset_name": "R2T1JueyuanMd10011",
+      "profile_id": "females--jueyuan--r2t1jueyuanmd10011",
+      "skeleton_asset_name": "R2T1JueyuanMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001504,
+      "model_id": "100030",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Dengdeng/R2T1DengDengMd10011/Model/R2T1DengDengMd10011.R2T1DengDengMd10011",
+      "model_asset_name": "R2T1DengDengMd10011",
+      "profile_id": "femalems--dengdeng--r2t1dengdengmd10011",
+      "skeleton_asset_name": "R2T1DengDengMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001505,
+      "model_id": "100023",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Shouanren/R2T1ShouanrenMd10011/Model/R2T1ShouanrenMd10011.R2T1ShouanrenMd10011",
+      "model_asset_name": "R2T1ShouanrenMd10011",
+      "profile_id": "femalem--shouanren--r2t1shouanrenmd10011",
+      "skeleton_asset_name": "R2T1ShouanrenMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001506,
+      "model_id": "100035",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Feibi/R2T1FeibiMd10011/Model/R2T1FeiBiMd10011.R2T1FeiBiMd10011",
+      "model_asset_name": "R2T1FeiBiMd10011",
+      "profile_id": "femalems--feibi--r2t1feibimd10011",
+      "skeleton_asset_name": "R2T1FeiBiMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001507,
+      "model_id": "100039",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/Zanni/R2T1ZanniMd10011/Model/R2T1ZanniMd10011.R2T1ZanniMd10011",
+      "model_asset_name": "R2T1ZanniMd10011",
+      "profile_id": "femalexl--zanni--r2t1zannimd10011",
+      "skeleton_asset_name": "R2T1ZanniMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011507,
+      "model_id": "1000391",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/Zanni/R2T1ZanniMd20011/Model/R2T1ZanniMd20011.R2T1ZanniMd20011",
+      "model_asset_name": "R2T1ZanniMd20011",
+      "profile_id": "femalexl--zanni--r2t1zannimd20011",
+      "skeleton_asset_name": "R2T1ZanniMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001508,
+      "model_id": "100052",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Qianxia/R2T1QianXiaMd10011/Model/R2T1QianXiaMd10011.R2T1QianXiaMd10011",
+      "model_asset_name": "R2T1QianXiaMd10011",
+      "profile_id": "femalem--qianxia--r2t1qianxiamd10011",
+      "skeleton_asset_name": "R2T1QianXiaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011508,
+      "model_id": "1000521",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Qianxia/R2T1QianXiaMd20011/Model/R2T1QianXiaMd20011.R2T1QianXiaMd20011",
+      "model_asset_name": "R2T1QianXiaMd20011",
+      "profile_id": "femalem--qianxia--r2t1qianxiamd20011",
+      "skeleton_asset_name": "R2T1QianXiaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001509,
+      "model_id": "100053",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/LinNai/R2T1LinnaiMd10011/Model/R2T1LinnaeaMd10011.R2T1LinnaeaMd10011",
+      "model_asset_name": "R2T1LinnaeaMd10011",
+      "profile_id": "femalem--linnai--r2t1linnaimd10011",
+      "skeleton_asset_name": "R2T1LinnaeaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011509,
+      "model_id": "1000531",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/LinNai/R2T1LinnaeaMd20011/Model/R2T1LinnaeaMd20011.R2T1LinnaeaMd20011",
+      "model_asset_name": "R2T1LinnaeaMd20011",
+      "profile_id": "femalem--linnai--r2t1linnaeamd20011",
+      "skeleton_asset_name": "R2T1LinnaeaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001510,
+      "model_id": "100056",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleXL/Luhesi/R2T1LuhesiMd10011/Model/R2T1LuhesiMd10011.R2T1LuhesiMd10011",
+      "model_asset_name": "R2T1LuhesiMd10011",
+      "profile_id": "malexl--luhesi--r2t1luhesimd10011",
+      "skeleton_asset_name": "R2T1LuhesiMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001511,
+      "model_id": "100064",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Lucy/R2T1LucyMd10011/Model/R2T1LucyMd10011.R2T1LucyMd10011",
+      "model_asset_name": "R2T1LucyMd10011",
+      "profile_id": "femalem--lucy--r2t1lucymd10011",
+      "skeleton_asset_name": "R2T1LucyMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001601,
+      "model_id": "100109",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Taohua/R2T1TaohuaMd10011/Model/R2T1TaohuaMd10011.R2T1TaohuaMd10011",
+      "model_asset_name": "R2T1TaohuaMd10011",
+      "profile_id": "femalem--taohua--r2t1taohuamd10011",
+      "skeleton_asset_name": "R2T1TaohuaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001602,
+      "model_id": "100010",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Micai/R2T1MicaiMd10011/Model/R2T1MicaiMd10011.R2T1MicaiMd10011",
+      "model_asset_name": "R2T1MicaiMd10011",
+      "profile_id": "femalem--micai--r2t1micaimd10011",
+      "skeleton_asset_name": "R2T1MicaiMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001603,
+      "model_id": "100015",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Chun/R2T1ChunMd10011/Model/R2T1ChunMd10011.R2T1ChunMd10011",
+      "model_asset_name": "R2T1ChunMd10011",
+      "profile_id": "femalem--chun--r2t1chunmd10011",
+      "skeleton_asset_name": "R2T1ChunMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001604,
+      "model_id": "100021",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Nvzhu/R2T1PlayerFemaleMd10011/Model/R2T1PlayerFemaleMd10011.R2T1PlayerFemaleMd10011",
+      "model_asset_name": "R2T1PlayerFemaleMd10011",
+      "profile_id": "femalem--nvzhu--r2t1playerfemalemd10011",
+      "skeleton_asset_name": "R2T1PlayerFemaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011604,
+      "model_id": "1000211",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Nvzhu/R2T1PlayerFemaleMd20011/Model/R2T1PlayerFemaleMd20011.R2T1PlayerFemaleMd20011",
+      "model_asset_name": "R2T1PlayerFemaleMd20011",
+      "profile_id": "femalem--nvzhu--r2t1playerfemalemd20011",
+      "skeleton_asset_name": "R2T1PlayerFemaleMd20011_Skeleton"
+    },
+    {
+      "skin_id": 81001605,
+      "model_id": "100022",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleM/Nanzhu/R2T1PlayerMaleMd10011/Model/R2T1PlayerMaleMd10011.R2T1PlayerMaleMd10011",
+      "model_asset_name": "R2T1PlayerMaleMd10011",
+      "profile_id": "malem--nanzhu--r2t1playermalemd10011",
+      "skeleton_asset_name": "R2T1PlayerMaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81011605,
+      "model_id": "1000221",
+      "model_asset_path": "/Game/Aki/Character/Role/MaleM/Nanzhu/R2T1PlayerMaleMd20011/Model/R2T1PlayerMaleMd20011.R2T1PlayerMaleMd20011",
+      "model_asset_name": "R2T1PlayerMaleMd20011",
+      "profile_id": "malem--nanzhu--r2t1playermalemd20011",
+      "skeleton_asset_name": "R2T1PlayerMaleMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001606,
+      "model_id": "100032",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleS/Luokeke/R2T1LuokekeMd10011/Model/R2T1LuokekeMd10011.R2T1LuokekeMd10011",
+      "model_asset_name": "R2T1LuokekeMd10011",
+      "profile_id": "females--luokeke--r2t1luokekemd10011",
+      "skeleton_asset_name": "R2T1LuokekeMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001607,
+      "model_id": "100037",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/Kanteleila/R2T1KanteleilaMd10011/Model/R2T1KanteleilaMd10011.R2T1KanteleilaMd10011",
+      "model_asset_name": "R2T1KanteleilaMd10011",
+      "profile_id": "femalexl--kanteleila--r2t1kanteleilamd10011",
+      "skeleton_asset_name": "R2T1KanteleilaMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001608,
+      "model_id": "100018",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Fuluoluo/R2T1FuluoluoMd10011/Model/R2T1FuluoluoMd10011.R2T1FuluoluoMd10011",
+      "model_asset_name": "R2T1FuluoluoMd10011",
+      "profile_id": "femalem--fuluoluo--r2t1fuluoluomd10011",
+      "skeleton_asset_name": "R2T1FuluoluoMd10011_Skeleton"
+    },
+    {
+      "skin_id": 81001610,
+      "model_id": "100069",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleM/Xuanling/R2T1XuanlingMd10011/Model/R2T1XuanlingMd10011.R2T1XuanlingMd10011",
+      "model_asset_name": "R2T1XuanlingMd10011",
+      "profile_id": "femalem--xuanling--r2t1xuanlingmd10011",
+      "skeleton_asset_name": "R2T1XuanlingMd10011_Skeleton"
+    }
+  ]
+}

@@ -1,0 +1,2957 @@
+{
+ "generated": "2026-10-05T10:56:24",
+ "curves_total": 134,
+ "characters": [
+  {
+   "gender": "FemaleM",
+   "character": "Aimisi",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Aimisi/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Aimisi/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Aimisi/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Aimisi/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiLimitAngle",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Aimisi/Data/KawaiiCurve/Xiuzi_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiStiffness",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Aimisi/Data/KawaiiCurve/Xiuzi_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Chun",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Fuluoluo",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Fuluoluo_Lifu",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Jianxin",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Jinxi",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Jinxi",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "LinNai",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Waitao_KawaiiLimitAngle",
+     "chain_hint": "Waitao",
+     "type": "coat",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Waitao_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Waitao_KawaiiStiffness",
+     "chain_hint": "Waitao",
+     "type": "coat",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Waitao_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleM",
+   "character": "LinNai",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Waitao_KawaiiLimitAngle",
+     "chain_hint": "Waitao",
+     "type": "coat",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Waitao_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Waitao_KawaiiStiffness",
+     "chain_hint": "Waitao",
+     "type": "coat",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/LinNai/Data/KawaiiCurve/Waitao_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Lucy",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Lupa",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Maxiaofang",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Micai",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Nvzhu",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Nvzhu/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Nvzhu/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Nvzhu/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       1.0,
+       1.0
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Nvzhu/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Nvzhu",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Nvzhu/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Nvzhu/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Nvzhu/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       1.0,
+       1.0
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Nvzhu/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Qianxia",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Waitao_KawaiiLimitAngle",
+     "chain_hint": "Waitao",
+     "type": "coat",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Waitao_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Waitao_KawaiiStiffness",
+     "chain_hint": "Waitao",
+     "type": "coat",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Waitao_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Qianxia",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Waitao_KawaiiLimitAngle",
+     "chain_hint": "Waitao",
+     "type": "coat",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Waitao_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Waitao_KawaiiStiffness",
+     "chain_hint": "Waitao",
+     "type": "coat",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Qianxia/Data/KawaiiCurve/Waitao_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Sanhua",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Sanhua",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Shouanren",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Suisui",
+   "curves": [
+    {
+     "file": "Daizi_KawaiiLimitAngle",
+     "chain_hint": "Daizi",
+     "type": "strap",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Suisui/Data/KawaiiCurve/Daizi_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Daizi_KawaiiStiffness",
+     "chain_hint": "Daizi",
+     "type": "strap",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Suisui/Data/KawaiiCurve/Daizi_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Suisui/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Suisui/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Suisui/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Suisui/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiLimitAngle",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Suisui/Data/KawaiiCurve/Xiuzi_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiStiffness",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Suisui/Data/KawaiiCurve/Xiuzi_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Taohua",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "TestModel",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "TestModel",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Xiakong",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Xuanling",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Xuanling/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Xuanling/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Xuanling/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Xuanling/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiLimitAngle",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Xuanling/Data/KawaiiCurve/Xiuzi_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.7500002
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiStiffness",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleM/Xuanling/Data/KawaiiCurve/Xiuzi_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Yangyang",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Yangyang",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "YinLin",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Younuo",
+   "curves": []
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Zhezhi",
+   "curves": []
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Buling",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Buling/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Buling/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Buling/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Buling/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiLimitAngle",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Buling/Data/KawaiiCurve/Xiuzi_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiStiffness",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Buling/Data/KawaiiCurve/Xiuzi_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Daniya",
+   "curves": [
+    {
+     "file": "Hudiejie_KawaiiLimitAngle",
+     "chain_hint": "Hudiejie",
+     "type": "bow",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Daniya/Data/KawaiiCurve/Hudiejie_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Hudiejie_KawaiiStiffness",
+     "chain_hint": "Hudiejie",
+     "type": "bow",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Daniya/Data/KawaiiCurve/Hudiejie_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Daniya/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Daniya/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Daniya/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Daniya/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Dengdeng",
+   "curves": []
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Feibi",
+   "curves": []
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Katixiya",
+   "curves": []
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Kmola",
+   "curves": []
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Kmola",
+   "curves": []
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Mone",
+   "curves": [
+    {
+     "file": "Pifeng_KawaiiLimitAngle",
+     "chain_hint": "Pifeng",
+     "type": "cape",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Pifeng_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Pifeng_KawaiiStiffness",
+     "chain_hint": "Pifeng",
+     "type": "cape",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Pifeng_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Mone",
+   "curves": [
+    {
+     "file": "Pifeng_KawaiiLimitAngle",
+     "chain_hint": "Pifeng",
+     "type": "cape",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Pifeng_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Pifeng_KawaiiStiffness",
+     "chain_hint": "Pifeng",
+     "type": "cape",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Pifeng_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Mone/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Rebecca",
+   "curves": []
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Xigelika",
+   "curves": [
+    {
+     "file": "Pifeng_KawaiiLimitAngle",
+     "chain_hint": "Pifeng",
+     "type": "cape",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Xigelika/Data/KawaiiCurve/Pifeng_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Pifeng_KawaiiStiffness",
+     "chain_hint": "Pifeng",
+     "type": "cape",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Xigelika/Data/KawaiiCurve/Pifeng_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Xigelika/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Xigelika/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Xigelika/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleMS/Xigelika/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleS",
+   "character": "Anke",
+   "curves": []
+  },
+  {
+   "gender": "FemaleS",
+   "character": "Jueyuan",
+   "curves": []
+  },
+  {
+   "gender": "FemaleS",
+   "character": "Luokeke",
+   "curves": []
+  },
+  {
+   "gender": "FemaleS",
+   "character": "Suoming",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleS/Suoming/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleS/Suoming/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleS/Suoming/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleS/Suoming/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Waitao_KawaiiLimitAngle",
+     "chain_hint": "Waitao",
+     "type": "coat",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleS/Suoming/Data/KawaiiCurve/Waitao_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Waitao_KawaiiStiffness",
+     "chain_hint": "Waitao",
+     "type": "coat",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleS/Suoming/Data/KawaiiCurve/Waitao_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleS",
+   "character": "TestModel",
+   "curves": []
+  },
+  {
+   "gender": "FemaleS",
+   "character": "TestModel",
+   "curves": []
+  },
+  {
+   "gender": "FemaleS",
+   "character": "Youhu",
+   "curves": []
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Aogusita",
+   "curves": []
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "BaiLian",
+   "curves": []
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "ChangLi",
+   "curves": []
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "ChangLi",
+   "curves": []
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Jiabeilina",
+   "curves": [
+    {
+     "file": "KawaiiLimitAngle",
+     "chain_hint": "",
+     "type": "generic",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Jiabeilina/Data/KawaiiCurve/KawaiiLimitAngle",
+     "points": [
+      [
+       0.3,
+       0.20000002
+      ],
+      [
+       1.0,
+       0.7500001
+      ]
+     ]
+    },
+    {
+     "file": "KawaiiStiffness",
+     "chain_hint": "",
+     "type": "generic",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Jiabeilina/Data/KawaiiCurve/KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       1.0,
+       0.125
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Kanteleila",
+   "curves": []
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Luosela",
+   "curves": []
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "TaiDaoNv",
+   "curves": [
+    {
+     "file": "Hudiejie_KawaiiLimitAngle",
+     "chain_hint": "Hudiejie",
+     "type": "bow",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/TaiDaoNv/Data/KawaiiCurve/Hudiejie_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Hudiejie_KawaiiStiffness",
+     "chain_hint": "Hudiejie",
+     "type": "bow",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/TaiDaoNv/Data/KawaiiCurve/Hudiejie_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/TaiDaoNv/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/TaiDaoNv/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/TaiDaoNv/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/TaiDaoNv/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "TestModel",
+   "curves": []
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Xinyuehu",
+   "curves": [
+    {
+     "file": "Erduo_KawaiiLimitAngle",
+     "chain_hint": "Erduo",
+     "type": "ear",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Erduo_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Erduo_KawaiiStiffness",
+     "chain_hint": "Erduo",
+     "type": "ear",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Erduo_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Lingdai_KawaiiLimitAngle",
+     "chain_hint": "Lingdai",
+     "type": "tie",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Lingdai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Lingdai_KawaiiStiffness",
+     "chain_hint": "Lingdai",
+     "type": "tie",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Lingdai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Weiba_KawaiiLimitAngle",
+     "chain_hint": "Weiba",
+     "type": "tail",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Weiba_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Weiba_KawaiiStiffness",
+     "chain_hint": "Weiba",
+     "type": "tail",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Weiba_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiLimitAngle",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Xiuzi_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiStiffness",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/Xinyuehu/Data/KawaiiCurve/Xiuzi_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "XinyuehuShen",
+   "curves": [
+    {
+     "file": "Erduo_KawaiiLimitAngle",
+     "chain_hint": "Erduo",
+     "type": "ear",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Erduo_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Erduo_KawaiiStiffness",
+     "chain_hint": "Erduo",
+     "type": "ear",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Erduo_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Lingdai_KawaiiLimitAngle",
+     "chain_hint": "Lingdai",
+     "type": "tie",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Lingdai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Lingdai_KawaiiStiffness",
+     "chain_hint": "Lingdai",
+     "type": "tie",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Lingdai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       1.0,
+       1.5
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Weiba_KawaiiLimitAngle",
+     "chain_hint": "Weiba",
+     "type": "tail",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Weiba_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.37500006
+      ],
+      [
+       1.0,
+       1.5
+      ]
+     ]
+    },
+    {
+     "file": "Weiba_KawaiiStiffness",
+     "chain_hint": "Weiba",
+     "type": "tail",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Weiba_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiLimitAngle",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Xiuzi_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.6,
+       0.7499997
+      ],
+      [
+       1.0,
+       1.25
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiStiffness",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/Data/KawaiiCurve/Xiuzi_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Zanni",
+   "curves": []
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Zanni",
+   "curves": []
+  },
+  {
+   "gender": "FemaleZ",
+   "character": "Fuludelisi",
+   "curves": []
+  },
+  {
+   "gender": "FemaleZ2",
+   "character": "AimisiGD",
+   "curves": [
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/FemaleZ2/AimisiGD/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/FemaleZ2/AimisiGD/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "MaleM",
+   "character": "Jingran",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/MaleM/Jingran/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/MaleM/Jingran/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/MaleM/Jingran/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/MaleM/Jingran/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "MaleM",
+   "character": "Nanzhu",
+   "curves": []
+  },
+  {
+   "gender": "MaleM",
+   "character": "Nanzhu",
+   "curves": []
+  },
+  {
+   "gender": "MaleM",
+   "character": "TestModel",
+   "curves": []
+  },
+  {
+   "gender": "MaleM",
+   "character": "TestModel",
+   "curves": []
+  },
+  {
+   "gender": "MaleM",
+   "character": "Xiangliyao",
+   "curves": []
+  },
+  {
+   "gender": "MaleS",
+   "character": "Lingyang",
+   "curves": []
+  },
+  {
+   "gender": "MaleS",
+   "character": "TestModel",
+   "curves": []
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Baer",
+   "curves": []
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Bulante",
+   "curves": []
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Jiyan",
+   "curves": []
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Kakaluo",
+   "curves": []
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Luhesi",
+   "curves": [
+    {
+     "file": "Qunbai_KawaiiLimitAngle",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/MaleXL/Luhesi/Data/KawaiiCurve/Qunbai_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Qunbai_KawaiiStiffness",
+     "chain_hint": "Qunbai",
+     "type": "skirt",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/MaleXL/Luhesi/Data/KawaiiCurve/Qunbai_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiLimitAngle",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/MaleXL/Luhesi/Data/KawaiiCurve/Taofa_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.3,
+       0.875
+      ],
+      [
+       1.0,
+       1.3749999
+      ]
+     ]
+    },
+    {
+     "file": "Taofa_KawaiiStiffness",
+     "chain_hint": "Taofa",
+     "type": "hair",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/MaleXL/Luhesi/Data/KawaiiCurve/Taofa_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.7,
+       0.37499997
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiLimitAngle",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/MaleXL/Luhesi/Data/KawaiiCurve/Xiuzi_KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.0
+      ],
+      [
+       0.8,
+       0.8
+      ],
+      [
+       1.0,
+       1.3750001
+      ]
+     ]
+    },
+    {
+     "file": "Xiuzi_KawaiiStiffness",
+     "chain_hint": "Xiuzi",
+     "type": "sleeve",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/MaleXL/Luhesi/Data/KawaiiCurve/Xiuzi_KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       0.5,
+       0.24999997
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Qiushui",
+   "curves": []
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Qiuyuan",
+   "curves": [
+    {
+     "file": "KawaiiLimitAngle",
+     "chain_hint": "",
+     "type": "generic",
+     "param": "LimitAngle",
+     "asset": "Client/Content/Aki/Character/Role/MaleXL/Qiuyuan/Data/KawaiiCurve/KawaiiLimitAngle",
+     "points": [
+      [
+       0.0,
+       0.2500001
+      ],
+      [
+       0.9,
+       0.75000024
+      ]
+     ]
+    },
+    {
+     "file": "KawaiiStiffness",
+     "chain_hint": "",
+     "type": "generic",
+     "param": "Stiffness",
+     "asset": "Client/Content/Aki/Character/Role/MaleXL/Qiuyuan/Data/KawaiiCurve/KawaiiStiffness",
+     "points": [
+      [
+       0.0,
+       1.0
+      ],
+      [
+       1.0,
+       0.15
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "gender": "MaleXL",
+   "character": "TestModel",
+   "curves": []
+  },
+  {
+   "gender": "MaleXL",
+   "character": "TestModel",
+   "curves": []
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Yuanwu",
+   "curves": []
+  }
+ ]
+}

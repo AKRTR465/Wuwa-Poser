@@ -1,0 +1,70 @@
+{
+  "alias_of": null,
+  "body_type": "FemaleZ2",
+  "candidate_groups": [
+    {
+      "alpha_curve": null,
+      "alpha_input_type": null,
+      "evidence_kind": "heuristic",
+      "extraction_kind": "heuristic",
+      "node_property": "heuristic_family_chains",
+      "node_type": "heuristic_chain_family",
+      "root_bones": [
+        "Bone_Hair001_L",
+        "Bone_Hair001_R",
+        "Bone_Hair011_L",
+        "Bone_Hair011_R",
+        "Bone_Hair021_L",
+        "Bone_Hair021_R",
+        "Bone_Hair031_L",
+        "Bone_Hair031_R",
+        "Bone_Hair041_L",
+        "Bone_Hair041_R",
+        "Bone_Hair085"
+      ],
+      "runtime_verified": false,
+      "source_id": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_model_id": "R2T1AimisiGDMd10011",
+      "unmatched_root_bones": [],
+      "variant": "skeleton_heuristic"
+    }
+  ],
+  "candidate_sources": [
+    {
+      "kind": "bone_chains",
+      "selection": "direct_model",
+      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_body_type": "FemaleZ2",
+      "source_character": "AimisiGD",
+      "source_model_id": "R2T1AimisiGDMd10011"
+    },
+    {
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "graph_scope": "sequence_candidate",
+      "group_signature": {
+        "curve_names": [],
+        "kawaii_group_count": 0
+      },
+      "group_signatures": [],
+      "kind": "seq_export",
+      "runtime_verified": false,
+      "sha256": "f97fc17c9b59ea09a345554cc25b9a8ad343e93000ede6ced1b854418cca70d3",
+      "source_model_id": "R2T1AimisiGDMd10011",
+      "variant": "ABP_Seq_AimisiGD_Phy"
+    }
+  ],
+  "character": "AimisiGD",
+  "character_profile_sha256": "761b05bf91b27927d71940177e4fb9a1fefdece0027f8b12d9c3697f956d9fff",
+  "evidence_level": "heuristic",
+  "kind": "native_graph_runtime_descriptor",
+  "model_id": "R2T1AimisiGDMd10011",
+  "pc_binding": null,
+  "physics_model_id": "R2T1AimisiGDMd10011",
+  "profile_id": "femalez2--aimisigd--r2t1aimisigdmd10011",
+  "requires_live_discovery": true,
+  "runtime_verified": false,
+  "schema": 1,
+  "skeleton_sha256": "9156877777ac590159582a3dcff05a934db19de1f29f9bf07ffeab83664d29a6",
+  "source_profile_sha256": "cda79e4af17a0f1a2f3767b7b2f8ba80fd898794acb5a659125ec2175160edcc"
+}

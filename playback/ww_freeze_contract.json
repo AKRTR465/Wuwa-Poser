@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "purpose": "Scoped controlled-character spatial freeze for external full-body playback",
+  "evidence_scope": "offline current saved PE; no native calls or live state edits performed",
+  "image": "F:/deeplearning/UAV/ww-ida/Client-runtime-20261018.exe",
+  "image_sha256": "7480ba1b3fa5efa319c12f29890c949eafa36cf7dd932602774f111a8dcffea5",
+  "native_audit": "tools/verification_outputs/freeze_native/freeze_native_audit.json",
+  "facts": {
+    "Character": {
+      "class_params_rva": "0x8619c60",
+      "property_table_rva": "0x8619b10",
+      "class_registration_rva": "0x57b3930",
+      "character_movement_pointer_offset": "0x318",
+      "descriptor_rva": "0x86193b0"
+    },
+    "Actor": {
+      "class_params_rva": "0x85c2870",
+      "property_table_rva": "0x85c2540",
+      "root_component_pointer_offset": "0x1a0"
+    },
+    "CharacterMovementComponent": {
+      "class_params_rva": "0x8621430",
+      "property_table_rva": "0x8620de0",
+      "class_registration_rva": "0x57b9be0",
+      "registered_constructor_wrapper_rva": "0x57b9df0",
+      "constructor_rva": "0x4f399d0",
+      "static_vtable_rva": "0x841f920",
+      "character_owner_pointer_offset": "0x168",
+      "movement_mode_byte_offset": "0x188",
+      "custom_movement_mode_byte_offset": "0x189",
+      "acceleration_vector_offset": "0x3ec",
+      "acceleration_vector_bytes": 12,
+      "inherited_pawn_owner_pointer_offset": "0x150",
+      "inherited_updated_component_pointer_offset": "0xc0",
+      "inherited_velocity_vector_offset": "0xd4",
+      "inherited_velocity_vector_bytes": 12,
+      "updated_component_velocity_mirror_offset": "0x160"
+    }
+  },
+  "preferred_runtime_candidate": {
+    "method": "virtual SetMovementMode(MOVE_None=0, Custom=0) on validated controlled pawn CharacterMovementComponent",
+    "exec_thunk_rva": "0x57bd030",
+    "exec_registration_table_rva": "0x8622ed0",
+    "native_registration_callback_rva": "0x57b9f20",
+    "virtual_slot_byte_offset": "0x5f0",
+    "static_base_implementation_rva": "0x4f74440",
+    "static_implementation_bytes": 181,
+    "static_implementation_sha256": "0ebc439e6fdf37da3e157937baa546fbb2b43f7f10e650c5ab383c71b789b0c2",
+    "windows_x64_abi": {
+      "rcx": "CharacterMovementComponent* this",
+      "edx": "EMovementMode as uint32_t; MOVE_None 0",
+      "r8b": "uint8_t CustomMovementMode; zero except MOVE_Custom 6",
+      "return": "void",
+      "declaration": "void (*)(void* movement_component, uint32_t movement_mode, uint8_t custom_mode)"
+    },
+    "freeze_value": {"movement_mode": 0, "custom_movement_mode": 0},
+    "thread_requirement": "Known game thread outside current movement update/physics task; keep the mesh publication callback running",
+    "live_subclass_vtable_target_unverified": true,
+    "lifetime_and_thread_phase_unverified": true,
+    "freezes_all_world_transform_writers_proven": false,
+    "side_effects": [
+      "SetMovementMode writes MovementMode and CustomMovementMode then dispatches OnMovementModeChanged when valid data is present.",
+      "MOVE_None path calls StopMovementImmediately via slot 0x478 and clears movement input/acceleration through slot 0x568.",
+      "Velocity +0xd4 is replaced with zero and mirrored into UpdatedComponent +0x160 through UpdateComponentVelocity slot 0x4b8.",
+      "Acceleration +0x3ec and internal vector +0x5e0 are cleared; flag +0x5c8 bit 0x02 is cleared.",
+      "OnMovementModeChanged clears floor/base state, notifies owner through slots 0x8c8 and 0x950, and resets force/impulse vectors +0x434/+0x440/+0x604 via slot 0x780.",
+      "Async mode changes may be queued in component state +0x390; all queued/native/network side effects are not captured by a two-byte snapshot."
+    ]
+  },
+  "scoped_lifecycle": {
+    "before_activation": [
+      "Validate controlled pawn object identity/serial/class, mesh owner relationship, CharacterMovement pointer +0x318, reciprocal CharacterOwner +0x168 and PawnOwner +0x150, UpdatedComponent and Actor RootComponent relationship.",
+      "Read the current live vtable target at movement vtable +0x5f0 and validate executable bytes against the current module; static base vtable is evidence only.",
+      "Snapshot original mode/custom mode, velocity, acceleration, known force vectors, relevant tick/input state and current actor world anchor before any mutation.",
+      "Reject nonfinite vectors and object/session identity changes. A grounded idle activation avoids inventing restoration of active jumps/root-motion/async movement jobs.",
+      "Assign a session token; no unrelated component, Actor tick, animation mode or global clock is changed."
+    ],
+    "active": [
+      "Call the validated native virtual setter once on the known game thread with mode 0/custom 0, then read back both mode bytes and record post-call velocity/acceleration/force state.",
+      "Keep native mesh animation/publication active so external post-FK playback and its stop/restore path continue to execute.",
+      "Monitor controlled pawn/mesh/component serials, mode state and actor world anchor. External engine/game/network changes can still move the actor; do not report guaranteed spatial immobility from this setter alone.",
+      "Do not repeatedly overwrite a new movement mode from another engine owner. Identity/mode conflict ends playback and begins scoped restoration."
+    ],
+    "stop_or_failure": [
+      "Stop new pose publications and restore final pose/prop layers through their existing exact-byte scoped restore path.",
+      "On the same surviving controlled component and game thread, restore original MovementMode/CustomMovementMode through the same validated setter only if the freeze session still owns the frozen mode.",
+      "If preserving captured idle dynamics is part of the selected policy, restore owned velocity/acceleration/force fields only while they still match this session's observed forced state; update the UpdatedComponent velocity mirror consistently.",
+      "Do not memcpy the whole CharacterMovementComponent or pretend native floor/base/async queues can be rolled back by a byte copy. Native setter recomputes current movement state and can notify other systems.",
+      "Read back restoration and retain a pending restore record on uncertainty. No cleanup against a replaced object/address/serial and no successful-restore claim without verification.",
+      "A control path independent of potentially disabled mesh callbacks is required before disabling animation or its tick; the preferred candidate avoids doing so."
+    ]
+  },
+  "alternatives": {
+    "DisableMovement": {
+      "exec_rva": "0x57bac30",
+      "virtual_slot": "0x618",
+      "static_rva": "0x4f488c0",
+      "behavior": "With CharacterOwner present, delegates to SetMovementMode(0,0); absent owner path directly writes mode word zero.",
+      "reason_not_needed": "SetMovementMode provides explicit symmetric original-mode restore."
+    },
+    "SetComponentTickEnabled": {
+      "exec_rva": "0x57730f0",
+      "virtual_set_slot": "0x388",
+      "virtual_get_slot": "0x398",
+      "static_set_rva": "0x4f2ef80",
+      "static_get_rva": "0x4f24b70",
+      "reason_not_default": "Movement tick pause preserves mode but does not cover independent physics, post-physics/async updates or external root writers; disabling mesh tick can stop publication."
+    },
+    "SetActorTickEnabled": {
+      "exec_rva": "0x576dfb0",
+      "virtual_slot": "0x4a0",
+      "reason_not_default": "Actor primary tick is distinct from movement/mesh component ticks and is too broad to infer a reliable local spatial freeze."
+    },
+    "bPauseAnims": {
+      "enabled_by_default": false,
+      "smc_flag_byte_offset": "0xcb9",
+      "mask": 2,
+      "generated_setter_rva": "0x5925770",
+      "generated_setter_behavior": "or byte ptr [rcx+0xcb9],2; one-way construction bit setter, not a reversible runtime pause API",
+      "GlobalAnimRateScale_offset": "0xca0",
+      "should_tick_pose_slot": "0xac8",
+      "should_tick_pose_rva": "0x500d960",
+      "ordinary_tick_call_rva": "0x50452c8",
+      "tick_pose_slot": "0xa98",
+      "publication_slot": "0xab8",
+      "publication_rva": "0x4ff3cd0",
+      "proven": "bPauseAnims mask 2 causes ShouldTickPose to return false; ordinary tick branch bypasses TickPose slot 0xa98.",
+      "unknown": "Some finalize/publication routes may still occur, but complete callback cadence and cleanup liveness after pause have not been established.",
+      "reason_not_default": "Pausing source animation may suppress the exact publication callback needed for external playback and scoped restoration."
+    }
+  },
+  "integration_state": "Contract and binary witnesses delivered; root callback/game implementation not edited by this audit",
+  "limitations": [
+    "Static base class function and property facts do not identify live controlled pawn/subclass lifetime or thread phase.",
+    "Network corrections, external actor transform setters and Kuro movement extensions can override MOVE_None; monitor observed world anchor.",
+    "Exact pre-freeze native movement engine state restoration is not proven; symmetric mode restoration and explicitly owned scalar/vector restoration must be distinguished from whole-state rollback.",
+    "No anti-cheat, integrity, authentication, or remote code mechanisms were investigated or altered."
+  ]
+}

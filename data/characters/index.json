@@ -1,0 +1,1809 @@
+{
+  "schema": 1,
+  "scope": "Exported asset directories; not an official complete playable-character roster",
+  "profiles": [
+    {
+      "profile_id": "femalem--aimisi--r2t1aimisimd10011",
+      "model_id": "R2T1AimisiMd10011",
+      "character": "Aimisi",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1AimisiMd10011"
+      ],
+      "skeleton_asset_name": "R2T1AimisiMd10011_Skeleton",
+      "skeleton_sha256": "79461e6b08642e4f23c4d121532eb4b1ae85a91c01eddf02a9a91c825a303160",
+      "bone_count": 388,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--aimisi--r2t1aimisimd10011.json",
+      "profile_sha256": "ee4c81681d3e1ecd319fdb2b00f31c4b76d08d58139cb73607eb1d8348cb43c1"
+    },
+    {
+      "profile_id": "femalem--chun--r2t1chunmd10011",
+      "model_id": "R2T1ChunMd10011",
+      "character": "Chun",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1ChunMd10011"
+      ],
+      "skeleton_asset_name": "R2T1ChunMd10011_Skeleton",
+      "skeleton_sha256": "48b5f3d6f8c1289ad9ff8dbb0801a4f7722739a06d88dee69da099b50f92f533",
+      "bone_count": 195,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--chun--r2t1chunmd10011.json",
+      "profile_sha256": "da8f43dc4084b42bedc4effb50681c165cd298c2a178c2ac1807a468f760d08c"
+    },
+    {
+      "profile_id": "femalem--fuluoluo--r2t1fuluoluomd10011",
+      "model_id": "R2T1FuluoluoMd10011",
+      "character": "Fuluoluo",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1FuluoluoMd10011"
+      ],
+      "skeleton_asset_name": "R2T1FuluoluoMd10011_Skeleton",
+      "skeleton_sha256": "cebe23bef6bc5f6af62f24a206b6ca3613d1d5621f96afb59b7610293b52ae01",
+      "bone_count": 213,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--fuluoluo--r2t1fuluoluomd10011.json",
+      "profile_sha256": "3c338af18d2e745e18762ab17db17bb060873ca17bacd21e0bbdd1664ebeacbb"
+    },
+    {
+      "profile_id": "femalem--fuluoluo_lifu--nht1fuluoluolifu",
+      "model_id": "NHT1FuluoluoLifu",
+      "character": "Fuluoluo_Lifu",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "NHT1FuluoluoLifu"
+      ],
+      "skeleton_asset_name": "NHT1FuluoluoLifu_Skeleton",
+      "skeleton_sha256": "749aa248e9740c17ef20ce2590523c28b2d9f11ed904f18e59ab206dc0b2b34d",
+      "bone_count": 213,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--fuluoluo_lifu--nht1fuluoluolifu.json",
+      "profile_sha256": "e96c80e719ab0d9816a86c03818ef7a1d958277166d69ce1493d85be12b805e6"
+    },
+    {
+      "profile_id": "femalem--jianxin--r2t1jianxinmd10011",
+      "model_id": "R2T1JianxinMd10011",
+      "character": "Jianxin",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1JianxinMd10011"
+      ],
+      "skeleton_asset_name": "R2T1JianxinMd10011_Skeleton",
+      "skeleton_sha256": "047282c8fe20830d56f83c69e6cd8730ad7a7f63a2412db29468a1c0171b864d",
+      "bone_count": 203,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--jianxin--r2t1jianxinmd10011.json",
+      "profile_sha256": "6060be4f8084af43b4c2af7e3689c7192741a40b61acbcdecb0712a435a68edb"
+    },
+    {
+      "profile_id": "femalem--jinxi--r2t1jinximd10011",
+      "model_id": "R2T1JinxiMd10011",
+      "character": "Jinxi",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1JinxiMd10011"
+      ],
+      "skeleton_asset_name": "R2T1JinxiMd10011_Skeleton",
+      "skeleton_sha256": "37c3f46d98d7a17d8262a4a98e61c9b4da60dc2375237c67af157a972cf48565",
+      "bone_count": 196,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--jinxi--r2t1jinximd10011.json",
+      "profile_sha256": "a4f89d5fa78868ccd4aecadce683e7cae677218fd6ee741d394e9c27e4d856b3"
+    },
+    {
+      "profile_id": "femalem--jinxi--r2t1jinximd20011",
+      "model_id": "R2T1JinxiMd20011",
+      "character": "Jinxi",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1JinxiMd20011"
+      ],
+      "skeleton_asset_name": "R2T1JinxiMd20011_Skeleton",
+      "skeleton_sha256": "f54e8325404da39797c1bc317ba907044cd3bede458226cc7b378edf70f1c5d0",
+      "bone_count": 266,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--jinxi--r2t1jinximd20011.json",
+      "profile_sha256": "766f1622c48a064f25197e7e7a1942c38987d8a52b248c633589ec7cd71c53b7"
+    },
+    {
+      "profile_id": "femalem--linnai--r2t1linnaeamd20011",
+      "model_id": "R2T1LinnaeaMd20011",
+      "character": "LinNai",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1LinnaeaMd20011"
+      ],
+      "skeleton_asset_name": "R2T1LinnaeaMd10011_Skeleton",
+      "skeleton_sha256": "1afa0dacf4b742c73708b630caf94fc82a900c51564d1947a8e90de9ae957da5",
+      "bone_count": 398,
+      "alias_of": "femalem--linnai--r2t1linnaimd10011",
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--linnai--r2t1linnaeamd20011.json",
+      "profile_sha256": "5e20ed15984a8f3b8ae155c02fc846cb71338e8a37c9bf7d8947f22ca524a639"
+    },
+    {
+      "profile_id": "femalem--linnai--r2t1linnaimd10011",
+      "model_id": "R2T1LinnaiMd10011",
+      "character": "LinNai",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1LinnaeaMd10011"
+      ],
+      "skeleton_asset_name": "R2T1LinnaeaMd10011_Skeleton",
+      "skeleton_sha256": "1afa0dacf4b742c73708b630caf94fc82a900c51564d1947a8e90de9ae957da5",
+      "bone_count": 398,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--linnai--r2t1linnaimd10011.json",
+      "profile_sha256": "73c1b2c40eab74844c344c4b929bc0816c0335a9ee4f11d9bf8d2fb23a774c1a"
+    },
+    {
+      "profile_id": "femalem--lucy--r2t1lucymd10011",
+      "model_id": "R2T1LucyMd10011",
+      "character": "Lucy",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1LucyMd10011"
+      ],
+      "skeleton_asset_name": "R2T1LucyMd10011_Skeleton",
+      "skeleton_sha256": "4128f0b8c01b715c79bccdd222d5b0323dfa250eeb9effe3f41da27633ed53f8",
+      "bone_count": 326,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--lucy--r2t1lucymd10011.json",
+      "profile_sha256": "68c99a1c1a255da99a49194d2f8d68495b82ec2a67c9c63442c7cc9c01c2680a"
+    },
+    {
+      "profile_id": "femalem--lupa--r2t1lupamd10011",
+      "model_id": "R2T1LupaMd10011",
+      "character": "Lupa",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1LupaMd10011",
+        "R2T1LupaMd10011_Body"
+      ],
+      "skeleton_asset_name": "R2T1LupaMd10011_Skeleton",
+      "skeleton_sha256": "1db08bd1cda4c3a73067d30ef02577bc50da4ad46a8993c181312a50818d04ce",
+      "bone_count": 258,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--lupa--r2t1lupamd10011.json",
+      "profile_sha256": "3789a2afb84804ba30e9e34ab42c1574b45df9d80cc9d3dee848a3f99a1ebd4b"
+    },
+    {
+      "profile_id": "femalem--maxiaofang--r2t1maxiaofangmd10011",
+      "model_id": "R2T1MaxiaofangMd10011",
+      "character": "Maxiaofang",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1MaxiaofangMd10011"
+      ],
+      "skeleton_asset_name": "R2T1MaxiaofangMd10011_Skeleton",
+      "skeleton_sha256": "b44654dbffbf3c144b2dbfe9c1c8dbee9f89ce9e960c8955a91458adbec46c05",
+      "bone_count": 182,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--maxiaofang--r2t1maxiaofangmd10011.json",
+      "profile_sha256": "e1546dc89662f98afe2c084064306a1ea9ba03200bafcb654fb45d3b69b466b7"
+    },
+    {
+      "profile_id": "femalem--micai--r2t1micaimd10011",
+      "model_id": "R2T1MicaiMd10011",
+      "character": "Micai",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1MicaiMd10011"
+      ],
+      "skeleton_asset_name": "R2T1MicaiMd10011_Skeleton",
+      "skeleton_sha256": "af6e6caf2a7f9327c0409eb66c863db522362ed3a07cd1edb3a81324106c3f9a",
+      "bone_count": 186,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--micai--r2t1micaimd10011.json",
+      "profile_sha256": "658059210bc36f0b4b458662058261cd2f808e50669c93a366fdf74406c13d42"
+    },
+    {
+      "profile_id": "femalem--nvzhu--r2t1playerfemalemd10011",
+      "model_id": "R2T1PlayerFemaleMd10011",
+      "character": "Nvzhu",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1PlayerFemaleMd10011"
+      ],
+      "skeleton_asset_name": "R2T1PlayerFemaleMd10011_Skeleton",
+      "skeleton_sha256": "0efcf9de414adc605d5cfb718252f719e8ff665dde332b41d81eaa363c0db343",
+      "bone_count": 197,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--nvzhu--r2t1playerfemalemd10011.json",
+      "profile_sha256": "68d1ae469374a3ce1e1b2205e1007989564dfa30a6c59a4d424e9b5315c3fee8"
+    },
+    {
+      "profile_id": "femalem--nvzhu--r2t1playerfemalemd20011",
+      "model_id": "R2T1PlayerFemaleMd20011",
+      "character": "Nvzhu",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1PlayerFemaleMd20011"
+      ],
+      "skeleton_asset_name": "R2T1PlayerFemaleMd20011_Skeleton",
+      "skeleton_sha256": "06b9750805697f40bae772e203adf43e74aff2cacac8ccb1a4a2403c71f50e64",
+      "bone_count": 307,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--nvzhu--r2t1playerfemalemd20011.json",
+      "profile_sha256": "bf7a1913f5f80fab31b7a7e431fc070ad4e328db9f7f7a3b4e3d8b1249a8d43d"
+    },
+    {
+      "profile_id": "femalem--qianxia--r2t1qianxiamd10011",
+      "model_id": "R2T1QianXiaMd10011",
+      "character": "Qianxia",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1QianXiaMd10011"
+      ],
+      "skeleton_asset_name": "R2T1QianXiaMd10011_Skeleton",
+      "skeleton_sha256": "86586e3dfc3d1417250bc51e9bf980b0d4b367f7d14b423d2c539782f9c69c69",
+      "bone_count": 397,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--qianxia--r2t1qianxiamd10011.json",
+      "profile_sha256": "8bad00992cbdf812dc81ee31d599b53d695cb08a7a435b108810eb0c862012ea"
+    },
+    {
+      "profile_id": "femalem--qianxia--r2t1qianxiamd20011",
+      "model_id": "R2T1QianXiaMd20011",
+      "character": "Qianxia",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1QianXiaMd20011"
+      ],
+      "skeleton_asset_name": "R2T1QianXiaMd10011_Skeleton",
+      "skeleton_sha256": "86586e3dfc3d1417250bc51e9bf980b0d4b367f7d14b423d2c539782f9c69c69",
+      "bone_count": 397,
+      "alias_of": "femalem--qianxia--r2t1qianxiamd10011",
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--qianxia--r2t1qianxiamd20011.json",
+      "profile_sha256": "92fa0a2b159ad7afb954b8c32d8e30321bd29d6d05fc99efb5973f9dc5ce1183"
+    },
+    {
+      "profile_id": "femalem--sanhua--r2t1sanhuamd10011",
+      "model_id": "R2T1SanhuaMd10011",
+      "character": "Sanhua",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1SanhuaMd10011"
+      ],
+      "skeleton_asset_name": "R2T1SanhuaMd10011_Skeleton",
+      "skeleton_sha256": "4e9c7af9f5bfd28e55e5f323fb82127b3c898ca50804201d836bff5d9d4d2126",
+      "bone_count": 202,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--sanhua--r2t1sanhuamd10011.json",
+      "profile_sha256": "20b77ea3d5ce741a1c6b907ee593e612386e0b1dd39c83e4e4a06d071c808edb"
+    },
+    {
+      "profile_id": "femalem--sanhua--r2t1sanhuamd20011",
+      "model_id": "R2T1SanhuaMd20011",
+      "character": "Sanhua",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1SanhuaMd20011"
+      ],
+      "skeleton_asset_name": "R2T1SanhuaMd10011_Skeleton",
+      "skeleton_sha256": "4e9c7af9f5bfd28e55e5f323fb82127b3c898ca50804201d836bff5d9d4d2126",
+      "bone_count": 202,
+      "alias_of": "femalem--sanhua--r2t1sanhuamd10011",
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--sanhua--r2t1sanhuamd20011.json",
+      "profile_sha256": "23b342056dced2c9e4abea3a30a26fd8a596685c2dde19854c10a4e25fe26ce6"
+    },
+    {
+      "profile_id": "femalem--shouanren--r2t1shouanrenmd10011",
+      "model_id": "R2T1ShouanrenMd10011",
+      "character": "Shouanren",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1ShouanrenMd10011"
+      ],
+      "skeleton_asset_name": "R2T1ShouanrenMd10011_Skeleton",
+      "skeleton_sha256": "77e717b4e2d1f1c153c57c2713acbf286cba0a33fea665519cda5328955c3c04",
+      "bone_count": 243,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--shouanren--r2t1shouanrenmd10011.json",
+      "profile_sha256": "8560c141b5de3f71ca54138d83503fa03d6aa3581adb7a41fd28d0b121d938d2"
+    },
+    {
+      "profile_id": "femalem--suisui--r2t1suisuimd10011",
+      "model_id": "R2T1SuisuiMd10011",
+      "character": "Suisui",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1SuisuiMd10011"
+      ],
+      "skeleton_asset_name": "R2T1SuisuiMd10011_Skeleton",
+      "skeleton_sha256": "a7b10143171578f1a42714031750492cb029415e0dea04c1a23369880e39a3cd",
+      "bone_count": 320,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--suisui--r2t1suisuimd10011.json",
+      "profile_sha256": "3164ac35428e3a992ccf8c7f65f568b5bfa647bc63fe0ef77d2d2311c0e2a31b"
+    },
+    {
+      "profile_id": "femalem--taohua--r2t1taohuamd10011",
+      "model_id": "R2T1TaohuaMd10011",
+      "character": "Taohua",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1TaohuaMd10011"
+      ],
+      "skeleton_asset_name": "R2T1TaohuaMd10011_Skeleton",
+      "skeleton_sha256": "1d357a8b976c31f8a6f7656d1f5859a3dbf27e7b33581cc12498c48d2858e382",
+      "bone_count": 184,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--taohua--r2t1taohuamd10011.json",
+      "profile_sha256": "4bfb87111c3fed4832c964f7787fbd2aa3d6c0b352ea53b5bd473437ecd7ab91"
+    },
+    {
+      "profile_id": "femalem--xiakong--r2t1xiakongmd10011",
+      "model_id": "R2T1XiakongMd10011",
+      "character": "Xiakong",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1XiakongMd10011"
+      ],
+      "skeleton_asset_name": "R2T1XiakongMd10011_Skeleton",
+      "skeleton_sha256": "0c4e5725140d33dc58f989abd482c3930764d5f1b9d0b6e0a069959b94c3c118",
+      "bone_count": 273,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--xiakong--r2t1xiakongmd10011.json",
+      "profile_sha256": "beb6cf3200452681239fb84ea9cffe15a33ca4465b13b5cff49c7040479e83a3"
+    },
+    {
+      "profile_id": "femalem--xuanling--r2t1xuanlingmd10011",
+      "model_id": "R2T1XuanlingMd10011",
+      "character": "Xuanling",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1XuanlingMd10011"
+      ],
+      "skeleton_asset_name": "R2T1XuanlingMd10011_Skeleton",
+      "skeleton_sha256": "5f663eef29f5832092498b0a37b7aecbef9e1179598131ac4035a33a67607890",
+      "bone_count": 333,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--xuanling--r2t1xuanlingmd10011.json",
+      "profile_sha256": "83cb94d5695d4dde9305540d72abe8635251131e5395b91a74f969e6b3ad6fe2"
+    },
+    {
+      "profile_id": "femalem--yangyang--r2t1yangyangmd10011",
+      "model_id": "R2T1YangyangMd10011",
+      "character": "Yangyang",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1YangyangMd10011"
+      ],
+      "skeleton_asset_name": "R2T1YangyangMd10011_Skeleton",
+      "skeleton_sha256": "1a8b73fee7c586d608b3b7962dd0de641f52c0fe180694c0a82ba92f9f032cb1",
+      "bone_count": 177,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--yangyang--r2t1yangyangmd10011.json",
+      "profile_sha256": "f809c61310682d6c8c1aa6bd4d2b4124ca0a55f6acd37801d33e53383cf226e7"
+    },
+    {
+      "profile_id": "femalem--yangyang--r2t1yangyangwumaomd10011",
+      "model_id": "R2T1YangyangwumaoMd10011",
+      "character": "Yangyang",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1YangyangwumaoMd10011"
+      ],
+      "skeleton_asset_name": "R2T1YangyangMd10011_Skeleton",
+      "skeleton_sha256": "1a8b73fee7c586d608b3b7962dd0de641f52c0fe180694c0a82ba92f9f032cb1",
+      "bone_count": 177,
+      "alias_of": "femalem--yangyang--r2t1yangyangmd10011",
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--yangyang--r2t1yangyangwumaomd10011.json",
+      "profile_sha256": "3e091cd047d3c59cf805a50b0be0a2e60a2a1f08e9b94d9029a132147b33d366"
+    },
+    {
+      "profile_id": "femalem--yinlin--r2t1yinlinmd10011",
+      "model_id": "R2T1YinlinMd10011",
+      "character": "YinLin",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1YinlinMd10011"
+      ],
+      "skeleton_asset_name": "R2T1YinlinMd10011_Skeleton",
+      "skeleton_sha256": "ae0577f212cb9c6cc1b9fe9cb39f5ec7cc99f104a080b92bd2f9db9f56928d76",
+      "bone_count": 190,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--yinlin--r2t1yinlinmd10011.json",
+      "profile_sha256": "2fecb5b06fe6ea47c171c148583fa2af4e98094cfca77c25c2639e3f81df34fb"
+    },
+    {
+      "profile_id": "femalem--younuo--r2t1younuomd10011",
+      "model_id": "R2T1YounuoMd10011",
+      "character": "Younuo",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1YounuoMd10011"
+      ],
+      "skeleton_asset_name": "R2T1YounuoMd10011_Skeleton",
+      "skeleton_sha256": "5dfe6b8ad107ed44afa6f27d002257de217c1b1c66813dfa42e6fe33760ba8aa",
+      "bone_count": 379,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--younuo--r2t1younuomd10011.json",
+      "profile_sha256": "88726767a69bf8a21f92639dbf0b986d67d2c64752c671fdb3d33851a62f4078"
+    },
+    {
+      "profile_id": "femalem--zhezhi--r2t1zhezhimd10011",
+      "model_id": "R2T1ZhezhiMd10011",
+      "character": "Zhezhi",
+      "body_type": "FemaleM",
+      "mesh_asset_names": [
+        "R2T1ZhezhiMd10011"
+      ],
+      "skeleton_asset_name": "R2T1ZhezhiMd10011_Skeleton",
+      "skeleton_sha256": "e9101cdcbfe06cec11ee5a02dfdd8dbcb62440dca2c94eecfe21d655b918663b",
+      "bone_count": 220,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalem--zhezhi--r2t1zhezhimd10011.json",
+      "profile_sha256": "c1675c3565de461e0b09d9a42b8d618476d24d34416d96ca88ba2d09a1020230"
+    },
+    {
+      "profile_id": "femalems--buling--r2t1bulingmd10011",
+      "model_id": "R2T1BulingMd10011",
+      "character": "Buling",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1BulingMd10011"
+      ],
+      "skeleton_asset_name": "R2T1BulingMd10011_Skeleton",
+      "skeleton_sha256": "ea716526f25ebdca776113b10725055fee5947811d123acb40933b9e4e7f2d89",
+      "bone_count": 283,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--buling--r2t1bulingmd10011.json",
+      "profile_sha256": "c559ec71a979ec1258c6956db4d9d1801f8c41e3fc306bd6360855b6c3bdc947"
+    },
+    {
+      "profile_id": "femalems--daniya--r2t1daniyamd10011",
+      "model_id": "R2T1DaniyaMd10011",
+      "character": "Daniya",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1DaniyaMd10011",
+        "R2T1DaniyaMd10011_Body"
+      ],
+      "skeleton_asset_name": "R2T1DaniyaMd10011_Skeleton",
+      "skeleton_sha256": "6b250a4c4bdbd76e674edcadc8d94198d2677fd06ffabd4c3e47381448d57eca",
+      "bone_count": 354,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--daniya--r2t1daniyamd10011.json",
+      "profile_sha256": "e0113dd39ff78a141a69170491c418a27167646392e93ef53cc7798d7a18c92e"
+    },
+    {
+      "profile_id": "femalems--dengdeng--r2t1dengdengmd10011",
+      "model_id": "R2T1DengDengMd10011",
+      "character": "Dengdeng",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1DengDengMd10011"
+      ],
+      "skeleton_asset_name": "R2T1DengDengMd10011_Skeleton",
+      "skeleton_sha256": "c7638592693cdc0616ccd57c2bf2873dcf454623047fd2fb956b7cdaf169bc34",
+      "bone_count": 246,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--dengdeng--r2t1dengdengmd10011.json",
+      "profile_sha256": "00620624b974c600f3d10ecbadaa525e9c3552fc77c16cd1d4eb21c084053f1b"
+    },
+    {
+      "profile_id": "femalems--feibi--r2t1feibimd10011",
+      "model_id": "R2T1FeibiMd10011",
+      "character": "Feibi",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1FeiBiMd10011"
+      ],
+      "skeleton_asset_name": "R2T1FeiBiMd10011_Skeleton",
+      "skeleton_sha256": "8784e50f68c3bf7340b228d6b9dd527876285caeae94244d92bd7d08764622ed",
+      "bone_count": 266,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--feibi--r2t1feibimd10011.json",
+      "profile_sha256": "0bfff222c1862a1a21821fb1fb3a353c38fd3e13bc716da6cc963560213128f6"
+    },
+    {
+      "profile_id": "femalems--katixiya--r2t1katixiyamd10011",
+      "model_id": "R2T1KatixiyaMd10011",
+      "character": "Katixiya",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1KatixiyaMd10011"
+      ],
+      "skeleton_asset_name": "R2T1KatixiyaMd10011_Skeleton",
+      "skeleton_sha256": "bacbb1d195c9f077354819d717799e897f9024171e8ac8a37c4cce6bce3c701e",
+      "bone_count": 257,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--katixiya--r2t1katixiyamd10011.json",
+      "profile_sha256": "0d603bdbbbdee5c5bff84d2c4ec556059113699b26965db43b0baa64d4eff35c"
+    },
+    {
+      "profile_id": "femalems--kmola--r2t1kamolamd10011",
+      "model_id": "R2T1KamolaMd10011",
+      "character": "Kmola",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1KamolaMd10011",
+        "R2T1KamolaMd10011_Body"
+      ],
+      "skeleton_asset_name": "R2T1KamolaMd10011_Skeleton",
+      "skeleton_sha256": "e907132cefba0e341dfaa49996b47891f2dff2e83608dd17d807ec1bc97eb3e5",
+      "bone_count": 263,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--kmola--r2t1kamolamd10011.json",
+      "profile_sha256": "9a42bb62c9bf6679d695b0298d08b67cf58c6c34790238bbe1920932fbf40103"
+    },
+    {
+      "profile_id": "femalems--kmola--r2t1kamolamd20011",
+      "model_id": "R2T1KamolaMd20011",
+      "character": "Kmola",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1KamolaMd20011",
+        "R2T1KamolaMd20011_Body",
+        "R2T1KamolaMd20011_Hair1",
+        "R2T1KamolaMd20011_Hair2"
+      ],
+      "skeleton_asset_name": "R2T1KamolaMd10011_Skeleton",
+      "skeleton_sha256": "e907132cefba0e341dfaa49996b47891f2dff2e83608dd17d807ec1bc97eb3e5",
+      "bone_count": 263,
+      "alias_of": "femalems--kmola--r2t1kamolamd10011",
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--kmola--r2t1kamolamd20011.json",
+      "profile_sha256": "747e93d58ceddba26e1d9301bfb210f6911cc2a9531c8a973c3f770343ef2a86"
+    },
+    {
+      "profile_id": "femalems--mone--r2t1monemd10011",
+      "model_id": "R2T1MoneMd10011",
+      "character": "Mone",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1MoneMd10011"
+      ],
+      "skeleton_asset_name": "R2T1MoneMd10011_Skeleton",
+      "skeleton_sha256": "c6b0084f70f66f7d2c5e52dc323a8960bba9e333b68fd9577a054fac9236acf0",
+      "bone_count": 412,
+      "alias_of": null,
+      "morph_count": 107,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--mone--r2t1monemd10011.json",
+      "profile_sha256": "c7c092a065b0d5ce7866d084243759911b9dcf640f9ca81af44949108e73b3d9"
+    },
+    {
+      "profile_id": "femalems--mone--r2t1monemd20011",
+      "model_id": "R2T1MoneMd20011",
+      "character": "Mone",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1MoneMd20011"
+      ],
+      "skeleton_asset_name": "R2T1MoneMd10011_Skeleton",
+      "skeleton_sha256": "c6b0084f70f66f7d2c5e52dc323a8960bba9e333b68fd9577a054fac9236acf0",
+      "bone_count": 412,
+      "alias_of": "femalems--mone--r2t1monemd10011",
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--mone--r2t1monemd20011.json",
+      "profile_sha256": "e29c3d33e42b9e0d2d0ecfbaa7a4519b9ee44ae71895f79d8cfa0a67e4bf1108"
+    },
+    {
+      "profile_id": "femalems--rebecca--r2t1rebeccamd10011",
+      "model_id": "R2T1RebeccaMd10011",
+      "character": "Rebecca",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1RebeccaMd10011",
+        "R2T1RebeccaMd10011_body"
+      ],
+      "skeleton_asset_name": "R2T1RebeccaMd10011_Skeleton",
+      "skeleton_sha256": "46200fbb6456567cb89c5347ee26af12eff0c81412ffe59607f498feec0aa6ce",
+      "bone_count": 361,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--rebecca--r2t1rebeccamd10011.json",
+      "profile_sha256": "63eac4c0241d8ab5fc448b8aee2859c5d8c1cb179a5f39c9f4d94eadfed9df33"
+    },
+    {
+      "profile_id": "femalems--xigelika--r2t1xigelikamd10011",
+      "model_id": "R2T1XigelikaMd10011",
+      "character": "Xigelika",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1XigelikaMd10011"
+      ],
+      "skeleton_asset_name": "R2T1XigelikaMd10011_Skeleton",
+      "skeleton_sha256": "f8c459f6ecfd6e8a401c87aaf95cb167c78d7df4ebc3517ba3ecb62f9902b49a",
+      "bone_count": 340,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--xigelika--r2t1xigelikamd10011.json",
+      "profile_sha256": "f98523846101f4051e69105033adf49bfad6d3184f364491d7291340b990cfb3"
+    },
+    {
+      "profile_id": "females--anke--r2t1ankemd10011",
+      "model_id": "R2T1AnkeMd10011",
+      "character": "Anke",
+      "body_type": "FemaleS",
+      "mesh_asset_names": [
+        "R2T1AnkeMd10011"
+      ],
+      "skeleton_asset_name": "R2T1AnkeMd10011_Skeleton",
+      "skeleton_sha256": "09acc9bbc8f28ed751b3558a2640f9b0b028cb56fae22f73628c43e8c60943c7",
+      "bone_count": 200,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/females--anke--r2t1ankemd10011.json",
+      "profile_sha256": "005f3d1907c2063b69170d8b093603d473140baa835ddc34088d149881e31a85"
+    },
+    {
+      "profile_id": "females--jueyuan--r2t1jueyuanmd10011",
+      "model_id": "R2T1JueyuanMd10011",
+      "character": "Jueyuan",
+      "body_type": "FemaleS",
+      "mesh_asset_names": [
+        "R2T1JueyuanMd10011"
+      ],
+      "skeleton_asset_name": "R2T1JueyuanMd10011_Skeleton",
+      "skeleton_sha256": "ecc2fd672c56420bed18e1c1156404eb8da5f9da62f4235606af5d36f42883ed",
+      "bone_count": 199,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/females--jueyuan--r2t1jueyuanmd10011.json",
+      "profile_sha256": "8e1e6ea788062b2239f1b23316bccde25e289e364a89a6179780a2f25d699e40"
+    },
+    {
+      "profile_id": "females--luokeke--r2t1luokekemd10011",
+      "model_id": "R2T1LuokekeMd10011",
+      "character": "Luokeke",
+      "body_type": "FemaleS",
+      "mesh_asset_names": [
+        "R2T1LuokekeMd10011"
+      ],
+      "skeleton_asset_name": "R2T1LuokekeMd10011_Skeleton",
+      "skeleton_sha256": "cf4a8f089c088b304e69b4d158fc20b159ced6a30154ccc10839d18201876fa3",
+      "bone_count": 248,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/females--luokeke--r2t1luokekemd10011.json",
+      "profile_sha256": "06eec50af0996ea7269b4834e008e2eb439ea91a85dcad7656bfa4b8c789203a"
+    },
+    {
+      "profile_id": "females--suoming--r2t1suomingmd10011",
+      "model_id": "R2T1SuomingMd10011",
+      "character": "Suoming",
+      "body_type": "FemaleS",
+      "mesh_asset_names": [
+        "R2T1SuomingMd10011"
+      ],
+      "skeleton_asset_name": "R2T1SuomingMd10011_Skeleton",
+      "skeleton_sha256": "85d1960fc47e62a467b31af4f697552551ce49378b9e12453ebae8ac4133ce9a",
+      "bone_count": 336,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/females--suoming--r2t1suomingmd10011.json",
+      "profile_sha256": "c2b3e2e88592b2e9e21330fcc74647e1663f953de49d9a9b96285e07b98fb348"
+    },
+    {
+      "profile_id": "females--youhu--r2t1youhumd10011",
+      "model_id": "R2T1YouHuMd10011",
+      "character": "Youhu",
+      "body_type": "FemaleS",
+      "mesh_asset_names": [
+        "R2T1YouHuMd10011"
+      ],
+      "skeleton_asset_name": "R2T1YouHuMd10011_Skeleton",
+      "skeleton_sha256": "8005a29e307baa089c1611b7043e1fd9bda8fb1b31359f46328c6f192ed9fd30",
+      "bone_count": 219,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/females--youhu--r2t1youhumd10011.json",
+      "profile_sha256": "1703fdef9900c2396282149283b9da8bc0b146e8705a57689cc2de2ba29ed988"
+    },
+    {
+      "profile_id": "femalexl--aogusita--r2t1aogusitamd10011",
+      "model_id": "R2T1AogusitaMd10011",
+      "character": "Aogusita",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1AogusitaMd10011"
+      ],
+      "skeleton_asset_name": "R2T1AogusitaMd10011_Skeleton",
+      "skeleton_sha256": "218665deac7db91294ef329887c0dfb98126aec0bf15e043ac04b455bb9e2e4d",
+      "bone_count": 353,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--aogusita--r2t1aogusitamd10011.json",
+      "profile_sha256": "ced84e454f254b209e8af77615a12c0114e6d50f6ac89f33a767a8fc62b02b03"
+    },
+    {
+      "profile_id": "femalexl--bailian--r2t1bailianmd10011",
+      "model_id": "R2T1BaiLianMd10011",
+      "character": "BaiLian",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1BaiLianMd10011"
+      ],
+      "skeleton_asset_name": "R2T1BaiLianMd10011_Skeleton",
+      "skeleton_sha256": "7ac22e3eafc1d682eb89effbe07a770933440e2bba38d6d5cbd6740750850b1f",
+      "bone_count": 197,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--bailian--r2t1bailianmd10011.json",
+      "profile_sha256": "642ed15b18bbba2f75be8776848d6a447cea4c3bfea1ab4137622f300d729a31"
+    },
+    {
+      "profile_id": "femalexl--changli--r2t1changlimd10011",
+      "model_id": "R2T1ChangLiMd10011",
+      "character": "ChangLi",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1ChangLiMd10011"
+      ],
+      "skeleton_asset_name": "R2T1ChangLiMd10011_Skeleton",
+      "skeleton_sha256": "ff640025a6483f67e2c4ff2f0400deec70a67f687b38f10b852c5fdd8d104282",
+      "bone_count": 254,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--changli--r2t1changlimd10011.json",
+      "profile_sha256": "dc7e210f6dd515b977ef781f0350a268f272c4ffefe579d8cc64a7f7b7f8225b"
+    },
+    {
+      "profile_id": "femalexl--changli--r2t1changlimd20011",
+      "model_id": "R2T1ChangLiMd20011",
+      "character": "ChangLi",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1ChangLiMd20011"
+      ],
+      "skeleton_asset_name": "R2T1ChangLiMd10011_Skeleton",
+      "skeleton_sha256": "ff640025a6483f67e2c4ff2f0400deec70a67f687b38f10b852c5fdd8d104282",
+      "bone_count": 254,
+      "alias_of": "femalexl--changli--r2t1changlimd10011",
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--changli--r2t1changlimd20011.json",
+      "profile_sha256": "bc439a04ff935469e30d0917935e1c95368322406761c32e9db690ac1b95266c"
+    },
+    {
+      "profile_id": "femalexl--jiabeilina--r2t1calbrenamd10011",
+      "model_id": "R2T1CalbrenaMd10011",
+      "character": "Jiabeilina",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1CalbrenaMd10011"
+      ],
+      "skeleton_asset_name": "R2T1CalbrenaMd10011_Skeleton",
+      "skeleton_sha256": "c1e349c720259634f8b56f8165d82985cb72aaf24e8a23450426143d61fbac03",
+      "bone_count": 369,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--jiabeilina--r2t1calbrenamd10011.json",
+      "profile_sha256": "526a27222c6c59954fd6f8492905acfabf5bdbd6109b3876b10e6793f4b6aa86"
+    },
+    {
+      "profile_id": "femalexl--kanteleila--r2t1kanteleilamd10011",
+      "model_id": "R2T1KanteleilaMd10011",
+      "character": "Kanteleila",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1KanteleilaMd10011"
+      ],
+      "skeleton_asset_name": "R2T1KanteleilaMd10011_Skeleton",
+      "skeleton_sha256": "50ff71a800233cb8ccb6877389f4175bb2d5d1b7788e47dc0d87b0dee83cf886",
+      "bone_count": 266,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--kanteleila--r2t1kanteleilamd10011.json",
+      "profile_sha256": "19858242b3bf182ae713f4f1844dea2a405678d8fd3927df21e57bbb2470b9f8"
+    },
+    {
+      "profile_id": "femalexl--luosela--r2t1luoselamd10011",
+      "model_id": "R2T1LuoselaMd10011",
+      "character": "Luosela",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1LuoselaMd10011"
+      ],
+      "skeleton_asset_name": "R2T1LuoselaMd10011_Skeleton",
+      "skeleton_sha256": "49128d4869bc2e9279f86574882bc9a1d87f020a3f962ed206069797faab9fb5",
+      "bone_count": 323,
+      "alias_of": null,
+      "morph_count": 162,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--luosela--r2t1luoselamd10011.json",
+      "profile_sha256": "68511773a7c5e46ec09440a97dd6c4c198174e3d6c347de590dd8abed9bb73f9"
+    },
+    {
+      "profile_id": "femalexl--taidaonv--r2t1taidaonvmd10011",
+      "model_id": "R2T1TaidaonvMd10011",
+      "character": "TaiDaoNv",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1TaidaonvMd10011"
+      ],
+      "skeleton_asset_name": "R2T1TaidaonvMd10011_Skeleton",
+      "skeleton_sha256": "cb7746ced9ca46d69f1ebc547097d26ee9a70787a1cdf0aac69c0e9bbad7d21b",
+      "bone_count": 372,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--taidaonv--r2t1taidaonvmd10011.json",
+      "profile_sha256": "ce7c559bfbf50771d1fb8466dc10102e5b3fc1fd2f05a770621eeed95831cd82"
+    },
+    {
+      "profile_id": "femalexl--xinyuehu--r2t1xinmd10011",
+      "model_id": "R2T1XinMd10011",
+      "character": "Xinyuehu",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1XinMd10011"
+      ],
+      "skeleton_asset_name": "R2T1XinMd10011_Skeleton",
+      "skeleton_sha256": "09c3b68b63fd88a221d29a163c1c28549f03a674a16e062b885b3bbde6b2bc3b",
+      "bone_count": 489,
+      "alias_of": null,
+      "morph_count": 176,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--xinyuehu--r2t1xinmd10011.json",
+      "profile_sha256": "c5ab3567be0d1f2d6a0c337e345e9286eedadc76452fea15aa818522229783be"
+    },
+    {
+      "profile_id": "femalexl--xinyuehushen--r2t1shenxinmd10011",
+      "model_id": "R2T1ShenXinMd10011",
+      "character": "XinyuehuShen",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1ShenXinMd10011"
+      ],
+      "skeleton_asset_name": "R2T1ShenXinMd10011_Skeleton",
+      "skeleton_sha256": "3b1bc1d6e1d2b292ad88d14e3b1f39dd2d2ea16c3981a78dd6d8053af1114831",
+      "bone_count": 498,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--xinyuehushen--r2t1shenxinmd10011.json",
+      "profile_sha256": "b3815fe9164a299ffdc5300965c68c926bf0aaf7c03f67a526b2634131f40472"
+    },
+    {
+      "profile_id": "femalexl--zanni--r2t1zannimd10011",
+      "model_id": "R2T1ZanniMd10011",
+      "character": "Zanni",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1ZanniMd10011"
+      ],
+      "skeleton_asset_name": "R2T1ZanniMd10011_Skeleton",
+      "skeleton_sha256": "05a455d449d9bb51aa2374e6d3db413769518f04795e124ec45b4f1fcb14258f",
+      "bone_count": 364,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--zanni--r2t1zannimd10011.json",
+      "profile_sha256": "edec5173c1de19d116b7ed1d0a56eaf02e19867f8cd1b1a1870daa2139758ae8"
+    },
+    {
+      "profile_id": "femalexl--zanni--r2t1zannimd20011",
+      "model_id": "R2T1ZanniMd20011",
+      "character": "Zanni",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1ZanniMd20011",
+        "R2T1ZanniMd20011_Up1",
+        "R2T1ZanniMd20011_Up2",
+        "R2T1ZanniMd20011_Up3"
+      ],
+      "skeleton_asset_name": "R2T1ZanniMd10011_Skeleton",
+      "skeleton_sha256": "05a455d449d9bb51aa2374e6d3db413769518f04795e124ec45b4f1fcb14258f",
+      "bone_count": 364,
+      "alias_of": "femalexl--zanni--r2t1zannimd10011",
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--zanni--r2t1zannimd20011.json",
+      "profile_sha256": "6ce131ce0175a97c9086abb8af32ed8ffeb34db3d53c7ea4660dc460363afef6"
+    },
+    {
+      "profile_id": "femalez--fuludelisi--r2t1fuludelisimd10011",
+      "model_id": "R2T1FuludelisiMd10011",
+      "character": "Fuludelisi",
+      "body_type": "FemaleZ",
+      "mesh_asset_names": [
+        "R2T1FuludelisiMd10011"
+      ],
+      "skeleton_asset_name": "R2T1FuludelisiMd10011_Skeleton",
+      "skeleton_sha256": "edc4d910de57e0b008256720ee763b10ee7b7a0a7101f52a040e46f2fcb77f97",
+      "bone_count": 300,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalez--fuludelisi--r2t1fuludelisimd10011.json",
+      "profile_sha256": "639baa1081b247c4085397df2375cd6a148b864f8a74b1581a6c8706c5ba79d5"
+    },
+    {
+      "profile_id": "femalez2--aimisigd--r2t1aimisigdmd10011",
+      "model_id": "R2T1AimisiGDMd10011",
+      "character": "AimisiGD",
+      "body_type": "FemaleZ2",
+      "mesh_asset_names": [
+        "R2T1AimisiGDMd10011"
+      ],
+      "skeleton_asset_name": "R2T1AimisiGDMd10011_Skeleton",
+      "skeleton_sha256": "9156877777ac590159582a3dcff05a934db19de1f29f9bf07ffeab83664d29a6",
+      "bone_count": 319,
+      "alias_of": null,
+      "morph_count": 0,
+      "capabilities": {
+        "body": true,
+        "expression": false,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": true
+      },
+      "profile_path": "profiles/femalez2--aimisigd--r2t1aimisigdmd10011.json",
+      "profile_sha256": "761b05bf91b27927d71940177e4fb9a1fefdece0027f8b12d9c3697f956d9fff"
+    },
+    {
+      "profile_id": "malem--jingran--r2t1jingranmd10011",
+      "model_id": "R2T1JingranMd10011",
+      "character": "Jingran",
+      "body_type": "MaleM",
+      "mesh_asset_names": [
+        "R2T1JingranMd10011"
+      ],
+      "skeleton_asset_name": "R2T1JingranMd10011_Skeleton",
+      "skeleton_sha256": "fcf65f0990c983226869d06bbd25275c2f894bca06e7f4aeb1e1f6e6525f44b2",
+      "bone_count": 289,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malem--jingran--r2t1jingranmd10011.json",
+      "profile_sha256": "3ebe86b4435b69c4db63d59641e429e67c412cf214d847ba98dbe72f50ae634c"
+    },
+    {
+      "profile_id": "malem--nanzhu--r2t1playermalemd10011",
+      "model_id": "R2T1PlayerMaleMd10011",
+      "character": "Nanzhu",
+      "body_type": "MaleM",
+      "mesh_asset_names": [
+        "R2T1PlayerMaleMd10011"
+      ],
+      "skeleton_asset_name": "R2T1PlayerMaleMd10011_Skeleton",
+      "skeleton_sha256": "6054f4a14441bceca1c9ae65fa6ca7c2aa4088f2107f1756a28b14a583a174ba",
+      "bone_count": 171,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malem--nanzhu--r2t1playermalemd10011.json",
+      "profile_sha256": "416cc3af0074b216549be376734a6216b998bd224c88c5910d238fbb41c5183c"
+    },
+    {
+      "profile_id": "malem--nanzhu--r2t1playermalemd20011",
+      "model_id": "R2T1PlayerMaleMd20011",
+      "character": "Nanzhu",
+      "body_type": "MaleM",
+      "mesh_asset_names": [
+        "R2T1PlayerMaleMd20011"
+      ],
+      "skeleton_asset_name": "R2T1PlayerMaleMd10011_Skeleton",
+      "skeleton_sha256": "6054f4a14441bceca1c9ae65fa6ca7c2aa4088f2107f1756a28b14a583a174ba",
+      "bone_count": 171,
+      "alias_of": "malem--nanzhu--r2t1playermalemd10011",
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malem--nanzhu--r2t1playermalemd20011.json",
+      "profile_sha256": "84c1b39ffddb4247ee4125a7fc1cb064d031c9cfd7862a62289864a7f06d8eef"
+    },
+    {
+      "profile_id": "malem--xiangliyao--r2t1xiangliyaomd10011",
+      "model_id": "R2T1XiangLiYaoMd10011",
+      "character": "Xiangliyao",
+      "body_type": "MaleM",
+      "mesh_asset_names": [
+        "R2T1XiangLiYaoMd10011"
+      ],
+      "skeleton_asset_name": "R2T1XiangLiYaoMd10011_Skeleton",
+      "skeleton_sha256": "6bd07b97cdd658992f3eda963b3292d96bdc595ecf97fa7dd431a9bb57245cd5",
+      "bone_count": 224,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malem--xiangliyao--r2t1xiangliyaomd10011.json",
+      "profile_sha256": "1c41e6285722ea9677d9579434007f2e5e5677c8dde018ee5d224fcd8410a266"
+    },
+    {
+      "profile_id": "males--lingyang--r2t1lingyangmd10011",
+      "model_id": "R2T1LingyangMd10011",
+      "character": "Lingyang",
+      "body_type": "MaleS",
+      "mesh_asset_names": [
+        "R2T1LingyangMd10011"
+      ],
+      "skeleton_asset_name": "R2T1LingyangMd10011_Skeleton",
+      "skeleton_sha256": "359d15074d65aceea1b8868c3203b850daa48bed6903ed0299580589b9affcad",
+      "bone_count": 197,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/males--lingyang--r2t1lingyangmd10011.json",
+      "profile_sha256": "91b08c37eee2e47e935a1f23cebc7dbd5073792bd4bf3a9734a20a232bb93e1d"
+    },
+    {
+      "profile_id": "malexl--baer--r2t1baermd10011",
+      "model_id": "R2T1BaerMd10011",
+      "character": "Baer",
+      "body_type": "MaleXL",
+      "mesh_asset_names": [
+        "R2T1BaerMd10011"
+      ],
+      "skeleton_asset_name": "R2T1BaerMd10011_Skeleton",
+      "skeleton_sha256": "a518a178e8f1af16f28768b08455797678de04e72624e56564fc237ee2094b1c",
+      "bone_count": 200,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malexl--baer--r2t1baermd10011.json",
+      "profile_sha256": "6bcb6f6ca03738119ec9c23af0093306d7e8fcddbc6548d6b900e25f35e96c9b"
+    },
+    {
+      "profile_id": "malexl--bulante--r2t1bulantemd10011",
+      "model_id": "R2T1BulanteMd10011",
+      "character": "Bulante",
+      "body_type": "MaleXL",
+      "mesh_asset_names": [
+        "R2T1BulanteMd10011"
+      ],
+      "skeleton_asset_name": "R2T1BulanteMd10011_Skeleton",
+      "skeleton_sha256": "f44c80b41f5feac3f8ef29a3e462084d364c7cd1767a4e3ae2a83479f4dd062b",
+      "bone_count": 258,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malexl--bulante--r2t1bulantemd10011.json",
+      "profile_sha256": "9c3ec0aa700b5ffe890a4fae97322a9f64bfa31abd2f5e63b1afd9f46a8835c2"
+    },
+    {
+      "profile_id": "malexl--jiyan--r2t1jiyanmd10011",
+      "model_id": "R2T1JiyanMd10011",
+      "character": "Jiyan",
+      "body_type": "MaleXL",
+      "mesh_asset_names": [
+        "R2T1JiyanMd10011"
+      ],
+      "skeleton_asset_name": "R2T1JiyanMd10011_Skeleton",
+      "skeleton_sha256": "f29667e050b271695ecd38dfb09045071e3948a5f88c06245ad2c08ac0ec5060",
+      "bone_count": 188,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malexl--jiyan--r2t1jiyanmd10011.json",
+      "profile_sha256": "0f69fbc24fbacdef4cb23d81668f7eba70ed75b63e5ccf3958dd2598f394024b"
+    },
+    {
+      "profile_id": "malexl--kakaluo--r2t1kakaluomd10011",
+      "model_id": "R2T1KakaluoMd10011",
+      "character": "Kakaluo",
+      "body_type": "MaleXL",
+      "mesh_asset_names": [
+        "R2T1KakaluoMd10011",
+        "R2T1KakaluoMd10011_1"
+      ],
+      "skeleton_asset_name": "R2T1KakaluoMd10011_Skeleton",
+      "skeleton_sha256": "1396589d1ba444379c7b49ed946c0a60699d5a8ef4cb00ac19077ee958b88745",
+      "bone_count": 200,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malexl--kakaluo--r2t1kakaluomd10011.json",
+      "profile_sha256": "7497aef98ae5eea8ca91c472455d613edd160a107d91d8d45b33ebf28f17a342"
+    },
+    {
+      "profile_id": "malexl--luhesi--r2t1luhesimd10011",
+      "model_id": "R2T1LuhesiMd10011",
+      "character": "Luhesi",
+      "body_type": "MaleXL",
+      "mesh_asset_names": [
+        "R2T1LuhesiMd10011"
+      ],
+      "skeleton_asset_name": "R2T1LuhesiMd10011_Skeleton",
+      "skeleton_sha256": "ad90742b3a637a3e456556e6b8c9b0568573187e53aa1159cbcca8e43dfaa257",
+      "bone_count": 379,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malexl--luhesi--r2t1luhesimd10011.json",
+      "profile_sha256": "93db7959cb38030ab18f4853fd79fba651c72121964754c042fd7a88c5a51fe9"
+    },
+    {
+      "profile_id": "malexl--qiushui--r2t1qiushuimd10011",
+      "model_id": "R2T1QiushuiMd10011",
+      "character": "Qiushui",
+      "body_type": "MaleXL",
+      "mesh_asset_names": [
+        "R2T1QiushuiMd10011"
+      ],
+      "skeleton_asset_name": "R2T1QiushuiMd10011_Skeleton",
+      "skeleton_sha256": "25fc0a5cf767e291028ccb3bba200d2a00e93ef1256100b707d3f69dfba211e3",
+      "bone_count": 178,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malexl--qiushui--r2t1qiushuimd10011.json",
+      "profile_sha256": "072b82a9ac5fe66a093854f2c3df71f349eacfd82ddbcf9dce6d779b5cc220fc"
+    },
+    {
+      "profile_id": "malexl--qiuyuan--r2t1qiuyuanmd10011",
+      "model_id": "R2T1QiuyuanMd10011",
+      "character": "Qiuyuan",
+      "body_type": "MaleXL",
+      "mesh_asset_names": [
+        "R2T1QiuyuanMd10011"
+      ],
+      "skeleton_asset_name": "R2T1QiuyuanMd10011_Skeleton",
+      "skeleton_sha256": "4e0c66a5bf072f85146b654a0e63f4a6bfd51d659bf5941e17522326b223d690",
+      "bone_count": 362,
+      "alias_of": null,
+      "morph_count": 105,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malexl--qiuyuan--r2t1qiuyuanmd10011.json",
+      "profile_sha256": "76109bdc1823bc516801f855fb87cc871e2e5f1d2b5a05b1754cc270f4098593"
+    },
+    {
+      "profile_id": "malexl--yuanwu--r2t1yuanwumd10011",
+      "model_id": "R2T1YuanwuMd10011",
+      "character": "Yuanwu",
+      "body_type": "MaleXL",
+      "mesh_asset_names": [
+        "R2T1YuanwuMd10011"
+      ],
+      "skeleton_asset_name": "R2T1YuanwuMd10011_Skeleton",
+      "skeleton_sha256": "20b32e800db6951086caef5e2abe405fd3a24f2034dcfba67fdbe1bd56372834",
+      "bone_count": 142,
+      "alias_of": null,
+      "morph_count": 86,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/malexl--yuanwu--r2t1yuanwumd10011.json",
+      "profile_sha256": "c86f4be888f4ef70506cb220fe914918022735ac2cd75b5798bffe9c7a5b02e5"
+    },
+    {
+      "profile_id": "femalexl--qingxiao--r2t1qingxiaomd10011",
+      "model_id": "R2T1QingxiaoMd10011",
+      "character": "Qingxiao",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1QingxiaoMd10011"
+      ],
+      "skeleton_asset_name": "R2T1QingxiaoMd10011_Skeleton",
+      "skeleton_sha256": "81381ae12eadc94c8ab8d9b522a60b9327c1aafab74245c52aa8eeaa32f6d88c",
+      "bone_count": 340,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--qingxiao--r2t1qingxiaomd10011.json",
+      "profile_sha256": "69dd46902181ee77b95ecee7f3d584b5654a23032e3ceb20957fa0446de9da0e"
+    }
+  ],
+  "counts": {
+    "profiles": 73,
+    "primary_skeletons": 64,
+    "aliases": 9,
+    "character_directories": 62
+  },
+  "sources": {
+    "roster_triples.json": {
+      "path": "roster_triples.json",
+      "sha256": "53843b235845bbf4fd37ba4103f37f31bf238435a52a849ad68b511e4fc14723"
+    },
+    "bones_census.json": {
+      "path": "bones_census.json",
+      "sha256": "0adf855f842731d1401f531a6cda9bdbce8c355c6da9c6496a4e3e7e663038b9"
+    },
+    "morph_targets.json": {
+      "path": "morph_targets.json",
+      "sha256": "d30eea456b1ef1a12caf4f498e50ff105bea737acaae7bb461094c91a7f8d5ff"
+    },
+    "bone_chains.json": {
+      "path": "bone_chains.json",
+      "sha256": "6c12da511156d5ffcd515d0ec547b7eadc7b7a26ee367246a8fb915d9a6ccc40"
+    },
+    "runtime_character_meshes.json": {
+      "path": "runtime_character_meshes.json",
+      "sha256": "bfa2a5295f9cefc8676d14f9078b3ce5df253f379c2434ff81e03a6df92b1f00"
+    }
+  },
+  "excluded_skeleton_assets": [
+    "Client/Content/Aki/Character/Role/FemaleM/TestModel/TestModel01/Model/FemaleM01_Skeleton.json",
+    "Client/Content/Aki/Character/Role/FemaleM/TestModel/TestModel02/Model/FemaleM02_Skeleton.json",
+    "Client/Content/Aki/Character/Role/FemaleS/Suoming/R2T1SuomingMd10011/Model/R2T1SuomingMd10011_SMM_Skeleton.json",
+    "Client/Content/Aki/Character/Role/FemaleS/TestModel/TestModel02/Model/FamaleS02_Skeleton.json",
+    "Client/Content/Aki/Character/Role/FemaleXL/TestModel/TestModel01/Model/FemaleXL01_Skeleton.json",
+    "Client/Content/Aki/Character/Role/MaleM/TestModel/TestModel01/Model/MaleM01_Skeleton.json",
+    "Client/Content/Aki/Character/Role/MaleM/TestModel/TestModel02/Model/MaleM02_Skeleton.json",
+    "Client/Content/Aki/Character/Role/MaleS/TestModel/TestModel01/Model/MaleS01_Skeleton.json",
+    "Client/Content/Aki/Character/Role/MaleXL/TestModel/TestModel01/Model/MaleXL01_Skeleton.json",
+    "Client/Content/Aki/Character/Role/MaleXL/TestModel/TestModel02/Model/MaleXL02_Skeleton.json"
+  ]
+}

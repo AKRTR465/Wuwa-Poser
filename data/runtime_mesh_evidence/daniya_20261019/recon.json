@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "kind": "recon",
+  "scope": "Exact read-only capture subset for mesh registration; runtime IDs retained for audit, not future binding",
+  "source": {
+    "path": "analysis/native_character_live_20261019/daniya_005401_296/scan/logs/recon.json",
+    "sha256": "28db2b65a318b9ac213c665d711a47db789cd5cb2fb47cebb270a4fbdebe347c"
+  },
+  "capture": {
+    "pid": 35516,
+    "readonly": true,
+    "source_sha256": "c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18",
+    "status": "anchors_cross_validated",
+    "visual_verified": false,
+    "mesh": {
+      "address": "0x1194ada300",
+      "class": "SkeletalMeshComponent",
+      "class_address": "0x4b33a180",
+      "index": 219454,
+      "serial": 38537,
+      "item_address": "0x1171835dd8",
+      "outer_address": "0x11846a5160",
+      "path": "CharacterMesh0/BP_Daniya_C/PersistentLevel/WP_Xueyuan//Game/Aki/Map/Level/WP/Xueyuan/WP_Xueyuan",
+      "identity_rechecked": true,
+      "vtable": "0x14843eb78",
+      "object_flags": 262152,
+      "item_flags": 0
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "kind": "carrier",
+  "scope": "Exact read-only capture subset for mesh registration; runtime IDs retained for audit, not future binding",
+  "source": {
+    "path": "analysis/native_character_live_20261019/daniya_005401_296/scan/logs/carrier_status.json",
+    "sha256": "02e214cdf621d727776a4c17cc2825ff4202a50550d731101934da55b46f7ec2"
+  },
+  "capture": {
+    "pid": 35516,
+    "readonly": true,
+    "source_sha256": "c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18",
+    "status": "finished",
+    "target_memory_writes": 0,
+    "visual_verified": false
+  }
+}

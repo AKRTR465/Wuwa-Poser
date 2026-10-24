@@ -1,0 +1,1232 @@
+{
+ "generated": "2026-10-05T10:56:24",
+ "matrix": [
+  {
+   "gender": "FemaleM",
+   "character": "Aimisi",
+   "bone_chain_types": [
+    "chest",
+    "facial",
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "hair",
+    "skirt",
+    "sleeve"
+   ],
+   "chains_total": 64,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Chun",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 33,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Fuluoluo",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 25,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Fuluoluo_Lifu",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 39,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Jianxin",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 31,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Jinxi",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 28,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Jinxi",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 28,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "LinNai",
+   "bone_chain_types": [],
+   "curve_types": [
+    "coat",
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 0,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleM",
+   "character": "LinNai",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "hand_twist",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "coat",
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 67,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Lucy",
+   "bone_chain_types": [
+    "chest",
+    "facial",
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 64,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Lupa",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 49,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Maxiaofang",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 32,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Micai",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 30,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Nvzhu",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 36,
+   "curves_n": 4
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Nvzhu",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 35,
+   "curves_n": 4
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Qianxia",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "coat",
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 75,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Qianxia",
+   "bone_chain_types": [],
+   "curve_types": [
+    "coat",
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 0,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Sanhua",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 23,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Sanhua",
+   "bone_chain_types": [],
+   "curve_types": [],
+   "chains_total": 0,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Shouanren",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 53,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Suisui",
+   "bone_chain_types": [
+    "chest",
+    "facial",
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "hair",
+    "skirt",
+    "sleeve",
+    "strap"
+   ],
+   "chains_total": 63,
+   "curves_n": 8
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Taohua",
+   "bone_chain_types": [
+    "chest",
+    "prop",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 31,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "TestModel",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 15,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "TestModel",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 15,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Xiakong",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 78,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Xuanling",
+   "bone_chain_types": [
+    "chest",
+    "facial",
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "hair",
+    "skirt",
+    "sleeve"
+   ],
+   "chains_total": 78,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Yangyang",
+   "bone_chain_types": [
+    "chest",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 21,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Yangyang",
+   "bone_chain_types": [],
+   "curve_types": [],
+   "chains_total": 0,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "YinLin",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 24,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Younuo",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 41,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleM",
+   "character": "Zhezhi",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 36,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Buling",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "hair",
+    "skirt",
+    "sleeve"
+   ],
+   "chains_total": 41,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Daniya",
+   "bone_chain_types": [
+    "chest",
+    "facial",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "bow",
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 69,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Dengdeng",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 51,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Feibi",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 37,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Katixiya",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 43,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Kmola",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 102,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Kmola",
+   "bone_chain_types": [],
+   "curve_types": [],
+   "chains_total": 0,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Mone",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "cape",
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 70,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Mone",
+   "bone_chain_types": [],
+   "curve_types": [
+    "cape",
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 0,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Rebecca",
+   "bone_chain_types": [
+    "chest",
+    "facial",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 37,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Xigelika",
+   "bone_chain_types": [
+    "chest",
+    "facial",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "cape",
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 71,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleS",
+   "character": "Anke",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 41,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleS",
+   "character": "Jueyuan",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 35,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleS",
+   "character": "Luokeke",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 59,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleS",
+   "character": "Suoming",
+   "bone_chain_types": [
+    "chest",
+    "facial",
+    "hair",
+    "hand_twist",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "coat",
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 48,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleS",
+   "character": "TestModel",
+   "bone_chain_types": [],
+   "curve_types": [],
+   "chains_total": 0,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleS",
+   "character": "TestModel",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 4,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleS",
+   "character": "Youhu",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 46,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Aogusita",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 67,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "BaiLian",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 30,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "ChangLi",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 41,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "ChangLi",
+   "bone_chain_types": [],
+   "curve_types": [],
+   "chains_total": 0,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Jiabeilina",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "hand_twist",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "generic"
+   ],
+   "chains_total": 77,
+   "curves_n": 2
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Kanteleila",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 48,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Luosela",
+   "bone_chain_types": [
+    "chest",
+    "facial",
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 39,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "TaiDaoNv",
+   "bone_chain_types": [
+    "chest",
+    "facial",
+    "hair",
+    "hand_twist",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "bow",
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 57,
+   "curves_n": 6
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "TestModel",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 13,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Xinyuehu",
+   "bone_chain_types": [
+    "facial",
+    "hair",
+    "hand_twist",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "ear",
+    "hair",
+    "skirt",
+    "sleeve",
+    "tail",
+    "tie"
+   ],
+   "chains_total": 92,
+   "curves_n": 12
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "XinyuehuShen",
+   "bone_chain_types": [
+    "facial",
+    "hair",
+    "hand_twist",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "ear",
+    "hair",
+    "skirt",
+    "sleeve",
+    "tail",
+    "tie"
+   ],
+   "chains_total": 88,
+   "curves_n": 12
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Zanni",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 66,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "Zanni",
+   "bone_chain_types": [],
+   "curve_types": [],
+   "chains_total": 0,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleZ",
+   "character": "Fuludelisi",
+   "bone_chain_types": [
+    "chest",
+    "hair",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 41,
+   "curves_n": 0
+  },
+  {
+   "gender": "FemaleZ2",
+   "character": "AimisiGD",
+   "bone_chain_types": [
+    "hair",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "hair"
+   ],
+   "chains_total": 14,
+   "curves_n": 2
+  },
+  {
+   "gender": "MaleM",
+   "character": "Jingran",
+   "bone_chain_types": [
+    "facial",
+    "hair",
+    "hand_twist",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "hair",
+    "skirt"
+   ],
+   "chains_total": 40,
+   "curves_n": 4
+  },
+  {
+   "gender": "MaleM",
+   "character": "Nanzhu",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 56,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleM",
+   "character": "Nanzhu",
+   "bone_chain_types": [],
+   "curve_types": [],
+   "chains_total": 0,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleM",
+   "character": "TestModel",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 16,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleM",
+   "character": "TestModel",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 16,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleM",
+   "character": "Xiangliyao",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 34,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleS",
+   "character": "Lingyang",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 36,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleS",
+   "character": "TestModel",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 33,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Baer",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 35,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Bulante",
+   "bone_chain_types": [
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 77,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Jiyan",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 36,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Kakaluo",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 28,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Luhesi",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "hair",
+    "skirt",
+    "sleeve"
+   ],
+   "chains_total": 71,
+   "curves_n": 6
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Qiushui",
+   "bone_chain_types": [
+    "prop",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 25,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Qiuyuan",
+   "bone_chain_types": [
+    "hair",
+    "hand_twist",
+    "pelvis_extra",
+    "prop",
+    "ribbon",
+    "skirt",
+    "weapon_prop"
+   ],
+   "curve_types": [
+    "generic"
+   ],
+   "chains_total": 72,
+   "curves_n": 2
+  },
+  {
+   "gender": "MaleXL",
+   "character": "TestModel",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 1,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleXL",
+   "character": "TestModel",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 1,
+   "curves_n": 0
+  },
+  {
+   "gender": "MaleXL",
+   "character": "Yuanwu",
+   "bone_chain_types": [
+    "hair",
+    "prop",
+    "ribbon",
+    "weapon_prop"
+   ],
+   "curve_types": [],
+   "chains_total": 5,
+   "curves_n": 0
+  }
+ ]
+}

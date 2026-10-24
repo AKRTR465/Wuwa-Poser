@@ -1,0 +1,87 @@
+{
+  "alias_of": null,
+  "body_type": "FemaleZ",
+  "candidate_groups": [
+    {
+      "alpha_curve": null,
+      "alpha_input_type": null,
+      "evidence_kind": "heuristic",
+      "extraction_kind": "heuristic",
+      "node_property": "heuristic_family_chains",
+      "node_type": "heuristic_chain_family",
+      "root_bones": [
+        "Bone_Chest001_L",
+        "Bone_Chest001_R",
+        "Bone_Hair001_L",
+        "Bone_Hair001_R",
+        "Bone_Hair011_L",
+        "Bone_Hair011_R",
+        "Bone_Hair021_L",
+        "Bone_Hair021_R",
+        "Bone_Hair031_L",
+        "Bone_Hair031_R",
+        "Bone_Hair061_L",
+        "Bone_Hair061_R",
+        "Bone_Hair081_L",
+        "Bone_Hair081_R",
+        "Bone_Piao001_L",
+        "Bone_Piao001_R",
+        "Bone_Piao021_M",
+        "Bone_Piao031_L",
+        "Bone_Piao031_R",
+        "Bone_Piao051_L",
+        "Bone_Piao051_M",
+        "Bone_Piao051_R",
+        "Bone_Skirt001_L",
+        "Bone_Skirt001_R",
+        "Bone_Skirt011_L",
+        "Bone_Skirt011_R",
+        "Bone_Skirt021_L",
+        "Bone_Skirt021_R"
+      ],
+      "runtime_verified": false,
+      "source_id": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_model_id": "R2T1FuludelisiMd10011",
+      "unmatched_root_bones": [],
+      "variant": "skeleton_heuristic"
+    }
+  ],
+  "candidate_sources": [
+    {
+      "kind": "bone_chains",
+      "selection": "direct_model",
+      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_body_type": "FemaleZ",
+      "source_character": "Fuludelisi",
+      "source_model_id": "R2T1FuludelisiMd10011"
+    },
+    {
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "graph_scope": "sequence_candidate",
+      "group_signature": {
+        "curve_names": [],
+        "kawaii_group_count": 0
+      },
+      "group_signatures": [],
+      "kind": "seq_export",
+      "runtime_verified": false,
+      "sha256": "fbf6cf89174784b25ba7e114ea2fd5f31a903f3acad443e274563d4d296a3e85",
+      "source_model_id": "R2T1FuludelisiMd10011",
+      "variant": "ABP_Seq_FemaleZ_Phy"
+    }
+  ],
+  "character": "Fuludelisi",
+  "character_profile_sha256": "639baa1081b247c4085397df2375cd6a148b864f8a74b1581a6c8706c5ba79d5",
+  "evidence_level": "heuristic",
+  "kind": "native_graph_runtime_descriptor",
+  "model_id": "R2T1FuludelisiMd10011",
+  "pc_binding": null,
+  "physics_model_id": "R2T1FuludelisiMd10011",
+  "profile_id": "femalez--fuludelisi--r2t1fuludelisimd10011",
+  "requires_live_discovery": true,
+  "runtime_verified": false,
+  "schema": 1,
+  "skeleton_sha256": "edc4d910de57e0b008256720ee763b10ee7b7a0a7101f52a040e46f2fcb77f97",
+  "source_profile_sha256": "7a9bfd37b2f2f28f02d2a11d95d845cd405321934d57b8fedf3718bb7b7385cc"
+}

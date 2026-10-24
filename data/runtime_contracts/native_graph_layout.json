@@ -1,0 +1,272 @@
+{
+  "schema": 1,
+  "kind": "native_graph_root_layout",
+  "host_sha256": "c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18",
+  "image_sha256": "7480ba1b3fa5efa319c12f29890c949eafa36cf7dd932602774f111a8dcffea5",
+  "offline_only": true,
+  "game_accessed": false,
+  "source_audit": "data/runtime_contracts/native_kawaii.json",
+  "source_audit_sha256": "6605bf1bccac7d833e5b96a6fd92a822d4b496cfb2ac5d2031224f67d8821dd9",
+  "layout": {
+    "node_type": "KawaiiPhysicsGroup",
+    "vtable_rva": "0x7405e28",
+    "struct_bytes": 752,
+    "root_array_offset": "0x288",
+    "array_header_bytes": 16,
+    "root_stride": 20,
+    "fname_offset": 0,
+    "fname_bytes": 12,
+    "number_offset": 8,
+    "extended_array_offset": "0x298",
+    "require_extended_array_num_zero": true,
+    "cached_indices_consumed": false
+  },
+  "functions": [
+    {
+      "label": "GroupInitializeBoneReferences",
+      "rva": "0xa40710",
+      "end_rva": "0xa4084b",
+      "bytes": 315,
+      "sha256": "3d0525356cf0c47c90a20144ce669a5f33a921d761e8bf22d39b1a0f0578de5a",
+      "function_bytes_hex": "48895c240848896c24104889742418574883ec20488b9988020000488bfa48638190020000488be94c8d04804a8d3483483bde7414488bd7488bcbe880bc49044883c314483bde75ec488b9df8010000486385000200004869f0b00100004803f3483bde742166660f1f840000000000488bd7488bcbe845bc49044881c3b0010000483bde75e9488b9d7001000048638578010000488d344048c1e6054803f3483bde7414488bd7488bcbe810bc49044883c360483bde75ec488b9d8001000048638588010000488d344048c1e6054803f3483bde741d660f1f840000000000488bd7488bcbe8d5bb49044883c360483bde75ec488b9d9001000048638598010000488d344048c1e6054803f3483bde7414488bd7488bcbe8a3bb49044883c360483bde75ec488b5c2430488b6c2438488b7424404883c4205fc3",
+      "verified_saved_image_bytes": true
+    },
+    {
+      "label": "GroupInitializeModifyBones",
+      "rva": "0xa3fc60",
+      "end_rva": "0xa405fa",
+      "bytes": 2458,
+      "sha256": "a23bcbefe7a83f5a966d9d0adbd937debc4da49d5fbc0adc4cd9f9424fc69194",
+      "function_bytes_hex": "4c8bdc55498dabf8feffff4881ec00020000488b05cf1dc4084833c4488985b000000049895b20498bd849897be84d8963e04d896bd84d8973d04c8bf148895424504881c1f801000033d24d897bc848895c2460e8a7d6ffff33c0498dbe0802000089470839470c740a33d2488bcfe87cb6feff488d4b404889b424f8010000e8dbe19c0249638e900200004c8dbba0000000498b9e880200004c8d6860488d14894c896c24484c8d2493493bdc0f840c010000488b7c24500f1f80000000008b0b33d2e837367b0284c0740a837b08000f84d50000004c8bc3488d542440498d8da0000000e895e0ffff486344244083f8ff0f84b3000000488d1440498b85a0000000488d0cd0ba000000004885c9488d410c480f44c24885c00f848b0000008b0885c90f8881000000413b4f087d7b4c8b4424604d8bcd4963b600020000c7442430ffffffff89542428488bd7894c2420498bcee8e531ffff83f8ff744c4869d6b00100004d8bc7498bce490396f8010000e807a2ffff49638600020000498b96f80100004869c8b00100004881c250feffff4803d180baa000000000740b4d8bc7498bcee8d4a1ffff4883c314493bdc0f8507ffffff498dbe0802000033c98bd941398e000200007e2d0f1f00486377088d46018947083b470c7e0a8bd6488bcfe81707fdff488b07891cb0ffc3413b9e000200007cd6498bbe9802000033db496386a00200004c6be83848895d104c03ef48895d1848895d30895d38c7453c80000000c74540ffffffff895d4448895d50895d58493bfd0f84dd0100000f29b424c00100000f57f60f1f40008b0f33d2e8a7347b0284c0740a837f08000f84a2010000488b742448488d5424404c8bc7488d8ea0000000e800dfffff486344244083f8ff0f8479010000488d1440bb00000000488b86a0000000488d0cd04885c9488d410c480f44c34885c00f84530100008b0885c90f8849010000413b4f080f8d3f0100004c8b4424604c8bce488b5424504d63a600020000c7442430ffffffff895c2428894c2420498bcee84a30ffff83f8ff0f840a0100004969d4b00100004d8bc7498bce490396f8010000e868a0ffff49638600020000498b96f80100004869c8b00100004881c250feffff4803d1389aa0000000740b4d8bc7498bcee836a0ffff8b45183b4544743c488d4d10e8d517fdff8b451c85c0780733c0894518eb1633c9894d1885c0740b33d2488d4d10e8530afdff33c0c74540ffffffff894544894538eb0233c0837f20008bd87e47488bf00f1f44000085db78363b5f307d31488b4f280f2f340e731c4863c34c8d0481488d0c80488b4718488d1488488d4d10e8f10cffffffc34883c6043b5f207cc6488b742448f30f1047144c8d4510458bccf30f11442420488bd6498bcee8a498ffff418bd4498bcee86992ffff33db4883c738493bfd0f853afeffff0f28b424c00100004183bec002000000bfffffffff897df08bcb48895dc08bd348c745c800000000448bfb48895de0895de8c745ec80000000895df448895d00895d080f8e170100008bc34d8ba6b80200004898488d1c8085d274294c8b45c083ea014863c7488d0c40496344c8048945f08955f47431488d0c4041c704c8ffffffffeb238d41018bf98945c83b45cc7e0b8bd1488d4dc0e84d05fdff33d2488d4dd0e8a225fcff488b4de04c8d4dd04885c98bc74c0f45c985ff79038d471fc1f8058bcf4c63c083e11f4863c7ba01000000d3e243091481488d0c40488b45c0488d34c84885f6741ff2410f1004dcf20f1106418b44dc0889460844897e0cc74610ffffffffeb0433c98bf1f20f10068b5e08f20f114424508b4c2450e8e7797b024c8bce488d542440488d4dc0448d040333db48895c2428897c2420e847cdffff41ffc7418bc7453bbec00200007d0e8b55f48b7df08b4dc8e9ebfeffff4183be0002000000488bcb48895d60448be348c745680000000048899d80000000899d88000000c7858c00000080000000c78590000000ffffffff899d9400000048899da0000000899da80000000f8edf000000488bfb0f1f00498bb6f801000048c744246800000000895c2470c7442474ffffff7f0f104424684c8d2c37410f11856401000041c78574010000ffffffff8b45c83b45f4747bf20f1004378b5c3708f20f114424508b4c2450e8f8787b028b4d0803c3ffc948984863d1488b4d004823d04885c9488d45f8480f45c18b049083f8ff743bf20f100437448b4c3708f20f114580448b55804863c8488d1449488b4dc0443914d14c8d04d1750a453948080f84c8010000418b401083f8ff75d833db41ffc44881c7b0010000453ba6000200000f8c2effffff488b8da00000004c8bbc24d00100004c8bb424d80100004c8bac24e00100004c8ba424e8010000488bbc24f0010000488bb424f8010000899da80000004885c97405e817836a02837d6c00895d68740b33d2488d4d60e84308fdff81bd8c00000080000000c78590000000ffffffff899d94000000899d88000000761533d2c7858c00000080000000488d4d70e8acf8fcff488b8d800000004885c97405e8bb826a02488b4d604885c97405e8ad826a02488b4d00895d084885c97405e89c826a02837dcc00895dc8740b33d2488d4dc0e85806fdff817dec80000000c745f0ffffffff895df4895de8761233d2c745ec80000000488d4dd0e840f8fcff488b4de04885c97405e852826a024c8b45c04d85c07408498bc8e841826a02488b4d50895d584885c97405e830826a02837d1c00895d18740b33d2488d4d10e8ec05fdff817d3c80000000895d44895d38488b9c2428020000c74540ffffffff761233d2c7453c80000000488d4d20e8ccf7fcff488b4d304885c97405e8de816a02488b4d104885c97405e8d0816a02488b8db00000004833cce8e1a881064881c4000200005dc383f8ff0f8438feffff4d85c0498d400cbb00000000480f44c34885c00f8421feffff48630033d2488d0c80498b86b8020000488d1cc88b4cc814e8792e7b0284c0740a837b1c000f84f4fdffff4c8b7c24484c8d4314488d542440498d8fa0000000e8d1d8ffff486344244083f8ff0f84ccfdffff488d1440bb00000000498b87a0000000488d0cd04885c9488d410c480f44c34885c00f84a6fdffff48630883f9ff0f849afdffff498b4730488bd14803d2c7442474ffffff7f498d8d64010000f20f100cd08b44d008488b542460894424700f10442468f20f10c1410f11856401000041c78574010000ffffffff0f11442468e82ebe49048b8c37700100004c8d4d608b44370c488d55904c8b44246003c9d1f903c0894c2428498bced1f889442420e88eedffff0f10000f118437800100000f1048100f118c37900100000f1040200f118437a0010000e9f1fcffff",
+      "verified_saved_image_bytes": true
+    }
+  ],
+  "instruction_anchors": [
+    {
+      "rva": "0xa3fce5",
+      "bytes": "49638e90020000",
+      "text": "movsxd rcx, dword ptr [r14 + 0x290]"
+    },
+    {
+      "rva": "0xa3fcec",
+      "bytes": "4c8dbba0000000",
+      "text": "lea r15, [rbx + 0xa0]"
+    },
+    {
+      "rva": "0xa3fcf3",
+      "bytes": "498b9e88020000",
+      "text": "mov rbx, qword ptr [r14 + 0x288]"
+    },
+    {
+      "rva": "0xa3fcfa",
+      "bytes": "4c8d6860",
+      "text": "lea r13, [rax + 0x60]"
+    },
+    {
+      "rva": "0xa3fcfe",
+      "bytes": "488d1489",
+      "text": "lea rdx, [rcx + rcx*4]"
+    },
+    {
+      "rva": "0xa3fd02",
+      "bytes": "4c896c2448",
+      "text": "mov qword ptr [rsp + 0x48], r13"
+    },
+    {
+      "rva": "0xa3fd07",
+      "bytes": "4c8d2493",
+      "text": "lea r12, [rbx + rdx*4]"
+    },
+    {
+      "rva": "0xa3fd0b",
+      "bytes": "493bdc",
+      "text": "cmp rbx, r12"
+    },
+    {
+      "rva": "0xa3fd0e",
+      "bytes": "0f840c010000",
+      "text": "je 0x140a3fe20"
+    },
+    {
+      "rva": "0xa3fd14",
+      "bytes": "488b7c2450",
+      "text": "mov rdi, qword ptr [rsp + 0x50]"
+    },
+    {
+      "rva": "0xa3fd19",
+      "bytes": "0f1f8000000000",
+      "text": "nop dword ptr [rax]"
+    },
+    {
+      "rva": "0xa3fd20",
+      "bytes": "8b0b",
+      "text": "mov ecx, dword ptr [rbx]"
+    },
+    {
+      "rva": "0xa3fd22",
+      "bytes": "33d2",
+      "text": "xor edx, edx"
+    },
+    {
+      "rva": "0xa3fd24",
+      "bytes": "e837367b02",
+      "text": "call 0x1431f3360"
+    },
+    {
+      "rva": "0xa3fd29",
+      "bytes": "84c0",
+      "text": "test al, al"
+    },
+    {
+      "rva": "0xa3fd2b",
+      "bytes": "740a",
+      "text": "je 0x140a3fd37"
+    },
+    {
+      "rva": "0xa3fd2d",
+      "bytes": "837b0800",
+      "text": "cmp dword ptr [rbx + 8], 0"
+    },
+    {
+      "rva": "0xa3fd31",
+      "bytes": "0f84d5000000",
+      "text": "je 0x140a3fe0c"
+    },
+    {
+      "rva": "0xa3fd37",
+      "bytes": "4c8bc3",
+      "text": "mov r8, rbx"
+    },
+    {
+      "rva": "0xa3fd3a",
+      "bytes": "488d542440",
+      "text": "lea rdx, [rsp + 0x40]"
+    },
+    {
+      "rva": "0xa3fd3f",
+      "bytes": "498d8da0000000",
+      "text": "lea rcx, [r13 + 0xa0]"
+    },
+    {
+      "rva": "0xa3fd46",
+      "bytes": "e895e0ffff",
+      "text": "call 0x140a3dde0"
+    },
+    {
+      "rva": "0xa3fe0c",
+      "bytes": "4883c314",
+      "text": "add rbx, 0x14"
+    },
+    {
+      "rva": "0xa3fe10",
+      "bytes": "493bdc",
+      "text": "cmp rbx, r12"
+    },
+    {
+      "rva": "0xa3fe13",
+      "bytes": "0f8507ffffff",
+      "text": "jne 0x140a3fd20"
+    },
+    {
+      "rva": "0xa40710",
+      "bytes": "48895c2408",
+      "text": "mov qword ptr [rsp + 8], rbx"
+    },
+    {
+      "rva": "0xa40715",
+      "bytes": "48896c2410",
+      "text": "mov qword ptr [rsp + 0x10], rbp"
+    },
+    {
+      "rva": "0xa4071a",
+      "bytes": "4889742418",
+      "text": "mov qword ptr [rsp + 0x18], rsi"
+    },
+    {
+      "rva": "0xa4071f",
+      "bytes": "57",
+      "text": "push rdi"
+    },
+    {
+      "rva": "0xa40720",
+      "bytes": "4883ec20",
+      "text": "sub rsp, 0x20"
+    },
+    {
+      "rva": "0xa40724",
+      "bytes": "488b9988020000",
+      "text": "mov rbx, qword ptr [rcx + 0x288]"
+    },
+    {
+      "rva": "0xa4072b",
+      "bytes": "488bfa",
+      "text": "mov rdi, rdx"
+    },
+    {
+      "rva": "0xa4072e",
+      "bytes": "48638190020000",
+      "text": "movsxd rax, dword ptr [rcx + 0x290]"
+    },
+    {
+      "rva": "0xa40735",
+      "bytes": "488be9",
+      "text": "mov rbp, rcx"
+    },
+    {
+      "rva": "0xa40738",
+      "bytes": "4c8d0480",
+      "text": "lea r8, [rax + rax*4]"
+    },
+    {
+      "rva": "0xa4073c",
+      "bytes": "4a8d3483",
+      "text": "lea rsi, [rbx + r8*4]"
+    },
+    {
+      "rva": "0xa40740",
+      "bytes": "483bde",
+      "text": "cmp rbx, rsi"
+    },
+    {
+      "rva": "0xa40743",
+      "bytes": "7414",
+      "text": "je 0x140a40759"
+    },
+    {
+      "rva": "0xa40745",
+      "bytes": "488bd7",
+      "text": "mov rdx, rdi"
+    },
+    {
+      "rva": "0xa40748",
+      "bytes": "488bcb",
+      "text": "mov rcx, rbx"
+    },
+    {
+      "rva": "0xa4074b",
+      "bytes": "e880bc4904",
+      "text": "call 0x144edc3d0"
+    },
+    {
+      "rva": "0xa40750",
+      "bytes": "4883c314",
+      "text": "add rbx, 0x14"
+    },
+    {
+      "rva": "0xa40754",
+      "bytes": "483bde",
+      "text": "cmp rbx, rsi"
+    },
+    {
+      "rva": "0xa40757",
+      "bytes": "75ec",
+      "text": "jne 0x140a40745"
+    }
+  ],
+  "limitations": [
+    "Live code bytes must match both complete functions before interpreting root arrays.",
+    "Each root array header and full payload must be stable across two reads on the real callback thread with unchanged owner tokens.",
+    "Root FNames must decode completely including Number and match the verified full reference skeleton.",
+    "A nonempty extended root/bind array is unknown and cannot authorize forced activation."
+  ]
+}

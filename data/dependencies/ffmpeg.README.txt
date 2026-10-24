@@ -1,0 +1,22 @@
+FFmpeg dependency for Wuwa Poser window recording
+
+Version: n8.1.3-18-g46d899d7a0 (Windows x64 GPL build, 2026-10-17).
+Original distributor: BtbN/FFmpeg-Builds.
+License: GNU GPL version 3; see LICENSE.txt.
+
+Upstream binary archive:
+https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-10-17-20-51/ffmpeg-n8.1.3-18-g46d899d7a0-win64-gpl-8.1.zip
+A byte-identical copy is available as a Wuwa Poser v0.1.0 Release asset.
+Archive SHA-256:
+65a54333e273d995943163894f596f3138b619c79b1b0e7f5fbc0b21c61f35d6
+
+FFmpeg corresponding source:
+https://github.com/FFmpeg/FFmpeg/tree/46d899d7a0
+Build scripts, dependency sources and patches:
+https://github.com/BtbN/FFmpeg-Builds/tree/63ac3265b0789ea16c7b1f8351cd2ad195a28722
+See build.sh, scripts.d, patches and addins in that source tree.
+
+source.json records the pinned archive and extracted-file SHA-256 values.
+The recorder invokes ffmpeg.exe / ffprobe.exe as separate processes.
+The gfxcapture filter captures a selected window, with libx264 video and AAC audio.
+No system-wide FFmpeg installation is modified.

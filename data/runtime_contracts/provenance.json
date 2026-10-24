@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "build_sha256": "c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18",
+  "files": {
+    "publication.json": {
+      "source": "dist\\ww-mmd-player_20261019_integrated\\data\\runtime_publication_template.json",
+      "bytes": 437,
+      "sha256": "0699f3200e9574f19245426c0058d53d2d5b0316813c236e2554b6a0cd380bbc",
+      "transform": "keep only current build, shared-slot mode and full publication function witness; remove actor defaults and old experiment metadata"
+    },
+    "native_kawaii.json": {
+      "source": "tools\\verification_outputs\\native_kawaii_current\\native_kawaii_audit.json",
+      "bytes": 238545,
+      "sha256": "6605bf1bccac7d833e5b96a6fd92a822d4b496cfb2ac5d2031224f67d8821dd9",
+      "original_audit_sha256": "375d1a968ba91459c75ccb667fceca6859f0b2050a2029048a4c3b798768d8b8",
+      "transform": "preserve complete function bytes and verification status; discard disassembly and research narrative"
+    },
+    "native_activation.json": {
+      "source": "tools\\verification_outputs\\native_kawaii_current\\native_activation_audit.json",
+      "bytes": 6600,
+      "sha256": "3e37545fd4cbf36fd68319c158baba43220495a37abd06d6a60334cd02d3118a",
+      "original_audit_sha256": "395b526219bddb60fe1885f67678d72a386741e825ba5894a3eb340d1c74215e",
+      "transform": "preserve complete function bytes and verification status; discard disassembly and research narrative"
+    },
+    "native_graph_layout.json": {
+      "source": "tools\\verification_outputs\\native_graph_layout\\contract.json",
+      "bytes": 12195,
+      "sha256": "7fa94f0b26c9b072e1cadb1a9a2f3c5463e49059a10ed8dbfc1e5bf719576dfd"
+    },
+    "weapon_visibility.json": {
+      "source": "tools\\mmd_outputs\\weapon_visibility_contract.json",
+      "bytes": 2576,
+      "sha256": "2203ee712b0f8bdd689ee96f210513f30f717c672919bcfa18a3a695a9db2798"
+    },
+    "morph.json": {
+      "source": "dist\\ww-mmd-player_20261019_integrated\\data\\morph_runtime_contract.json",
+      "bytes": 11940,
+      "sha256": "3ca8af5cf3e57771858517514a995aa0de6ecbafc5c696f457cd5217281d3893"
+    }
+  }
+}

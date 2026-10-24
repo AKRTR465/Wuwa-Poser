@@ -1,0 +1,105 @@
+# Mixed actor ownership
+
+`ManagedBridge` executes its public operations on the attached game thread. It
+reads `actors.tsv` with eight tab-separated columns and no header:
+
+`slot, role_id, skin_id, stage_x_cm, stage_y_cm, stage_z_cm, model_asset_name, stage_yaw_degrees`
+
+Slots are positive `uint32` values and need not be contiguous. Stage X follows
+the local pawn's horizontal right vector, Y follows forward, and Z is measured
+from its capsule bottom. Stage yaw is relative to the initial player mesh
+heading: gameplay and UI actors can have different mesh-to-actor rotations.
+Before moving any actor, the bridge captures the player's mesh world yaw and
+each actor's mesh-to-actor yaw offset. The target Actor yaw is reference mesh
+yaw + requested stage yaw - that actor's mesh offset, modulo 360. It changes
+the Actor transform while preserving the mesh's own component transform. The
+stage basis and every borrowed actor's original state are captured before any
+actor moves, including across a partially failed `ShowAtLocal` retry.
+
+`managed_actor_lifecycle.json` records the stage reference Actor/mesh yaws,
+requested stage yaw, captured mesh yaw offset and applied Actor yaw for
+diagnosing a preview. `stage_reference_location` and `stage_reference_floor`
+are absolute D_/global coordinates used for actor placement diagnostics. They
+must not be copied directly into the local camera POV. After all actors are
+placed, the bridge saves `stage_reference_camera_offset_from_mesh`: the global
+stage floor point minus the first actor mesh's D_/global position. Native code
+adds this translation to that mesh's current local position on every frame,
+so the camera remains anchored to the stage across world-origin rebases. The
+saved translation is also safe to report after meshes have been released.
+Helpers without this field use the native first-actor fallback, ignoring their
+absolute global stage coordinates. Orbit orientation uses the first mesh's
+measured rotation and source calibration. `stage_reference_right` and
+`stage_reference_forward` document the placement plane basis. Models with a
+different authored rest-pose forward direction still need asset adaptation.
+
+The current local team is read through existing fields, without invoking the
+singleton getters or the `SceneTeamItem.EntityHandle` cache-populating getter:
+
+1. `PlayerInfoModel._Instance.Id` selects
+   `SceneTeamModel._Instance.TeamPlayerMap`.
+2. `SceneTeamPlayer.CurrentGroupType` and `GroupMap` select the `RoleList`.
+3. `SceneTeamModel.TeamItems` matches local player/group, `ConfigId`, and
+   `CreatureDataId`; `EntityHandleInternal` supplies the current `WorldEntity`.
+4. Handle/entity IDs and indices, `CharacterModel.Handles`,
+   `ObjectSystem.Objects/Versions`, and entity initialization flags agree.
+5. `Entity.GetComponent<CharacterActorComponent>()` supplies the existing
+   `BaseActorComponent.ActorInternal` and skeletal mesh. The creature data
+   role/player/creature IDs, skin ID, and actual skeletal mesh asset name must
+   match the request. A native actor address is borrowed at most once.
+
+Unmatched requests and subsequent duplicate requests use
+`UiSceneRoleActorManager.CreateUiSceneRoleActor`; they never substitute another
+team member's mesh. Each borrowed entity has a session-specific paired
+`AddHoldEntity` / `RemoveHoldEntity` retention reason.
+
+For staging, actor and mesh visibility, active/tick state and intervals are
+saved together with transform and animation settings. The mesh uses
+`AlwaysTickPoseAndRefreshBones`, with pause, skipped skeleton updates,
+autonomous-only pose updates, update-rate optimization, and static rendering
+disabled for the session. `Stop` restores every saved value and checks the
+readback before returning a borrowed actor. It destroys only newly created
+actors, using the original manager-map object reference. Failed restores or
+destroys retain ownership for retry. Native body, face, and camera restoration
+must complete before calling this managed stop operation.
+
+`MaintainStage` is called from the session's existing camera callback. For
+borrowed actors only, it checks the same current identity and repairs differing
+stage transforms, visibility, and animation/tick settings. It never replaces
+the original snapshot. Stop disables this maintenance before attempting any
+restoration, including when a failed restore is retried later.
+
+Static factory inspection found `UiSceneRoleActorManager.CreateUiSceneRoleActor`
+(`Aki.Game`, method `0x06017bee`) increments `CreateIndex`, calls
+`ActorSystem.Spawn<TsUiSceneRoleActor>`, initializes the result with the new index
+and requested `useWay`, and assigns `UiSceneRoleActorMap[index]`. Its IL has no
+lookup keyed by `useWay` and no actor-count bound. `ActorSystem.Spawn<T>`
+(`Aki.Core`, method `0x0600001e`) calls `UKuroActorManager.D_SpawnActor` after
+validating the class. The native engine allocator and its resource limits are
+outside this static evidence. Consequently the bridge snapshots the manager
+map before every creation and rejects an already present index or native actor
+address before loading, moving, or acquiring ownership of that result. A
+rejected foreign result is never destroyed, and a duplicate of an actor already
+owned by this session is cleaned through its original owner exactly once.
+
+The names and signatures were checked in the six local reference DLLs listed
+in `references.json`. Notable metadata tokens include SceneTeamModel
+`0x0200295c`, SceneTeamItem `0x02002953`, EntityHandle `0x020031bb`,
+CharacterActorComponent `0x02003041`, BaseActorComponent `0x0200326f`,
+CreatureDataComponent `0x020030a0`, and Entity `0x02000075` in their corresponding
+Game/Core assemblies. The existing `csharp_scene_team_readonly_contract.json`
+provides the independently documented membership chain.
+
+Offline verification:
+
+```powershell
+dotnet run --project tools/tests/ManagedActorBorrowing/ManagedActorBorrowing.csproj -p:NuGetAudit=false
+```
+
+The fixture compiles the actual bridge against synthetic objects; it does not
+load game assemblies or execute game APIs. It covers 8- and 70-actor sessions,
+duplicate requests, sparse slots, mixed ownership, fixed stage anchoring,
+offscreen animation settings, game-state overwrites, state restoration,
+factory reuse/duplicate rejection, cross-session ownership, and retryable cleanup. The
+real helper also compiles with the six game references and warnings as errors.
+These checks do not establish in-game display, physical simulation, or an
+observed hardware capacity.
