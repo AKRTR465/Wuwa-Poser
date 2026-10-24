@@ -57,4 +57,4 @@ Native body input is applied at the observed pre-physics converter while seconda
 
 Sessions run sequentially in the same game process, each with its own carrier copy. Mono retains the loaded managed helper, so BindSession selects the next session directory. Upgrading from an already-loaded older helper requires one game restart to load the new helper, including its fresh player/controller exports for the scene camera. This is distinct from requiring a restart between sessions of the same version.
 
-See [managed lifecycle and static factory evidence](managed/README.md) and [v14 integration / offline checks](../../docs/dynamic_actor_player_20261023.md). Underlying engine capacity and actual multi-actor visual behavior remain live-validation items.
+See [managed lifecycle](managed/README.md) and the [build and offline checks guide](../../docs/BUILDING.md). Underlying engine capacity and actual multi-actor visual behavior remain live-validation items.

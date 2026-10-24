@@ -29,11 +29,7 @@ $files=@(
  'data\stage_identity_property_contract.json','data\stage_identity_entity_contract.json','data\stage_native_runtime_contract.json',
  'data\bone_chains.json','data\morph_targets.json','data\camera_runtime_contract.json','data\native_identity_registration_contract.json',
  'data\native_pose_empty_channel_contract.json',
- 'tools\MMD_PLAYER.md','tools\MMD_SQUAD.md','docs\mmd_squad_session_contract.md','docs\unified_player_20261023.md','docs\dynamic_actor_player_20261023.md',
- 'docs\owned_mmd_integration_20261022.md','docs\owned_mmd_source_cleanup_20261022.md','docs\character_cold_load_progress_20261022.md',
- 'docs\owned_character_catalog_20261023.md','docs\shared_native_physics_implementation_20261023.md','docs\native_target_handshake_review_20261023.md',
- 'docs\all_characters_native_mmd_20261023.md','docs\all_characters_native_mmd_offline_20261023.json','docs\native_mmd_resume_20261023.md'
- 'docs\native_physics_catalog_adaptation_20261023.md',
+ 'tools\MMD_PLAYER.md','tools\MMD_SQUAD.md',
  'README.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','docs\BUILDING.md',
  'data\dependencies\ffmpeg.json','data\dependencies\ffmpeg.README.txt'
 )

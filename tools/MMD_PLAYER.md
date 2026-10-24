@@ -69,4 +69,4 @@ powershell -NoProfile -File tools/build_player.ps1 -Rebuild
 WWPoser.exe --validate-bundle
 ```
 
-参考 DLL 和编译环境要求见仓库 README。动态演员实现与可复跑测试见 `docs/dynamic_actor_player_20261023.md`。
+参考 DLL、编译环境要求和可复跑测试见 [构建说明](../docs/BUILDING.md)。
