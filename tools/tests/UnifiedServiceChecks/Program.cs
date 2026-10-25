@@ -237,12 +237,14 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!); File.Copy(sourceFile, destination);
     }
     var prepareRuntime = typeof(OwnedMmdPlaybackService).GetMethod("PrepareRuntime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-    var sourceConfig = OwnedMmdPlaybackService.Config(firstPreparation!); sourceConfig["camera_controller_address"] = "0xdead"; sourceConfig["native_graph_binding"] = new JsonObject { ["stale"] = true };
+    var sourceConfig = OwnedMmdPlaybackService.Config(firstPreparation!); sourceConfig["camera_controller_address"] = "0xdead"; sourceConfig["native_graph_binding"] = new JsonObject { ["stale"] = true }; sourceConfig["start_paused"] = true;
     Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig); File.WriteAllText(Path.Combine(firstPreparation!, "owned_mmd_graph.json"), "stale identity fixture");
     var fakeGame = new GameIdentity(42, 123456, "0x1234", 567);
-    var snapshotA = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame])!;
-    var snapshotB = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame])!;
+    var snapshotA = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, false])!;
+    sourceConfig["start_paused"] = false; Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig);
+    var snapshotB = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, true])!;
     var snapshotConfigA = OwnedMmdPlaybackService.Config(snapshotA); var snapshotConfigB = OwnedMmdPlaybackService.Config(snapshotB);
+    Check(!snapshotConfigA["start_paused"]!.GetValue<bool>() && snapshotConfigB["start_paused"]!.GetValue<bool>(), "runtime start-paused selection overrides the opposite stale value in prepared material");
     Check(snapshotA != snapshotB && snapshotConfigA["session_epoch"]!.GetValue<ulong>() != snapshotConfigB["session_epoch"]!.GetValue<ulong>() && snapshotConfigA["session_epoch"]!.GetValue<ulong>() != sourceConfig["session_epoch"]!.GetValue<ulong>(), "every runtime snapshot has a fresh directory and session epoch");
     Check(snapshotConfigA["camera_controller_address"] is null && snapshotConfigA["native_graph_binding"] is null && !File.Exists(Path.Combine(snapshotA, "owned_mmd_graph.json")), "runtime snapshots never import prepared controller or actor graph identities");
     Check(OwnedMmdPlaybackService.ActorConfigs(snapshotConfigA).Count == 4 && OwnedMmdPlaybackService.ActorConfigs(snapshotConfigA).All(actor => File.Exists(Path.Combine(snapshotA, actor["actor_directory"]!.GetValue<string>(), "motion.wwlocal"))), "one runtime snapshot retains all actor assets");
