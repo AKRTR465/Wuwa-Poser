@@ -14,10 +14,9 @@ public sealed partial class OwnedMmdPlaybackService
         {
             if (string.IsNullOrWhiteSpace(actor.CharacterId)) throw new InvalidDataException($"请为演员 {actor.Slot} 选择角色。");
             var character = catalog.Select(actor.CharacterId);
-            // An empty mesh name never matches a team member, so every preview
-            // actor is created: borrowed actors would need the playback hook to stay put.
             var row = new JsonObject { ["slot"] = actor.Slot, ["enabled"] = true, ["character_id"] = character.CharacterId, ["character_display_name"] = character.DisplayName,
-                ["role_id"] = (long)character.RoleId, ["skin_id"] = (long)character.SkinId, ["mesh_asset_name"] = "" };
+                ["role_id"] = (long)character.RoleId, ["skin_id"] = (long)character.SkinId, ["model_id"] = character.ModelId,
+                ["mesh_asset_name"] = character.ModelAssetName, ["form"] = character.Form?.DeepClone(), ["independent_instance"] = true };
             SetStage(row, actor.Stage); actors.Add(row);
         }
         var config = new JsonObject { ["schema"] = 3, ["scope"] = "stage_preview", ["preview"] = true, ["session_epoch"] = NewEpoch(), ["actors"] = actors, ["actor_count"] = actors.Count, ["duration_ms"] = 0 };

@@ -74,6 +74,25 @@
       "source_model_id": "R2T1ShenXinMd10011",
       "unmatched_root_bones": [],
       "variant": "skeleton_heuristic"
+    },
+    {
+      "source_id": "05e92e736ad455598f692336cbf2f5c9f8ad0ca420635c9ac06506e94abecde8",
+      "source_model_id": "R2T1ShenXinMd10011",
+      "variant": "ABP_Performance_ShenXin_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Hair102_L",
+        "Bone_Hair102_R",
+        "Bone_Tail003_M"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Float",
+      "alpha_curve": "Kawaii_alpha_S05",
+      "simulate_default": true
     }
   ],
   "candidate_sources": [
@@ -84,11 +103,44 @@
       "source_body_type": "FemaleXL",
       "source_character": "XinyuehuShen",
       "source_model_id": "R2T1ShenXinMd10011"
+    },
+    {
+      "kind": "ui_export",
+      "sha256": "05e92e736ad455598f692336cbf2f5c9f8ad0ca420635c9ac06506e94abecde8",
+      "selection": "RoleMorph.UiScenePerformanceABP",
+      "source_model_id": "R2T1ShenXinMd10011",
+      "source_profile_id": "femalexl--xinyuehushen--r2t1shenxinmd10011",
+      "ui_class_asset": "/Game/Aki/Character/Role/FemaleXL/XinyuehuShen/R2T1ShenXinMd10011/ABP_Performance_ShenXin_PC.ABP_Performance_ShenXin_PC_C",
+      "ui_skin_ids": [
+        81001311
+      ],
+      "variant": "ABP_Performance_ShenXin_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "graph_scope": "ui_candidate",
+      "runtime_verified": false,
+      "group_signatures": [
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Float",
+          "alpha_curve": "Kawaii_alpha_S05",
+          "root_bones": [
+            "Bone_Hair102_L",
+            "Bone_Hair102_R",
+            "Bone_Tail003_M"
+          ]
+        }
+      ],
+      "group_signature": {
+        "kawaii_group_count": 1,
+        "curve_names": []
+      }
     }
   ],
   "character": "XinyuehuShen",
   "character_profile_sha256": "b3815fe9164a299ffdc5300965c68c926bf0aaf7c03f67a526b2634131f40472",
-  "evidence_level": "heuristic",
+  "evidence_level": "actual_nodes",
   "kind": "native_graph_runtime_descriptor",
   "model_id": "R2T1ShenXinMd10011",
   "pc_binding": null,

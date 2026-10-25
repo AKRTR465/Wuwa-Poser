@@ -68,6 +68,7 @@ internal static class Program
         var automatic = Field<CheckBox>("autoRecord"); var fps = Field<ComboBox>("recordingFps"); var size = Field<ComboBox>("recordingSize");
         Check(automatic.IsChecked == false && automatic.IsEnabled && fps.IsEnabled && size.IsEnabled && fps.SelectedIndex == 0 && size.SelectedIndex == 0,
             "automatic recording defaults off and recording options are editable before playback");
+        Check(size.Items.Cast<string>().Contains("2K（2560×1440）") && fps.Items.Cast<string>().Contains("60 FPS"), "2K and 60fps are available before playback");
         var recPanel = Field<FrameworkElement>("recordingPanel"); var performContent = (Panel)recPanel.Parent;
         Check(recPanel.Visibility == Visibility.Visible && ReferenceEquals(Field<FrameworkElement>("idlePanel").Parent, performContent) &&
             performContent.Children.IndexOf(recPanel) < performContent.Children.IndexOf(Field<FrameworkElement>("idlePanel")),
@@ -168,8 +169,8 @@ internal static class Program
         Action("StopCurrentAsync");
         Action("CompletePlaybackStartAsync", PlaybackStarted(), restored); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5))); Call("UpdateActions");
         var selectedCapture = captures.Last();
-        Check(captures.Count == 1 && selectedCapture.Fps == 60 && selectedCapture.Height == 0 && selectedCapture.Folder == Path.Combine(root, "playback", "recordings"),
-            "successful playback automatically uses the preselected frame rate and original size without a dialog");
+        Check(captures.Count == 1 && selectedCapture.Fps == 60 && selectedCapture.Height == 1440 && selectedCapture.Folder == Path.Combine(root, "playback", "recordings"),
+            "successful playback automatically uses the preselected 2K60 settings without a dialog");
         Check(Field<string?>("automaticRecordingSession") == terminal && recorder.IsBusy, "automatic capture belongs to the started playback session");
         Action("StartAutomaticRecordingAsync"); Check(captures.Count == 1, "start completion cannot launch a duplicate recorder");
         Check(!fps.IsEnabled && !size.IsEnabled && !automatic.IsEnabled && !Field<Button>("recordButton").IsEnabled && Field<Button>("stopRecordingButton").IsEnabled,
@@ -240,11 +241,49 @@ internal static class Program
         Check(Field<TextBlock>("status").Text.Contains("保存失败：synthetic disk full") && !Field<bool>("busy") && Field<string?>("session") == errorEnd,
             "automatic save errors remain visible and do not discard actor restoration ownership");
         captureCompletion = null; RestoredTimeline(errorEnd); Action("StopCurrentAsync");
+        fps.SelectedIndex = 1; size.SelectedIndex = 2; Action("RecordAsync"); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
+        Check(captures.Last().Fps == 60 && captures.Last().Height == 0, "original size remains available independently of 2K");
+        Action("StopRecordingAsync");
         while (actors.Count > 0) { list.SelectedIndex = 0; Action("RemoveActorAsync"); }
         try { Call("Request"); throw new Exception("empty actor list accepted"); }
         catch (TargetInvocationException error) { Check(error.InnerException is InvalidOperationException, "empty list validation changed"); }
         Action("AddActorAsync"); Check(actors.Count == 1 && editor.Child is not null, "cannot add after clearing list");
-        Console.WriteLine($"PASS {checks} dynamic UI checks; offscreen actor and recording views, synthetic capture lifecycle; no window shown or game access.");
+        if (args.Contains("--capture-window"))
+        {
+            // Only this test-owned HWND is captured. Never enumerate game windows.
+            var text = new TextBlock { Text = "WWPoser synthetic capture", FontSize = 24, Foreground = Brushes.White, Margin = new Thickness(20) };
+            var synthetic = new Window { Title = "WWPoser 2K60 capture test", Width = 640, Height = 360, Left = 80, Top = 80,
+                ShowActivated = false, ShowInTaskbar = false, WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize,
+                Background = Brushes.DarkSlateBlue, Content = text };
+            var animation = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) }; int frame = 0;
+            animation.Tick += (_, _) => text.Text = "WWPoser synthetic capture · " + ++frame;
+            try
+            {
+                synthetic.Show(); animation.Start();
+                string video = Path.Combine(output, "wgc-2k60.mkv");
+                var targetWindow = new WindowTarget(new System.Windows.Interop.WindowInteropHelper(synthetic).Handle, (uint)Environment.ProcessId, synthetic.Title, 640, 360);
+                var arguments = RecordingService.BuildCaptureArguments(targetWindow, video, 60, 1440).ToList(); arguments.InsertRange(arguments.Count - 1, ["-t", "2"]);
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                var recording = MediaJson.RunAsync(Path.Combine(root, "tools", "recording_bin", "ffmpeg.exe"), arguments, timeout.Token); Await(recording);
+                File.WriteAllText(Path.Combine(output, "wgc-2k60.log"), recording.Result.Error);
+                Check(recording.Result.ExitCode == 0, "actual WGC D3D11 capture connects directly to NVENC: " + recording.Result.Error);
+                var inspect = MediaJson.RunAsync(Path.Combine(root, "tools", "recording_bin", "ffprobe.exe"), ["-v", "error", "-count_frames", "-show_streams", "-of", "json", video]); Await(inspect);
+                File.WriteAllText(Path.Combine(output, "wgc-2k60.json"), inspect.Result.Output);
+                var stream = JsonNode.Parse(inspect.Result.Output)!["streams"]![0]!;
+                Check(stream["width"]!.GetValue<int>() == 2560 && stream["height"]!.GetValue<int>() == 1440 && stream["r_frame_rate"]!.GetValue<string>() == "60/1" &&
+                    stream["nb_read_frames"]!.GetValue<string>() == "120", "actual test-window capture produces 120 readable 2K60 frames");
+                Check(stream["color_range"]!.GetValue<string>() == "tv" && stream["color_space"]!.GetValue<string>() == "bt470bg",
+                    "YUV container tags match NVENC's RGB conversion instead of retaining RGB/full-range flags");
+                string color = Path.Combine(output, "wgc-color.rgb");
+                var decode = MediaJson.RunAsync(Path.Combine(root, "tools", "recording_bin", "ffmpeg.exe"), ["-hide_banner", "-loglevel", "error", "-n", "-i", video,
+                    "-vf", "crop=2:2:2000:1000,format=rgb24", "-frames:v", "1", "-f", "rawvideo", color]); Await(decode);
+                var pixels = File.ReadAllBytes(color);
+                Check(decode.Result.ExitCode == 0 && Math.Abs(pixels[0] - 72) <= 4 && Math.Abs(pixels[1] - 61) <= 4 && Math.Abs(pixels[2] - 139) <= 4,
+                    "GPU capture and RGB/YUV encoding preserve the known test-window color within compression tolerance");
+            }
+            finally { animation.Stop(); synthetic.Close(); }
+        }
+        Console.WriteLine($"PASS {checks} dynamic UI checks; offscreen views and synthetic capture lifecycle" + (args.Contains("--capture-window") ? ", plus a test-owned WGC/NVENC window; no game access." : "; no window shown or game access."));
         return 0;
     }
 }

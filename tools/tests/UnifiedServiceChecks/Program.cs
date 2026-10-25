@@ -159,9 +159,12 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     OwnedMmdPlaybackService.WriteActorsFile(previewDirectory, previewConfig);
     var previewRows = File.ReadAllLines(Path.Combine(previewDirectory, "actors.tsv")).Select(line => line.Split('	')).ToArray();
     var previewGrid = OwnedMmdPlaybackService.GridPosition(1, 2, 180);
-    Check(previewConfig["preview"]!.GetValue<bool>() && previewRows.Length == 2 && previewRows.All(row => row.Length == 8 && row[6] == ""), "preview stands enabled actors only and never borrows team actors");
+    Check(previewConfig["preview"]!.GetValue<bool>() && previewRows.Length == 2 && previewRows.All(row => row.Length == 16 && row[6] != "" && row[15] == "1"), "preview stands enabled actors only, checks exact meshes, and never borrows team actors");
     Check(previewRows[0][3..6].SequenceEqual(["-120", "340", "25"]) && previewRows[0][7] == "90", "preview uses the chosen stage position");
     Check(double.Parse(previewRows[1][3], System.Globalization.CultureInfo.InvariantCulture) == previewGrid.X && double.Parse(previewRows[1][4], System.Globalization.CultureInfo.InvariantCulture) == previewGrid.Y, "preview uses the automatic grid otherwise");
+    Check(File.ReadAllText(Path.Combine(previewDirectory,"stage_floor.tsv")) == "capsule_bottom\t2.5\n", "ordinary stage keeps its original capsule-bottom reference");
+    OwnedMmdPlaybackService.ConfigureStage(previewConfig,180,true); OwnedMmdPlaybackService.WriteActorsFile(previewDirectory,previewConfig);
+    Check(File.ReadAllText(Path.Combine(previewDirectory,"stage_floor.tsv")) == "walkable_floor\t2.5\n" && OwnedMmdPlaybackService.ActorConfigs(previewConfig).All(actor => actor["stage_z_cm"]!.GetValue<double>() == 0), "original formation requests floor correction in the motion layer without shifting actors");
     Directory.Delete(previewDirectory, true);
     string? lastPreparation = null;
     string? firstPreparation = null;
@@ -180,7 +183,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
         Check(preparedActors.All(actor => actor["expression_enabled"]!.GetValue<bool>() && actor["expression_duration_seconds"]!.GetValue<double>() == 5 && File.Exists(Path.Combine(output, actor["actor_directory"]!.GetValue<string>(), "expression.wwexpr"))), "every actor binds its independently addressable expression track");
         Check(cfg["camera_clip_enabled"]!.GetValue<bool>() && cfg["camera_clip_duration_seconds"]!.GetValue<double>() == 3 && cfg["duration_seconds"]!.GetValue<double>() == 5, "one camera and a longest-track shared timeline");
         var actorLines = File.ReadAllLines(Path.Combine(output, "actors.tsv")); var actorBytes = File.ReadAllBytes(Path.Combine(output, "actors.tsv"));
-        Check(actorLines.Length == count && actorLines.All(line => line.Split('\t').Length == 8) && !actorBytes.AsSpan().StartsWith(new byte[] { 0xef, 0xbb, 0xbf }), "managed actor list is complete and UTF8 without BOM");
+        Check(actorLines.Length == count && actorLines.All(line => line.Split('\t').Length == 16) && !actorBytes.AsSpan().StartsWith(new byte[] { 0xef, 0xbb, 0xbf }), "managed actor list is complete and UTF8 without BOM");
         Check(actorLines.Select(line => uint.Parse(line.Split('\t')[0])).SequenceEqual(preparedActors.Select(actor => actor["slot"]!.GetValue<uint>())), "managed and native slot mapping agrees");
         var adjusted = request with { Speed = 3.5, Loop = true, DurationSeconds = 120, SpacingCm = 220, Actors = actorRequests.Select(actor => actor with { Placement = new(OffsetX: 100) }).ToArray() };
         Check(!service.RequiresPreparation(output, adjusted), "changing runtime settings and placement reuses immutable clips");
@@ -191,6 +194,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
         Check(OwnedMmdPlaybackService.NativeTargetRoutes(nativeConfig, output).Count == count, "native preparation includes every dynamic actor");
         Console.WriteLine($"PASS: actual cached compilation/preparation for {count} repeated-character actors: {output}");
     }
+    assertions += await CharacterFormChecks.RunAsync(args[1], bodyPath, facePath);
     var disabledRequest = new PlaybackSessionRequest(PlaybackSource.MixedActors, [new(bodyPath, CharacterId: selectedCharacter, Slot: 7), new("missing-disabled-input.vmd", Enabled: false, Slot: 9), new(bodyPath, CharacterId: selectedCharacter, Slot: 41)], NativePhysics: false);
     var disabledPrep = await service.PrepareAsync(disabledRequest); var disabledDirectory = disabledPrep["session_dir"]!.GetValue<string>();
     Check(OwnedMmdPlaybackService.ActorConfigs(OwnedMmdPlaybackService.Config(disabledDirectory)).Select(actor => actor["slot"]!.GetValue<uint>()).SequenceEqual(new uint[] { 7, 41 }), "disabled cards are not loaded and later actors retain non-contiguous slots");
@@ -208,6 +212,11 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     var fakePackage = Path.Combine(fixture, "build", "owned_mmd"); Directory.CreateDirectory(fakePackage);
     foreach (var file in new[] { "ownedmmd_lite_observer.dll", "ownedmmd_lite_installer.exe", OwnedMmdPlaybackService.HelperFilename, "owned_mmd_layout.json" }) File.WriteAllText(Path.Combine(fakePackage, file), "offline package fixture");
     var isolation = new OwnedMmdPlaybackService(fixture);
+    foreach (var sourceFile in Directory.EnumerateFiles(Path.Combine(args[1], "data", "characters"), "*", SearchOption.AllDirectories))
+    {
+        var destination = Path.Combine(fixture, "data", "characters", Path.GetRelativePath(Path.Combine(args[1], "data", "characters"), sourceFile));
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!); File.Copy(sourceFile, destination);
+    }
     var prepareRuntime = typeof(OwnedMmdPlaybackService).GetMethod("PrepareRuntime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
     var sourceConfig = OwnedMmdPlaybackService.Config(firstPreparation!); sourceConfig["camera_controller_address"] = "0xdead"; sourceConfig["native_graph_binding"] = new JsonObject { ["stale"] = true };
     Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig); File.WriteAllText(Path.Combine(firstPreparation!, "owned_mmd_graph.json"), "stale identity fixture");
@@ -220,4 +229,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     Check(OwnedMmdPlaybackService.ActorConfigs(snapshotConfigA).Count == 4 && OwnedMmdPlaybackService.ActorConfigs(snapshotConfigA).All(actor => File.Exists(Path.Combine(snapshotA, actor["actor_directory"]!.GetValue<string>(), "motion.wwlocal"))), "one runtime snapshot retains all actor assets");
     Check(File.ReadAllLines(Path.Combine(snapshotA, "actors.tsv")).Length == 4 && isolation.ActiveSession is null, "runtime file preparation alone does not launch or claim actors");
 }
+if (args.Length >= 2 && args[0] == "--audio") assertions += await RecordingAudioChecks.RunAsync(args[1], fixture);
+var captureIndex = Array.IndexOf(args, "--capture");
+if (captureIndex >= 0) assertions += await RecordingCaptureChecks.RunAsync(args[captureIndex + 1], fixture);
 Console.WriteLine($"PASS: {assertions} assertions.");

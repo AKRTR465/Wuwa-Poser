@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Microsoft.Win32;
 using WWPoser.Services;
@@ -28,7 +29,7 @@ public sealed partial class MainWindow
     private readonly ComboBox cameraMode = new() { ItemsSource = new[] { "游戏跟随镜头", "固定镜头", "VMD 镜头轨道" }, SelectedIndex = 0, Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly ComboBox placementMode = new() { ItemsSource = new[] { "站位舞台", "原作队形（共用原点）" }, SelectedIndex = 0, Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly ComboBox recordingFps = new() { ItemsSource = new[] { "30 FPS", "60 FPS" }, SelectedIndex = 0, Width = 120, Margin = new(0, 0, 8, 0) };
-    private readonly ComboBox recordingSize = new() { ItemsSource = new[] { "1080p", "原始尺寸" }, SelectedIndex = 0, Width = 120, Margin = new(0, 0, 8, 0) };
+    private readonly ComboBox recordingSize = new() { ItemsSource = new[] { "1080p", "2K（2560×1440）", "原始尺寸" }, SelectedIndex = 0, Width = 190, Margin = new(0, 0, 8, 0) };
     private readonly CheckBox autoRecord = new() { Content = "开始播放时自动录屏", IsChecked = false };
     private readonly Slider progress = new() { Minimum = 0, Maximum = 1, IsMoveToPointEnabled = true, Margin = new(0, 14, 0, 10) };
     private readonly ComboBox placementTarget = new() { DisplayMemberPath = nameof(ActorTarget.Name), Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
@@ -51,6 +52,7 @@ public sealed partial class MainWindow
     private void BuildWindow()
     {
         Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/WWPoser;component/Theme.xaml") });
+        Icon = BitmapFrame.Create(new Uri("pack://application:,,,/WWPoser;component/Assets/WuwaPoser.ico"));
         Title = "鸣潮 MMD 播放器"; Width = 1240; Height = 860; MinWidth = 1000; MinHeight = 680;
         FontFamily = new FontFamily("Segoe UI, Microsoft YaHei UI"); FontSize = 13; Background = (Brush)Resources["Paper"];
         TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
@@ -82,7 +84,8 @@ public sealed partial class MainWindow
     {
         var side = new DockPanel { LastChildFill = false }; side.SetResourceReference(Panel.BackgroundProperty, "Sidebar");
         var brand = new StackPanel { Orientation = Orientation.Horizontal, Margin = new(22, 26, 22, 0) };
-        brand.Children.Add(Badge("\uE8D6", "Accent", "Card", 40, 18));
+        var brandIcon = new Image { Source = BitmapFrame.Create(new Uri("pack://application:,,,/WWPoser;component/Assets/WuwaPoser.png")), Width = 40, Height = 40, VerticalAlignment = VerticalAlignment.Center };
+        RenderOptions.SetBitmapScalingMode(brandIcon, BitmapScalingMode.HighQuality); brand.Children.Add(brandIcon);
         var name = new StackPanel { Margin = new(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         name.Children.Add(Text("鸣潮 MMD 播放器", 16, "Ink", FontWeights.SemiBold)); name.Children.Add(Text("让喜欢的角色在游戏里跳起来", 12, "Muted"));
         brand.Children.Add(name); DockPanel.SetDock(brand, Dock.Top); side.Children.Add(brand);
@@ -197,7 +200,8 @@ public sealed partial class MainWindow
 
         var rec = new StackPanel(); rec.Children.Add(autoRecord); rec.Children.Add(Spacer(12));
         var recOptions = new WrapPanel(); recOptions.Children.Add(recordingFps); recOptions.Children.Add(recordingSize); rec.Children.Add(recOptions);
-        rec.Children.Add(Hint("提前选好帧率和尺寸；开启后播放时自动录制，播完自动保存。循环播放会持续录制，直到手动停止。"));
+        rec.Children.Add(Hint("支持 2K / 60 FPS，默认 NVENC 硬件编码，优先 GPU 直连以降低开销；启动失败会自动回退兼容模式或软件编码。"));
+        rec.Children.Add(Hint("开启自动录屏后，播放时开始录制，播完自动保存。循环播放会持续录制，直到手动停止。"));
         var recButtons = new WrapPanel { Margin = new(0, 12, 0, 0) };
         recordButton = Action("录制鸣潮窗口", RecordAsync, "\uE7C8", "PrimaryButton"); recButtons.Children.Add(recordButton);
         stopRecordingButton = Action("停止并保存录屏", StopRecordingAsync, "\uE74E"); recButtons.Children.Add(stopRecordingButton);

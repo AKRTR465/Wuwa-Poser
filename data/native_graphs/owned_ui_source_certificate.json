@@ -6,7 +6,7 @@
   "requires_live_discovery": true,
   "game_accessed": false,
   "catalog_sha256": "1706e76e83885f9c5e20b57ff9a305d065913c1e9f70b3c0f2e5afa07bc6e651",
-  "character_index_sha256": "c9dfe031effe8680253fea47e5402847f4e00da5c903f8b3c04ccebad99085c3",
+  "character_index_sha256": "0b18501e63db294f23dbc5ae84ba9c8c8257442cfc3506c07c8c61e0ebc9a4e1",
   "sources": [
     {
       "path": "raw/Client/Content/Aki/ConfigDB/db_role.db",

@@ -1764,13 +1764,37 @@
       },
       "profile_path": "profiles/femalexl--qingxiao--r2t1qingxiaomd10011.json",
       "profile_sha256": "69dd46902181ee77b95ecee7f3d584b5654a23032e3ceb20957fa0446de9da0e"
+    },
+    {
+      "profile_id": "femalems--daniya-dark--r2t1daniyamd10011-up2",
+      "model_id": "R2T1DaniyaMd10011_Up2",
+      "character": "DaniyaDark",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1DaniyaMd10011_Up2"
+      ],
+      "skeleton_asset_name": "R2T1DaniyaMd10011_Skeleton",
+      "skeleton_sha256": "6b250a4c4bdbd76e674edcadc8d94198d2677fd06ffabd4c3e47381448d57eca",
+      "bone_count": 354,
+      "alias_of": null,
+      "morph_count": 147,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--daniya-dark--r2t1daniyamd10011-up2.json",
+      "profile_sha256": "00c9d6848347eab048aae0ed8adaefc47d4a4c32f807c2e087c4a96321c8887f"
     }
   ],
   "counts": {
-    "profiles": 73,
+    "profiles": 74,
     "primary_skeletons": 64,
     "aliases": 9,
-    "character_directories": 62
+    "character_directories": 63
   },
   "sources": {
     "roster_triples.json": {

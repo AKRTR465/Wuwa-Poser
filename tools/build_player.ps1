@@ -30,7 +30,7 @@ $files=@(
  'data\bone_chains.json','data\morph_targets.json','data\camera_runtime_contract.json','data\native_identity_registration_contract.json',
  'data\native_pose_empty_channel_contract.json',
  'tools\MMD_PLAYER.md','tools\MMD_SQUAD.md',
- 'README.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','docs\BUILDING.md',
+ 'README.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','docs\BUILDING.md','docs\CHARACTER_FORMS.md',
  'data\dependencies\ffmpeg.json','data\dependencies\ffmpeg.README.txt'
 )
 foreach($directory in @('licenses')){$files+=@(Get-ChildItem -LiteralPath (Join-Path $repo $directory) -Recurse -File|ForEach-Object {$_.FullName.Substring($repo.Length+1)})}
@@ -91,4 +91,6 @@ if(-not $PublicRelease){$manifest.source_root=$repo}
 [IO.File]::WriteAllText((Join-Path $destination 'manifest.json'),($manifest|ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false))
 $validation=Start-Process -FilePath (Join-Path $destination 'WWPoser.exe') -ArgumentList '--validate-bundle' -WorkingDirectory $destination -WindowStyle Hidden -PassThru -Wait
 if($validation.ExitCode -ne 0){throw 'C# bundle validation failed; keep the output for diagnostics.'}
+& (Join-Path $PSScriptRoot 'validate_owned_character_catalog.ps1') -Root $destination
+& (Join-Path $PSScriptRoot 'validate_character_forms.ps1') -Root $destination
 [ordered]@{state='local_bundle_ready';directory=$destination;entrypoint=(Join-Path $destination 'WWPoser.exe');python_required=$false;published=$false}|ConvertTo-Json -Compress

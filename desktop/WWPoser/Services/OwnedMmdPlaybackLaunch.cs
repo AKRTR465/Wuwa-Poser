@@ -25,6 +25,15 @@ public sealed partial class OwnedMmdPlaybackService
             ConfigureStage(config, 180);
         }
         config["session_epoch"] = NewEpoch();
+        var catalog = CharacterCatalog(); var registry = new CharacterRegistry(root);
+        foreach (var actor in ActorConfigs(config))
+        {
+            var selected = catalog.Select(Contract.S(actor, "character_id"));
+            Contract.Require(Contract.S(actor, "mesh_asset_name") == selected.ModelAssetName && Contract.S(actor, "profile_id") == selected.ProfileId
+                && Contract.I(actor, "role_id") == selected.RoleId && Contract.I(actor, "skin_id") == selected.SkinId
+                && Contract.S(actor, "character_profile_sha256") == JsonData.Digest(registry.ProfilePath(registry.GetProfile(selected.ProfileId))), "角色形态或适配数据已更改，请重新准备动作。");
+            actor["form"] = selected.Form?.DeepClone(); actor["independent_instance"] = selected.IndependentInstance;
+        }
         foreach (var key in new[] { "camera_observation", "controller_address", "camera_controller_address", "camera_pawn_address", "native_graph_binding", "animation_target" }) config.Remove(key);
         var directory = Path.Combine(prepared, "runtime_sessions", "actors_" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
         foreach (var filename in RuntimeFiles) File.Copy(Path.Combine(NativePackageDirectory, filename), Path.Combine(directory, filename));

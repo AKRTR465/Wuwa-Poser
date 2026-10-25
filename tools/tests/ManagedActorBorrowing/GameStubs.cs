@@ -20,11 +20,14 @@ namespace UnrealEngine
         public FVector GetActorRightVector() { var yaw = Rotation.Yaw * Math.PI / 180; return new((float)-Math.Sin(yaw), (float)Math.Cos(yaw), 0); }
         public FVector GetActorForwardVector() { var yaw = Rotation.Yaw * Math.PI / 180; return new((float)Math.Cos(yaw), (float)Math.Sin(yaw), 0); }
     }
-    public class ACharacter : AActor { public UCapsuleComponent CapsuleComponent; private USkeletalMeshComponent mesh; public USkeletalMeshComponent Mesh { get => mesh; set { mesh = value; if (value != null) value.Owner = this; } } public ACharacter() { CapsuleComponent = new() { Owner = this }; } }
+    public class ACharacter : AActor { public UCapsuleComponent CapsuleComponent; public UCharacterMovementComponent CharacterMovement = new(); private USkeletalMeshComponent mesh; public USkeletalMeshComponent Mesh { get => mesh; set { mesh = value; if (value != null) value.Owner = this; } } public ACharacter() { CapsuleComponent = new() { Owner = this }; } }
+    public class UCharacterMovementComponent : UObject { public byte MovementMode = 1; public FFindFloorResult CurrentFloor = new(); }
+    public class FFindFloorResult { public bool bBlockingHit, bWalkableFloor, bLineTrace; public float FloorDist, LineDist; }
     public class UCapsuleComponent : UObject { public AActor Owner; public double HalfHeight = 90; public FVectorDouble D_K2_GetComponentLocation() => Owner.Location; public double D_GetScaledCapsuleHalfHeight() => HalfHeight; }
     public class USkeletalMesh : UObject { public USkeleton Skeleton = new(); }
     public class USkeleton : UObject { }
     public class UAnimInstance : UObject { }
+    public class UClass : UObject { }
     public class USkeletalMeshComponent : UObject
     {
         public AActor Owner; public FRotator RelativeRotation; public FVectorDouble RelativeLocation;
@@ -52,12 +55,34 @@ public class UiSceneRoleActorManager
 public class TsUiSceneRoleActor : AActor { public int Index; public UiModelBase Model; public TsUiSceneRoleActor() { Model = new(this); } public int GetRoleActorIndex() => Index; }
 public class UiModelBase
 {
-    public UiRoleLoadComponent Loader; public UiModelActorComponent Actor = new(); public UiModelDataComponent Data = new();
-    public UiModelBase(AActor owner) { Actor.Actor = owner; Loader = new() { Model = this }; }
-    public T GetComponent<T>() { object value = typeof(T) == typeof(UiRoleLoadComponent) ? Loader : typeof(T) == typeof(UiModelActorComponent) ? Actor : Data; return (T)value; }
+    public UiRoleLoadComponent Loader; public UiModelActorComponent Actor = new(); public UiModelDataComponent Data = new(); public UiRoleDataComponent RoleData; public UiRoleMorphComponent Morph;
+    public UiModelBase(AActor owner) { Actor.Actor = owner; Loader = new() { Model = this }; RoleData = new() { Model = this }; Morph = new() { Model = this }; }
+    public T GetComponent<T>() { object value = typeof(T) == typeof(UiRoleLoadComponent) ? Loader : typeof(T) == typeof(UiModelActorComponent) ? Actor : typeof(T) == typeof(UiRoleDataComponent) ? RoleData : typeof(T) == typeof(UiRoleMorphComponent) ? Morph : Data; return (T)value; }
 }
-public class UiRoleLoadComponent { public UiModelBase Model; public void LoadModelByRoleConfigId(int role, int skin, bool value, object callback) { Model.Actor.MainMeshComponent = new() { Owner = Model.Actor.Actor, SkeletalMesh = new() { Name = $"Role{role}Skin{skin}" } }; Model.Data.ModelLoadStateInternal = EUiModelLoadState.Loaded; } }
-public class UiModelActorComponent { public AActor Actor; public USkeletalMeshComponent MainMeshComponent; }
+public class UiRoleDataComponent { public UiModelBase Model; public int Role, Skin; public void SetRoleConfigId(int role, int skin) { Role = role; Skin = skin; } }
+public class UiRoleLoadComponent
+{
+    public UiModelBase Model; public static Dictionary<string, UObject> Resources = new(); private Dictionary<string, UObject> cache = new();
+    public void LoadModelByRoleConfigId(int role, int skin, bool value, object callback) { Model.RoleData.SetRoleConfigId(role, skin); Model.Actor.MainMeshComponent = new() { Owner = Model.Actor.Actor, SkeletalMesh = new() { Name = $"Role{role}Skin{skin}" } }; Model.Data.ModelLoadStateInternal = EUiModelLoadState.Loaded; }
+    public void LoadModelByModelId(int id, bool value, object callback, List<string> extra) { LoadModelByRoleConfigId(Model.RoleData.Role, Model.RoleData.Skin, value, callback); foreach (var path in extra) if (Resources.TryGetValue(path, out var resource)) cache[path] = resource; }
+    public UObject GetLoadedResource(string path) => cache.GetValueOrDefault(path);
+}
+public enum EUiModelMorphType { 默认形态, 特殊形态 }
+public class UiRoleMorphComponent
+{
+    public UiModelBase Model; public static Dictionary<int, USkeletalMesh> SpecialMeshes = new(); private EUiModelMorphType form;
+    public EUiModelMorphType GetMorphType() => form;
+    public bool SetMorphType(EUiModelMorphType value) { if (!SpecialMeshes.TryGetValue(Model.RoleData.Role, out var mesh)) return false; form = value; Model.Actor.ChangeMesh(mesh, new(), null, null, 0); return true; }
+}
+public class UiModelDecorationParam { }
+public class UiModelActorComponent
+{
+    public AActor Actor; public USkeletalMeshComponent MainMeshComponent; public List<USkeletalMeshComponent> ChildMeshComponentList;
+    public void ChangeMesh(USkeletalMesh mesh, UClass anim, List<USkeletalMesh> children, List<UiModelDecorationParam> decorations, int lod)
+    {
+        MainMeshComponent = new() { Owner = Actor, SkeletalMesh = mesh }; ChildMeshComponentList = children?.Select(child => new USkeletalMeshComponent { Owner = Actor, SkeletalMesh = child }).ToList();
+    }
+}
 public class UiModelDataComponent { public EUiModelLoadState ModelLoadStateInternal; public void SetVisible(bool value) { } }
 public enum ETeamGroupType { Default }
 public class PlayerInfoModel { public static PlayerInfoModel _Instance = new(); public int Id = 7; }

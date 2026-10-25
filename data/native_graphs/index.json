@@ -1,15 +1,15 @@
 {
   "coverage": {
     "total": {
-      "models": 73,
-      "actual_nodes": 68,
+      "models": 74,
+      "actual_nodes": 72,
       "base_alias": 1,
-      "heuristic": 4,
+      "heuristic": 1,
       "unavailable": 0,
-      "requires_live_discovery": 73,
+      "requires_live_discovery": 74,
       "runtime_verified": 0,
-      "with_exported_physics_nodes": 69,
-      "with_curve_input_nodes": 62
+      "with_exported_physics_nodes": 73,
+      "with_curve_input_nodes": 65
     },
     "body_types": {
       "FemaleM": {
@@ -24,15 +24,15 @@
         "with_curve_input_nodes": 27
       },
       "FemaleMS": {
-        "models": 11,
-        "actual_nodes": 11,
+        "models": 12,
+        "actual_nodes": 12,
         "base_alias": 0,
         "heuristic": 0,
         "unavailable": 0,
-        "requires_live_discovery": 11,
+        "requires_live_discovery": 12,
         "runtime_verified": 0,
-        "with_exported_physics_nodes": 11,
-        "with_curve_input_nodes": 10
+        "with_exported_physics_nodes": 12,
+        "with_curve_input_nodes": 11
       },
       "FemaleS": {
         "models": 5,
@@ -47,36 +47,36 @@
       },
       "FemaleXL": {
         "models": 13,
-        "actual_nodes": 12,
+        "actual_nodes": 13,
         "base_alias": 0,
-        "heuristic": 1,
+        "heuristic": 0,
         "unavailable": 0,
         "requires_live_discovery": 13,
         "runtime_verified": 0,
-        "with_exported_physics_nodes": 12,
+        "with_exported_physics_nodes": 13,
         "with_curve_input_nodes": 12
       },
       "FemaleZ": {
         "models": 1,
-        "actual_nodes": 0,
+        "actual_nodes": 1,
         "base_alias": 0,
-        "heuristic": 1,
+        "heuristic": 0,
         "unavailable": 0,
         "requires_live_discovery": 1,
         "runtime_verified": 0,
-        "with_exported_physics_nodes": 0,
-        "with_curve_input_nodes": 0
+        "with_exported_physics_nodes": 1,
+        "with_curve_input_nodes": 1
       },
       "FemaleZ2": {
         "models": 1,
-        "actual_nodes": 0,
+        "actual_nodes": 1,
         "base_alias": 0,
-        "heuristic": 1,
+        "heuristic": 0,
         "unavailable": 0,
         "requires_live_discovery": 1,
         "runtime_verified": 0,
-        "with_exported_physics_nodes": 0,
-        "with_curve_input_nodes": 0
+        "with_exported_physics_nodes": 1,
+        "with_curve_input_nodes": 1
       },
       "MaleM": {
         "models": 4,
@@ -819,13 +819,13 @@
     {
       "body_type": "FemaleXL",
       "character_profile_sha256": "b3815fe9164a299ffdc5300965c68c926bf0aaf7c03f67a526b2634131f40472",
-      "evidence_level": "heuristic",
+      "evidence_level": "actual_nodes",
       "model_id": "R2T1ShenXinMd10011",
       "path": "profiles/femalexl--xinyuehushen--r2t1shenxinmd10011.json",
       "physics_model_id": "R2T1ShenXinMd10011",
       "profile_id": "femalexl--xinyuehushen--r2t1shenxinmd10011",
       "runtime_path": "runtime/femalexl--xinyuehushen--r2t1shenxinmd10011.json",
-      "runtime_sha256": "7c936bcd550db620bcc8650c12aedb13f03a96800976ca71d85ebab90da5ae2c",
+      "runtime_sha256": "74360908a86441349b4f49435da1448679964eeb8ea8d74c80f3698dc0c0fbd1",
       "sha256": "b950533eb2f67a01bb25d54b21efa9289033217becd05ca97701f401060e0d6c",
       "skeleton_sha256": "3b1bc1d6e1d2b292ad88d14e3b1f39dd2d2ea16c3981a78dd6d8053af1114831"
     },
@@ -858,26 +858,26 @@
     {
       "body_type": "FemaleZ",
       "character_profile_sha256": "639baa1081b247c4085397df2375cd6a148b864f8a74b1581a6c8706c5ba79d5",
-      "evidence_level": "heuristic",
+      "evidence_level": "actual_nodes",
       "model_id": "R2T1FuludelisiMd10011",
       "path": "profiles/femalez--fuludelisi--r2t1fuludelisimd10011.json",
       "physics_model_id": "R2T1FuludelisiMd10011",
       "profile_id": "femalez--fuludelisi--r2t1fuludelisimd10011",
       "runtime_path": "runtime/femalez--fuludelisi--r2t1fuludelisimd10011.json",
-      "runtime_sha256": "91dacbf903bd9a96e892daa421403c52190a64cfd2ed0f30197d54cfa9396ab3",
+      "runtime_sha256": "8b84341670fa9183e384137e1e8c8cf1eb9f1c6b09fc707c6c5e60ed78347542",
       "sha256": "7a9bfd37b2f2f28f02d2a11d95d845cd405321934d57b8fedf3718bb7b7385cc",
       "skeleton_sha256": "edc4d910de57e0b008256720ee763b10ee7b7a0a7101f52a040e46f2fcb77f97"
     },
     {
       "body_type": "FemaleZ2",
       "character_profile_sha256": "761b05bf91b27927d71940177e4fb9a1fefdece0027f8b12d9c3697f956d9fff",
-      "evidence_level": "heuristic",
+      "evidence_level": "actual_nodes",
       "model_id": "R2T1AimisiGDMd10011",
       "path": "profiles/femalez2--aimisigd--r2t1aimisigdmd10011.json",
       "physics_model_id": "R2T1AimisiGDMd10011",
       "profile_id": "femalez2--aimisigd--r2t1aimisigdmd10011",
       "runtime_path": "runtime/femalez2--aimisigd--r2t1aimisigdmd10011.json",
-      "runtime_sha256": "fe1186936ac4bb2fc8d6568e3613f1071d419544e0d45903afec9d718b14095a",
+      "runtime_sha256": "17b6b398a655c7d7266eb6ad4651f68d5e70fa96f4d3c4ebfd667fbe4ca81e02",
       "sha256": "cda79e4af17a0f1a2f3767b7b2f8ba80fd898794acb5a659125ec2175160edcc",
       "skeleton_sha256": "9156877777ac590159582a3dcff05a934db19de1f29f9bf07ffeab83664d29a6"
     },
@@ -1062,6 +1062,19 @@
       "sha256": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
       "runtime_path": "runtime/femalexl--qingxiao--r2t1qingxiaomd10011.json",
       "runtime_sha256": "fce2dc348c56f1cba334381a341f0ceff31435d13358344d781857812dcb1199"
+    },
+    {
+      "body_type": "FemaleMS",
+      "character_profile_sha256": "00c9d6848347eab048aae0ed8adaefc47d4a4c32f807c2e087c4a96321c8887f",
+      "evidence_level": "actual_nodes",
+      "model_id": "R2T1DaniyaMd10011_Up2",
+      "path": "profiles/femalems--daniya-dark--r2t1daniyamd10011-up2.json",
+      "physics_model_id": "R2T1DaniyaMd10011",
+      "profile_id": "femalems--daniya-dark--r2t1daniyamd10011-up2",
+      "runtime_path": "runtime/femalems--daniya-dark--r2t1daniyamd10011-up2.json",
+      "runtime_sha256": "93c9ca4a066de5adfe46d3ae8d360c1685dc743d6400fdc9218213738451a0f6",
+      "sha256": "48443f05ed2c1c5716a6af5c5781e33bd04e2c7e2de569118c5906e1f9d14d81",
+      "skeleton_sha256": "6b250a4c4bdbd76e674edcadc8d94198d2677fd06ffabd4c3e47381448d57eca"
     }
   ],
   "requires_live_discovery": true,
@@ -1071,15 +1084,17 @@
   "source_summary": {
     "bone_chains_sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
     "cached_sequence_exports": 73,
-    "character_index_sha256": "c9dfe031effe8680253fea47e5402847f4e00da5c903f8b3c04ccebad99085c3",
+    "character_index_sha256": "0b18501e63db294f23dbc5ae84ba9c8c8257442cfc3506c07c8c61e0ebc9a4e1",
     "missing_exports": [],
     "pc_bindings": 0,
     "cached_player_exports": 5,
     "cached_ui_exports": 74,
     "owned_ui_source_certificate_file": "owned_ui_source_certificate.json",
-    "owned_ui_source_certificate_sha256": "4017b808ae72763873e12ed34343a176ff1486bb5399a570328b5090ece84f34",
+    "owned_ui_source_certificate_sha256": "b4870a61c99e682824f75d8326bcd9a10d0fa0e4015c58a9637d4cf1f998b127",
     "owned_ui_selections": 80,
     "owned_ui_profile_assets": 68,
-    "owned_ui_remaining": 0
+    "owned_ui_remaining": 0,
+    "additional_form_selections": 4,
+    "form_ui_exports": 3
   }
 }

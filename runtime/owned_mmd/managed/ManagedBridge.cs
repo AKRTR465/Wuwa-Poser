@@ -34,6 +34,12 @@ namespace WwPoser.ColdLoad
             public uint Slot;
             public int RequestedRoleId, RequestedSkinId;
             public string AssetName, HoldReason;
+            public string FormId = "default", FormStrategy = "role_skin", MainMeshPath = "", AnimClassPath = "";
+            public string[] ChildMeshPaths = new string[0];
+            public int MorphType, BaseModelId;
+            public bool IndependentInstance, FormApplied;
+            public UiRoleMorphComponent Morph;
+            public List<USkeletalMeshComponent> FormChildren;
             public double X, Y, Z, Yaw;
             public AActor Actor;
             public UiSceneRoleActorManager Manager;
@@ -81,6 +87,8 @@ namespace WwPoser.ColdLoad
             public double MeshYaw;
             public double MeshPitch, MeshRoll;
             public double Floor, RightX, RightY, ForwardX, ForwardY;
+            public double HeightCorrection;
+            public string HeightSource = "capsule_bottom";
         }
         private static Contract s_contract;
         private static readonly List<Owner> s_owners = new List<Owner>();
@@ -153,12 +161,28 @@ namespace WwPoser.ColdLoad
             foreach (var line in File.ReadAllLines(path, Encoding.UTF8))
             {
                 if (String.IsNullOrWhiteSpace(line)) continue; var columns = line.Split('\t');
-                if (columns.Length != 8) throw new InvalidDataException("actors.tsv requires eight columns.");
+                if (columns.Length != 8 && columns.Length != 16) throw new InvalidDataException("actors.tsv requires eight legacy or sixteen form-aware columns.");
                 var owner = new Owner { Slot = UInt32.Parse(columns[0], CultureInfo.InvariantCulture), RequestedRoleId = Int32.Parse(columns[1], CultureInfo.InvariantCulture), RequestedSkinId = Int32.Parse(columns[2], CultureInfo.InvariantCulture), X = Double.Parse(columns[3], CultureInfo.InvariantCulture), Y = Double.Parse(columns[4], CultureInfo.InvariantCulture), Z = Double.Parse(columns[5], CultureInfo.InvariantCulture), AssetName = columns[6], Yaw = Double.Parse(columns[7], CultureInfo.InvariantCulture) };
+                if (columns.Length == 16)
+                {
+                    owner.FormId = columns[8]; owner.FormStrategy = columns[9]; owner.MorphType = Int32.Parse(columns[10], CultureInfo.InvariantCulture);
+                    if (String.IsNullOrEmpty(owner.FormId)) throw new InvalidDataException("Missing form ID.");
+                    foreach (var ch in owner.FormId) if (!(ch >= 'a' && ch <= 'z') && !(ch >= '0' && ch <= '9') && ch != '-' && ch != '_') throw new InvalidDataException("Invalid form ID.");
+                    owner.BaseModelId = Int32.Parse(columns[11], CultureInfo.InvariantCulture); owner.MainMeshPath = columns[12]; owner.AnimClassPath = columns[13];
+                    owner.ChildMeshPaths = String.IsNullOrEmpty(columns[14]) ? new string[0] : columns[14].Split('|');
+                    if (columns[15] != "0" && columns[15] != "1") throw new InvalidDataException("Invalid independent actor flag.");
+                    owner.IndependentInstance = columns[15] == "1";
+                    if (owner.FormStrategy != "role_skin" && owner.FormStrategy != "role_morph" && owner.FormStrategy != "mesh_parts") throw new InvalidDataException("Unknown actor form strategy.");
+                    if (owner.FormStrategy != "role_skin" && (!owner.IndependentInstance || owner.BaseModelId <= 0 || String.IsNullOrEmpty(owner.AssetName))) throw new InvalidDataException("Forms require a separately owned actor and exact mesh.");
+                    if (owner.FormStrategy == "role_morph" && owner.MorphType != 1) throw new InvalidDataException("Unsupported role morph type.");
+                    if (owner.FormStrategy == "mesh_parts" && (!AssetPath(owner.MainMeshPath) || !AssetPath(owner.AnimClassPath) || owner.ChildMeshPaths.Length == 0)) throw new InvalidDataException("Incomplete form mesh composition.");
+                    foreach (var child in owner.ChildMeshPaths) if (!AssetPath(child)) throw new InvalidDataException("Invalid form child mesh path.");
+                }
                 if (owner.Slot == 0 || !slots.Add(owner.Slot)) throw new InvalidDataException("Actor slots must be distinct positive numbers."); requests.Add(owner);
             }
             if (requests.Count == 0) throw new InvalidDataException("No actors requested."); return requests;
         }
+        private static bool AssetPath(string value) { return !String.IsNullOrEmpty(value) && value.StartsWith("/Game/", StringComparison.Ordinal) && value.IndexOfAny(new char[] { '\t', '\r', '\n', '|', '\\' }) < 0 && !value.Contains(".."); }
         private static bool HandleCurrent(EntityHandle handle, WorldEntity entity)
         {
             if (handle == null || entity == null || handle.PendingRemoving || !Object.ReferenceEquals(handle.Entity, entity) || handle.Id != entity.Id || handle.Index != entity.Index) return false;
@@ -199,7 +223,7 @@ namespace WwPoser.ColdLoad
             foreach (var owner in requests)
             {
                 s_owners.Add(owner); Candidate candidate = null;
-                foreach (var option in candidates) if (option.RoleId == owner.RequestedRoleId && option.SkinId == owner.RequestedSkinId && String.Equals(option.AssetName, owner.AssetName, StringComparison.Ordinal) && !used.Contains(Address(option.Actor)) && HandleCurrent(option.Handle, option.Entity)) { candidate = option; break; }
+                if (!owner.IndependentInstance) foreach (var option in candidates) if (option.RoleId == owner.RequestedRoleId && option.SkinId == owner.RequestedSkinId && String.Equals(option.AssetName, owner.AssetName, StringComparison.Ordinal) && !used.Contains(Address(option.Actor)) && HandleCurrent(option.Handle, option.Entity)) { candidate = option; break; }
                 if (candidate != null)
                 {
                     owner.Borrowed = true; owner.Actor = candidate.Actor; owner.Mesh = candidate.Mesh; owner.Handle = candidate.Handle; owner.Entity = candidate.Entity; owner.BorrowedComponent = candidate.Component;
@@ -221,7 +245,14 @@ namespace WwPoser.ColdLoad
                     if (!Map(owner).TryGetValue(index, out registered) || !Object.ReferenceEquals(registered, role)) { owner.Released = true; throw new InvalidOperationException("Actor factory registration does not match its returned actor."); }
                     owner.Role = role; owner.Actor = role; owner.Index = index; owner.HasIndex = true; used.Add(address); var model = owner.Role.Model;
                     owner.Loader = model.GetComponent<UiRoleLoadComponent>(); owner.ActorComponent = model.GetComponent<UiModelActorComponent>(); owner.Data = model.GetComponent<UiModelDataComponent>();
-                    owner.Loader.LoadModelByRoleConfigId(owner.RequestedRoleId, owner.RequestedSkinId, true, null); owner.LoadReturned = true;
+                    if (owner.FormStrategy == "mesh_parts")
+                    {
+                        model.GetComponent<UiRoleDataComponent>().SetRoleConfigId(owner.RequestedRoleId, owner.RequestedSkinId);
+                        var resources = new List<string> { owner.MainMeshPath, owner.AnimClassPath }; resources.AddRange(owner.ChildMeshPaths);
+                        owner.Loader.LoadModelByModelId(owner.BaseModelId, true, null, resources);
+                    }
+                    else owner.Loader.LoadModelByRoleConfigId(owner.RequestedRoleId, owner.RequestedSkinId, true, null);
+                    owner.LoadReturned = true;
                 }
             }
             WriteLifecycle();
@@ -232,13 +263,68 @@ namespace WwPoser.ColdLoad
             {
                 if (!HandleCurrent(owner.Handle, owner.Entity) || !Valid(owner.Actor) || !Valid(owner.Mesh) || Address((AActor)Bind().ActorInternal.GetValue(owner.BorrowedComponent)) != Address(owner.Actor) || Address(owner.BorrowedComponent.SkeletalMesh) != Address(owner.Mesh)) throw new InvalidOperationException("Borrowed team actor changed.");
             }
-            else { if (!owner.LoadReturned || (int)(EUiModelLoadState)Bind().LoadState.GetValue(owner.Data) != 2) throw new InvalidOperationException("Role model is still loading."); owner.Mesh = owner.ActorComponent.MainMeshComponent; }
+            else
+            {
+                if (!owner.LoadReturned || (int)(EUiModelLoadState)Bind().LoadState.GetValue(owner.Data) != 2) throw new InvalidOperationException("Role model is still loading.");
+                ApplyForm(owner); owner.Mesh = owner.ActorComponent.MainMeshComponent;
+            }
             if (!Valid(owner.Actor) || !Valid(owner.Mesh)) throw new InvalidOperationException("Actor resources are unavailable.");
             var asset = owner.Mesh.SkeletalMesh; var skeleton = asset == null ? null : asset.Skeleton; var anim = owner.Mesh.GetAnimInstance();
             if (!Valid(asset) || !Valid(skeleton) || !Valid(anim)) throw new InvalidOperationException("Actor resources are still loading.");
             if (!String.IsNullOrEmpty(owner.AssetName) && !String.Equals(asset.GetName(), owner.AssetName, StringComparison.Ordinal)) throw new InvalidOperationException("Loaded actor uses a different requested mesh asset.");
             if (owner.ActorAddress != 0 && (owner.ActorAddress != Address(owner.Actor) || owner.MeshAddress != Address(owner.Mesh) || Address(owner.Asset) != Address(asset) || Address(owner.Skeleton) != Address(skeleton) || Address(owner.Anim) != Address(anim))) throw new InvalidOperationException("Actor graph changed during preparation.");
             owner.Asset = asset; owner.Skeleton = skeleton; owner.Anim = anim; owner.ActorAddress = Address(owner.Actor); owner.MeshAddress = Address(owner.Mesh);
+            if (owner.FormStrategy == "mesh_parts")
+            {
+                var children = owner.ActorComponent.ChildMeshComponentList;
+                if (children == null || children.Count != owner.ChildMeshPaths.Length) throw new InvalidOperationException("Form child mesh count differs.");
+                var components = new HashSet<ulong>(); components.Add(owner.MeshAddress);
+                for (var index = 0; index < children.Count; index++)
+                {
+                    var child = children[index]; var expectedName = owner.ChildMeshPaths[index].Substring(owner.ChildMeshPaths[index].LastIndexOf('.') + 1);
+                    if (!Valid(child) || !Valid(child.SkeletalMesh) || child.SkeletalMesh.GetName() != expectedName || Address(child) == owner.MeshAddress || (owner.FormChildren != null && Address(child) != Address(owner.FormChildren[index]))) throw new InvalidOperationException("Form child mesh identity differs.");
+                    if (!components.Add(Address(child))) throw new InvalidOperationException("Form parts share a mesh component.");
+                    foreach (var other in s_owners) if (!Object.ReferenceEquals(other, owner) && !other.Released)
+                    {
+                        if (other.MeshAddress == Address(child)) throw new InvalidOperationException("Form child belongs to another actor slot.");
+                        if (other.FormChildren != null) foreach (var sibling in other.FormChildren) if (Address(sibling) == Address(child)) throw new InvalidOperationException("Actor slots share a form child.");
+                    }
+                }
+                if (owner.FormChildren == null) owner.FormChildren = new List<USkeletalMeshComponent>(children);
+            }
+            foreach (var other in s_owners)
+                if (!Object.ReferenceEquals(other, owner) && !other.Released && other.MeshAddress != 0 && (other.ActorAddress == owner.ActorAddress || other.MeshAddress == owner.MeshAddress || Address(other.Anim) == Address(owner.Anim)))
+                    throw new InvalidOperationException("Actor slots must not share an actor, mesh component or animation instance.");
+        }
+        private static void ApplyForm(Owner owner)
+        {
+            if (owner.FormApplied)
+            {
+                if (owner.Morph != null && (int)owner.Morph.GetMorphType() != owner.MorphType) throw new InvalidOperationException("Actor form changed after preparation.");
+                return;
+            }
+            if (owner.FormStrategy == "role_morph")
+            {
+                owner.Morph = owner.Role.Model.GetComponent<UiRoleMorphComponent>();
+                if (owner.Morph == null) throw new InvalidOperationException("Role morph component is unavailable.");
+                if ((int)owner.Morph.GetMorphType() != owner.MorphType && !owner.Morph.SetMorphType((EUiModelMorphType)owner.MorphType)) throw new InvalidOperationException("Requested role form was not loaded.");
+                if ((int)owner.Morph.GetMorphType() != owner.MorphType) throw new InvalidOperationException("Requested role form differs.");
+            }
+            else if (owner.FormStrategy == "mesh_parts")
+            {
+                var main = owner.Loader.GetLoadedResource(owner.MainMeshPath) as USkeletalMesh;
+                var anim = owner.Loader.GetLoadedResource(owner.AnimClassPath) as UClass;
+                if (!Valid(main) || !Valid(main.Skeleton) || !Valid(anim)) throw new InvalidOperationException("Form resources are still loading.");
+                var children = new List<USkeletalMesh>();
+                foreach (var path in owner.ChildMeshPaths)
+                {
+                    var child = owner.Loader.GetLoadedResource(path) as USkeletalMesh;
+                    if (!Valid(child) || !Valid(child.Skeleton) || Address(child.Skeleton) != Address(main.Skeleton)) throw new InvalidOperationException("Form child mesh has a different skeleton.");
+                    children.Add(child);
+                }
+                owner.ActorComponent.ChangeMesh(main, anim, children, null, 0);
+            }
+            owner.FormApplied = true;
         }
         public static void CheckLoaded()
         {
@@ -254,7 +340,12 @@ namespace WwPoser.ColdLoad
         private static void EnableEvaluation(Owner owner)
         {
             owner.Actor.SetActorHiddenInGame(false); owner.Actor.SetActorTickEnabled(true); owner.Actor.SetActorTickInterval(0);
-            var mesh = owner.Mesh; mesh.SetActive(true, false); mesh.SetVisibility(true, false); mesh.SetHiddenInGame(false, false); mesh.SetComponentTickEnabled(true); mesh.SetComponentTickInterval(0);
+            EnableMeshEvaluation(owner.Mesh);
+            if (owner.FormChildren != null) foreach (var child in owner.FormChildren) EnableMeshEvaluation(child);
+        }
+        private static void EnableMeshEvaluation(USkeletalMeshComponent mesh)
+        {
+            mesh.SetActive(true, false); mesh.SetVisibility(true, false); mesh.SetHiddenInGame(false, false); mesh.SetComponentTickEnabled(true); mesh.SetComponentTickInterval(0);
             mesh.bPauseAnims = false; mesh.bNoSkeletonUpdate = false; mesh.bOnlyAllowAutonomousTickPose = false; mesh.bEnableUpdateRateOptimizations = false; mesh.bRenderStatic = false;
             mesh.VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption.AlwaysTickPoseAndRefreshBones;
         }
@@ -335,6 +426,7 @@ namespace WwPoser.ColdLoad
                 if (rightLength == 0 || forwardLength == 0) throw new InvalidOperationException("Stage basis is unavailable.");
                 var stageMeshRotation = pawnMesh.K2_GetComponentRotation();
                 s_stage = new Stage { Origin = pawn.D_K2_GetActorLocation(), Rotation = pawn.K2_GetActorRotation(), MeshYaw = stageMeshRotation.Yaw, MeshPitch = stageMeshRotation.Pitch, MeshRoll = stageMeshRotation.Roll, Floor = capsule.D_K2_GetComponentLocation().Z - capsule.D_GetScaledCapsuleHalfHeight(), RightX = right.X / rightLength, RightY = right.Y / rightLength, ForwardX = forward.X / forwardLength, ForwardY = forward.Y / forwardLength };
+                CaptureFormationFloor((ACharacter)pawn, s_stage);
             }
             foreach (var owner in s_owners)
             {
@@ -365,6 +457,28 @@ namespace WwPoser.ColdLoad
             }
             WriteLifecycle();
         }
+        private static void CaptureFormationFloor(ACharacter pawn, Stage stage)
+        {
+            var path = Path.Combine(s_session, "stage_floor.tsv");
+            if (!File.Exists(path)) return;
+            var policy = File.ReadAllText(path, Encoding.UTF8).TrimEnd('\r', '\n').Split('\t');
+            if (policy.Length != 2 || (policy[0] != "walkable_floor" && policy[0] != "capsule_bottom")) throw new InvalidDataException("Invalid stage floor policy.");
+            if (policy[0] == "capsule_bottom") return;
+            var fallback = Double.Parse(policy[1], CultureInfo.InvariantCulture);
+            if (Double.IsNaN(fallback) || Double.IsInfinity(fallback) || fallback < 0 || fallback > 5) throw new InvalidDataException("Stage floor fallback is outside the small correction range.");
+            stage.HeightCorrection = -fallback; stage.HeightSource = "fallback";
+            // Capture before any borrowed pawn is moved. CurrentFloor is the
+            // engine's existing floor result; this does not issue a new trace.
+            var movement = pawn.CharacterMovement;
+            if (!Valid(movement)) return;
+            var mode = (byte)movement.MovementMode;
+            if (mode != 1 && mode != 2) return; // Walking / NavWalking only.
+            var floor = movement.CurrentFloor;
+            if (floor == null || !floor.bBlockingHit || !floor.bWalkableFloor) return;
+            var distance = floor.bLineTrace ? floor.LineDist : floor.FloorDist;
+            if (Double.IsNaN(distance) || Double.IsInfinity(distance) || distance < 0 || distance > 5) return;
+            stage.HeightCorrection = -distance; stage.HeightSource = floor.bLineTrace ? "line_floor_distance" : "sweep_floor_distance";
+        }
         private static void Maintain(Owner owner)
         {
             if (!HandleCurrent(owner.Handle, owner.Entity) || !Valid(owner.Actor) || !Valid(owner.Mesh) || Address((AActor)Bind().ActorInternal.GetValue(owner.BorrowedComponent)) != owner.ActorAddress || Address(owner.BorrowedComponent.SkeletalMesh) != owner.MeshAddress || Address(owner.Actor) != owner.ActorAddress || Address(owner.Mesh) != owner.MeshAddress) throw new InvalidOperationException("Borrowed actor identity changed during staging.");
@@ -393,6 +507,7 @@ namespace WwPoser.ColdLoad
         {
             VerifySession(); if (!s_maintenanceEnabled) return; var errors = new List<string>();
             foreach (var owner in s_owners) if (owner.Borrowed && owner.Shown && !owner.Released) Attempt(delegate { Maintain(owner); }, errors, "slot " + owner.Slot.ToString(CultureInfo.InvariantCulture));
+            foreach (var owner in s_owners) if (!owner.Borrowed && owner.IndependentInstance && owner.Shown && !owner.Released) Attempt(delegate { Loaded(owner); }, errors, "form slot " + owner.Slot.ToString(CultureInfo.InvariantCulture));
             if (s_playerVisibility != null && !s_playerVisibility.Released) Attempt(delegate { HidePlayerModel(s_playerVisibility); }, errors, "non-performing player visibility");
             if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
@@ -406,7 +521,11 @@ namespace WwPoser.ColdLoad
             for (int i = 0; i < s_owners.Count; i++)
             {
                 var owner = s_owners[i]; if (i != 0) output.Append(','); output.Append("{\"slot\":").Append(owner.Slot).Append(",\"ownership\":\"").Append(owner.Borrowed ? "borrowed" : "created").Append("\",");
-                Pointer(output, "actor", owner.Actor); output.Append(','); Pointer(output, "mesh", owner.Mesh); output.Append(','); Pointer(output, "asset", owner.Asset); output.Append(','); Pointer(output, "skeleton", owner.Skeleton); output.Append(','); Pointer(output, "main_anim", owner.Anim); output.Append('}');
+                output.Append("\"form_id\":\"").Append(owner.FormId).Append("\",\"form_strategy\":\"").Append(owner.FormStrategy).Append("\",");
+                Pointer(output, "actor", owner.Actor); output.Append(','); Pointer(output, "mesh", owner.Mesh); output.Append(','); Pointer(output, "asset", owner.Asset); output.Append(','); Pointer(output, "skeleton", owner.Skeleton); output.Append(','); Pointer(output, "main_anim", owner.Anim);
+                output.Append(",\"form_children\":[");
+                if (owner.FormChildren != null) for (var child = 0; child < owner.FormChildren.Count; child++) { if (child != 0) output.Append(','); output.Append('{'); Pointer(output, "mesh", owner.FormChildren[child]); output.Append(','); Pointer(output, "asset", owner.FormChildren[child].SkeletalMesh); output.Append('}'); }
+                output.Append("]}");
             }
             output.Append("]}\n"); File.WriteAllText(Path.Combine(s_session, "owned_mmd_graph.json"), output.ToString(), new UTF8Encoding(false));
         }
@@ -479,6 +598,7 @@ namespace WwPoser.ColdLoad
             {
                 var owner = s_owners[i]; if (i != 0) output.Append(',');
                 output.Append("{\"slot\":").Append(owner.Slot).Append(",\"role_id\":").Append(owner.RequestedRoleId).Append(",\"skin_id\":").Append(owner.RequestedSkinId).Append(",\"ownership\":\"").Append(owner.Borrowed ? "borrowed" : "created").Append("\",\"shown\":").Append(owner.Shown ? "true" : "false").Append(",\"released\":").Append(owner.Released ? "true" : "false").Append(",\"retained\":").Append(owner.HoldAdded ? "true" : "false");
+                output.Append(",\"form_id\":\"").Append(owner.FormId).Append("\",\"form_strategy\":\"").Append(owner.FormStrategy).Append("\",\"form_applied\":").Append(owner.FormApplied ? "true" : "false").Append(",\"independent_instance\":").Append(owner.IndependentInstance ? "true" : "false").Append(",\"morph_type\":").Append(owner.MorphType);
                 if (owner.Before != null)
                 {
                     output.Append(",\"requested_stage_yaw\":").Append(owner.Yaw.ToString("R", CultureInfo.InvariantCulture));
@@ -508,6 +628,8 @@ namespace WwPoser.ColdLoad
                     .Append(",\"stage_reference_mesh_roll\":").Append(s_stage.MeshRoll.ToString("R", CultureInfo.InvariantCulture))
                     .Append(",\"stage_reference_location\":[").Append(s_stage.Origin.X.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(s_stage.Origin.Y.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(s_stage.Origin.Z.ToString("R", CultureInfo.InvariantCulture)).Append(']')
                     .Append(",\"stage_reference_floor\":").Append(s_stage.Floor.ToString("R", CultureInfo.InvariantCulture))
+                    .Append(",\"stage_height_correction_cm\":").Append(s_stage.HeightCorrection.ToString("R", CultureInfo.InvariantCulture))
+                    .Append(",\"stage_height_correction_source\":\"").Append(s_stage.HeightSource).Append('"')
                     .Append(",\"stage_reference_right\":[").Append(s_stage.RightX.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(s_stage.RightY.ToString("R", CultureInfo.InvariantCulture)).Append(']')
                     .Append(",\"stage_reference_forward\":[").Append(s_stage.ForwardX.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(s_stage.ForwardY.ToString("R", CultureInfo.InvariantCulture)).Append(']');
                 if (s_stage.CameraReferenceCaptured)

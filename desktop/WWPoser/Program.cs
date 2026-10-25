@@ -38,7 +38,9 @@ public static class Program
             }
             if (args.Contains("--render-recording-audio"))
             {
-                var i = Array.IndexOf(args, "--render-recording-audio"); new RecordingService(root).RenderAudioAsync(args[i + 1], args[i + 2]).GetAwaiter().GetResult(); return 0;
+                var i = Array.IndexOf(args, "--render-recording-audio");
+                var result = new RecordingService(root).RenderAudioAsync(args[i + 1], args[i + 2]).GetAwaiter().GetResult();
+                JsonData.Write(Path.GetFullPath(args[i + 2]) + ".json", result); return 0;
             }
             if (args.Contains("--import-vmd"))
             {

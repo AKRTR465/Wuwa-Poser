@@ -45,6 +45,7 @@ struct ActorRuntime {
 };
 struct Runtime {
     bool initialized=false,multiActor=false;
+    double formationHeightCorrection=0;
     std::filesystem::path directory;
     uint64_t host=0,publishRva=0,slotRva=0,epoch=0,durationMs=0,frameRva=0x992f2d8,lastEngineFrame=0;
     play::Transport transport;play::SpscCommandQueue<64> commands;
@@ -117,8 +118,16 @@ inline bool Advance(uint64_t engineFrame,double now){auto& r=runtime;if(engineFr
     if(r.transport.Tick(now)!=play::ControlCode::Ok){Fail(Error::Plan);return false;}
     if(r.transport.State().restore_requested){r.writing.store(false);r.closing.store(true);}return true;
 }
+inline play::placement::Settings EffectivePlacement(const ActorRuntime& actor){auto placed=actor.placement;placed.height+=runtime.formationHeightCorrection;return placed;}
+inline double FormationHeightCorrection(const Json& config,const Json& lifecycle){
+    if(!config.value("formation_native",false))return 0;
+    const auto fallback=config.value("formation_floor_fallback_cm",2.5);
+    Require(std::isfinite(fallback)&&fallback>=0&&fallback<=5,"invalid formation floor fallback");
+    const auto correction=lifecycle.value("stage_height_correction_cm",-fallback);
+    Require(std::isfinite(correction)&&correction>=-5&&correction<=0,"invalid formation height correction");return correction;
+}
 inline play::PlayerState CameraState(const play::PlayerState& timeline){auto state=timeline;if(const auto* actor=runtime.cameraAnchor){
-    state.placement_x=actor->placement.x;state.placement_y=actor->placement.y;state.placement_height=actor->placement.height;
+    state.placement_x=actor->placement.x;state.placement_y=actor->placement.y;state.placement_height=EffectivePlacement(*actor).height;
     state.placement_yaw_degrees=actor->placement.yaw_degrees;state.placement_in_place=actor->placement.in_place;}return state;}
 inline void Detour(void* object){auto& r=runtime;r.active.fetch_add(1,std::memory_order_acq_rel);
     struct Active {~Active(){runtime.active.fetch_sub(1,std::memory_order_release);}} active;
@@ -132,8 +141,9 @@ inline void Detour(void* object){auto& r=runtime;r.active.fetch_add(1,std::memor
     auto state=r.transport.State();state.physics_enabled=actor->physicsEnabled;
     const bool feed=r.writing.load()&&!r.closing.load()&&state.mode!=play::PlayerMode::Stopped&&state.mode!=play::PlayerMode::Empty;
     ::Reader featureReader{GetCurrentProcess()};
-    if(!features::ActorFrame(actor->features,featureReader,state,actor->placement,feed))Fail(Error::Plan);
-    if(actor->nativePhysics)v20_shared_native_physics::Publish(actor->native,state.seconds,actor->placement,feed&&!r.closing.load());
+    const auto placement=EffectivePlacement(*actor);
+    if(!features::ActorFrame(actor->features,featureReader,state,placement,feed))Fail(Error::Plan);
+    if(actor->nativePhysics)v20_shared_native_physics::Publish(actor->native,state.seconds,placement,feed&&!r.closing.load());
     features::PublishCamera(r.cameraFeatures,CameraState(state),feed&&!r.closing.load());
 }
 inline bool NativeAuthority(void* user,const v20_shared_native_physics::Access& access){
@@ -215,7 +225,8 @@ inline void Initialize(const std::filesystem::path& directory,const Json& graph,
             cameraMeshes.push_back(actor->tokens[Mesh].object);cameraRootStarts.push_back({root.translation_delta[0],root.translation_delta[1],root.translation_delta[2]});}
         features::StageReference stageReference;
         std::ifstream lifecycleFile(directory/L"managed_actor_lifecycle.json");
-        if(lifecycleFile)stageReference=features::ReadStageReference(Json::parse(lifecycleFile));
+        const auto lifecycle=lifecycleFile?Json::parse(lifecycleFile):Json::object();
+        stageReference=features::ReadStageReference(lifecycle);r.formationHeightCorrection=FormationHeightCorrection(config,lifecycle);
         features::PrepareCamera(r.cameraFeatures,featureReader,r.go,config,directory,controller,pawn,cameraMeshes,cameraRootStarts,stageReference,r.epoch,r.gameThread,window);
         if(r.cameraFeatures.clip_available)duration=(std::max)(duration,r.cameraFeatures.clip.duration);
         Require(r.transport.SetClip(r.epoch,duration),"scene timeline configuration failed");
@@ -284,6 +295,7 @@ inline Json Status(){auto& r=runtime;WorkerLock lock;const auto state=r.transpor
         {"time_limit_seconds",state.time_limit_seconds},{"session_elapsed_seconds",state.session_elapsed_seconds},{"time_limit_reached",state.time_limit_reached||r.deadlineExpired.load()},
         {"camera_mode",state.camera_mode},{"camera_anchor_slot",r.cameraAnchor?r.cameraAnchor->slot:0},{"camera_available",r.cameraFeatures.available},{"camera_clip_available",r.cameraFeatures.clip_available},{"camera_failed",r.cameraFeatures.failed.load()},
         {"camera_stage_reference_used",r.cameraFeatures.stage.present},{"camera_stage_floor_used",r.cameraFeatures.stage.present},
+        {"formation_height_correction_cm",r.formationHeightCorrection},
         {"camera_anchor_coordinate_frame","world_local"},
         {"borrowed_stage_maintenance",r.maintenanceEnabled.load()&&borrowed!=0},{"scene_maintenance",r.maintenanceEnabled.load()},
         {"native_physics",anyNative},{"body_backend","per_actor"},{"native_input_frames",nativeFrames},{"native_input_error",nativeError},{"physics_available",allPhysics},{"expression_enabled",face},

@@ -27,6 +27,87 @@
       "source_model_id": "R2T1AimisiGDMd10011",
       "unmatched_root_bones": [],
       "variant": "skeleton_heuristic"
+    },
+    {
+      "source_id": "d40b589d7d75c2617884f834ef1ceb68014f5ecb63f0241bae1d104205723778",
+      "source_model_id": "R2T1AimisiGDMd10011",
+      "variant": "ABP_Performance_AimisiGD_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_3",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Hair052"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Curve",
+      "alpha_curve": "Kawaii_alpha_S01",
+      "simulate_default": true
+    },
+    {
+      "source_id": "d40b589d7d75c2617884f834ef1ceb68014f5ecb63f0241bae1d104205723778",
+      "source_model_id": "R2T1AimisiGDMd10011",
+      "variant": "ABP_Performance_AimisiGD_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_2",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Wingcalf002_L",
+        "Bone_Wingcalf012_L",
+        "Bone_Wingcalf022_L",
+        "Bone_Wingcalf002_R",
+        "Bone_Wingcalf012_R",
+        "Bone_Wingcalf022_R"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Curve",
+      "alpha_curve": "Kawaii_alpha_S03",
+      "simulate_default": true
+    },
+    {
+      "source_id": "d40b589d7d75c2617884f834ef1ceb68014f5ecb63f0241bae1d104205723778",
+      "source_model_id": "R2T1AimisiGDMd10011",
+      "variant": "ABP_Performance_AimisiGD_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup_1",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Winghaed002_L",
+        "Bone_Winghaed012_L",
+        "Bone_Winghaed022_L",
+        "Bone_Winghaed022_R",
+        "Bone_Winghaed012_R",
+        "Bone_Winghaed002_R"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Curve",
+      "alpha_curve": "Kawaii_alpha_S04",
+      "simulate_default": true
+    },
+    {
+      "source_id": "d40b589d7d75c2617884f834ef1ceb68014f5ecb63f0241bae1d104205723778",
+      "source_model_id": "R2T1AimisiGDMd10011",
+      "variant": "ABP_Performance_AimisiGD_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "runtime_verified": false,
+      "node_property": "AnimGraphNode_KawaiiPhysicsGroup",
+      "node_type": "KawaiiPhysicsGroup",
+      "root_bones": [
+        "Bone_Hair042_R",
+        "Bone_Hair032_R",
+        "Bone_Hair042_L",
+        "Bone_Hair032_L"
+      ],
+      "unmatched_root_bones": [],
+      "alpha_input_type": "Curve",
+      "alpha_curve": "Kawaii_alpha_S02",
+      "simulate_default": true
     }
   ],
   "candidate_sources": [
@@ -52,11 +133,87 @@
       "sha256": "f97fc17c9b59ea09a345554cc25b9a8ad343e93000ede6ced1b854418cca70d3",
       "source_model_id": "R2T1AimisiGDMd10011",
       "variant": "ABP_Seq_AimisiGD_Phy"
+    },
+    {
+      "kind": "ui_export",
+      "sha256": "d40b589d7d75c2617884f834ef1ceb68014f5ecb63f0241bae1d104205723778",
+      "selection": "RoleMorph.UiScenePerformanceABP",
+      "source_model_id": "R2T1AimisiGDMd10011",
+      "source_profile_id": "femalez2--aimisigd--r2t1aimisigdmd10011",
+      "ui_class_asset": "/Game/Aki/Character/Role/FemaleZ2/AimisiGD/R2T1AimisiGDMd10011/ABP_Performance_AimisiGD_PC.ABP_Performance_AimisiGD_PC_C",
+      "ui_skin_ids": [
+        81001210
+      ],
+      "variant": "ABP_Performance_AimisiGD_PC",
+      "evidence_kind": "actual_nodes",
+      "extraction_kind": "actual_nodes",
+      "graph_scope": "ui_candidate",
+      "runtime_verified": false,
+      "group_signatures": [
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_3",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Curve",
+          "alpha_curve": "Kawaii_alpha_S01",
+          "root_bones": [
+            "Bone_Hair052"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_2",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Curve",
+          "alpha_curve": "Kawaii_alpha_S03",
+          "root_bones": [
+            "Bone_Wingcalf002_L",
+            "Bone_Wingcalf012_L",
+            "Bone_Wingcalf022_L",
+            "Bone_Wingcalf002_R",
+            "Bone_Wingcalf012_R",
+            "Bone_Wingcalf022_R"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup_1",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Curve",
+          "alpha_curve": "Kawaii_alpha_S04",
+          "root_bones": [
+            "Bone_Winghaed002_L",
+            "Bone_Winghaed012_L",
+            "Bone_Winghaed022_L",
+            "Bone_Winghaed022_R",
+            "Bone_Winghaed012_R",
+            "Bone_Winghaed002_R"
+          ]
+        },
+        {
+          "node_property": "AnimGraphNode_KawaiiPhysicsGroup",
+          "node_type": "KawaiiPhysicsGroup",
+          "alpha_input_type": "Curve",
+          "alpha_curve": "Kawaii_alpha_S02",
+          "root_bones": [
+            "Bone_Hair042_R",
+            "Bone_Hair032_R",
+            "Bone_Hair042_L",
+            "Bone_Hair032_L"
+          ]
+        }
+      ],
+      "group_signature": {
+        "kawaii_group_count": 4,
+        "curve_names": [
+          "Kawaii_alpha_S01",
+          "Kawaii_alpha_S02",
+          "Kawaii_alpha_S03",
+          "Kawaii_alpha_S04"
+        ]
+      }
     }
   ],
   "character": "AimisiGD",
   "character_profile_sha256": "761b05bf91b27927d71940177e4fb9a1fefdece0027f8b12d9c3697f956d9fff",
-  "evidence_level": "heuristic",
+  "evidence_level": "actual_nodes",
   "kind": "native_graph_runtime_descriptor",
   "model_id": "R2T1AimisiGDMd10011",
   "pc_binding": null,

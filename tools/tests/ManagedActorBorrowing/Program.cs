@@ -223,4 +223,70 @@ Throws(ManagedBridge.MaintainStage, "control switch ends maintenance of the capt
 Check(second.Actor.bHidden == secondHidden && second.Mesh.bVisible == secondVisible, "control switch never hides an unacquired replacement player");
 ManagedBridge.Stop(); ManagedBridge.CheckReleased(); UGameplayStatics.Pawn = first.Actor;
 Check(!first.Actor.bHidden && first.Mesh.bVisible && !first.Mesh.bHiddenInGame, "cleanup restores the original player even after control changes");
-Console.WriteLine($"PASS: {assertions} synthetic managed borrowing assertions; mixed actors, rebased camera references, non-performing player visibility, and restoration retries. No game assemblies loaded.");
+// Two forms and repeated copies must own independent mutable engine objects,
+// even when their immutable mesh assets and skeleton are shared.
+var formsRoot = Path.Combine(root, "forms"); Directory.CreateDirectory(formsRoot);
+var skeleton = new USkeleton();
+UiRoleMorphComponent.SpecialMeshes[10] = new() { Name = "Special10", Skeleton = skeleton };
+UiRoleLoadComponent.Resources["/Game/Forms/Upper.Upper"] = new USkeletalMesh { Name = "Upper", Skeleton = skeleton };
+UiRoleLoadComponent.Resources["/Game/Forms/Body.Body"] = new USkeletalMesh { Name = "Body", Skeleton = skeleton };
+UiRoleLoadComponent.Resources["/Game/Forms/Anim.Anim_C"] = new UClass();
+string FormRow(int slot, int role, int skin, string mesh, string strategy = "role_skin", string children = "") =>
+    $"{slot}\t{role}\t{skin}\t{slot * 100}\t0\t0\t{mesh}\t0\t{strategy}\t{strategy}\t{(strategy == "role_morph" ? 1 : 0)}\t1\t{(strategy == "mesh_parts" ? "/Game/Forms/Upper.Upper" : "")}\t{(strategy == "mesh_parts" ? "/Game/Forms/Anim.Anim_C" : "")}\t{children}\t1";
+File.WriteAllLines(Path.Combine(formsRoot, "actors.tsv"), new[] {
+    FormRow(1,10,100,"Role10Skin100"), FormRow(2,10,100,"Special10","role_morph"), FormRow(3,10,100,"Special10","role_morph"),
+    FormRow(4,20,200,"Upper","mesh_parts","/Game/Forms/Body.Body"), FormRow(5,20,200,"Role20Skin200"), FormRow(6,20,200,"Upper","mesh_parts","/Game/Forms/Body.Body") });
+Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", formsRoot); ManagedBridge.BindSession();
+var createdBeforeForms = manager.Created.Count;
+ManagedBridge.BeginTarget(); ManagedBridge.CheckLoaded();
+var formActors = manager.Created.Skip(createdBeforeForms).ToArray();
+Check(formActors.Length == 6 && first.Handle.HoldEntityMap.Count == 0 && second.Handle.HoldEntityMap.Count == 0, "multi-form defaults and variants never borrow a combat actor");
+Check(formActors.Select(actor => actor.Model.Actor.MainMeshComponent._NativePtr).Distinct().Count() == 6 && formActors.Select(actor => actor.Model.Actor.MainMeshComponent.Anim._NativePtr).Distinct().Count() == 6, "each form and repeated copy owns a separate mesh component and animation instance");
+Check(formActors[0].Model.Actor.MainMeshComponent.SkeletalMesh.Name == "Role10Skin100" && formActors[1].Model.Actor.MainMeshComponent.SkeletalMesh.Name == "Special10" && first.Mesh.SkeletalMesh.Name == "Role10Skin100", "selecting the special form does not change the default form or player");
+Check(formActors[3].Model.Actor.MainMeshComponent.SkeletalMesh.Name == "Upper" && formActors[3].Model.Actor.ChildMeshComponentList.Single().SkeletalMesh.Name == "Body", "split form retains its face mesh leader and body follower");
+Check(!ReferenceEquals(formActors[3].Model.Actor.ChildMeshComponentList.Single(),formActors[5].Model.Actor.ChildMeshComponentList.Single()), "split-form copies do not share mutable child mesh components");
+ManagedBridge.ShowAtLocal(); ManagedBridge.CheckLoaded();
+Check(formActors[3].Model.Actor.ChildMeshComponentList.Single().bVisible && formActors[3].Model.Actor.ChildMeshComponentList.Single().Tick, "split form body is visible and evaluates alongside the face leader");
+var otherFormMesh = formActors[0].Model.Actor.MainMeshComponent;
+formActors[1].Model.Morph.SetMorphType(EUiModelMorphType.默认形态);
+Throws(ManagedBridge.MaintainStage, "form changes after binding are reported before accepting another graph");
+Check(ReferenceEquals(otherFormMesh, formActors[0].Model.Actor.MainMeshComponent), "a changed form leaves its sibling instance untouched");
+ManagedBridge.Stop(); ManagedBridge.CheckReleased();
+Check(manager.UiSceneRoleActorMap.Count == 0 && first.Actor.Valid && second.Actor.Valid, "all form instances retire without destroying team actors");
+foreach (var failure in new[] { "missing-resource", "wrong-skeleton", "missing-morph" })
+{
+    var failedRoot = Path.Combine(root, failure); Directory.CreateDirectory(failedRoot);
+    if (failure == "missing-resource") UiRoleLoadComponent.Resources.Remove("/Game/Forms/Body.Body");
+    else UiRoleLoadComponent.Resources["/Game/Forms/Body.Body"] = new USkeletalMesh { Name = "Body", Skeleton = new() };
+    File.WriteAllText(Path.Combine(failedRoot,"actors.tsv"), failure == "missing-morph" ? FormRow(1,999,999,"Missing","role_morph") : FormRow(1,20,200,"Upper","mesh_parts","/Game/Forms/Body.Body"));
+    Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", failedRoot); ManagedBridge.BindSession(); ManagedBridge.BeginTarget();
+    Throws(ManagedBridge.CheckLoaded, "incomplete form resources must not silently use a default model: " + failure);
+    ManagedBridge.Stop(); ManagedBridge.CheckReleased(); Check(manager.UiSceneRoleActorMap.Count == 0, "failed form creation remains recoverable: " + failure);
+}
+foreach (var sample in new[] {
+    ("sweep", true, true, false, 2.15f, 0f, (byte)1, -2.15, "sweep_floor_distance"),
+    ("line", true, true, true, 40f, 1.95f, (byte)1, -1.95, "line_floor_distance"),
+    ("zero", true, true, false, 0f, 0f, (byte)1, 0d, "sweep_floor_distance"),
+    ("invalid", false, true, false, 2.15f, 0f, (byte)1, -2.5, "fallback"),
+    ("far", true, true, false, 25f, 0f, (byte)1, -2.5, "fallback"),
+    ("nan", true, true, false, float.NaN, 0f, (byte)1, -2.5, "fallback"),
+    ("airborne", true, true, false, 2.15f, 0f, (byte)3, -2.5, "fallback"),
+    ("ordinary-stage", true, true, false, 2.15f, 0f, (byte)1, 0d, "capsule_bottom") })
+{
+    var floorRoot = Path.Combine(root, "floor-"+sample.Item1); Directory.CreateDirectory(floorRoot);
+    File.WriteAllText(Path.Combine(floorRoot,"actors.tsv"), "1\t90\t900\t0\t0\t0\tRole90Skin900\t0\n");
+    File.WriteAllText(Path.Combine(floorRoot,"stage_floor.tsv"), (sample.Item1 == "ordinary-stage" ? "capsule_bottom" : "walkable_floor")+"\t2.5\n");
+    first.Actor.CharacterMovement.MovementMode = sample.Item7;
+    first.Actor.CharacterMovement.CurrentFloor = new() { bBlockingHit=sample.Item2, bWalkableFloor=sample.Item3, bLineTrace=sample.Item4, FloorDist=sample.Item5, LineDist=sample.Item6 };
+    var pawnZ = first.Actor.Location.Z;
+    Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR",floorRoot); ManagedBridge.BindSession(); ManagedBridge.BeginTarget(); ManagedBridge.CheckLoaded(); ManagedBridge.ShowAtLocal();
+    var floorLog = JsonNode.Parse(File.ReadAllText(Path.Combine(floorRoot,"managed_actor_lifecycle.json")))!;
+    Check(Math.Abs(floorLog["stage_height_correction_cm"]!.GetValue<double>()-sample.Item8)<.00001 && floorLog["stage_height_correction_source"]!.GetValue<string>()==sample.Item9, "formation floor source and bounded correction: "+sample.Item1);
+    Check(first.Actor.Location.Z==pawnZ, "formation height correction leaves the player's collision capsule at its engine location");
+    first.Actor.CharacterMovement.CurrentFloor.FloorDist = 4;
+    ManagedBridge.ShowAtLocal();
+    var retryLog = JsonNode.Parse(File.ReadAllText(Path.Combine(floorRoot,"managed_actor_lifecycle.json")))!;
+    Check(retryLog["stage_height_correction_cm"]!.GetValue<double>() == floorLog["stage_height_correction_cm"]!.GetValue<double>(), "stage retries keep the initial floor snapshot without accumulating offsets");
+    ManagedBridge.Stop(); ManagedBridge.CheckReleased();
+}
+Console.WriteLine($"PASS: {assertions} synthetic managed actor assertions; borrowing, forms, floor correction, visibility, and restoration retries. No game assemblies loaded.");

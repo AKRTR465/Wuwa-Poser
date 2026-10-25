@@ -59,6 +59,22 @@ int main(){
     Check(scene::ApplyCommand({77,3,play::CommandKind::SetPlacementHeight,20,0},101)==play::ControlCode::Ok,"broadcast placement accepted");
     bool allPlaced=true;for(const auto& actor:runtime.actors)allPlaced=allPlaced&&actor->placement.height==20;
     Check(allPlaced,"broadcast reaches the dynamic collection");
+    const Json originalFormation={{"formation_native",true},{"formation_floor_fallback_cm",2.5}};
+    Check(Near(scene::FormationHeightCorrection(originalFormation,{{"stage_height_correction_cm",-2.15}}),-2.15),"original formation uses the captured capsule-to-floor gap");
+    Check(Near(scene::FormationHeightCorrection(originalFormation,Json::object()),-2.5),"missing floor capture uses the bounded 2.5cm fallback");
+    Check(Near(scene::FormationHeightCorrection({{"formation_native",false}},{{"stage_height_correction_cm",-2.15}}),0),"ordinary stage ignores floor compensation metadata");
+    bool badCorrection=false;try{scene::FormationHeightCorrection(originalFormation,{{"stage_height_correction_cm",-30}});}catch(const std::runtime_error&){badCorrection=true;}
+    Check(badCorrection,"floor correction cannot become an unbounded terrain offset");
+    runtime.formationHeightCorrection=-2.15;runtime.cameraAnchor=runtime.actors.front().get();
+    const auto effective=scene::EffectivePlacement(*runtime.cameraAnchor);
+    Check(Near(effective.height,17.85)&&Near(runtime.cameraAnchor->placement.height,20),"floor correction is additive to manual height without mutating it");
+    bool stableHeight=true;for(unsigned i=0;i<100;++i)stableHeight=stableHeight&&Near(scene::EffectivePlacement(*runtime.cameraAnchor).height,17.85);
+    Check(stableHeight,"paused publications never accumulate the formation height correction");
+    Check(Near(scene::CameraState(runtime.transport.State()).placement_height,17.85),"camera follows the same corrected height as body and native physics");
+    scene::ApplyActorCommand(*runtime.cameraAnchor,{77,0,play::CommandKind::ResetPlacement,0});
+    Check(Near(scene::EffectivePlacement(*runtime.cameraAnchor).height,-2.15),"resetting manual placement preserves the stage floor correction");
+    scene::ApplyActorCommand(*runtime.cameraAnchor,{77,0,play::CommandKind::SetPlacementHeight,20});
+    runtime.formationHeightCorrection=0;
     Check(scene::ApplyCommand({77,4,play::CommandKind::SetPlacementX,1,41},101)==play::ControlCode::InvalidCommand,"unknown slot rejects without falsely acknowledging");
     Check(runtime.transport.State().last_sequence==3,"rejected actor command preserves shared command sequence");
     scene::ApplyCommand({77,4,play::CommandKind::Pause,0},101);scene::Advance(3,500);

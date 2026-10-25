@@ -13,6 +13,7 @@ public sealed partial class OwnedMmdPlaybackService
         var actors = ActorConfigs(config);
         config["spacing_cm"] = spacingCm;
         config["formation_native"] = formationNative;
+        config["formation_floor_fallback_cm"] = 2.5;
         for (var index = 0; index < actors.Count; index++)
         {
             // Stage offsets are separate from each animation's local placement.
@@ -49,12 +50,23 @@ public sealed partial class OwnedMmdPlaybackService
         var lines = ActorConfigs(config).Select(actor =>
         {
             var model = Contract.S(actor, "mesh_asset_name");
-            if (model.IndexOfAny(['\t', '\r', '\n']) >= 0) throw new InvalidDataException("角色网格名称含无效文本字符。");
+            var form = actor["form"] as JsonObject;
+            string Text(string key, string fallback = "") => form?[key]?.GetValue<string>() ?? fallback;
+            var children = form?["child_mesh_paths"] as JsonArray;
+            var fields = new[] { model, Text("id", "default"), Text("strategy", "role_skin"), Text("main_mesh_path"), Text("anim_class_path"),
+                string.Join('|', children?.Select(child => child!.GetValue<string>()) ?? []) };
+            if (fields.Any(field => field.IndexOfAny(['\t', '\r', '\n']) >= 0) || children?.Any(child => child!.GetValue<string>().Contains('|')) == true)
+                throw new InvalidDataException("角色形态含无效文本字符。");
             return string.Join('\t', (actor["slot"]?.GetValue<uint>() ?? 1).ToString(CultureInfo.InvariantCulture),
                 Contract.I(actor, "role_id").ToString(CultureInfo.InvariantCulture), Contract.I(actor, "skin_id").ToString(CultureInfo.InvariantCulture),
-                Number(actor, "stage_x_cm"), Number(actor, "stage_y_cm"), Number(actor, "stage_z_cm"), model, Number(actor, "stage_yaw_degrees"));
+                Number(actor, "stage_x_cm"), Number(actor, "stage_y_cm"), Number(actor, "stage_z_cm"), model, Number(actor, "stage_yaw_degrees"),
+                fields[1], fields[2], (form?["morph_type"]?.GetValue<int>() ?? 0).ToString(CultureInfo.InvariantCulture),
+                Text("base_model_id", actor["model_id"]?.GetValue<string>() ?? "0"), fields[3], fields[4], fields[5], Contract.True(actor, "independent_instance") ? "1" : "0");
         });
         File.WriteAllLines(Path.Combine(directory, "actors.tsv"), lines, new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(directory, "stage_floor.tsv"),
+            (Contract.True(config, "formation_native") ? "walkable_floor" : "capsule_bottom") + "\t" +
+            (config["formation_floor_fallback_cm"]?.GetValue<double>() ?? 2.5).ToString("R", CultureInfo.InvariantCulture) + "\n", new UTF8Encoding(false));
     }
 
     public async Task<JsonObject> PrepareActorsAsync(PlaybackSessionRequest request, string outputDirectory, CancellationToken cancellation = default)

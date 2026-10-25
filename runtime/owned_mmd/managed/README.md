@@ -1,9 +1,33 @@
 # Mixed actor ownership
 
 `ManagedBridge` executes its public operations on the attached game thread. It
-reads `actors.tsv` with eight tab-separated columns and no header:
+reads `actors.tsv` with sixteen tab-separated columns and no header (the legacy
+eight-column format remains readable):
 
-`slot, role_id, skin_id, stage_x_cm, stage_y_cm, stage_z_cm, model_asset_name, stage_yaw_degrees`
+```text
+slot, role_id, skin_id, stage_x_cm, stage_y_cm, stage_z_cm, model_asset_name, stage_yaw_degrees,
+form_id, form_strategy, morph_type, base_model_id, main_mesh_path, anim_class_path, child_mesh_paths, independent_instance
+```
+
+Child mesh paths are separated by `|`. `independent_instance=1` forces creation
+even when an exact team actor exists. All defaults and alternates of registered
+multi-form families use this flag. `role_morph` uses the actor's own preloaded
+`UiRoleMorphComponent`; `mesh_parts` preloads resources in that owner's loader
+cache and calls `ChangeMesh` with a face-bearing leader and body follower.
+Actor, main mesh, animation instance and child components must remain distinct
+between slots. Graph and lifecycle exports include the selected form; created
+form actors are checked for identity/form changes during playback maintenance.
+
+`stage_floor.tsv` selects `capsule_bottom` for normal staging or `walkable_floor`
+for original choreography, followed by a tab and a small fallback distance in
+centimetres (2.5 by default). For original choreography the bridge captures the
+walking pawn's existing `CurrentFloor` once, before moving any actor. A valid
+walkable sweep uses `FloorDist`; a line result uses `LineDist`. Missing, airborne,
+non-finite or out-of-range results use the fallback. The accepted range is 0–5 cm.
+The lifecycle records `stage_height_correction_cm` and its source. Native motion
+and camera placement add this correction without changing the stored manual
+height, source clip or capsule position. Preview actors retain their original
+static placement. Normal staging receives no automatic change.
 
 Slots are positive `uint32` values and need not be contiguous. Stage X follows
 the local pawn's horizontal right vector, Y follows forward, and Z is measured
@@ -63,7 +87,7 @@ destroys retain ownership for retry. Native body, face, and camera restoration
 must complete before calling this managed stop operation.
 
 `MaintainStage` is called from the session's existing camera callback. For
-borrowed actors only, it checks the same current identity and repairs differing
+borrowed actors, it checks the same current identity and repairs differing
 stage transforms, visibility, and animation/tick settings. It never replaces
 the original snapshot. Stop disables this maintenance before attempting any
 restoration, including when a failed restore is retried later.

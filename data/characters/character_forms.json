@@ -1,0 +1,222 @@
+{
+  "schema": 1,
+  "scope": "offline_form_candidates",
+  "runtime_verified": false,
+  "game_accessed": false,
+  "counts": {
+    "base_selections": 80,
+    "additional_forms": 4,
+    "form_families": 4,
+    "combined_selections": 84
+  },
+  "sources": [
+    {
+      "path": "analysis/owned_catalog_20261023/raw/Client/Content/Aki/ConfigDB/db_role.db",
+      "sha256": "960d9f493479a0732aca9c5212a76c3fc5d755fda32bfaf41ce49b72ded6bda2",
+      "bytes": 1028096
+    },
+    {
+      "path": "analysis/character_forms_20261025/raw/Client/Content/Aki/JavaScript/Core/Define/Config/RoleMorph.js",
+      "sha256": "541b2a6213b7ddf0e93170056beb0479b69070d47d78137cc2d0e3cab9874bcc",
+      "bytes": 1627
+    },
+    {
+      "path": "analysis/character_forms_20261025/raw/Client/Content/Aki/Character/Role/FemaleZ/Fuludelisi/R2T1FuludelisiMd10011/ABP_Performance_Fuludelisi_PC_UI.uasset",
+      "sha256": "53a73e2d91dd3d4a8ffdc6c6b62ae042492cdd39c51b2b7a0a0f3f32d315b959",
+      "bytes": 87243
+    },
+    {
+      "path": "analysis/character_forms_20261025/raw/Client/Content/Aki/Character/Role/FemaleZ2/AimisiGD/R2T1AimisiGDMd10011/ABP_Performance_AimisiGD_PC.uasset",
+      "sha256": "d40b589d7d75c2617884f834ef1ceb68014f5ecb63f0241bae1d104205723778",
+      "bytes": 56827
+    },
+    {
+      "path": "analysis/character_forms_20261025/raw/Client/Content/Aki/Character/Role/FemaleXL/XinyuehuShen/R2T1ShenXinMd10011/ABP_Performance_ShenXin_PC.uasset",
+      "sha256": "05e92e736ad455598f692336cbf2f5c9f8ad0ca420635c9ac06506e94abecde8",
+      "bytes": 21776
+    },
+    {
+      "path": "analysis/character_forms_20261025/raw/Client/Content/Aki/Character/Role/FemaleMS/Daniya/Seq/BP_DaniyaDark_Seq_V2.uasset",
+      "sha256": "1640cd5dd339006330d145e89a42a09a96a1bc4848ad3d790a359247b8e8af19",
+      "bytes": 14472
+    },
+    {
+      "path": "analysis/character_forms_20261025/raw/Client/Content/Aki/Character/Role/FemaleMS/Daniya/R2T1DaniyaMd10011/Model/R2T1DaniyaMd10011_Up2.uasset",
+      "sha256": "edd4159a36967d720616e56f70ca9375ac475009d82efee34c7d406210a75ddb",
+      "bytes": 286496
+    },
+    {
+      "path": "analysis/character_forms_20261025/raw/Client/Content/Aki/Character/Role/FemaleMS/Daniya/R2T1DaniyaMd10011/Model/R2T1DaniyaMd10011_Body.uasset",
+      "sha256": "dfb894cc3bf89c5e47c1572d556e37c876cb2e92b35efe774dba315f39cd35d2",
+      "bytes": 222464
+    },
+    {
+      "path": "analysis/character_forms_20261025/raw/R2T1DaniyaMd10011_Up2_reference.json",
+      "sha256": "de284ad3b538686f7306017f718be928b0a0f8c39faa54995d074bce4b11bfba",
+      "bytes": 223897
+    }
+  ],
+  "forms": [
+    {
+      "character_id": "role1210-skin81001210-form-special",
+      "base_character_id": "role1210-skin81001210",
+      "display_name": "爱弥斯 · 机甲",
+      "model_id": "100058",
+      "model_asset_name": "R2T1AimisiGDMd10011",
+      "profile_id": "femalez2--aimisigd--r2t1aimisigdmd10011",
+      "runtime_verified": false,
+      "evidence": {
+        "kind": "RoleMorph",
+        "row": {
+          "id": 2,
+          "roleid": 1210,
+          "morph": 1,
+          "skinid": 81001210,
+          "meshid": 100058,
+          "uimeshid": 100058,
+          "uisceneperformanceabp": "/Game/Aki/Character/Role/FemaleZ2/AimisiGD/R2T1AimisiGDMd10011/ABP_Performance_AimisiGD_PC.ABP_Performance_AimisiGD_PC_C",
+          "rolebody": "FemaleZ2"
+        }
+      },
+      "load": {
+        "id": "special",
+        "strategy": "role_morph",
+        "morph_type": 1,
+        "base_model_id": "100057",
+        "main_mesh_path": "/Game/Aki/Character/Role/FemaleZ2/AimisiGD/R2T1AimisiGDMd10011/Model/R2T1AimisiGDMd10011.R2T1AimisiGDMd10011",
+        "anim_class_path": "/Game/Aki/Character/Role/FemaleZ2/AimisiGD/R2T1AimisiGDMd10011/ABP_Performance_AimisiGD_PC.ABP_Performance_AimisiGD_PC_C",
+        "child_mesh_paths": []
+      }
+    },
+    {
+      "character_id": "role1211-skin81001211-form-dark",
+      "base_character_id": "role1211-skin81001211",
+      "display_name": "达妮娅 · Dark",
+      "model_id": "1000621",
+      "model_asset_name": "R2T1DaniyaMd10011_Up2",
+      "profile_id": "femalems--daniya-dark--r2t1daniyamd10011-up2",
+      "runtime_verified": false,
+      "evidence": {
+        "kind": "sequence_mesh_composition",
+        "source": "BP_DaniyaDark_Seq_V2",
+        "parts": [
+          "R2T1DaniyaMd10011_Body",
+          "R2T1DaniyaMd10011_Up2"
+        ],
+        "mmd_main_mesh": "R2T1DaniyaMd10011_Up2",
+        "mmd_animation": "RoleSkin.UiScenePerformanceABP",
+        "reason": "Use the face-bearing mesh as pose/expressions leader and Body as its child. Reuse the exact same-skeleton UI graph for game-native physics; Dark sequence Phy exports no own Kawaii groups."
+      },
+      "load": {
+        "id": "dark",
+        "strategy": "mesh_parts",
+        "morph_type": 0,
+        "base_model_id": "1000621",
+        "main_mesh_path": "/Game/Aki/Character/Role/FemaleMS/Daniya/R2T1DaniyaMd10011/Model/R2T1DaniyaMd10011_Up2.R2T1DaniyaMd10011_Up2",
+        "anim_class_path": "/Game/Aki/Character/Role/FemaleMS/Daniya/R2T1DaniyaMd10011/ABP_Performance_Daniya_PC.ABP_Performance_Daniya_PC_C",
+        "child_mesh_paths": [
+          "/Game/Aki/Character/Role/FemaleMS/Daniya/R2T1DaniyaMd10011/Model/R2T1DaniyaMd10011_Body.R2T1DaniyaMd10011_Body"
+        ]
+      }
+    },
+    {
+      "character_id": "role1311-skin81001311-form-special",
+      "base_character_id": "role1311-skin81001311",
+      "display_name": "心 · 特殊形态",
+      "model_id": "100072",
+      "model_asset_name": "R2T1ShenXinMd10011",
+      "profile_id": "femalexl--xinyuehushen--r2t1shenxinmd10011",
+      "runtime_verified": false,
+      "evidence": {
+        "kind": "RoleMorph",
+        "row": {
+          "id": 3,
+          "roleid": 1311,
+          "morph": 1,
+          "skinid": 81001311,
+          "meshid": 100072,
+          "uimeshid": 100072,
+          "uisceneperformanceabp": "/Game/Aki/Character/Role/FemaleXL/XinyuehuShen/R2T1ShenXinMd10011/ABP_Performance_ShenXin_PC.ABP_Performance_ShenXin_PC_C",
+          "rolebody": "FemaleXL"
+        }
+      },
+      "load": {
+        "id": "special",
+        "strategy": "role_morph",
+        "morph_type": 1,
+        "base_model_id": "100071",
+        "main_mesh_path": "/Game/Aki/Character/Role/FemaleXL/XinyuehuShen/R2T1ShenXinMd10011/Model/R2T1ShenXinMd10011.R2T1ShenXinMd10011",
+        "anim_class_path": "/Game/Aki/Character/Role/FemaleXL/XinyuehuShen/R2T1ShenXinMd10011/ABP_Performance_ShenXin_PC.ABP_Performance_ShenXin_PC_C",
+        "child_mesh_paths": []
+      }
+    },
+    {
+      "character_id": "role1409-skin81001409-form-special",
+      "base_character_id": "role1409-skin81001409",
+      "display_name": "卡提希娅 · 芙露德莉斯",
+      "model_id": "100041",
+      "model_asset_name": "R2T1FuludelisiMd10011",
+      "profile_id": "femalez--fuludelisi--r2t1fuludelisimd10011",
+      "runtime_verified": false,
+      "evidence": {
+        "kind": "RoleMorph",
+        "row": {
+          "id": 1,
+          "roleid": 1409,
+          "morph": 1,
+          "skinid": 81001409,
+          "meshid": 100041,
+          "uimeshid": 100041,
+          "uisceneperformanceabp": "/Game/Aki/Character/Role/FemaleZ/Fuludelisi/R2T1FuludelisiMd10011/ABP_Performance_Fuludelisi_PC_UI.ABP_Performance_Fuludelisi_PC_UI_C",
+          "rolebody": "FemaleZ"
+        }
+      },
+      "load": {
+        "id": "special",
+        "strategy": "role_morph",
+        "morph_type": 1,
+        "base_model_id": "100038",
+        "main_mesh_path": "/Game/Aki/Character/Role/FemaleZ/Fuludelisi/R2T1FuludelisiMd10011/Model/R2T1FuludelisiMd10011.R2T1FuludelisiMd10011",
+        "anim_class_path": "/Game/Aki/Character/Role/FemaleZ/Fuludelisi/R2T1FuludelisiMd10011/ABP_Performance_Fuludelisi_PC_UI.ABP_Performance_Fuludelisi_PC_UI_C",
+        "child_mesh_paths": []
+      }
+    }
+  ],
+  "scan": {
+    "pak_files_indexed": 1991637,
+    "RoleMorph_rows": [
+      {
+        "id": 1,
+        "roleid": 1409,
+        "morph": 1,
+        "skinid": 81001409,
+        "meshid": 100041,
+        "uimeshid": 100041,
+        "uisceneperformanceabp": "/Game/Aki/Character/Role/FemaleZ/Fuludelisi/R2T1FuludelisiMd10011/ABP_Performance_Fuludelisi_PC_UI.ABP_Performance_Fuludelisi_PC_UI_C",
+        "rolebody": "FemaleZ"
+      },
+      {
+        "id": 2,
+        "roleid": 1210,
+        "morph": 1,
+        "skinid": 81001210,
+        "meshid": 100058,
+        "uimeshid": 100058,
+        "uisceneperformanceabp": "/Game/Aki/Character/Role/FemaleZ2/AimisiGD/R2T1AimisiGDMd10011/ABP_Performance_AimisiGD_PC.ABP_Performance_AimisiGD_PC_C",
+        "rolebody": "FemaleZ2"
+      },
+      {
+        "id": 3,
+        "roleid": 1311,
+        "morph": 1,
+        "skinid": 81001311,
+        "meshid": 100072,
+        "uimeshid": 100072,
+        "uisceneperformanceabp": "/Game/Aki/Character/Role/FemaleXL/XinyuehuShen/R2T1ShenXinMd10011/ABP_Performance_ShenXin_PC.ABP_Performance_ShenXin_PC_C",
+        "rolebody": "FemaleXL"
+      }
+    ],
+    "role_mesh_skeletons": 73,
+    "limits": "Configured UI forms plus explicit DaniyaDark sequence composition. Asset names alone are not evidence of an additional selectable form; gameplay-only material/effect states are not exhaustively identified."
+  }
+}

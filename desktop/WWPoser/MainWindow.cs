@@ -212,7 +212,7 @@ public sealed partial class MainWindow : Window
     private async Task StartRecordingAsync(bool automatic)
     {
         var directory = recorder.OutputDirectory; Directory.CreateDirectory(directory);
-        await recorder.StartAsync(directory, recordingFps.SelectedIndex == 0 ? 30 : 60, recordingSize.SelectedIndex == 0 ? 1080 : 0);
+        await recorder.StartAsync(directory, recordingFps.SelectedIndex == 0 ? 30 : 60, recordingSize.SelectedIndex switch { 0 => 1080, 1 => 1440, _ => 0 });
         automaticRecordingSession = automatic ? session : null; UpdateRecordingControls(); status.Text = "正在录制鸣潮窗口。";
     }
     private Task StartAutomaticRecordingAsync() => autoRecord.IsChecked == true && session is not null && sessionControllable && !recorder.IsBusy

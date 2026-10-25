@@ -11,10 +11,15 @@
     <AssemblyName>WWPoser</AssemblyName>
     <RootNamespace>WWPoser</RootNamespace>
     <StartupObject>WWPoser.Program</StartupObject>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Product>Wuwa Poser</Product>
     <Description>鸣潮 MMD 播放器</Description>
     <RepositoryUrl>https://github.com/AKRTR465/Wuwa-Poser</RepositoryUrl>
+    <ApplicationIcon>Assets\WuwaPoser.ico</ApplicationIcon>
   </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets\WuwaPoser.ico" />
+    <Resource Include="Assets\WuwaPoser.png" />
+  </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="ServiceChecks" /><InternalsVisibleTo Include="UnifiedUiChecks" /></ItemGroup>
 </Project>

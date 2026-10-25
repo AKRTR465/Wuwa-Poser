@@ -98,7 +98,7 @@ public sealed class PlaybackSessionService
 
     private static int Milliseconds(double seconds) => checked((int)Math.Round(seconds * 1000));
     private static void WriteRequest(string directory, PlaybackSessionRequest request) => JsonData.Write(Path.Combine(directory, RequestFilename), JsonSerializer.SerializeToNode(request)!.AsObject());
-    private static string CompilationFingerprint(PlaybackSessionRequest request)
+    private string CompilationFingerprint(PlaybackSessionRequest request)
     {
         request = AssignSlots(request);
         string? Digest(string? file) => string.IsNullOrWhiteSpace(file) ? null : JsonData.Digest(file);
@@ -108,7 +108,11 @@ public sealed class PlaybackSessionService
             ["body"] = actor.Enabled ? Digest(actor.BodySource) : null,
             ["face"] = actor.Enabled ? Digest(actor.FaceSource) : null, ["scale"] = actor.Scale
         }).ToArray());
-        return JsonData.CanonicalDigest(new JsonObject { ["source"] = (int)request.Source, ["actors"] = actors, ["camera"] = Digest(request.CameraSource), ["stage"] = request.Source == PlaybackSource.CurrentSquad ? Digest(Path.Combine(request.StageSession!, "stage_config.json")) : null });
+        var forms = Path.Combine(root, "data", "characters", "character_forms.json");
+        return JsonData.CanonicalDigest(new JsonObject { ["character_loading_version"] = 2,
+            ["catalog"] = Digest(Path.Combine(root, OwnedCharacterCatalog.RelativePath)), ["character_index"] = Digest(Path.Combine(root, "data", "characters", "index.json")),
+            ["forms"] = File.Exists(forms) ? Digest(forms) : null,
+            ["source"] = (int)request.Source, ["actors"] = actors, ["camera"] = Digest(request.CameraSource), ["stage"] = request.Source == PlaybackSource.CurrentSquad ? Digest(Path.Combine(request.StageSession!, "stage_config.json")) : null });
     }
     public bool RequiresPreparation(string directory, PlaybackSessionRequest request)
     {

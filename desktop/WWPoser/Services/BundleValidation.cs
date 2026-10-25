@@ -12,6 +12,7 @@ public static class BundleValidation
             foreach (var row in Contract.A(JsonData.ReadObject(manifestPath), "files"))
                 Contract.Require(File.Exists(Path.Combine(root, Contract.S(row!, "path"))), "包文件缺失：" + Contract.S(row!, "path"));
         JsonData.Write(Path.Combine(root, "bundle_validation.json"), new JsonObject { ["state"] = "validated", ["profiles"] = profiles.Count,
-            ["character_configurations"] = catalog.CharacterConfigurationCount, ["character_skin_selections"] = catalog.Characters.Count, ["default_mmd_backend"] = "game_native" });
+            ["character_configurations"] = catalog.CharacterConfigurationCount, ["character_skin_selections"] = catalog.Characters.Count(character => character.Form is null),
+            ["additional_forms"] = catalog.Characters.Count(character => character.Form is not null), ["character_form_selections"] = catalog.Characters.Count, ["default_mmd_backend"] = "game_native" });
     }
 }

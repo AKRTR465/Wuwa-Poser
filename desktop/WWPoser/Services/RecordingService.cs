@@ -8,6 +8,7 @@ using System.Text;
 namespace WWPoser.Services;
 
 public sealed record WindowTarget(nint Hwnd, uint Pid, string Title, int Width, int Height);
+public enum RecordingEncoder { NvencD3D11, NvencCompatible, Software }
 public sealed record RecordingSnapshot(string State, string Message, double Elapsed = 0,
     string? OutputPath = null, string? WorkDirectory = null, string? StopReason = null, int? CaptureExitCode = null);
 
@@ -49,6 +50,7 @@ public sealed class RecordingService
     }
     public Task StartAsync(string folder, int fps = 30, int height = 1080)
     {
+        ValidateSettings(fps, height);
         lock (gate)
         {
             if (worker is { IsCompleted: false }) throw new InvalidOperationException("录屏尚未结束");
@@ -77,85 +79,149 @@ public sealed class RecordingService
         }
         return (state, selected, fresh, stamp + "|" + JsonSerializer.Serialize(selected) + "|" + fresh);
     }
-    public static IReadOnlyList<string> BuildCaptureArguments(WindowTarget target, string videoPath, int fps = 30, int height = 1080)
+    private static void ValidateSettings(int fps, int height)
     {
-        int width = height == 1080 ? 1920 : -2, outputHeight = height == 1080 ? 1080 : -2;
-        string filter = $"gfxcapture=hwnd={(ulong)target.Hwnd}:capture_cursor=0:capture_border=0:display_border=1:width={width}:height={outputHeight}:resize_mode=scale_aspect:max_framerate={fps},hwdownload,format=bgra,fps={fps},scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[v]";
-        return new[] { "-hide_banner", "-loglevel", "warning", "-n", "-stats_period", "0.1", "-progress", "pipe:1", "-filter_complex", filter,
-            "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency", "-crf", "20", "-bf", "0", "-threads", "4",
-            "-fps_mode", "cfr", "-f", "matroska", videoPath };
+        if (fps is not (30 or 60)) throw new ArgumentOutOfRangeException(nameof(fps));
+        if (height is not (0 or 1080 or 1440)) throw new ArgumentOutOfRangeException(nameof(height));
+    }
+    private static string EncoderLabel(RecordingEncoder encoder) => encoder switch {
+        RecordingEncoder.NvencD3D11 => "NVENC 硬件编码 · GPU 直连", RecordingEncoder.NvencCompatible => "NVENC 硬件编码 · 兼容模式",
+        _ => "软件编码（硬件不可用，开销较高）" };
+    internal static IReadOnlyList<string> BuildEncodingArguments(int fps, RecordingEncoder encoder = RecordingEncoder.NvencD3D11) => encoder == RecordingEncoder.Software ? new[] {
+        "-an", "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency", "-crf", "20", "-bf", "0", "-threads", "4",
+        "-colorspace", "bt470bg", "-color_range", "tv", "-r", fps.ToString(CultureInfo.InvariantCulture), "-fps_mode", "cfr" } : new[] {
+        "-an", "-c:v", "h264_nvenc", "-preset", "p4", "-tune", "ll", "-rc", "constqp", "-qp", "21", "-profile:v", "high",
+        "-bf", "0", "-rc-lookahead", "0", "-spatial-aq", "0", "-temporal-aq", "0", "-multipass", "disabled",
+        // NVENC's packed-RGB conversion produces limited-range BT.601 YUV.
+        // Match the container tags to the bitstream instead of inheriting RGB/full.
+        "-colorspace", "bt470bg", "-color_range", "tv", "-r", fps.ToString(CultureInfo.InvariantCulture), "-fps_mode", "cfr" };
+    public static IReadOnlyList<string> BuildCaptureArguments(WindowTarget target, string videoPath, int fps = 30, int height = 1080,
+        RecordingEncoder encoder = RecordingEncoder.NvencD3D11)
+    {
+        ValidateSettings(fps, height);
+        int width = height switch { 1080 => 1920, 1440 => 2560, _ => -2 }, outputHeight = height == 0 ? -2 : height;
+        // WGC scales on the GPU and rounds original dimensions to even pixels.
+        // The preferred path keeps D3D11 BGRA surfaces on NVIDIA all the way to NVENC.
+        // Compatibility mode still uses NVENC, but allows WGC's default capture adapter.
+        string filter = $"gfxcapture=hwnd={(ulong)target.Hwnd}:capture_cursor=0:capture_border=0:display_border=1:width={width}:height={outputHeight}:resize_mode=scale_aspect:max_framerate={fps}:output_fmt=bgra";
+        var arguments = new List<string> { "-hide_banner", "-loglevel", "warning", "-n", "-stats_period", "0.1", "-progress", "pipe:1" };
+        if (encoder == RecordingEncoder.NvencD3D11)
+            arguments.AddRange(["-init_hw_device", "d3d11va=recording:,vendor_id=0x10de", "-filter_hw_device", "recording"]);
+        else if (encoder is RecordingEncoder.NvencCompatible or RecordingEncoder.Software)
+            filter += ",hwdownload,format=bgra" + (encoder == RecordingEncoder.Software ? ",format=yuv420p" : "");
+        else throw new ArgumentOutOfRangeException(nameof(encoder));
+        // setparams changes frame metadata only, including for hardware frames.
+        // Output stream tags otherwise inherit WGC's RGB/full-range properties.
+        arguments.AddRange(["-filter_complex", filter + ",setparams=colorspace=bt470bg:range=limited[v]", "-map", "[v]"]);
+        arguments.AddRange(BuildEncodingArguments(fps, encoder)); arguments.AddRange(["-f", "matroska", videoPath]); return arguments;
     }
     private async Task CaptureAsync(string folder, int fps, int height, CancellationToken requestStop)
     {
-        Process? process = null; MusicJournal? journal = null; string? work = null;
+        MusicJournal? journal = null; string? work = null;
         try
         {
             WindowTarget target = GameWindows.Find(); Directory.CreateDirectory(folder);
             string stem = "鸣潮_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture) + "_" + Guid.NewGuid().ToString("N")[..6];
             string output = Path.Combine(folder, stem + ".mp4"); work = Path.Combine(folder, "." + stem); Directory.CreateDirectory(work);
             Update(new RecordingSnapshot("starting", "正在连接鸣潮窗口", WorkDirectory: work));
-            string silent = Path.Combine(work, "video.mkv"); journal = new MusicJournal(Path.Combine(work, "music"), ffmpeg);
-            double captureStart = Seconds(); var sample = AudioSample(); journal.Observe(captureStart, sample.State, sample.Music, sample.Fresh);
-            string signature = sample.Signature;
-            if (requestStop.IsCancellationRequested) { Update(new RecordingSnapshot("idle", "已取消录屏", WorkDirectory: work)); return; }
-            var start = new ProcessStartInfo(ffmpeg) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
-            foreach (string argument in BuildCaptureArguments(target, silent, fps, height)) start.ArgumentList.Add(argument);
-            captureStart = Seconds(); process = Process.Start(start)!;
-            using var captureLog = new StreamWriter(Path.Combine(work, "capture.log"), false, new UTF8Encoding(false));
-            var packets = new ConcurrentQueue<(double Received, Dictionary<string, string> Values)>();
-            var progress = ReadProgressAsync(process.StandardOutput, packets);
-            var errors = CopyErrorsAsync(process.StandardError, captureLog);
-            long frameCount = 0; double lastProgress = captureStart; double? stopSent = null; string? problem = null;
-            var origins = new List<double>(); double elapsed = 0;
-            while (true)
-            {
-                double now = Seconds();
-                while (packets.TryDequeue(out var packet))
-                {
-                    if (!packet.Values.TryGetValue("frame", out string? text) || !long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long frames)) continue;
-                    packet.Values.TryGetValue("out_time_us", out string? time); double.TryParse(time, NumberStyles.Float, CultureInfo.InvariantCulture, out double micros); elapsed = micros / 1e6;
-                    if (frames <= frameCount) continue;
-                    frameCount = frames; lastProgress = packet.Received;
-                    if (packet.Values.GetValueOrDefault("progress") != "end" && elapsed > 0 && double.IsFinite(elapsed)) origins.Add(packet.Received - elapsed + 1d / fps);
-                    Update(new RecordingSnapshot(stopSent is null ? "recording" : "finishing", stopSent is null ? "正在录制鸣潮" : "正在保存录屏", Math.Max(0, elapsed), WorkDirectory: work));
-                }
-                sample = AudioSample(); if (sample.Signature != signature) { journal.Observe(now, sample.State, sample.Music, sample.Fresh); signature = sample.Signature; }
-                if (process.HasExited) break;
-                if (stopSent is null)
-                {
-                    problem = GameWindows.Problem(target);
-                    if (problem is null && ((frameCount == 0 && now - captureStart > 20) || (frameCount > 0 && now - lastProgress > 10))) problem = "未收到持续游戏画面，请使用窗口或无边框模式";
-                    if (problem is not null || requestStop.IsCancellationRequested)
-                    { try { await process.StandardInput.WriteLineAsync("q"); await process.StandardInput.FlushAsync(); } catch (IOException) { } stopSent = now; }
-                }
-                else if (now - stopSent > 15) throw new IOException("录屏编码器未正常结束，原始文件保留在 " + work);
-                await Task.Delay(50);
-            }
-            await process.WaitForExitAsync(); await progress; await errors;
-            if ((process.ExitCode != 0 || stopSent is null) && problem is null) problem = "录屏组件提前结束，已保留可用画面和日志";
-            if (!File.Exists(silent) || frameCount == 0 || origins.Count == 0) throw new IOException("窗口录制未产生画面，日志保留在 " + work);
-            double duration = await VideoDurationAsync(silent);
-            double origin = Math.Max(captureStart, origins.Min());
+            journal = new MusicJournal(Path.Combine(work, "music"), ffmpeg);
+            var video = await CaptureVideoAsync(target, work, fps, height, journal, requestStop);
+            if (video is null) { Update(new RecordingSnapshot("idle", "已取消录屏", WorkDirectory: work)); return; }
+            string silent = video.Path; double duration = await VideoDurationAsync(silent), origin = video.Origin;
             Update(new RecordingSnapshot("finishing", "正在合成 MMD 音乐并保存 MP4", duration, WorkDirectory: work));
             string journalPath = journal.Finish(duration, origin), wav = Path.Combine(work, "music.wav");
             JsonObject audio = await AudioRenderer.RenderAsync(journalPath, wav, ffmpeg, CancellationToken.None);
-            var mux = await MediaJson.RunAsync(ffmpeg, new[] { "-hide_banner", "-loglevel", "error", "-n", "-i", silent, "-i", wav, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-t", duration.ToString("R", CultureInfo.InvariantCulture), "-movflags", "+faststart", output });
+            var mux = await MediaJson.RunAsync(ffmpeg, new[] { "-hide_banner", "-loglevel", "error", "-n", "-i", silent, "-i", wav, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "320k", "-t", duration.ToString("R", CultureInfo.InvariantCulture), "-movflags", "+faststart", output });
             if (mux.ExitCode != 0) throw new IOException("MP4 合成失败，原始文件保留在 " + work + "：" + mux.Error);
             JsonData.Write(Path.Combine(work, "result.json"), new JsonObject { ["schema"] = 1, ["target"] = new JsonObject { ["hwnd"] = (ulong)target.Hwnd, ["pid"] = target.Pid, ["title"] = target.Title, ["width"] = target.Width, ["height"] = target.Height },
-                ["duration"] = duration, ["fps"] = fps, ["output"] = output, ["audio"] = audio, ["video_origin_estimate"] = origin, ["capture_process_start"] = captureStart,
-                ["capture_exit_code"] = process.ExitCode, ["stop_reason"] = problem ?? "user_stop" });
-            Update(new RecordingSnapshot("saved", "已保存：" + Path.GetFileName(output), duration, output, work, problem ?? "user_stop", process.ExitCode));
+                ["duration"] = duration, ["fps"] = fps, ["requested_height"] = height, ["output"] = output, ["audio"] = audio, ["video_origin_estimate"] = origin, ["capture_process_start"] = video.Start,
+                ["video_encoder"] = video.Encoder == RecordingEncoder.Software ? "libx264" : "h264_nvenc", ["capture_backend"] = video.Encoder.ToString(), ["capture_attempts"] = video.Attempts,
+                ["capture_exit_code"] = video.ExitCode, ["stop_reason"] = video.Problem ?? "user_stop" });
+            Update(new RecordingSnapshot("saved", "已保存：" + Path.GetFileName(output) + " · " + EncoderLabel(video.Encoder), duration, output, work, video.Problem ?? "user_stop", video.ExitCode));
         }
         catch (Exception error)
         {
             Update(new RecordingSnapshot("error", error.Message, WorkDirectory: work));
             if (work is not null) File.WriteAllText(Path.Combine(work, "error.txt"), error.ToString(), new UTF8Encoding(false));
         }
-        finally
+        finally { journal?.Dispose(); }
+    }
+    internal sealed record CapturedVideo(string Path, RecordingEncoder Encoder, double Start, double Origin, int ExitCode, string? Problem, JsonArray Attempts);
+    // The optional argument/window providers let offline checks exercise actual
+    // child-process startup, retry and stop handling using synthetic video only.
+    internal async Task<CapturedVideo?> CaptureVideoAsync(WindowTarget target, string work, int fps, int height, MusicJournal journal,
+        CancellationToken requestStop, Func<RecordingEncoder, string, IReadOnlyList<string>>? buildArguments = null, Func<string?>? windowProblem = null)
+    {
+        ValidateSettings(fps, height);
+        buildArguments ??= (encoder, path) => BuildCaptureArguments(target, path, fps, height, encoder);
+        windowProblem ??= () => GameWindows.Problem(target);
+        var attempts = new JsonArray();
+        foreach (var encoder in new[] { RecordingEncoder.NvencD3D11, RecordingEncoder.NvencCompatible, RecordingEncoder.Software })
         {
-            journal?.Dispose();
-            if (process is not null) { if (!process.HasExited) process.Kill(true); process.Dispose(); }
+            if (requestStop.IsCancellationRequested) return null;
+            string silent = Path.Combine(work, encoder switch { RecordingEncoder.NvencD3D11 => "video.mkv", RecordingEncoder.NvencCompatible => "video-nvenc-compatible.mkv", _ => "video-software.mkv" });
+            Update(new RecordingSnapshot("starting", "正在启动 " + EncoderLabel(encoder), WorkDirectory: work));
+            var start = new ProcessStartInfo(ffmpeg) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
+            foreach (string argument in buildArguments(encoder, silent)) start.ArgumentList.Add(argument);
+            var sample = AudioSample(); journal.Observe(Seconds(), sample.State, sample.Music, sample.Fresh); string signature = sample.Signature;
+            double captureStart = Seconds(); using var process = Process.Start(start)!;
+            using var captureLog = new StreamWriter(Path.Combine(work, "capture.log"), true, new UTF8Encoding(false));
+            await captureLog.WriteLineAsync("--- " + encoder + " ---"); await captureLog.FlushAsync();
+            var packets = new ConcurrentQueue<(double Received, Dictionary<string, string> Values)>();
+            var progress = ReadProgressAsync(process.StandardOutput, packets); var errors = CopyErrorsAsync(process.StandardError, captureLog);
+            long frameCount = 0; double lastProgress = captureStart, elapsed = 0; double? stopSent = null; string? problem = null;
+            var origins = new List<double>();
+            void DrainProgress()
+            {
+                while (packets.TryDequeue(out var packet))
+                {
+                    if (!packet.Values.TryGetValue("frame", out string? text) || !long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long frames) || frames <= frameCount) continue;
+                    packet.Values.TryGetValue("out_time_us", out string? time); double.TryParse(time, NumberStyles.Float, CultureInfo.InvariantCulture, out double micros); elapsed = micros / 1e6;
+                    frameCount = frames; lastProgress = packet.Received;
+                    if (packet.Values.GetValueOrDefault("progress") != "end" && elapsed > 0 && double.IsFinite(elapsed)) origins.Add(packet.Received - elapsed + 1d / fps);
+                    Update(new RecordingSnapshot(stopSent is null ? "recording" : "finishing", stopSent is null ? "正在录制鸣潮 · " + EncoderLabel(encoder) : "正在保存录屏", Math.Max(0, elapsed), WorkDirectory: work));
+                }
+            }
+            try
+            {
+                while (true)
+                {
+                    double now = Seconds(); DrainProgress();
+                    sample = AudioSample(); if (sample.Signature != signature) { journal.Observe(now, sample.State, sample.Music, sample.Fresh); signature = sample.Signature; }
+                    if (process.HasExited) break;
+                    if (stopSent is null)
+                    {
+                        problem = windowProblem();
+                        if (problem is null && ((frameCount == 0 && now - captureStart > 20) || (frameCount > 0 && now - lastProgress > 10))) problem = "未收到持续游戏画面，请使用窗口或无边框模式";
+                        if (problem is not null || requestStop.IsCancellationRequested)
+                        { try { await process.StandardInput.WriteLineAsync("q"); await process.StandardInput.FlushAsync(); } catch (IOException) { } stopSent = now; }
+                    }
+                    else if (now - stopSent > 15) throw new IOException("录屏编码器未正常结束，原始文件保留在 " + work);
+                    await Task.Delay(50);
+                }
+                await process.WaitForExitAsync(); await progress; await errors; DrainProgress();
+                attempts.Add(new JsonObject { ["backend"] = encoder.ToString(), ["exit_code"] = process.ExitCode, ["frames"] = frameCount,
+                    ["process_start"] = captureStart, ["stop_requested"] = stopSent is not null, ["problem"] = problem, ["path"] = silent });
+                JsonData.Write(Path.Combine(work, "capture_attempts.json"), new JsonObject { ["attempts"] = attempts.DeepClone() });
+                if (frameCount == 0)
+                {
+                    if (requestStop.IsCancellationRequested) return null;
+                    // Retry only failed initialization, never restart after usable frames,
+                    // a window failure or a user stop. Failed output/logs remain recoverable.
+                    if (process.ExitCode != 0 && stopSent is null) continue;
+                    throw new IOException((problem ?? "窗口录制未产生画面") + "，日志保留在 " + work);
+                }
+                if (!File.Exists(silent)) throw new IOException("窗口录制文件丢失，日志保留在 " + work);
+                if ((process.ExitCode != 0 || stopSent is null) && problem is null) problem = "录屏组件提前结束，已保留可用画面和日志";
+                return new CapturedVideo(silent, encoder, captureStart, Math.Max(captureStart, origins.Count > 0 ? origins.Min() : captureStart), process.ExitCode, problem, attempts);
+            }
+            finally
+            {
+                if (!process.HasExited) { process.Kill(true); await process.WaitForExitAsync(); }
+                await Task.WhenAll(progress, errors);
+            }
         }
+        throw new IOException("录屏编码启动失败，详细日志保留在 " + work);
     }
     private static double Seconds() => Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency;
     private static async Task ReadProgressAsync(StreamReader stream, ConcurrentQueue<(double, Dictionary<string, string>)> packets)
@@ -279,6 +345,46 @@ public sealed class MusicJournal : IDisposable
 internal static class AudioRenderer
 {
     private const int ChunkFrames = 65536;
+    private static readonly string[] StreamKeys = ["active", "source", "speed", "loop", "duration", "offset", "volume", "epoch", "sequence", "mode"];
+    private static bool SameStream(JsonObject left, JsonObject right) => StreamKeys.All(key => JsonNode.DeepEquals(left[key], right[key]));
+    private static bool UncertainRead(JsonObject value) => !Contract.True(value, "fresh") && !Contract.True(value, "active") &&
+        (value["mode"] is null || value["mode"]!.GetValue<string>() == "playing");
+    internal static (List<JsonObject> Events, int BridgedReads) ContinuousTimeline(IReadOnlyList<JsonObject> observations)
+    {
+        var reliable = new List<JsonObject>(); int bridged = 0;
+        for (int i = 0; i < observations.Count; i++)
+        {
+            var value = observations[i];
+            if (UncertainRead(value) && i > 0 && Contract.True(observations[i - 1], "active"))
+            {
+                int next = i + 1; while (next < observations.Count && UncertainRead(observations[next])) next++;
+                // Bridge only short uncertain reads bracketed by the same
+                // confirmed playing state and control sequence, never a pause.
+                if (next < observations.Count && Contract.True(observations[next], "active") && SameStream(observations[i - 1], observations[next]) &&
+                    Contract.D(observations[next], "pts") - Contract.D(value, "pts") <= .25 &&
+                    Contract.D(observations[next], "pts") - Contract.D(observations[i - 1], "pts") <= 1)
+                { bridged += next - i; i = next - 1; continue; }
+            }
+            reliable.Add(value);
+        }
+        var runs = new List<JsonObject>();
+        foreach (var value in reliable)
+        {
+            bool continuous = runs.Count > 0 && SameStream(runs[^1], value);
+            if (continuous && Contract.True(value, "active"))
+            {
+                var first = runs[^1];
+                double expected = Contract.D(first, "cursor") + (Contract.D(value, "pts") - Contract.D(first, "pts")) * Contract.D(first, "speed");
+                double error = Contract.D(value, "cursor") - expected;
+                if (Contract.True(value, "loop") && Contract.D(value, "duration") > 0) error = Math.IEEERemainder(error, Contract.D(value, "duration"));
+                // A real clock discontinuity still creates a new anchor. Small
+                // status/read jitter must not splice or repeat the music.
+                continuous = Math.Abs(error) <= .25;
+            }
+            if (!continuous) runs.Add(value);
+        }
+        return (runs, bridged);
+    }
     private sealed class SourceAudio : IDisposable
     {
         private readonly System.IO.MemoryMappedFiles.MemoryMappedFile map;
@@ -308,6 +414,7 @@ internal static class AudioRenderer
             }
         }
         long total = Contract.I(finish ?? throw new InvalidDataException("音频日志尚未完成"), "frames");
+        int observationCount = events.Count; var plan = ContinuousTimeline(events); events = plan.Events;
         Directory.CreateDirectory(Path.GetDirectoryName(outputWav)!);
         var decoded = new Dictionary<string, SourceAudio>(); long rendered = 0, musicFrames = 0; int segments = 0;
         try
@@ -326,20 +433,34 @@ internal static class AudioRenderer
                     if (!Contract.True(value, "active") || id is null || Contract.D(value, "volume") <= 0) Silence(end - start);
                     else
                     {
-                        if (!decoded.TryGetValue(id, out SourceAudio? source)) { source = await DecodeAsync(sources[id], id, journalRoot, ffmpeg, cancellation); decoded.Add(id, source); }
                         double cursorStart = Contract.D(value, "cursor"), speed = Contract.D(value, "speed"), span = Contract.D(value, "duration"), offset = Contract.D(value, "offset"), volume = Contract.D(value, "volume"); bool loop = Contract.True(value, "loop");
+                        if (!double.IsFinite(speed) || speed <= 0) throw new InvalidDataException("音频播放速度无效");
+                        if (loop && (!double.IsFinite(span) || span <= 0)) throw new InvalidDataException("音频循环时长无效");
+                        string decodeKey = id + "-rate-" + BitConverter.DoubleToInt64Bits(speed).ToString("x16", CultureInfo.InvariantCulture);
+                        if (!decoded.TryGetValue(decodeKey, out SourceAudio? source)) { source = await DecodeAsync(sources[id], decodeKey, speed, journalRoot, ffmpeg, cancellation); decoded.Add(decodeKey, source); }
+                        long sourceStart = (long)Math.Round((cursorStart - offset) / speed * 48000d, MidpointRounding.ToEven), lastCycle = long.MinValue, cycleStart = sourceStart;
                         for (long first = start; first < end; first += ChunkFrames)
                         {
                             cancellation.ThrowIfCancellationRequested(); int count = (int)Math.Min(ChunkFrames, end - first); Array.Clear(pcm);
                             for (int frame = 0; frame < count; frame++)
                             {
-                                double cursor = cursorStart + (first + frame - start) / 48000d * speed; if (loop) cursor %= span;
-                                double position = (cursor - offset) * 48000d;
-                                if (position < 0 || position >= source.Frames || (!loop && span > 0 && cursor >= span)) continue;
-                                long left = (long)Math.Floor(position), right = Math.Min(left + 1, source.Frames - 1); double fraction = position - left;
+                                long elapsedFrames = first + frame - start;
+                                double cursor = cursorStart + elapsedFrames / 48000d * speed;
+                                // FFmpeg has already resampled this source for
+                                // the run's speed. Round its anchor only once;
+                                // rounding half-sample ties per frame can itself
+                                // duplicate/skip samples on alternating frames.
+                                if (loop)
+                                {
+                                    long cycle = (long)Math.Floor(cursor / span);
+                                    if (cycle != lastCycle) { cycleStart = (long)Math.Round((cursorStart - cycle * span - offset) / speed * 48000d, MidpointRounding.ToEven); lastCycle = cycle; }
+                                    cursor %= span;
+                                }
+                                long sourceFrame = (loop ? cycleStart : sourceStart) + elapsedFrames;
+                                if (cursor < offset || sourceFrame < 0 || sourceFrame >= source.Frames || (!loop && span > 0 && cursor >= span)) continue;
                                 for (int channel = 0; channel < 2; channel++)
                                 {
-                                    double sample = (source.Sample(left, channel) * (1 - fraction) + source.Sample(right, channel) * fraction) * volume;
+                                    double sample = source.Sample(sourceFrame, channel) * volume;
                                     short quantized = (short)Math.Round(Math.Clamp(sample, -1, 1) * 32767d, MidpointRounding.ToEven); BinaryPrimitives.WriteInt16LittleEndian(pcm.AsSpan(frame * 4 + channel * 2, 2), quantized);
                                 }
                                 musicFrames++;
@@ -354,13 +475,16 @@ internal static class AudioRenderer
         }
         finally { foreach (var source in decoded.Values) source.Dispose(); }
         return new JsonObject { ["output_wav"] = outputWav, ["journal_path"] = journalPath, ["duration_seconds"] = total / 48000d, ["frames"] = total,
-            ["sample_rate"] = 48000, ["channels"] = 2, ["segments"] = segments, ["sources_decoded"] = decoded.Count, ["music_frames"] = musicFrames, ["silent_frames"] = total - musicFrames };
+            ["sample_rate"] = 48000, ["channels"] = 2, ["segments"] = segments, ["observations"] = observationCount, ["bridged_uncertain_reads"] = plan.BridgedReads,
+            ["timeline_renderer"] = "continuous_v2", ["resampler"] = "soxr", ["sources_decoded"] = decoded.Count, ["music_frames"] = musicFrames, ["silent_frames"] = total - musicFrames };
     }
-    private static async Task<SourceAudio> DecodeAsync(string source, string id, string folder, string ffmpeg, CancellationToken cancellation)
+    private static async Task<SourceAudio> DecodeAsync(string source, string id, double speed, string folder, string ffmpeg, CancellationToken cancellation)
     {
         string decodedRoot = Path.Combine(folder, "decoded"); Directory.CreateDirectory(decodedRoot);
         string path = Path.Combine(decodedRoot, id + "-48000-stereo.f32");
-        var result = await MediaJson.RunAsync(ffmpeg, new[] { "-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", source, "-map", "0:a:0", "-vn", "-ac", "2", "-ar", "48000", "-f", "f32le", path }, cancellation);
+        const string resample = "aresample=48000:resampler=soxr:precision=28";
+        string filter = speed == 1 ? resample : resample + ",asetrate=48000*" + speed.ToString("R", CultureInfo.InvariantCulture) + "," + resample;
+        var result = await MediaJson.RunAsync(ffmpeg, new[] { "-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", source, "-map", "0:a:0", "-vn", "-af", filter, "-ac", "2", "-ar", "48000", "-f", "f32le", path }, cancellation);
         if (result.ExitCode != 0) throw new IOException("音乐解码失败：" + result.Error);
         return new SourceAudio(path);
     }

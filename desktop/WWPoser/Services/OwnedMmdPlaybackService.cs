@@ -50,6 +50,7 @@ public sealed partial class OwnedMmdPlaybackService(string repoRoot)
         {
             ["schema"] = 2, ["scope"] = Scope, ["character_id"] = character.CharacterId, ["character_display_name"] = character.DisplayName,
             ["role_id"] = character.RoleId, ["skin_id"] = character.SkinId, ["model_id"] = character.ModelId, ["profile_id"] = character.ProfileId,
+            ["form"] = character.Form?.DeepClone(), ["independent_instance"] = character.IndependentInstance,
             ["character_profile_file"] = "character_profile.json", ["character_skeleton_file"] = "character_skeleton.json",
             ["character_profile_sha256"] = JsonData.Digest(registry.ProfilePath(profile)),
             ["mesh_asset_name"] = character.ModelAssetName, ["skeleton_asset_name"] = profile["skeleton_asset_name"]!.DeepClone(),
