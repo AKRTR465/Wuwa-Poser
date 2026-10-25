@@ -81,6 +81,42 @@ internal static class Program
         foreach (string label in new[] { "添加演员", "移除所选演员", "播放", "暂停", "上一帧", "下一帧", "跳转到滑块位置", "保存书签", "载入书签", "应用位置与朝向", "应用配乐", "录制鸣潮窗口" })
             Check(Field<List<Button>>("actions").Any(b => Equals(b.Content, label) && b.IsEnabled == !sessionOnlyLabels.Contains(label)), "missing control or invalid idle state: " + label);
         Render("actors-1");
+        var initialStageRequest = (PlaybackSessionRequest)Call("BuildRequest", false)!;
+        var formation = Field<ComboBox>("placementMode"); var stagePanel = Field<FrameworkElement>("stageMapPanel");
+        var cameraSelector = Field<ComboBox>("cameraMode"); var cameraSource = Field<TextBox>("camera");
+        var cameraDrop = (Grid)((Border)Field<FrameworkElement>("cameraFileDrop")).Child;
+        Check(initialStageRequest.FormationNative && stagePanel.Visibility == Visibility.Collapsed,
+            "a new window uses native formation and hides the manual stage");
+        Call("ShowPage", 1); Render("stage-native-default");
+        formation.SelectedIndex = 0; Render("stage-manual-expanded");
+        Check(stagePanel.Visibility == Visibility.Visible &&
+            cameraDrop.TranslatePoint(new Point(), (UIElement)window.Content).Y < stagePanel.TranslatePoint(new Point(), (UIElement)window.Content).Y,
+            "selecting the manual stage expands it below the camera settings");
+        Field<TextBox>("stageX").Text = "345"; Call("ApplyStageFields");
+        formation.SelectedIndex = 1;
+        Check(stagePanel.Visibility == Visibility.Collapsed, "native formation collapses the manual stage again");
+        formation.SelectedIndex = 0;
+        Check(((PlaybackSessionRequest)Call("BuildRequest", false)!).Actors[0].Stage?.X == 345,
+            "switching formation modes preserves manually entered positions");
+        void DropCamera(string path)
+        {
+            // WPF constructs drag arguments internally; dispatch the real routed
+            // event without asking the OS to begin a visible drag operation.
+            var drop = (DragEventArgs)Activator.CreateInstance(typeof(DragEventArgs), BindingFlags.Instance | BindingFlags.NonPublic,
+                null, new object[] { new DataObject(DataFormats.FileDrop, new[] { path }), DragDropKeyStates.None,
+                    DragDropEffects.Copy, cameraDrop, new Point(1, 1) }, null)!;
+            drop.RoutedEvent = DragDrop.DropEvent;
+            cameraDrop.RaiseEvent(drop);
+        }
+        var cameraPath = Path.Combine(output, "camera.VMD"); DropCamera(cameraPath);
+        Check(cameraSelector.SelectedIndex == 2 && cameraSource.Text == cameraPath,
+            "dropping a camera VMD selects the VMD camera track");
+        cameraSelector.SelectedIndex = 0; DropCamera(cameraPath);
+        Check(cameraSelector.SelectedIndex == 2, "dropping the same VMD again still selects its camera track");
+        Call("SetRequest", initialStageRequest with { CameraSource = cameraPath, CameraMode = 1, FormationNative = false });
+        Check(cameraSelector.SelectedIndex == 1 && stagePanel.Visibility == Visibility.Visible,
+            "loading a saved program honors its explicit camera and formation choices");
+        Call("SetRequest", initialStageRequest); Call("ShowPage", 0);
         var hideScene = Field<CheckBox>("hideSceneCharacters");
         Check(hideScene.IsChecked == false && hideScene.IsEnabled, "NPC and monster model hiding is an explicit idle option");
         hideScene.IsChecked = true;

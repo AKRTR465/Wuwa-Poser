@@ -27,7 +27,7 @@ public sealed partial class MainWindow
     private readonly CheckBox loop = new() { Content = "放完后从头再来，一直循环" };
     private readonly CheckBox native = new() { Content = "使用游戏自带的头发与衣物摆动（推荐）", IsChecked = true }, secondary = new() { Content = "额外增强衣物惯性" };
     private readonly ComboBox cameraMode = new() { ItemsSource = new[] { "游戏跟随镜头", "固定镜头", "VMD 镜头轨道" }, SelectedIndex = 0, Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
-    private readonly ComboBox placementMode = new() { ItemsSource = new[] { "站位舞台", "原作队形（共用原点）" }, SelectedIndex = 0, Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
+    private readonly ComboBox placementMode = new() { ItemsSource = new[] { "站位舞台", "原作队形（共用原点）" }, SelectedIndex = 1, Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly ComboBox recordingFps = new() { ItemsSource = new[] { "30 FPS", "60 FPS" }, SelectedIndex = 0, Width = 120, Margin = new(0, 0, 8, 0) };
     private readonly ComboBox recordingSize = new() { ItemsSource = new[] { "1080p", "2K（2560×1440）", "原始尺寸" }, SelectedIndex = 0, Width = 190, Margin = new(0, 0, 8, 0) };
     private readonly CheckBox autoRecord = new() { Content = "开始播放时自动录屏", IsChecked = false };
@@ -46,6 +46,7 @@ public sealed partial class MainWindow
     private readonly List<StepEntry> steps = [];
     private readonly List<(Button Chip, string Value)> speedChips = [];
     private FrameworkElement emptyRoster = null!, idlePanel = null!, livePanel = null!, recordingPanel = null!;
+    private FrameworkElement stageMapPanel = null!, cameraFileDrop = null!;
     private Button stopButton = null!, applySettings = null!, recordButton = null!, stopRecordingButton = null!;
     private int page;
     private bool wasLive;
@@ -74,7 +75,8 @@ public sealed partial class MainWindow
         VirtualizingPanel.SetIsVirtualizing(actorList, true); VirtualizingPanel.SetVirtualizationMode(actorList, VirtualizationMode.Recycling);
         ScrollViewer.SetHorizontalScrollBarVisibility(actorList, ScrollBarVisibility.Disabled);
         pages.Add(BuildActorsPage()); pages.Add(BuildStagePage()); pages.Add(BuildPerformPage());
-        camera.TextChanged += (_, _) => UpdateGuide(); audio.TextChanged += (_, _) => UpdateGuide(); cameraMode.SelectionChanged += (_, _) => UpdateGuide(); placementMode.SelectionChanged += (_, _) => UpdateGuide();
+        camera.TextChanged += (_, _) => UpdateGuide(); audio.TextChanged += (_, _) => UpdateGuide(); cameraMode.SelectionChanged += (_, _) => UpdateGuide();
+        placementMode.SelectionChanged += (_, _) => { UpdateStageMapVisibility(); UpdateGuide(); };
         hideSceneCharacters.Checked += (_, _) => UpdateGuide(); hideSceneCharacters.Unchecked += (_, _) => UpdateGuide();
         speed.TextChanged += (_, _) => UpdateSpeedChips();
         _ = AddActorAsync(); ShowPage(0); UpdateSpeedChips(); UpdateActions();
@@ -153,16 +155,18 @@ public sealed partial class MainWindow
 
     private FrameworkElement BuildStagePage()
     {
-        var content = new StackPanel(); content.Children.Add(BuildStageMapCard());
+        var content = new StackPanel();
         var cameraBody = new StackPanel();
         cameraBody.Children.Add(Label("镜头怎么拍")); cameraBody.Children.Add(cameraMode);
-        cameraBody.Children.Add(Hint("「游戏跟随镜头」最省心；有配套的镜头 VMD 时，选「VMD 镜头轨道」就能还原原作运镜。"));
-        cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(FileDrop(camera, "镜头 VMD（可选）", "把镜头 .vmd 拖到这里，或点击选择", "VMD 动作|*.vmd", "\uE722"));
+        cameraBody.Children.Add(Hint("拖入或选择镜头 VMD 后会自动切换到「VMD 镜头轨道」，也可以手动选择跟随或固定镜头。"));
+        cameraFileDrop = FileDrop(camera, "镜头 VMD（可选）", "把镜头 .vmd 拖到这里，或点击选择", "VMD 动作|*.vmd", "\uE722", fileSelected: CameraFileSelected);
+        cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(cameraFileDrop);
         cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(Label("队伍怎么站")); cameraBody.Children.Add(placementMode);
-        cameraBody.Children.Add(Hint("「站位舞台」按上面的站位图各自站位；「原作队形」忽略站位图，全员站上舞台原点，由动作自带的队形还原原作构图，配合 VMD 镜头轨道效果最佳。"));
+        cameraBody.Children.Add(Hint("默认使用「原作队形」：全员从舞台原点出发，保留动作自带的队形。需要手动摆放时，选择「站位舞台」展开下方站位图。"));
         cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(hideSceneCharacters);
         cameraBody.Children.Add(Hint("隐藏起点周围 100 米内的 NPC 和怪物，结束或失败时恢复；保留演员、队员和动物。仅隐藏模型，AI、碰撞和头顶 UI 仍按游戏规则运行。"));
         content.Children.Add(Card("镜头", "跟着角色拍，或者使用作品自带的运镜。", "\uE722", cameraBody));
+        stageMapPanel = BuildStageMapCard(); UpdateStageMapVisibility(); content.Children.Add(stageMapPanel);
 
         var musicBody = new StackPanel();
         musicBody.Children.Add(FileDrop(audio, "背景音乐（可选）", "把音乐文件拖到这里，或点击选择", "音频文件|*.wav;*.mp3;*.flac;*.ogg;*.m4a|所有文件|*.*", "\uE8D6"));
@@ -180,7 +184,17 @@ public sealed partial class MainWindow
 
         var nav = new StackPanel { Orientation = Orientation.Horizontal };
         nav.Children.Add(NavButton("上一步", 0, primary: false)); nav.Children.Add(NavButton("下一步：开始表演", 2, primary: true));
-        return Page("第二步 · 站位与舞台", "这一步全部可以跳过：不摆站位就自动排好。想要更有氛围，再挑个镜头和配乐。", content, nav);
+        return Page("第二步 · 站位与舞台", "默认保留动作自带的原作队形。先选镜头和配乐，需要手动摆放时再展开站位舞台。", content, nav);
+    }
+
+    private void UpdateStageMapVisibility()
+    {
+        if (stageMapPanel is not null) stageMapPanel.Visibility = placementMode.SelectedIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void CameraFileSelected(string path)
+    {
+        if (string.Equals(System.IO.Path.GetExtension(path), ".vmd", StringComparison.OrdinalIgnoreCase)) cameraMode.SelectedIndex = 2;
     }
 
     private FrameworkElement BuildPerformPage()
@@ -411,7 +425,7 @@ public sealed partial class MainWindow
         var row = new DockPanel(); row.Children.Add(Glyph("\uEA80", 15, "Warn", new(0, 0, 10, 0))); row.Children.Add(Text(text, 13, "InkSoft")); tip.Child = row; return tip;
     }
 
-    private static FrameworkElement FileDrop(TextBox box, string title, string hint, string filter, string glyph, bool required = false)
+    private static FrameworkElement FileDrop(TextBox box, string title, string hint, string filter, string glyph, bool required = false, Action<string>? fileSelected = null)
     {
         var zone = new Grid { Cursor = Cursors.Hand, AllowDrop = true, Background = Brushes.Transparent, MinHeight = 66 };
         var outline = new Rectangle { RadiusX = 12, RadiusY = 12, StrokeThickness = 1.5, StrokeDashArray = [4, 3] }; outline.SetResourceReference(Shape.StrokeProperty, "LineStrong"); outline.SetResourceReference(Shape.FillProperty, "Well");
@@ -433,13 +447,14 @@ public sealed partial class MainWindow
             icon.SetResourceReference(Border.BackgroundProperty, has ? "GoodSoft" : "Card"); ((TextBlock)icon.Child).SetResourceReference(TextBlock.ForegroundProperty, has ? "Good" : "Muted");
             outline.SetResourceReference(Shape.StrokeProperty, has ? "Good" : "LineStrong");
         }
-        void Choose() { var dialog = new OpenFileDialog { Filter = filter, Title = title }; if (dialog.ShowDialog() == true) box.Text = dialog.FileName; }
+        void SelectFile(string path) { box.Text = path; fileSelected?.Invoke(path); }
+        void Choose() { var dialog = new OpenFileDialog { Filter = filter, Title = title }; if (dialog.ShowDialog() == true) SelectFile(dialog.FileName); }
         box.TextChanged += (_, _) => Refresh(); change.Click += (_, _) => Choose(); clear.Click += (_, _) => box.Text = "";
         zone.MouseLeftButtonUp += (_, _) => Choose();
         zone.DragOver += (_, args) => { args.Effects = args.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None; args.Handled = true; };
         zone.DragEnter += (_, _) => outline.SetResourceReference(Shape.StrokeProperty, "Accent");
         zone.DragLeave += (_, _) => Refresh();
-        zone.Drop += (_, args) => { if (args.Data.GetData(DataFormats.FileDrop) is string[] { Length: > 0 } files) box.Text = files[0]; Refresh(); };
+        zone.Drop += (_, args) => { if (args.Data.GetData(DataFormats.FileDrop) is string[] { Length: > 0 } files) SelectFile(files[0]); Refresh(); args.Handled = true; };
         Refresh(); return new Border { Margin = new(0, 0, 0, 10), Child = zone };
     }
 
