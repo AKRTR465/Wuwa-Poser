@@ -20,7 +20,7 @@ internal static class MediaLifecycleChecks
             ["clip_epoch"] = 17UL, ["last_sequence"] = 0UL, ["session_active"] = true, ["mode"] = "playing",
             ["seconds"] = 2d, ["duration_seconds"] = 10d, ["speed"] = 1d, ["loop"] = false, ["restore_requested"] = false }.ToJsonString());
         var good = Path.Combine(fixture, "good.wav"); var bad = Path.Combine(fixture, "unsupported.wav");
-        var gate = new object(); bool deviceOpen = false, playing = false, disconnected = false; int goodOpens = 0;
+        var gate = new object(); bool deviceOpen = false, playing = false, disconnected = false; int goodOpens = 0, seeks = 0; long position = 2000;
         var audio = new MediaService(() => new MediaService.MciDevice(command => {
             lock (gate)
             {
@@ -34,13 +34,21 @@ internal static class MediaLifecycleChecks
                 if (!deviceOpen || disconnected) throw new Win32Exception(263, "synthetic lost alias");
                 if (command.StartsWith("play ")) playing = true;
                 if (command.StartsWith("pause ")) playing = false;
-                return command.EndsWith(" length") ? "10000" : command.EndsWith(" position") ? "2000" : command.EndsWith(" mode") ? playing ? "playing" : "paused" : "";
+                if (command.StartsWith("seek ")) { position = long.Parse(command.Split(' ')[^1]); seeks++; }
+                return command.EndsWith(" length") ? "10000" : command.EndsWith(" position") ? position.ToString() : command.EndsWith(" mode") ? playing ? "playing" : "paused" : "";
             }
         }));
         try
         {
             audio.UpdateContext(timeline, new MusicPreset(good)); await audio.StartSynchronizationAsync();
             await Until(() => { lock (gate) return goodOpens == 1 && playing; });
+            var rewound = JsonData.ReadObject(Path.Combine(timeline, "player_status.json")); rewound["seconds"] = 0d;
+            int seeksBeforeRewind; lock (gate) { position = 250; seeksBeforeRewind = seeks; }
+            JsonData.Write(Path.Combine(timeline, "player_status.json"), rewound); audio.RequestResynchronization();
+            await Until(() => { lock (gate) return seeks > seeksBeforeRewind && position == 0 && playing; });
+            Check(goodOpens == 1, "restart forces music to zero even within the normal drift tolerance, without reopening the song");
+            rewound["seconds"] = 2d; JsonData.Write(Path.Combine(timeline, "player_status.json"), rewound);
+            lock (gate) position = 2000;
             audio.UpdateContext(timeline, new MusicPreset(bad));
             await Until(() => audio.LastError?.Contains("synthetic unsupported audio") == true);
             Check(audio.LastError is not null, "audio open failures are observable while the worker remains recoverable");

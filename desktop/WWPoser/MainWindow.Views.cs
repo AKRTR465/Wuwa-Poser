@@ -261,11 +261,12 @@ public sealed partial class MainWindow
         transport.Children.Add(Action("下一帧", () => SendAsync("step", 1), "\uE893", "RoundButton", needsSession: true));
         stage.Children.Add(transport);
         var secondaryRow = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Center, Margin = new(0, 14, 0, 0) };
+        secondaryRow.Children.Add(Action("从头播放", RestartAsync, "\uE72C", "SoftButton", needsSession: true));
         secondaryRow.Children.Add(Action("跳转到滑块位置", () => SendAsync("seek", progress.Value), "\uE72A", "LinkButton", needsSession: true));
         secondaryRow.Children.Add(Action("保存书签", SaveBookmarkAsync, "\uE74E", "LinkButton", needsSession: true));
         secondaryRow.Children.Add(Action("载入书签", LoadBookmarkAsync, "\uE8E5", "LinkButton", needsSession: true));
         stage.Children.Add(secondaryRow);
-        stage.Children.Add(Hint("拖动进度条后点「跳转到滑块位置」；上一帧 / 下一帧每次移动 1/30 秒。书签能记住喜欢的瞬间。"));
+        stage.Children.Add(Hint("「从头播放」回到开头并开始播放；拖动进度条后点「跳转到滑块位置」。上一帧 / 下一帧每次移动 1/30 秒。"));
         var stopRow = new DockPanel { Margin = new(0, 16, 0, 0) };
         stopButton = Action("停止并恢复", StopAsync, "\uE71A", "DangerButton", stop: true); stopButton.Margin = new(0); DockPanel.SetDock(stopButton, Dock.Right); stopRow.Children.Add(stopButton);
         var stopNote = Text("表演结束后记得点这里，演员会退场，队伍恢复原样。", 12, "Muted"); stopNote.VerticalAlignment = VerticalAlignment.Center; stopRow.Children.Add(stopNote);

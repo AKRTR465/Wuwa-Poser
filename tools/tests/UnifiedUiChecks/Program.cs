@@ -181,6 +181,55 @@ internal static class Program
         target.SelectedIndex = 0; Check(Field<TextBox>("liveX").Text == "101", "actor A placement lost");
         target.SelectedIndex = 1; Check(Field<TextBox>("liveX").Text == "303", "actor 33 placement lost");
         target.SelectedIndex = 0; Check(Field<TextBox>("liveX").Text == "101", "switching actor restored stale placement");
+        var restartButton = Field<List<Button>>("actions").Single(button => Equals(button.Content, "从头播放"));
+        Set("session", null); Call("UpdateActions");
+        Check(!restartButton.IsEnabled, "restart requires an active playback session");
+        foreach (var initialMode in new[] { "playing", "paused", "ended" })
+        {
+            var directory = Path.Combine(output, "restart-" + initialMode); Directory.CreateDirectory(directory);
+            var statePath = Path.Combine(directory, "player_status.json"); var commandPath = Path.Combine(directory, "control.dat");
+            if (File.Exists(commandPath)) File.Delete(commandPath);
+            var state = new JsonObject { ["clip_epoch"] = 813UL, ["last_sequence"] = 0UL, ["session_active"] = true,
+                ["mode"] = initialMode, ["seconds"] = initialMode == "ended" ? 20d : 9d, ["duration_seconds"] = 20d,
+                ["speed"] = 1.5d, ["loop"] = true, ["camera_mode"] = 2, ["placement_height"] = 13d };
+            JsonData.Write(statePath, state); Set("session", directory); Set("sessionControllable", true); Call("UpdateActions");
+            Check(restartButton.IsEnabled, "restart is available from " + initialMode);
+            var acknowledgeRestart = Task.Run(async () =>
+            {
+                using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10)); ulong last = 0;
+                while (true)
+                {
+                    if (File.Exists(commandPath))
+                    {
+                        var bytes = new byte[64];
+                        using (var stream = new FileStream(commandPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) stream.ReadExactly(bytes);
+                        var sequence = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(24));
+                        if (sequence > last)
+                        {
+                            last = sequence; var kind = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(32));
+                            if (kind == 1) state["mode"] = "playing";
+                            else if (kind == 2) state["mode"] = "paused";
+                            else if (kind == 3) state["seconds"] = BinaryPrimitives.ReadDoubleLittleEndian(bytes.AsSpan(40));
+                            else throw new Exception("Restart unexpectedly changed actors or playback settings.");
+                            state["last_sequence"] = sequence; JsonData.Write(statePath, state);
+                            if (kind == 1) return;
+                        }
+                    }
+                    await Task.Delay(5, deadline.Token);
+                }
+            });
+            Await(Task.WhenAll((Task)Call("RestartAsync")!, acknowledgeRestart)); Action("PollAsync");
+            var restarted = PlaybackControl.Status(directory);
+            Check(Contract.D(restarted, "seconds") == 0 && Contract.S(restarted, "mode") == "playing" && Field<Slider>("progress").Value == 0,
+                "restart rewinds and plays the shared timeline from " + initialMode);
+            Check(Field<string?>("session") == directory && restarted["clip_epoch"]!.GetValue<ulong>() == 813 && Contract.D(restarted, "speed") == 1.5 &&
+                Contract.True(restarted, "loop") && Contract.I(restarted, "camera_mode") == 2 && Contract.D(restarted, "placement_height") == 13,
+                "restart retains the same actors, camera, placement, speed and loop");
+            var audio = MediaService.DesiredAudio(restarted, 0, 30000);
+            Check(audio.PositionMilliseconds == 0 && audio.Playing, "music follows the restarted shared timeline");
+        }
+        Call("ShowPage", 2); Render("restart-playback"); Set("session", null); Call("UpdateActions");
+
         // Reproduce the screenshot: native/managed cleanup is complete while
         // frontend session ownership and an audio task are still retained.
         var terminal = Path.Combine(output, "closed-session"); Directory.CreateDirectory(terminal);

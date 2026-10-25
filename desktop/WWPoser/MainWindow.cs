@@ -188,6 +188,17 @@ public sealed partial class MainWindow : Window
     }
     private void RequireSession() { if (session is null) throw new InvalidOperationException("请先开始播放。"); }
     private async Task SendAsync(string command, double value = 0, uint targetSlot = 0) { RequireSession(); await player.SendAsync(session!, command, value, targetSlot, Token); }
+    private async Task RestartAsync()
+    {
+        RequireSession(); var current = session!;
+        // Hold the cursor while rewinding so an already playing clip cannot
+        // advance between the seek acknowledgement and the Play command.
+        await player.SendAsync(current, "pause", cancellation: Token);
+        await player.SendAsync(current, "seek", 0, cancellation: Token);
+        await player.SendAsync(current, "play", cancellation: Token);
+        music.RequestResynchronization();
+        progress.Value = 0; status.Text = "已从头开始播放。";
+    }
     private async Task ApplySettingsAsync()
     {
         RequireSession();

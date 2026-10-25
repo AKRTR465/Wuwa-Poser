@@ -17,6 +17,7 @@ public sealed class MediaService
     private CancellationTokenSource? cancellation;
     private Task? worker;
     private string? lastError;
+    private long synchronizationRevision;
     private readonly Func<MciDevice> createDevice;
     private readonly Func<string, CancellationToken, Task<string>> prepareAudio;
 
@@ -32,6 +33,7 @@ public sealed class MediaService
     {
         lock (gate) { session = sessionDirectory; preset = music; }
     }
+    public void RequestResynchronization() { lock (gate) synchronizationRevision++; }
     public Task StartSynchronizationAsync()
     {
         lock (gate)
@@ -70,13 +72,13 @@ public sealed class MediaService
     private async Task SynchronizeAsync(CancellationToken stop)
     {
         using var device = createDevice();
-        string? opened = null; ulong? epoch = null; long length = 0;
+        string? opened = null; ulong? epoch = null; long length = 0, synchronizedRevision = 0;
         try
         {
             while (!stop.IsCancellationRequested)
             {
-                string? selected; MusicPreset? music;
-                lock (gate) { selected = session; music = preset; }
+                string? selected; MusicPreset? music; long requestedRevision;
+                lock (gate) { selected = session; music = preset; requestedRevision = synchronizationRevision; }
                 try
                 {
                     if (selected is null || music is null)
@@ -105,8 +107,8 @@ public sealed class MediaService
                         {
                             var desired = DesiredAudio(state, music.OffsetSeconds, length);
                             device.SetSpeed(desired.Speed); ulong currentEpoch = state["clip_epoch"]!.GetValue<ulong>();
-                            if (epoch != currentEpoch || Math.Abs(device.Position - desired.PositionMilliseconds) > (desired.Playing ? 350 : 10))
-                            { device.Pause(); device.Seek(desired.PositionMilliseconds); epoch = currentEpoch; }
+                            if (epoch != currentEpoch || synchronizedRevision != requestedRevision || Math.Abs(device.Position - desired.PositionMilliseconds) > (desired.Playing ? 350 : 10))
+                            { device.Pause(); device.Seek(desired.PositionMilliseconds); epoch = currentEpoch; synchronizedRevision = requestedRevision; }
                             if (desired.Playing) { if (!device.IsPlaying) { device.Seek(desired.PositionMilliseconds); device.Play(); } }
                             else device.Pause();
                         }
