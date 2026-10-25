@@ -81,6 +81,14 @@ internal static class Program
         foreach (string label in new[] { "添加演员", "移除所选演员", "播放", "暂停", "上一帧", "下一帧", "跳转到滑块位置", "保存书签", "载入书签", "应用位置与朝向", "应用配乐", "录制鸣潮窗口" })
             Check(Field<List<Button>>("actions").Any(b => Equals(b.Content, label) && b.IsEnabled == !sessionOnlyLabels.Contains(label)), "missing control or invalid idle state: " + label);
         Render("actors-1");
+        var hideScene = Field<CheckBox>("hideSceneCharacters");
+        Check(hideScene.IsChecked == false && hideScene.IsEnabled, "NPC and monster model hiding is an explicit idle option");
+        hideScene.IsChecked = true;
+        var hideRequest = (PlaybackSessionRequest)Call("BuildRequest", false)!;
+        Check(hideRequest.HideSceneCharacters, "the stage checkbox reaches the playback request");
+        hideScene.IsChecked = false; Call("SetRequest", hideRequest);
+        Check(hideScene.IsChecked == true, "saved playback requests restore the scene visibility checkbox");
+        Call("ShowPage", 1); Render("scene-hide-options"); Call("ShowPage", 0); hideScene.IsChecked = false;
         var automatic = Field<CheckBox>("autoRecord"); var fps = Field<ComboBox>("recordingFps"); var size = Field<ComboBox>("recordingSize");
         Check(automatic.IsChecked == false && automatic.IsEnabled && fps.IsEnabled && size.IsEnabled && fps.SelectedIndex == 0 && size.SelectedIndex == 0,
             "automatic recording defaults off and recording options are editable before playback");
@@ -116,6 +124,7 @@ internal static class Program
         Check(Field<TextBox>("duration").Text == "0", "duration should default to unlimited");
         Check(Field<string?>("session") is null, "offline rendering started a session");
         Set("session", Path.Combine(output, "nonexistent-offline-session")); Set("activeRequest", restored);
+        Call("UpdateActions"); Check(!hideScene.IsEnabled, "scene hiding cannot be toggled while a playback session is owned");
         void Rejected(string expected)
         {
             try { ((Task)Call("ApplySettingsAsync")!).GetAwaiter().GetResult(); throw new Exception("missing active settings validation"); }

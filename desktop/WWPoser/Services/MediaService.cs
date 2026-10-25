@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -7,7 +8,7 @@ namespace WWPoser.Services;
 
 public sealed record MusicPreset(string AudioFile, double OffsetSeconds = 0, double Volume = 1);
 
-/// <summary>One MCI device follows the shared playback timeline. No game memory access.</summary>
+/// <summary>Decoded PCM music follows the shared playback timeline. No game memory access.</summary>
 public sealed class MediaService
 {
     private readonly object gate = new();
@@ -17,9 +18,13 @@ public sealed class MediaService
     private Task? worker;
     private string? lastError;
     private readonly Func<MciDevice> createDevice;
+    private readonly Func<string, CancellationToken, Task<string>> prepareAudio;
 
-    public MediaService() : this(() => new MciDevice()) { }
-    internal MediaService(Func<MciDevice> createDevice) { this.createDevice = createDevice; }
+    public MediaService(string repositoryRoot) : this(() => new MciDevice(), new AudioDecodeService(repositoryRoot).PrepareAsync) { }
+    internal MediaService(Func<MciDevice> createDevice) : this(createDevice, (path, _) => Task.FromResult(path)) { }
+    internal MediaService(Func<MciDevice> createDevice, Func<string, CancellationToken, Task<string>> prepareAudio)
+    { this.createDevice = createDevice; this.prepareAudio = prepareAudio; }
+    public Task<string> PrepareAsync(string path, CancellationToken cancellation = default) => prepareAudio(Path.GetFullPath(path), cancellation);
     public string? LastError { get { lock (gate) return lastError; } }
     private void ReportError(string? message) { lock (gate) lastError = message; }
 
@@ -86,7 +91,12 @@ public sealed class MediaService
                             // Retire our cached identity before opening another file.
                             // A failed B must not leave A marked open after A was closed.
                             opened = null; epoch = null; length = 0;
-                            device.Close(); length = device.Open(filename); opened = filename;
+                            device.Close();
+                            var decoded = await PrepareAsync(filename, stop).ConfigureAwait(false);
+                            stop.ThrowIfCancellationRequested();
+                            // A different song/session may have been selected while decoding.
+                            lock (gate) { if (session != selected || preset != music) continue; }
+                            length = device.Open(decoded); opened = filename;
                         }
                         device.SetVolume(music.Volume);
                         var (state, fresh) = MediaJson.ReadTimeline(selected, 5);
@@ -126,8 +136,13 @@ public sealed class MediaService
         [DllImport("winmm.dll", CharSet = CharSet.Unicode)] private static extern bool mciGetErrorStringW(uint code, StringBuilder output, uint length);
         private readonly string alias = "wwp_audio_" + Guid.NewGuid().ToString("N");
         private readonly Func<string, string> sendCommand;
+        private readonly CommandThread? nativeCommands;
         private bool opened; private double speed = 1; private int? volume;
-        internal MciDevice(Func<string, string>? sendCommand = null) { this.sendCommand = sendCommand ?? NativeCommand; }
+        internal MciDevice(Func<string, string>? sendCommand = null)
+        {
+            if (sendCommand is not null) this.sendCommand = sendCommand;
+            else { nativeCommands = new CommandThread(); this.sendCommand = nativeCommands.Send; }
+        }
         private string Command(string command) => sendCommand(command);
         private static string NativeCommand(string command)
         {
@@ -137,7 +152,9 @@ public sealed class MediaService
         }
         public long Open(string path)
         {
-            Command($"open \"{path}\" alias {alias}"); opened = true; speed = 1; volume = null;
+            // The default WAV driver has no setaudio/variable-speed support.
+            // All production inputs are PCM WAV, handled by the digital-video driver.
+            Command($"open \"{path}\" type mpegvideo alias {alias}"); opened = true; speed = 1; volume = null;
             try { Command($"set {alias} time format milliseconds"); return long.Parse(Command($"status {alias} length"), CultureInfo.InvariantCulture); }
             catch { try { Close(); } catch (System.ComponentModel.Win32Exception) { } throw; }
         }
@@ -162,7 +179,51 @@ public sealed class MediaService
             catch (System.ComponentModel.Win32Exception error) when (error.NativeErrorCode is 257 or 263) { }
             opened = false; speed = 1; volume = null;
         }
-        public void Dispose() { Close(); }
+        public void Dispose() { try { Close(); } finally { nativeCommands?.Dispose(); } }
+
+        // The MPEGVideo driver needs a stable STA/COM owner. Async continuations
+        // run on different pool threads; marshal all native commands to one owner.
+        private sealed class CommandThread : IDisposable
+        {
+            [DllImport("ole32.dll")] private static extern int CoInitializeEx(nint reserved, uint flags);
+            [DllImport("ole32.dll")] private static extern void CoUninitialize();
+            private readonly BlockingCollection<(string Command, TaskCompletionSource<string> Result)> commands = new();
+            private readonly Thread thread;
+            private int disposed;
+            internal CommandThread()
+            {
+                if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("实时音频播放需要 Windows。");
+                thread = new Thread(Run) { IsBackground = true, Name = "WuwaPoser music" };
+                thread.SetApartmentState(ApartmentState.STA); thread.Start();
+            }
+            private void Run()
+            {
+                var initialized = CoInitializeEx(0, 2);
+                try
+                {
+                    foreach (var request in commands.GetConsumingEnumerable())
+                    {
+                        try
+                        {
+                            Marshal.ThrowExceptionForHR(initialized);
+                            request.Result.TrySetResult(NativeCommand(request.Command));
+                        }
+                        catch (Exception error) { request.Result.TrySetException(error); }
+                    }
+                }
+                finally { if (initialized >= 0) CoUninitialize(); }
+            }
+            internal string Send(string command)
+            {
+                var result = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                commands.Add((command, result)); return result.Task.GetAwaiter().GetResult();
+            }
+            public void Dispose()
+            {
+                if (Interlocked.Exchange(ref disposed, 1) != 0) return;
+                commands.CompleteAdding(); thread.Join(); commands.Dispose();
+            }
+        }
     }
 }
 

@@ -289,4 +289,5 @@ foreach (var sample in new[] {
     Check(retryLog["stage_height_correction_cm"]!.GetValue<double>() == floorLog["stage_height_correction_cm"]!.GetValue<double>(), "stage retries keep the initial floor snapshot without accumulating offsets");
     ManagedBridge.Stop(); ManagedBridge.CheckReleased();
 }
+assertions += SceneVisibilityChecks.Run(root, first.Actor, second.Handle);
 Console.WriteLine($"PASS: {assertions} synthetic managed actor assertions; borrowing, forms, floor correction, visibility, and restoration retries. No game assemblies loaded.");

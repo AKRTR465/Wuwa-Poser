@@ -31,6 +31,7 @@ public sealed partial class MainWindow
     private readonly ComboBox recordingFps = new() { ItemsSource = new[] { "30 FPS", "60 FPS" }, SelectedIndex = 0, Width = 120, Margin = new(0, 0, 8, 0) };
     private readonly ComboBox recordingSize = new() { ItemsSource = new[] { "1080p", "2K（2560×1440）", "原始尺寸" }, SelectedIndex = 0, Width = 190, Margin = new(0, 0, 8, 0) };
     private readonly CheckBox autoRecord = new() { Content = "开始播放时自动录屏", IsChecked = false };
+    private readonly CheckBox hideSceneCharacters = new() { Content = "播放时隐藏附近 NPC 和怪物模型", IsChecked = false };
     private readonly Slider progress = new() { Minimum = 0, Maximum = 1, IsMoveToPointEnabled = true, Margin = new(0, 14, 0, 10) };
     private readonly ComboBox placementTarget = new() { DisplayMemberPath = nameof(ActorTarget.Name), Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly TextBox liveX = new() { Text = "0", Tag = "厘米" }, liveY = new() { Text = "0", Tag = "厘米" }, liveHeight = new() { Text = "0", Tag = "厘米" }, liveYaw = new() { Text = "0", Tag = "度" };
@@ -74,6 +75,7 @@ public sealed partial class MainWindow
         ScrollViewer.SetHorizontalScrollBarVisibility(actorList, ScrollBarVisibility.Disabled);
         pages.Add(BuildActorsPage()); pages.Add(BuildStagePage()); pages.Add(BuildPerformPage());
         camera.TextChanged += (_, _) => UpdateGuide(); audio.TextChanged += (_, _) => UpdateGuide(); cameraMode.SelectionChanged += (_, _) => UpdateGuide(); placementMode.SelectionChanged += (_, _) => UpdateGuide();
+        hideSceneCharacters.Checked += (_, _) => UpdateGuide(); hideSceneCharacters.Unchecked += (_, _) => UpdateGuide();
         speed.TextChanged += (_, _) => UpdateSpeedChips();
         _ = AddActorAsync(); ShowPage(0); UpdateSpeedChips(); UpdateActions();
     }
@@ -158,6 +160,8 @@ public sealed partial class MainWindow
         cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(FileDrop(camera, "镜头 VMD（可选）", "把镜头 .vmd 拖到这里，或点击选择", "VMD 动作|*.vmd", "\uE722"));
         cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(Label("队伍怎么站")); cameraBody.Children.Add(placementMode);
         cameraBody.Children.Add(Hint("「站位舞台」按上面的站位图各自站位；「原作队形」忽略站位图，全员站上舞台原点，由动作自带的队形还原原作构图，配合 VMD 镜头轨道效果最佳。"));
+        cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(hideSceneCharacters);
+        cameraBody.Children.Add(Hint("隐藏起点周围 100 米内的 NPC 和怪物，结束或失败时恢复；保留演员、队员和动物。仅隐藏模型，AI、碰撞和头顶 UI 仍按游戏规则运行。"));
         content.Children.Add(Card("镜头", "跟着角色拍，或者使用作品自带的运镜。", "\uE722", cameraBody));
 
         var musicBody = new StackPanel();
@@ -280,6 +284,7 @@ public sealed partial class MainWindow
         CheckRow(!cameraMissing, cameraMissing ? "选了「VMD 镜头轨道」，但还没有选镜头文件" : "镜头：" + cameraMode.SelectedItem);
         var nativeFormation = placementMode.SelectedIndex == 1;
         CheckRow(null, nativeFormation ? "摆放：原作队形（忽略站位图，全员从舞台原点出发）" : "摆放：站位舞台（按站位图各自站位）");
+        if (hideSceneCharacters.IsChecked == true) CheckRow(null, "播放时隐藏起点周围 100 米内的 NPC 和怪物模型，停止后恢复");
         var crowded = nativeFormation ? 0 : CrowdedCount(MapActors());
         if (playing.Count > 0) CheckRow(crowded == 0, crowded == 0 ? "站位没有挤在一起" : $"有 {crowded} 位演员站得太近，可以去第二步的站位地图调整");
         CheckRow(null, string.IsNullOrWhiteSpace(audio.Text) ? "背景音乐：没有选择（可以不选）" : "背景音乐：" + System.IO.Path.GetFileName(audio.Text));
@@ -342,6 +347,7 @@ public sealed partial class MainWindow
 
     private void UpdateActions()
     {
+        hideSceneCharacters.IsEnabled = !busy && session is null && previewSession is null && player.ActiveSession is null;
         foreach (var button in actions) button.IsEnabled = !busy;
         foreach (var button in sessionActions) button.IsEnabled = !busy && session is not null && sessionControllable;
         if (stopButton is not null) stopButton.IsEnabled = (!busy && (session is not null || previewSession is not null || player.ActiveSession is not null)) || (busy && operationCancellation is { IsCancellationRequested: false });

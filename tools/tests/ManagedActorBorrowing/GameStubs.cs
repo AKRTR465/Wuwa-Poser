@@ -11,12 +11,12 @@ namespace UnrealEngine
     public enum EVisibilityBasedAnimTickOption { AlwaysTickPoseAndRefreshBones, AlwaysTickPose, OnlyTickMontagesWhenNotRendered, OnlyTickPoseWhenRendered }
     public class AActor : UObject
     {
-        public FVectorDouble Location; public FRotator Rotation; public bool bHidden = true, Tick; public float Interval = .5f; public int FailLocations;
+        public FVectorDouble Location; public FRotator Rotation; public bool bHidden = true, Tick; public float Interval = .5f; public int FailLocations, FailUnhide, FailHide;
         public FVectorDouble D_K2_GetActorLocation() => Location; public FRotator K2_GetActorRotation() => Rotation;
         public FVector K2_GetActorLocation() => new((float)(Location.X - UGameplayStatics.WorldOrigin.X), (float)(Location.Y - UGameplayStatics.WorldOrigin.Y), (float)(Location.Z - UGameplayStatics.WorldOrigin.Z));
         public bool D_K2_SetActorLocationAndRotation(FVectorDouble location, FRotator rotation, bool sweep, ref FHitResult hit, bool teleport) { if (FailLocations > 0) { FailLocations--; return false; } Location = location; Rotation = rotation; return true; }
         public bool IsActorTickEnabled() => Tick; public float GetActorTickInterval() => Interval;
-        public void SetActorHiddenInGame(bool hidden) => bHidden = hidden; public void SetActorTickEnabled(bool enabled) => Tick = enabled; public void SetActorTickInterval(float value) => Interval = value;
+        public void SetActorHiddenInGame(bool hidden) { if (!hidden && FailUnhide > 0) { FailUnhide--; throw new InvalidOperationException("synthetic actor visibility restore failure"); } if (hidden && FailHide > 0) { FailHide--; throw new InvalidOperationException("synthetic actor hide failure"); } bHidden = hidden; } public void SetActorTickEnabled(bool enabled) => Tick = enabled; public void SetActorTickInterval(float value) => Interval = value;
         public FVector GetActorRightVector() { var yaw = Rotation.Yaw * Math.PI / 180; return new((float)-Math.Sin(yaw), (float)Math.Cos(yaw), 0); }
         public FVector GetActorForwardVector() { var yaw = Rotation.Yaw * Math.PI / 180; return new((float)Math.Cos(yaw), (float)Math.Sin(yaw), 0); }
     }
@@ -97,6 +97,6 @@ public class WorldEntity : Entity { }
 public class EntityHandle { public WorldEntity Entity; public int Id, Index; public long CreatureDataId; public bool PendingRemoving; public Dictionary<string, int> HoldEntityMap = new(); public bool AddHoldEntity(string key) { HoldEntityMap[key] = 1; return true; } public bool RemoveHoldEntity(string key) => HoldEntityMap.Remove(key); }
 public class BaseActorComponent { public AActor ActorInternal; }
 public class CharacterActorComponent : BaseActorComponent { public USkeletalMeshComponent SkeletalMesh; }
-public class CreatureDataComponent { public int SkinId, RoleId, PlayerId; public long CreatureDataId; }
+public class CreatureDataComponent { public int SkinId, RoleId, PlayerId, EntityType; public long CreatureDataId; public bool IsNpc() => EntityType == 1; public bool IsMonster() => EntityType == 2; }
 public class CharacterModel { public static CharacterModel _Instance = new(); public List<EntityHandle> Handles = new(); }
 public class ObjectSystem { public static ObjectSystem _instance = new(); public List<ObjectBase> Objects = new(); public List<int> Versions = new(); }

@@ -16,7 +16,7 @@ public sealed partial class MainWindow : Window
     private readonly string root;
     private readonly PlaybackSessionService player;
     private readonly OwnedCharacterCatalog characterCatalog;
-    private readonly MediaService music = new();
+    private readonly MediaService music;
     private readonly RecordingService recorder;
     private readonly CancellationTokenSource lifetime = new();
     private CancellationTokenSource? operationCancellation;
@@ -33,7 +33,7 @@ public sealed partial class MainWindow : Window
     public MainWindow(string repositoryRoot, bool startPolling = true) : this(repositoryRoot, startPolling, new RecordingService(repositoryRoot)) { }
     internal MainWindow(string repositoryRoot, bool startPolling, RecordingService recordingService)
     {
-        root = repositoryRoot; player = new(root); recorder = recordingService; characterCatalog = OwnedCharacterCatalog.Load(root);
+        root = repositoryRoot; player = new(root); music = new(root); recorder = recordingService; characterCatalog = OwnedCharacterCatalog.Load(root);
         player.Progress += message => Dispatcher.Invoke(() => status.Text = message);
         BuildWindow();
         native.Checked += (_, _) => UpdatePhysics(); native.Unchecked += (_, _) => UpdatePhysics();
@@ -86,7 +86,7 @@ public sealed partial class MainWindow : Window
         if (motion && cameraMode.SelectedIndex == 2 && Optional(camera) is null) throw new InvalidOperationException("请先选择镜头 VMD。");
         return new(PlaybackSource.MixedActors, selected, CameraSource: Optional(camera), CameraMode: cameraMode.SelectedIndex, Speed: Number(speed, .1, 4), Loop: loop.IsChecked == true,
             DurationSeconds: Number(duration, 0, 2147483), NativePhysics: native.IsChecked == true, Physics: secondary.IsChecked == true,
-            SpacingCm: Number(spacing, 0, 1000), FormationNative: placementMode.SelectedIndex == 1);
+            SpacingCm: Number(spacing, 0, 1000), FormationNative: placementMode.SelectedIndex == 1, HideSceneCharacters: hideSceneCharacters.IsChecked == true);
     }
     private async Task PrepareAsync()
     {
@@ -105,6 +105,11 @@ public sealed partial class MainWindow : Window
     private async Task StartAsync()
     {
         var request = Request(); if (session is not null || previewSession is not null) await StopCurrentAsync();
+        if (Optional(audio) is { } musicPath)
+        {
+            status.Text = "正在准备配乐…";
+            await music.PrepareAsync(musicPath, Token);
+        }
         status.Text = "请切回鸣潮，正在加载演员并准备播放…";
         var startPaused = autoRecord.IsChecked == true;
         JsonObject result;
@@ -336,6 +341,7 @@ public sealed partial class MainWindow : Window
         camera.Text = request.CameraSource ?? ""; cameraMode.SelectedIndex = request.CameraMode; placementMode.SelectedIndex = request.FormationNative ? 1 : 0;
         speed.Text = F(request.Speed); loop.IsChecked = request.Loop; duration.Text = F(request.DurationSeconds);
         native.IsChecked = request.NativePhysics; secondary.IsChecked = request.Physics; spacing.Text = F(request.SpacingCm);
+        hideSceneCharacters.IsChecked = request.HideSceneCharacters;
         actorEditor.Child = null; foreach (var previous in actors) previous.Changed -= RefreshActorList; actors.Clear();
         var catalog = characterCatalog;
         for (var i = 0; i < request.Actors.Count; i++)

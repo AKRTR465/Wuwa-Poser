@@ -67,6 +67,10 @@ public sealed partial class OwnedMmdPlaybackService
         File.WriteAllText(Path.Combine(directory, "stage_floor.tsv"),
             (Contract.True(config, "formation_native") ? "walkable_floor" : "capsule_bottom") + "\t" +
             (config["formation_floor_fallback_cm"]?.GetValue<double>() ?? 2.5).ToString("R", CultureInfo.InvariantCulture) + "\n", new UTF8Encoding(false));
+        // A sidecar keeps the attached-thread helper independent of JSON libraries.
+        // Stage previews deliberately never enable scene hiding.
+        File.WriteAllText(Path.Combine(directory, "scene_visibility.tsv"),
+            (Contract.True(config, "hide_scene_characters") && !Contract.True(config, "preview") ? "npc_monsters" : "none") + "\t10000\n", new UTF8Encoding(false));
     }
 
     public async Task<JsonObject> PrepareActorsAsync(PlaybackSessionRequest request, string outputDirectory, CancellationToken cancellation = default)
@@ -105,7 +109,8 @@ public sealed partial class OwnedMmdPlaybackService
             ["schema"] = 3, ["scope"] = "mixed_actor_mmd", ["session_epoch"] = epoch,
             ["actors"] = actors, ["actor_count"] = actors.Count, ["camera_anchor_slot"] = selected[0].Slot,
             ["ownership_preference"] = "scene_team_then_create", ["duration_ms"] = checked((int)Math.Round(request.DurationSeconds * 1000)),
-            ["speed"] = request.Speed, ["loop"] = request.Loop, ["clip_duration_seconds"] = bodyDuration
+            ["speed"] = request.Speed, ["loop"] = request.Loop, ["clip_duration_seconds"] = bodyDuration,
+            ["hide_scene_characters"] = request.HideSceneCharacters
         };
         var assets = new PlaybackAssets(root);
         assets.Physics(scene, output, request.NativePhysics, request.Physics);

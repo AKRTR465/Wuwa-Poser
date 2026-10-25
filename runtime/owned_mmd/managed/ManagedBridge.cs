@@ -78,6 +78,17 @@ namespace WwPoser.ColdLoad
             public string HoldReason;
             public bool ActorHidden, MeshVisible, MeshHidden, HoldAdded, Released;
         }
+        private sealed class SceneVisibility
+        {
+            public EntityHandle Handle;
+            public WorldEntity Entity;
+            public CharacterActorComponent Component;
+            public CreatureDataComponent Data;
+            public AActor Actor;
+            public ulong ActorAddress;
+            public int EntityId, EntityIndex;
+            public bool Hidden, Released, Expired;
+        }
         private sealed class Stage
         {
             public FVectorDouble Origin;
@@ -96,6 +107,10 @@ namespace WwPoser.ColdLoad
         private static bool s_began, s_graphExported, s_maintenanceEnabled;
         private static Stage s_stage;
         private static PlayerVisibility s_playerVisibility;
+        private static readonly Dictionary<int, SceneVisibility> s_sceneVisibility = new Dictionary<int, SceneVisibility>();
+        private static double s_sceneRadius;
+        private static int s_sceneScanTick;
+        private static bool s_sceneScanned, s_sceneLimitReached;
         private const string SessionVariable = "WWPOSER_OWNED_SESSION_DIR";
 
         private static FieldInfo Field(Type owner, string name)
@@ -135,7 +150,7 @@ namespace WwPoser.ColdLoad
         private static Dictionary<int, TsUiSceneRoleActor> Map(Owner owner) { return (Dictionary<int, TsUiSceneRoleActor>)Bind().Map.GetValue(owner.Manager); }
         private static bool Valid(UnrealObject value) { return !Object.ReferenceEquals(value, null) && value.IsValid(); }
         private static ulong Address(UnrealObject wrapper) { return (ulong)((IntPtr)Bind().NativePointer.GetValue(wrapper)).ToInt64(); }
-        private static bool AllReleased() { foreach (var owner in s_owners) if (!owner.Released) return false; return s_playerVisibility == null || s_playerVisibility.Released; }
+        private static bool AllReleased() { foreach (var owner in s_owners) if (!owner.Released) return false; foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) return false; return s_playerVisibility == null || s_playerVisibility.Released; }
         public static void Probe() { Bind(); }
         public static void VerifySession()
         {
@@ -147,7 +162,110 @@ namespace WwPoser.ColdLoad
             var next = Path.GetFullPath(Environment.GetEnvironmentVariable(SessionVariable));
             if (String.Equals(next, s_session, StringComparison.OrdinalIgnoreCase)) return;
             if (!AllReleased()) throw new InvalidOperationException("Previous actors still require restoration.");
+            var sceneRadius = ReadSceneVisibility(next);
             s_owners.Clear(); s_session = next; s_began = false; s_graphExported = false; s_maintenanceEnabled = false; s_stage = null; s_playerVisibility = null;
+            s_sceneVisibility.Clear(); s_sceneRadius = sceneRadius; s_sceneScanned = false; s_sceneLimitReached = false;
+        }
+        private static double ReadSceneVisibility(string directory)
+        {
+            var path = Path.Combine(directory, "scene_visibility.tsv");
+            if (!File.Exists(path)) return 0; // Old preparations retain their behavior.
+            var fields = File.ReadAllText(path, Encoding.UTF8).Trim().Split('\t'); double radius;
+            if (fields.Length != 2 || (fields[0] != "none" && fields[0] != "npc_monsters") ||
+                !Double.TryParse(fields[1], NumberStyles.Float, CultureInfo.InvariantCulture, out radius) ||
+                Double.IsNaN(radius) || Double.IsInfinity(radius) || radius <= 0 || radius > 10000)
+                throw new InvalidDataException("Invalid scene visibility settings.");
+            return fields[0] == "npc_monsters" ? radius : 0;
+        }
+
+        // CreatureDataComponent.IsNpc/IsMonster are simple EntityType comparisons
+        // in the referenced game assembly. Animals and player entities are separate.
+        private static bool SceneCategory(CreatureDataComponent data) { return data != null && (data.IsNpc() || data.IsMonster()); }
+        private static bool SceneInRange(AActor actor)
+        {
+            var position = actor.D_K2_GetActorLocation(); var origin = s_stage.Origin;
+            var x = position.X - origin.X; var y = position.Y - origin.Y; var z = position.Z - origin.Z;
+            return x * x + y * y + z * z <= s_sceneRadius * s_sceneRadius;
+        }
+        private static HashSet<ulong> SceneProtectedActors()
+        {
+            var protectedActors = new HashSet<ulong>();
+            foreach (var owner in s_owners) if (Valid(owner.Actor)) protectedActors.Add(Address(owner.Actor));
+            foreach (var member in CurrentTeam()) protectedActors.Add(Address(member.Actor));
+            var pawn = UGameplayStatics.GetPlayerPawn(s_owners[0].Actor, 0);
+            if (Valid(pawn)) protectedActors.Add(Address(pawn));
+            return protectedActors;
+        }
+        private static bool SceneIdentityCurrent(SceneVisibility saved)
+        {
+            var handle = saved.Handle; var entity = saved.Entity; var c = Bind();
+            if (handle == null || entity == null || !Object.ReferenceEquals(handle.Entity, entity) || handle.Id != saved.EntityId || entity.Id != saved.EntityId ||
+                handle.Index != saved.EntityIndex || entity.Index != saved.EntityIndex ||
+                (uint)handle.Index != ((uint)handle.Id >> 16) || !Valid(saved.Actor) || Address(saved.Actor) != saved.ActorAddress) return false;
+            var character = c.CharacterInstance.GetValue(null); var objects = c.ObjectInstance.GetValue(null);
+            if (character == null || objects == null) return false;
+            var handles = (List<EntityHandle>)c.CharacterHandles.GetValue(character); var values = (List<ObjectBase>)c.ObjectList.GetValue(objects);
+            var versions = (List<int>)c.ObjectVersions.GetValue(objects); var index = handle.Index;
+            // Pending removal is allowed for restoration while this exact object
+            // is still registered. Recycled handles/actors are never modified.
+            return index >= 0 && index < handles.Count && index < values.Count && index < versions.Count &&
+                Object.ReferenceEquals(handles[index], handle) && Object.ReferenceEquals(values[index], entity) && versions[index] == (handle.Id & 65535) &&
+                Object.ReferenceEquals(entity.GetComponent<CharacterActorComponent>(), saved.Component) &&
+                Object.ReferenceEquals(entity.GetComponent<CreatureDataComponent>(), saved.Data) &&
+                Valid((AActor)c.ActorInternal.GetValue(saved.Component)) && Address((AActor)c.ActorInternal.GetValue(saved.Component)) == saved.ActorAddress;
+        }
+        private static void RestoreSceneVisibility(SceneVisibility saved)
+        {
+            if (saved.Released) return;
+            if (!SceneIdentityCurrent(saved)) { saved.Expired = true; saved.Released = true; return; }
+            if (saved.Actor.bHidden != saved.Hidden) saved.Actor.SetActorHiddenInGame(saved.Hidden);
+            if (saved.Actor.bHidden != saved.Hidden) throw new InvalidOperationException("Scene actor visibility readback differs.");
+            saved.Released = true;
+        }
+        private static void UpdateSceneVisibility(bool forceScan)
+        {
+            if (s_sceneRadius <= 0 || s_stage == null || s_owners.Count == 0) return;
+            var errors = new List<string>(); var protectedActors = SceneProtectedActors();
+            foreach (var saved in s_sceneVisibility.Values)
+            {
+                if (saved.Released) continue;
+                if (!SceneIdentityCurrent(saved)) { saved.Expired = true; saved.Released = true; continue; }
+                if (protectedActors.Contains(saved.ActorAddress) || !SceneCategory(saved.Data) || !SceneInRange(saved.Actor))
+                    Attempt(delegate { RestoreSceneVisibility(saved); }, errors, "scene visibility restore");
+                else Attempt(delegate { if (!saved.Actor.bHidden) saved.Actor.SetActorHiddenInGame(true); if (!saved.Actor.bHidden) throw new InvalidOperationException("Scene actor hide readback differs."); }, errors, "scene visibility hide");
+            }
+            var tick = Environment.TickCount;
+            if (forceScan || !s_sceneScanned || unchecked(tick - s_sceneScanTick) >= 500)
+            {
+                s_sceneScanTick = tick; s_sceneScanned = true;
+                var character = Bind().CharacterInstance.GetValue(null);
+                var handles = character == null ? null : (List<EntityHandle>)Bind().CharacterHandles.GetValue(character);
+                if (handles != null)
+                {
+                    var seen = new HashSet<ulong>(protectedActors);
+                    foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) seen.Add(saved.ActorAddress);
+                    // Character handles are indexed by the bounded entity registry.
+                    for (var index = 0; index < handles.Count && index < 65536; index++)
+                    {
+                        var handle = handles[index];
+                        if (handle == null || !HandleCurrent(handle, handle.Entity)) continue;
+                        var entity = handle.Entity; var data = entity.GetComponent<CreatureDataComponent>();
+                        if (!SceneCategory(data)) continue;
+                        var component = entity.GetComponent<CharacterActorComponent>();
+                        var actor = component == null ? null : (AActor)Bind().ActorInternal.GetValue(component);
+                        if (!Valid(actor) || !SceneInRange(actor) || seen.Contains(Address(actor))) continue;
+                        SceneVisibility previous;
+                        if (s_sceneVisibility.TryGetValue(handle.Id, out previous) && !previous.Released) continue;
+                        if (previous == null && s_sceneVisibility.Count >= 4096) { s_sceneLimitReached = true; break; }
+                        var saved = new SceneVisibility { Handle = handle, Entity = entity, Component = component, Data = data,
+                            Actor = actor, ActorAddress = Address(actor), EntityId = handle.Id, EntityIndex = handle.Index, Hidden = actor.bHidden };
+                        s_sceneVisibility[handle.Id] = saved; seen.Add(saved.ActorAddress);
+                        // Save before the first write so partial startup failures restore.
+                        Attempt(delegate { if (!actor.bHidden) actor.SetActorHiddenInGame(true); if (!actor.bHidden) throw new InvalidOperationException("Scene actor hide readback differs."); }, errors, "scene visibility hide");
+                    }
+                }
+            }
+            if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
         private static List<Owner> Requests()
         {
@@ -445,6 +563,7 @@ namespace WwPoser.ColdLoad
                 EnableEvaluation(owner); owner.Shown = true;
             }
             HideNonPerformingPlayer();
+            UpdateSceneVisibility(true);
             if (!s_stage.CameraReferenceCaptured)
             {
                 // Subtract in D_/global space, then let native camera code add
@@ -509,6 +628,7 @@ namespace WwPoser.ColdLoad
             foreach (var owner in s_owners) if (owner.Borrowed && owner.Shown && !owner.Released) Attempt(delegate { Maintain(owner); }, errors, "slot " + owner.Slot.ToString(CultureInfo.InvariantCulture));
             foreach (var owner in s_owners) if (!owner.Borrowed && owner.IndependentInstance && owner.Shown && !owner.Released) Attempt(delegate { Loaded(owner); }, errors, "form slot " + owner.Slot.ToString(CultureInfo.InvariantCulture));
             if (s_playerVisibility != null && !s_playerVisibility.Released) Attempt(delegate { HidePlayerModel(s_playerVisibility); }, errors, "non-performing player visibility");
+            Attempt(delegate { UpdateSceneVisibility(false); }, errors, "NPC and monster visibility");
             if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
         private static void Pointer(StringBuilder output, string name, UnrealObject value) { output.Append('"').Append(name).Append("\":\"0x").Append(Address(value).ToString("x", CultureInfo.InvariantCulture)).Append('"'); }
@@ -582,12 +702,14 @@ namespace WwPoser.ColdLoad
             VerifySession(); s_maintenanceEnabled = false; var errors = new List<string>();
             foreach (var owner in s_owners) { if (owner.Released) continue; Attempt(delegate { if (owner.Borrowed) RestoreBorrowed(owner); else DestroyCreated(owner); }, errors, "slot " + owner.Slot.ToString(CultureInfo.InvariantCulture)); }
             Attempt(RestorePlayerVisibility, errors, "non-performing player visibility");
+            foreach (var saved in s_sceneVisibility.Values) Attempt(delegate { RestoreSceneVisibility(saved); }, errors, "NPC and monster visibility");
             WriteLifecycle(); if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
         public static void CheckReleased()
         {
             VerifySession();
             if (s_playerVisibility != null && (!s_playerVisibility.Released || s_playerVisibility.HoldAdded)) throw new InvalidOperationException("Non-performing player visibility still requires restoration.");
+            foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) throw new InvalidOperationException("NPC or monster visibility still requires restoration.");
             foreach (var owner in s_owners)
                 if (!owner.Released || (owner.Borrowed && owner.HoldAdded) || (!owner.Borrowed && owner.HasIndex && Map(owner).ContainsKey(owner.Index))) throw new InvalidOperationException("Actor slot still requires restoration: " + owner.Slot.ToString(CultureInfo.InvariantCulture));
         }
@@ -608,6 +730,18 @@ namespace WwPoser.ColdLoad
                 output.Append('}');
             }
             output.Append("],\"all_released\":").Append(AllReleased() ? "true" : "false");
+            output.Append(",\"scene_visibility\":{\"enabled\":").Append(s_sceneRadius > 0 ? "true" : "false")
+                .Append(",\"radius_cm\":").Append(s_sceneRadius.ToString("R", CultureInfo.InvariantCulture))
+                .Append(",\"limit_reached\":").Append(s_sceneLimitReached ? "true" : "false").Append(",\"targets\":[");
+            var sceneIndex = 0;
+            foreach (var saved in s_sceneVisibility.Values)
+            {
+                if (sceneIndex++ != 0) output.Append(',');
+                output.Append("{\"entity_id\":").Append(saved.EntityId).Append(",\"actor\":\"0x").Append(saved.ActorAddress.ToString("x", CultureInfo.InvariantCulture))
+                    .Append("\",\"original_hidden\":").Append(saved.Hidden ? "true" : "false")
+                    .Append(",\"released\":").Append(saved.Released ? "true" : "false").Append(",\"expired\":").Append(saved.Expired ? "true" : "false").Append('}');
+            }
+            output.Append("]}");
             if (s_playerVisibility != null)
             {
                 var saved = s_playerVisibility;

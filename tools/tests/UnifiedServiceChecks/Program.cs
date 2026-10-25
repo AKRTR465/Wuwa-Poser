@@ -12,6 +12,7 @@ static JsonObject Timeline(string mode = "playing") => new() { ["clip_epoch"] = 
 var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(fixture);
 assertions += await MediaLifecycleChecks.RunAsync(fixture);
+assertions += await AudioFormatChecks.RunLifecycleAsync(fixture);
 assertions += CompiledMotionValidationChecks.Run();
 assertions += BundleValidationChecks.Run(fixture);
 var localWorkspace = Path.Combine(fixture, "workspace");
@@ -184,6 +185,8 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     Check(File.ReadAllText(Path.Combine(previewDirectory,"stage_floor.tsv")) == "capsule_bottom\t2.5\n", "ordinary stage keeps its original capsule-bottom reference");
     OwnedMmdPlaybackService.ConfigureStage(previewConfig,180,true); OwnedMmdPlaybackService.WriteActorsFile(previewDirectory,previewConfig);
     Check(File.ReadAllText(Path.Combine(previewDirectory,"stage_floor.tsv")) == "walkable_floor\t2.5\n" && OwnedMmdPlaybackService.ActorConfigs(previewConfig).All(actor => actor["stage_z_cm"]!.GetValue<double>() == 0), "original formation requests floor correction in the motion layer without shifting actors");
+    previewConfig["hide_scene_characters"] = true; OwnedMmdPlaybackService.WriteActorsFile(previewDirectory, previewConfig);
+    Check(File.ReadAllText(Path.Combine(previewDirectory, "scene_visibility.tsv")) == "none\t10000\n", "standing previews never hide scene NPCs even when playback hiding is selected");
     Directory.Delete(previewDirectory, true);
     string? lastPreparation = null;
     string? firstPreparation = null;
@@ -218,6 +221,13 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     var disabledPrep = await service.PrepareAsync(disabledRequest); var disabledDirectory = disabledPrep["session_dir"]!.GetValue<string>();
     Check(OwnedMmdPlaybackService.ActorConfigs(OwnedMmdPlaybackService.Config(disabledDirectory)).Select(actor => actor["slot"]!.GetValue<uint>()).SequenceEqual(new uint[] { 7, 41 }), "disabled cards are not loaded and later actors retain non-contiguous slots");
     Check(service.ReadPreparation(disabledDirectory).Actors.Count == 3, "saved requests retain disabled cards for later editing");
+    var hideRequest = disabledRequest with { HideSceneCharacters = true };
+    Check(!service.RequiresPreparation(disabledDirectory, hideRequest), "NPC visibility is a runtime setting and never recompiles motion");
+    service.UpdatePreparation(disabledDirectory, hideRequest);
+    Check(service.ReadPreparation(disabledDirectory).HideSceneCharacters && Contract.True(OwnedMmdPlaybackService.Config(disabledDirectory), "hide_scene_characters") &&
+        File.ReadAllText(Path.Combine(disabledDirectory, "scene_visibility.tsv")) == "npc_monsters\t10000\n", "saved requests and the attached-thread sidecar preserve NPC and monster hiding");
+    service.UpdatePreparation(disabledDirectory, disabledRequest);
+    Check(!service.ReadPreparation(disabledDirectory).HideSceneCharacters && File.ReadAllText(Path.Combine(disabledDirectory, "scene_visibility.tsv")) == "none\t10000\n", "reusing a preparation can disable NPC hiding without a stale sidecar");
     using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
     try { await service.PrepareAsync(disabledRequest, cancelled.Token); throw new Exception("cancelled preparation completed"); } catch (OperationCanceledException) { assertions++; }
     Check(service.ActiveSession is null, "cancelled offline preparation does not acquire runtime ownership");
@@ -251,6 +261,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     Check(File.ReadAllLines(Path.Combine(snapshotA, "actors.tsv")).Length == 4 && isolation.ActiveSession is null, "runtime file preparation alone does not launch or claim actors");
 }
 if (args.Length >= 2 && args[0] == "--audio") assertions += await RecordingAudioChecks.RunAsync(args[1], fixture);
+if (args.Length >= 2 && args[0] == "--media-formats") assertions += await AudioFormatChecks.RunFormatsAsync(args[1], fixture, args.Contains("--native-audio"));
 var captureIndex = Array.IndexOf(args, "--capture");
 if (captureIndex >= 0) assertions += await RecordingCaptureChecks.RunAsync(args[captureIndex + 1], fixture);
 Console.WriteLine($"PASS: {assertions} assertions.");
