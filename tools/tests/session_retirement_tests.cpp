@@ -2,6 +2,7 @@
 #include "../../runtime/owned_mmd/native/n1_common.h"
 #include "../../runtime/owned_mmd/native/owned_mmd_body.h"
 #include <cstdlib>
+#include <exception>
 #include <iostream>
 #include <limits>
 
@@ -17,9 +18,10 @@ static void Converter(void*,void*){++converterCalls;}
 static void Group(void*,void*){++groupCalls;}
 template<class Action>static bool Rejected(Action&& action){try{action();return false;}catch(const std::runtime_error&){return true;}}
 
-int main(){
+static void RunTests(){
     auto& r=scene::runtime;auto& hub=native::hub;
     auto actor=std::make_unique<scene::ActorRuntime>();auto& a=*actor;
+    a.config=Json{{"character_display_name","synthetic retirement actor"}};
     a.slot=1;a.tokens[scene::Mesh].object=0x10000;a.nativePhysics=false;a.features.prepared=true;a.topology.count=2;
     a.positions.resize(2);a.rotations.resize(2);a.positionMask.resize(2);a.rotationMask.resize(2);
     scene::ValidateCanonicalPose(a);
@@ -67,4 +69,11 @@ int main(){
     Check(bodyCalls==1&&cameraCalls==1&&converterCalls==1&&groupCalls==1,"delayed detours still forward exactly once without touching retired payload");
     Check(scene::ReleaseRetiredPayload(terminal)&&scene::Status()==terminal,"payload retirement is idempotent");
     std::cout<<"session retirement: "<<assertions<<" assertions passed\n";
+}
+int main(){
+    try{RunTests();return 0;}
+    catch(const std::exception& error){
+        std::cerr<<"session retirement: unexpected exception after "<<assertions<<" assertions: "<<error.what()<<'\n';
+        return 1;
+    }
 }

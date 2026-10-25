@@ -8,11 +8,13 @@ if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repo 'test_outputs/of
 [IO.Directory]::CreateDirectory($OutputDirectory) | Out-Null
 function Run-Native([string]$Relative) {
     & (Join-Path $repo $Relative)
-    if ($LASTEXITCODE -ne 0) { throw ('Offline native check failed: ' + $Relative) }
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) { throw ('Offline native check failed: ' + $Relative + ' (exit code: ' + $exitCode + ')') }
 }
 function Run-Managed([string]$Project, [string[]]$CheckArguments = @()) {
     & $DotNetExecutable run --project (Join-Path $repo $Project) -c Release -- @CheckArguments
-    if ($LASTEXITCODE -ne 0) { throw ('Offline managed check failed: ' + $Project) }
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) { throw ('Offline managed check failed: ' + $Project + ' (exit code: ' + $exitCode + ')') }
 }
 
 # These compilers only process synthetic motion data; they do not load the game.
