@@ -1,0 +1,4 @@
+# Catalog certificates and runtime contracts contain SHA-256 digests of raw
+# file bytes. Preserve the committed bytes, including existing line endings,
+# regardless of a contributor's core.autocrlf setting.
+/data/** -text

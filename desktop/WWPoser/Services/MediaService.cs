@@ -15,10 +15,13 @@ public sealed class MediaService
     private MusicPreset? preset;
     private CancellationTokenSource? cancellation;
     private Task? worker;
+    private string? lastError;
     private readonly Func<MciDevice> createDevice;
 
     public MediaService() : this(() => new MciDevice()) { }
     internal MediaService(Func<MciDevice> createDevice) { this.createDevice = createDevice; }
+    public string? LastError { get { lock (gate) return lastError; } }
+    private void ReportError(string? message) { lock (gate) lastError = message; }
 
     public void UpdateContext(string? sessionDirectory, MusicPreset? music)
     {
@@ -46,7 +49,7 @@ public sealed class MediaService
                 if (ReferenceEquals(worker, pending))
                 {
                     worker = null; cancellation?.Dispose(); cancellation = null;
-                    session = null; preset = null;
+                    session = null; preset = null; lastError = null;
                 }
             }
         }
@@ -78,7 +81,13 @@ public sealed class MediaService
                     else
                     {
                         string filename = Path.GetFullPath(music.AudioFile);
-                        if (opened != filename) { device.Close(); length = device.Open(filename); opened = filename; epoch = null; }
+                        if (opened != filename)
+                        {
+                            // Retire our cached identity before opening another file.
+                            // A failed B must not leave A marked open after A was closed.
+                            opened = null; epoch = null; length = 0;
+                            device.Close(); length = device.Open(filename); opened = filename;
+                        }
                         device.SetVolume(music.Volume);
                         var (state, fresh) = MediaJson.ReadTimeline(selected, 5);
                         if (!Contract.True(state, "session_active") || !fresh) device.Pause();
@@ -92,8 +101,19 @@ public sealed class MediaService
                             else device.Pause();
                         }
                     }
+                    ReportError(null);
                 }
-                catch (Exception error) when (error is not OperationCanceledException) { }
+                catch (Exception error) when (error is not OperationCanceledException)
+                {
+                    opened = null; epoch = null; length = 0;
+                    var message = error.Message;
+                    try { device.Close(); }
+                    catch (Exception cleanup) when (cleanup is not OperationCanceledException) { message += "；音频设备重置失败：" + cleanup.Message; }
+                    ReportError(message);
+                    // Keep the worker recoverable, but do not spin on unsupported
+                    // files or a disconnected device. A later selection can reopen it.
+                    await Task.Delay(400, stop).ConfigureAwait(false);
+                }
                 await Task.Delay(100, stop).ConfigureAwait(false);
             }
         }

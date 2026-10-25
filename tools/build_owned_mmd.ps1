@@ -3,7 +3,8 @@ param(
  [string]$PackageDirectory,
  [string]$ReferenceDirectory,
  [string]$Compiler='C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\Roslyn\csc.exe',
- [switch]$Check
+ [switch]$Check,
+ [string]$ExpectedSourceRevision
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
@@ -22,16 +23,37 @@ function Assert-RuntimeFiles {
 function Assert-RuntimeManifest {
  if(-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)){throw 'Owned MMD runtime manifest missing; run tools/build_owned_mmd.ps1.'}
  $manifest=Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
- if($manifest.schema -ne 1 -or $manifest.purpose -ne $purpose){throw 'Owned MMD runtime manifest schema or purpose invalid.'}
+ if($manifest.schema -notin @(1,2) -or $manifest.purpose -ne $purpose){throw 'Owned MMD runtime manifest schema or purpose invalid.'}
  $listed=@($manifest.files)
  if($listed.Count -ne $files.Count -or @($listed | Select-Object -Unique).Count -ne $files.Count){throw 'Owned MMD runtime manifest must list exactly four files.'}
  foreach($file in $listed){if($file -isnot [string] -or $file -cnotin $files){throw ('Unexpected owned MMD runtime file: '+$file)}}
+ if($manifest.schema -eq 2){
+  $artifacts=@($manifest.artifacts)
+  if($artifacts.Count -ne $files.Count){throw 'Owned MMD runtime digest list is incomplete.'}
+  foreach($file in $files){
+   $record=@($artifacts | Where-Object path -CEQ $file)
+   if($record.Count -ne 1){throw ('Owned MMD runtime digest is missing or duplicated: '+$file)}
+   $path=Join-Path $packageRoot $file
+   if((Get-Item -LiteralPath $path).Length -ne $record[0].bytes -or
+      (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $record[0].sha256){
+    throw ('Owned MMD runtime integrity check failed: '+$file)
+   }
+  }
+ }
+ if($ExpectedSourceRevision){
+  if($manifest.schema -ne 2 -or $manifest.source_revision -cne $ExpectedSourceRevision -or $manifest.source_dirty){
+   throw 'Owned MMD runtime was not built from the expected clean source revision; rebuild it.'
+  }
+ }
 }
 
 if($Check){
  Assert-RuntimeManifest
  Assert-RuntimeFiles
 }else{
+ $buildRevision=(& git -C $repo rev-parse HEAD 2>$null)
+ if($LASTEXITCODE -ne 0){$buildRevision='uncommitted'}
+ $buildDirty=@(& git -C $repo status --porcelain --untracked-files=normal 2>$null).Count -ne 0
  if(-not $ReferenceDirectory){$ReferenceDirectory=$env:WWPOSER_MANAGED_REFERENCE_DIR}
  if(-not $ReferenceDirectory){$ReferenceDirectory=Join-Path $repo 'local\owned_mmd_references'}
  $referenceRoot=[IO.Path]::GetFullPath($ReferenceDirectory)
@@ -68,7 +90,15 @@ if($Check){
  if($LASTEXITCODE -ne 0){throw 'Owned MMD native build failed.'}
  Copy-Item -LiteralPath $layoutPath -Destination (Join-Path $packageRoot 'owned_mmd_layout.json')
  Assert-RuntimeFiles
- $manifest=[ordered]@{schema=1;purpose=$purpose;files=$files}
- [IO.File]::WriteAllText($manifestPath,($manifest|ConvertTo-Json -Depth 4),[Text.UTF8Encoding]::new($false))
+ $endRevision=(& git -C $repo rev-parse HEAD 2>$null)
+ if($LASTEXITCODE -ne 0){$endRevision='uncommitted'}
+ $buildDirty=$buildDirty -or $endRevision -cne $buildRevision -or
+     @(& git -C $repo status --porcelain --untracked-files=normal 2>$null).Count -ne 0
+ $artifacts=@($files | ForEach-Object {
+  $path=Join-Path $packageRoot $_
+  [ordered]@{path=$_;bytes=(Get-Item -LiteralPath $path).Length;sha256=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()}
+ })
+ $manifest=[ordered]@{schema=2;purpose=$purpose;source_revision=$buildRevision;source_dirty=$buildDirty;files=$files;artifacts=$artifacts}
+ [IO.File]::WriteAllText($manifestPath,($manifest|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
 }
 [ordered]@{status=if($Check){'owned_mmd_runtime_files_present'}else{'owned_mmd_runtime_built'};files=$files.Count;runtime_executed=$false;package=$packageRoot}|ConvertTo-Json -Compress

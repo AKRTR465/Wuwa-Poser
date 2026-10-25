@@ -22,6 +22,7 @@ public sealed class RecordingService
     private MusicPreset? preset;
     private CancellationTokenSource? stop;
     private Task? worker;
+    private TaskCompletionSource<bool>? captureReady;
     private RecordingSnapshot snapshot = new("idle", "仅录鸣潮窗口");
     public RecordingService(string repositoryRoot) : this(repositoryRoot, null) { }
     internal RecordingService(string repositoryRoot, Func<string, int, int, CancellationToken, Task>? capture)
@@ -56,9 +57,37 @@ public sealed class RecordingService
             if (worker is { IsCompleted: false }) throw new InvalidOperationException("录屏尚未结束");
             stop?.Dispose(); stop = new CancellationTokenSource();
             snapshot = new RecordingSnapshot("starting", "正在连接鸣潮窗口");
-            worker = Task.Run(() => capture(Path.GetFullPath(folder), fps, height, stop.Token));
+            var ready = captureReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            var token = stop.Token;
+            worker = Task.Run(async () =>
+            {
+                try { await capture(Path.GetFullPath(folder), fps, height, token); }
+                catch (Exception error) { Update(Snapshot with { State = "error", Message = error.Message }); }
+                finally { ready.TrySetResult(false); }
+            });
         }
         return Task.CompletedTask;
+    }
+    public async Task WaitForReadyAsync(CancellationToken cancellation = default)
+    {
+        Task<bool> ready; Task pending;
+        lock (gate)
+        {
+            ready = captureReady?.Task ?? throw new InvalidOperationException("录屏尚未开始");
+            pending = worker!;
+        }
+        var firstFrame = await ready.WaitAsync(TimeSpan.FromSeconds(60), cancellation).ConfigureAwait(false);
+        lock (gate)
+        {
+            if (!firstFrame || !ReferenceEquals(worker, pending) || pending.IsCompleted || stop!.IsCancellationRequested || snapshot.State != "recording")
+                throw new IOException("录屏未就绪：" + snapshot.Message);
+        }
+    }
+    // Only a live encoder's nonterminal progress packet with a real frame can
+    // release automatic playback. Starting a process is not capture readiness.
+    internal void ConfirmCaptureReady()
+    {
+        lock (gate) { if (snapshot.State == "recording") captureReady?.TrySetResult(true); }
     }
     public async Task StopAsync()
     {
@@ -180,6 +209,7 @@ public sealed class RecordingService
                     frameCount = frames; lastProgress = packet.Received;
                     if (packet.Values.GetValueOrDefault("progress") != "end" && elapsed > 0 && double.IsFinite(elapsed)) origins.Add(packet.Received - elapsed + 1d / fps);
                     Update(new RecordingSnapshot(stopSent is null ? "recording" : "finishing", stopSent is null ? "正在录制鸣潮 · " + EncoderLabel(encoder) : "正在保存录屏", Math.Max(0, elapsed), WorkDirectory: work));
+                    if (stopSent is null && !process.HasExited && packet.Values.GetValueOrDefault("progress") != "end") ConfirmCaptureReady();
                 }
             }
             try

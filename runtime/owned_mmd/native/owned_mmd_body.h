@@ -44,7 +44,8 @@ struct ActorRuntime {
     std::atomic<bool> nativePrepared{false};std::atomic<uint64_t> writes{0};
 };
 struct Runtime {
-    bool initialized=false,multiActor=false;
+    bool initialized=false,multiActor=false,startPaused=false,payloadReleased=false;
+    Json terminalStatus;
     double formationHeightCorrection=0;
     std::filesystem::path directory;
     uint64_t host=0,publishRva=0,slotRva=0,epoch=0,durationMs=0,frameRva=0x992f2d8,lastEngineFrame=0;
@@ -163,10 +164,18 @@ inline void PrepareNative(){auto& r=runtime;Reader reader;
     }
 }
 inline clip::Clip ReadClip(const std::filesystem::path& path){
-    std::ifstream in(path,std::ios::binary);Require(bool(in),"cannot open local clip");in.seekg(8+sizeof(uint32_t));
-    clip::Clip motion;motion.bone_count=clip::Read<uint32_t>(in);motion.frame_count=clip::Read<uint32_t>(in);motion.fps=clip::Read<uint32_t>(in);motion.duration=clip::Read<double>(in);
-    const uint64_t elements=uint64_t(motion.bone_count)*motion.frame_count;in.seekg(128,std::ios::cur);motion.frames.resize(size_t(elements));
-    Require(bool(in.read(reinterpret_cast<char*>(motion.frames.data()),std::streamsize(elements*clip::kBoneBytes))),"local clip payload truncated");return motion;
+    return clip::ReadFile(path);
+}
+inline void ValidateCanonicalPose(const ActorRuntime& a){
+    const auto count=a.topology.count;
+    Require(a.positions.size()==count&&a.rotations.size()==count&&a.positionMask.size()==count&&a.rotationMask.size()==count,"actor canonical pose count differs");
+    for(size_t i=0;i<count;++i){
+        Require(a.positionMask[i]<=1&&a.rotationMask[i]<=1,"actor canonical pose mask invalid");
+        for(float value:a.positions[i])Require(std::isfinite(value),"actor canonical position invalid");
+        double norm=0;
+        for(float value:a.rotations[i]){Require(std::isfinite(value),"actor canonical rotation invalid");norm+=double(value)*value;}
+        Require(!a.rotationMask[i]||std::fabs(norm-1)<=.001,"actor canonical rotation is not normalized");
+    }
 }
 inline void InitializeActor(ActorRuntime& a,const Json& graph,const Json& profile,uint64_t window){auto& r=runtime;const auto& config=a.config;Reader reader;
     for(uint32_t i=0;i<Objects;++i)Require(id::ReadStable(reader,r.go,id::Rva(graph.at(kObjectKeys[i])),&a.tokens[i]),"actor graph unreadable");
@@ -183,6 +192,7 @@ inline void InitializeActor(ActorRuntime& a,const Json& graph,const Json& profil
     Require(fb::PrepareTopology(manifest,names,parents,&a.topology),"actor reference skeleton differs");a.motion=ReadClip(a.directory/config.at("local_clip_file").get<std::string>());
     a.positions=config.at("canonical_local_positions").get<std::vector<std::array<float,3>>>();a.rotations=config.at("canonical_local_rotations").get<std::vector<std::array<float,4>>>();
     a.positionMask=config.at("canonical_position_mask").get<std::vector<uint8_t>>();a.rotationMask=config.at("canonical_rotation_mask").get<std::vector<uint8_t>>();
+    ValidateCanonicalPose(a);
     a.request.canonical_local_positions=a.positions.data();a.request.canonical_position_mask=a.positionMask.data();a.request.canonical_local_rotations=a.rotations.data();a.request.canonical_rotation_mask=a.rotationMask.data();
     a.nativePhysics=config.value("native_physics",true);a.physicsEnabled=config.value("physics_enabled",false)&&!a.nativePhysics;
     const auto p=config.value("placement",Json::object());a.placement={p.value("offset_x_cm",0.0),p.value("offset_y_cm",0.0),p.value("height_cm",0.0),p.value("yaw_degrees",0.0),p.value("in_place",false)};
@@ -233,6 +243,8 @@ inline void Initialize(const std::filesystem::path& directory,const Json& graph,
         const auto setting=[&](play::CommandKind kind,double value){Require(r.transport.Apply({r.epoch,++r.initialSequence,kind,value},0)==play::ControlCode::Ok,"scene playback setting invalid");};
         setting(play::CommandKind::SetSpeed,config.value("speed",1.0));setting(play::CommandKind::SetLoop,config.value("loop",false)?1:0);
         setting(play::CommandKind::SetTimeLimit,double(r.durationMs)/1000.0);setting(play::CommandKind::SetCameraMode,config.value("camera_mode",0));r.original=reinterpret_cast<Runtime::Publish>(host+r.publishRva);
+        r.startPaused=config.value("start_paused",false);
+        if(r.startPaused)Require(r.transport.PreparePausedStart(),"scene paused startup configuration failed");
         if(r.multiActor)ww_report::Save(directory/L"native_targets.json",{{"session_epoch",r.epoch},{"actors",targets}});
     }catch(...){Fail(Error::Arguments);throw;}
 }
@@ -257,7 +269,7 @@ inline bool Failed() noexcept {const auto& r=runtime;if(r.error.load()||r.camera
 inline bool Ready() noexcept {const auto& r=runtime;if(!r.observing.load()||r.closing.load()||r.actors.empty()||Failed())return false;
     for(const auto& actor:r.actors)if(!actor->features.prepared||(actor->nativePhysics&&(!r.nativeInstalled.load()||!actor->native.ready.load())))return false;return true;}
 inline void Start(uint64_t now) noexcept {auto& r=runtime;r.lastWireSequence=++r.initialSequence;
-    if(!r.commands.Push({r.epoch,r.initialSequence,play::CommandKind::Play,0})){Fail(Error::Plan);return;}r.playStart.store(now);r.writing.store(true);}
+    if(!r.startPaused&&!r.commands.Push({r.epoch,r.initialSequence,play::CommandKind::Play,0})){Fail(Error::Plan);return;}r.playStart.store(now);r.writing.store(true);}
 inline void PollCommands(){auto& r=runtime;std::ifstream stream(r.directory/L"control.dat",std::ios::binary);play::CommandWire wire{};play::Command command;
     if(stream&&stream.read(reinterpret_cast<char*>(wire.data()),wire.size())&&play::DecodeCommand(wire,&command)&&command.sequence>r.lastWireSequence&&r.commands.Push(command))r.lastWireSequence=command.sequence;}
 struct WorkerLock {WorkerLock(){while(runtime.busy.test_and_set(std::memory_order_acquire))Sleep(0);}~WorkerLock(){runtime.busy.clear(std::memory_order_release);}};
@@ -270,7 +282,7 @@ inline void CheckTimeLimit(){auto& r=runtime;const auto started=r.actualPlayStar
 inline const char* ModeName(play::PlayerMode mode){switch(mode){case play::PlayerMode::Empty:return "empty";case play::PlayerMode::Stopped:return "stopped";
     case play::PlayerMode::Playing:return "playing";case play::PlayerMode::Paused:return "paused";case play::PlayerMode::Ended:return "ended";}return "empty";}
 inline bool Finished() noexcept {return runtime.closing.load();}
-inline Json Status(){auto& r=runtime;WorkerLock lock;const auto state=r.transport.State();const auto& hub=v20_shared_native_physics::hub;
+inline Json Status(){auto& r=runtime;WorkerLock lock;if(r.payloadReleased)return r.terminalStatus;const auto state=r.transport.State();const auto& hub=v20_shared_native_physics::hub;
     Json members=Json::array();uint64_t frames=0,writes=0,nativeFrames=0;size_t borrowed=0,created=0;uint32_t nativeError=0;bool allObserved=!r.actors.empty(),face=false,allPhysics=true,anyNative=false,actorPending=false;
     for(const auto& entry:r.actors){const auto& a=*entry;const auto count=a.nativePhysics?a.native.frames.load():a.features.frames;const auto writeCount=a.nativePhysics?a.writes.load():a.features.writes;
         frames+=count;writes+=writeCount;face=face||a.features.face_enabled;allPhysics=allPhysics&&a.features.physics_available;anyNative=anyNative||a.nativePhysics;allObserved=allObserved&&count>0;
@@ -283,8 +295,9 @@ inline Json Status(){auto& r=runtime;WorkerLock lock;const auto state=r.transpor
             {"placement",{{"offset_x_cm",a.placement.x},{"offset_y_cm",a.placement.y},{"height_cm",a.placement.height},{"yaw_degrees",a.placement.yaw_degrees},{"in_place",a.placement.in_place}}}};
         if(a.nativePrepared){v20_shared_native_physics::Stats(a.native,actor);nativeFrames+=actor.value("native_input_frames",uint64_t(0));if(a.native.error.load())nativeError=a.native.error.load();}members.push_back(std::move(actor));
     }
+    const bool initialPoseReady=allObserved&&(!r.cameraFeatures.available||r.cameraFeatures.applied_frames.load()!=0);
     Json value={{"schema",3},{"actor_count",r.actors.size()},{"borrowed_count",borrowed},{"created_count",created},{"actors",members},{"members",members},{"all_actors_observed",allObserved},{"body_only",!face},
-        {"initialized",r.initialized},{"ready",Ready()},{"failed",Failed()},{"error_code",r.error.load()?r.error.load():nativeError},
+        {"initialized",r.initialized},{"ready",Ready()&&(!r.startPaused||initialPoseReady)},{"start_paused",r.startPaused},{"initial_pose_ready",initialPoseReady},{"failed",Failed()},{"error_code",r.error.load()?r.error.load():nativeError},
         {"closing",r.closing.load()},{"writing",r.writing.load()&&!r.closing.load()},{"write_gate_closed",!r.writing.load()||r.closing.load()},
         {"restoration_complete",r.closed.load()&&!actorPending&&!features::CameraPending(r.cameraFeatures)},
         {"hooks_restored",!r.hook.changed&&!r.hook.protection_pending&&!r.cameraFeatures.hook.changed&&!r.cameraFeatures.hook.protection_pending&&!hub.converter_patch.changed&&!hub.group_patch.changed&&!hub.converter_patch.protection_pending&&!hub.group_patch.protection_pending},
@@ -299,12 +312,13 @@ inline Json Status(){auto& r=runtime;WorkerLock lock;const auto state=r.transpor
         {"camera_anchor_coordinate_frame","world_local"},
         {"borrowed_stage_maintenance",r.maintenanceEnabled.load()&&borrowed!=0},{"scene_maintenance",r.maintenanceEnabled.load()},
         {"native_physics",anyNative},{"body_backend","per_actor"},{"native_input_frames",nativeFrames},{"native_input_error",nativeError},{"physics_available",allPhysics},{"expression_enabled",face},
-        {"last_control_code",r.lastControlCode.load()},{"rejected_commands",r.rejectedCommands.load()},{"play_started_tick_ms",r.playStart.load()},{"body_elapsed_ms",r.playStart.load()?GetTickCount64()-r.playStart.load():0}};
+        {"last_control_code",r.lastControlCode.load()},{"rejected_commands",r.rejectedCommands.load()},{"play_started_tick_ms",r.playStart.load()},{"actual_play_started_tick_ms",r.actualPlayStart.load()},{"body_elapsed_ms",r.playStart.load()?GetTickCount64()-r.playStart.load():0}};
     if(!members.empty()){value["placement"]=members[0]["placement"];value["physics_enabled"]=members[0]["physics_enabled"];}
-    if(r.cameraFeatures.anchor_captured){const auto& settings=r.cameraFeatures.settings;
-        value["camera_anchor_position"]={settings.anchor.x,settings.anchor.y,settings.anchor.z};
-        value["camera_source_to_ue_xyzw"]={settings.source_to_ue.x,settings.source_to_ue.y,settings.source_to_ue.z,settings.source_to_ue.w};
-        value["camera_source_unit_scale"]=settings.source_unit_scale;}
+    play::camera_diagnostics::Snapshot camera;
+    if(r.cameraFeatures.diagnostics.TryRead(camera)&&camera.anchor_captured){
+        value["camera_anchor_position"]=camera.anchor;
+        value["camera_source_to_ue_xyzw"]=camera.source_to_ue;
+        value["camera_source_unit_scale"]=camera.source_unit_scale;}
     return value;
 }
 inline bool CloseAndRestore(uint64_t deadline) noexcept {auto& r=runtime;r.writing.store(false);r.closing.store(true);r.nativeInstalled.store(false);
@@ -317,12 +331,37 @@ inline bool CloseAndRestore(uint64_t deadline) noexcept {auto& r=runtime;r.writi
     // flags and the borrowed actors' original transform and tick policy.
     r.maintenanceEnabled.store(false,std::memory_order_release);
     while(!features::UninstallCamera(r.cameraFeatures)&&GetTickCount64()<deadline)Sleep(10);
-    if(r.cameraFeatures.hook.changed||r.cameraFeatures.hook.protection_pending)return false;
+    if(r.cameraFeatures.hook.changed||r.cameraFeatures.hook.protection_pending||r.cameraFeatures.observing.load()||
+        r.cameraFeatures.work.load()||features::CameraPending(r.cameraFeatures))return false;
     bool registered=false;for(const auto& actor:r.actors)registered=registered||actor->nativeRegistered;
     if(registered){Json report;if(!v20_shared_native_physics::Uninstall(report))return false;for(auto& actor:r.actors)if(actor->nativeRegistered){if(!v20_shared_native_physics::UnregisterActor(actor->native))return false;actor->nativeRegistered=false;}}
     while(r.work.load()&&GetTickCount64()<deadline)Sleep(10);if(r.work.load())return false;r.observing.store(false);
     if(r.hook.changed||r.hook.protection_pending){if(vmt::Restore(r.hook).code!=vmt::Code::Ok)return false;}
     while((r.active.load()||r.work.load())&&GetTickCount64()<deadline)Sleep(10);
     const bool complete=!r.hook.changed&&!r.hook.protection_pending&&!r.active.load()&&!r.work.load();r.closed.store(complete);return complete;
+}
+// Called only after native and managed recovery have completed and the final
+// report has been materialized. Keep the pinned forwarding objects/originals:
+// a thread can still hold an old detour address after its slot was restored.
+inline bool ReleaseRetiredPayload(Json& terminal){auto& r=runtime;WorkerLock lock;auto& hub=v20_shared_native_physics::hub;
+    if(r.payloadReleased){terminal=r.terminalStatus;return true;}
+    if(!terminal.value("cleanup_complete",false)||!terminal.value("managed_owner_retirement_checked",false))return false;
+    if(!r.closed.load()||r.observing.load()||r.writing.load()||r.work.load()||r.maintenanceEnabled.load()||
+        r.hook.changed||r.hook.protection_pending||r.cameraFeatures.observing.load()||r.cameraFeatures.work.load()||
+        r.cameraFeatures.hook.changed||r.cameraFeatures.hook.protection_pending||features::CameraPending(r.cameraFeatures)||
+        hub.observing.load()||hub.group_observing.load()||hub.dispatch_active.load()||
+        hub.converter_patch.changed||hub.converter_patch.protection_pending||hub.group_patch.changed||hub.group_patch.protection_pending)return false;
+    for(const auto& actor:r.actors)if(actor->nativeRegistered||features::ActorPending(actor->features)||
+        (actor->nativePrepared&&!v20_shared_native_physics::Restored(actor->native)))return false;
+    std::lock_guard<std::mutex> registryLock(hub.registry.operations);
+    if(hub.registry.count.load()||hub.registry.frozen.load())return false;
+    terminal["retired_payload_released"]=true;r.terminalStatus=terminal;
+    r.cameraAnchor=nullptr;r.maintainScene=nullptr;r.maintainUser=nullptr;
+    decltype(r.bySlot){}.swap(r.bySlot);decltype(r.byMesh){}.swap(r.byMesh);decltype(r.actors){}.swap(r.actors);
+    decltype(hub.registry.actors){}.swap(hub.registry.actors);
+    auto& camera=r.cameraFeatures;
+    decltype(camera.anchor_meshes){}.swap(camera.anchor_meshes);decltype(camera.anchor_identities){}.swap(camera.anchor_identities);
+    decltype(camera.anchor_clip_starts){}.swap(camera.anchor_clip_starts);decltype(camera.clip.source_keys){}.swap(camera.clip.source_keys);
+    r.payloadReleased=true;return true;
 }
 } // namespace owned_mmd_body

@@ -7,6 +7,7 @@
 #include "face_capture_readonly.h"
 #include "vmt_slot_patch.h"
 #include "../../playback/player_transport.h"
+#include "../../playback/camera_diagnostics.h"
 #include "../../playback/ww_face_runtime.h"
 #include "../../playback/ww_face_clip.h"
 #include "../../playback/ww_camera_runtime.h"
@@ -197,9 +198,11 @@ struct CameraFeatures {
     bool available=false,clip_available=false,fixed_captured=false,anchor_captured=false,last_ready=false;
     std::atomic<bool> pending{false},failed{false},observing{false},feed{false};
     std::atomic<unsigned> callbacks{0},work{0};std::atomic_flag busy=ATOMIC_FLAG_INIT;
+    std::atomic<uint64_t> applied_frames{0};
     std::atomic<uint64_t> version{0};std::atomic<double> seconds{0},x{0},y{0},height{0},yaw{0};
     std::atomic<unsigned> mode{0},player_mode{0};std::atomic<bool> restore{false};
     play::PlayerState last_published;v20_vmt_slot_patch::State hook;void(*original)(void*,float)=nullptr;
+    play::camera_diagnostics::Mailbox diagnostics;
 };
 inline play::ww_restore::Token CameraToken(const ww_object::Identity& v){return {v.object,v.item,v.cls,v.vtable,v.outer,v.index,v.serial,true};}
 inline void PrepareCamera(CameraFeatures& c,::Reader& r,Go& go,const Json& cfg,const std::filesystem::path& directory,
@@ -236,6 +239,10 @@ inline bool CameraPending(const CameraFeatures& c){return c.pending.load(std::me
 inline bool CameraFrame(CameraFeatures& c,::Reader& native,const play::PlayerState& player,bool feed,uint64_t pcm){
     if(!c.available)return true;
     struct Pending{CameraFeatures& c;~Pending(){c.pending.store(cr::Pending(c.state),std::memory_order_release);}} pending{c};
+    struct Diagnostic {CameraFeatures& c;~Diagnostic(){
+        c.diagnostics.Publish({c.anchor_captured,{c.settings.anchor.x,c.settings.anchor.y,c.settings.anchor.z},
+            {c.settings.source_to_ue.x,c.settings.source_to_ue.y,c.settings.source_to_ue.z,c.settings.source_to_ue.w},c.settings.source_unit_scale});
+    }} diagnostic{c};
     CameraReader reader{native,c};struct Writer{bool Write(uint64_t a,const void* p,size_t n){return unified_player_features::Write(a,p,n);}} writer;
     uint64_t pawn=0,ack=0;const bool controlled=native.Get(c.prepared.snapshot.controller.address+0x2e8,pawn)&&
         native.Get(c.prepared.snapshot.controller.address+0x340,ack)&&pawn==c.prepared.snapshot.pawn.address&&ack==pawn;
@@ -290,7 +297,7 @@ inline bool CameraFrame(CameraFeatures& c,::Reader& native,const play::PlayerSta
         }else return false;
     }
     if(!cr::Apply(reader,writer,c.prepared,frame,&c.state))return false;
-    c.last=frame;c.last_ready=true;c.previous_mode=mode;return true;
+    c.last=frame;c.last_ready=true;c.previous_mode=mode;++c.applied_frames;return true;
 }
 inline void PublishCamera(CameraFeatures& c,const play::PlayerState& state,bool feed){
     c.version.fetch_add(1,std::memory_order_acq_rel);c.seconds.store(state.seconds);c.mode.store(state.camera_mode);c.player_mode.store(unsigned(state.mode));

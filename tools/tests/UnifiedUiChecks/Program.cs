@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Buffers.Binary;
 using System.ComponentModel;
 using System.IO;
 using System.Reflection;
@@ -20,12 +21,27 @@ internal static class Program
         string root = Path.GetFullPath(args[0]), output = Path.GetFullPath(args[1]); Directory.CreateDirectory(output);
         _ = new Application();
         var captures = new ConcurrentQueue<(string Folder, int Fps, int Height)>(); var captureStarted = new SemaphoreSlim(0); int captureStops = 0;
-        TaskCompletionSource? finalization = null, captureStopped = null; RecordingSnapshot? captureCompletion = null;
+        TaskCompletionSource? finalization = null, captureStopped = null, firstFrame = null; RecordingSnapshot? captureCompletion = null;
+        string? startupFailure = null;
         RecordingService recorder = null!;
         recorder = new RecordingService(root, async (folder, fps, height, stop) => {
             captures.Enqueue((folder, fps, height)); captureStarted.Release();
+            if (startupFailure is not null)
+            {
+                typeof(RecordingService).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(recorder, new object[] { new RecordingSnapshot("error", startupFailure) });
+                return;
+            }
             using var registration = stop.Register(() => Interlocked.Increment(ref captureStops));
-            try { await Task.Delay(Timeout.Infinite, stop).ConfigureAwait(false); }
+            try
+            {
+                if (firstFrame is not null)
+                {
+                    await firstFrame.Task.WaitAsync(stop).ConfigureAwait(false);
+                    typeof(RecordingService).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(recorder, new object[] { new RecordingSnapshot("recording", "synthetic first frame") });
+                    recorder.ConfirmCaptureReady();
+                }
+                await Task.Delay(Timeout.Infinite, stop).ConfigureAwait(false);
+            }
             catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
             captureStopped?.TrySetResult();
             if (finalization is not null) await finalization.Task.ConfigureAwait(false);
@@ -244,6 +260,59 @@ internal static class Program
         fps.SelectedIndex = 1; size.SelectedIndex = 2; Action("RecordAsync"); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
         Check(captures.Last().Fps == 60 && captures.Last().Height == 0, "original size remains available independently of 2K");
         Action("StopRecordingAsync");
+
+        // Automatic capture starts from a real paused native timeline. A fake
+        // encoder can delay its first frame independently of worker startup.
+        void ReadyTimeline(string directory, string mode, ulong sequence = 0)
+        {
+            var state = new JsonObject { ["clip_epoch"] = 91UL, ["last_sequence"] = sequence, ["mode"] = mode, ["session_active"] = true,
+                ["restore_requested"] = false, ["seconds"] = 0d, ["duration_seconds"] = 3d, ["speed"] = 1d, ["loop"] = false };
+            var path = Path.Combine(directory, "mmd_status.json"); var next = path + ".next";
+            File.WriteAllText(next, state.ToJsonString()); File.Move(next, path, true);
+        }
+        var pausedStart = NewTimelineSession(); ReadyTimeline(pausedStart, "paused");
+        firstFrame = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        var startWhenReady = (Task)Call("CompletePlaybackStartAsync", new JsonObject { ["loaded"] = true, ["session_dir"] = pausedStart, ["start_paused"] = true }, restored)!;
+        Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
+        var control = Path.Combine(pausedStart, "control.dat");
+        Check(!startWhenReady.IsCompleted && !File.Exists(control), "automatic playback cannot advance before capture supplies its first frame");
+        var acknowledge = Task.Run(async () => {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            while (!File.Exists(control)) await Task.Delay(10, timeout.Token);
+            var command = File.ReadAllBytes(control);
+            if (BinaryPrimitives.ReadUInt32LittleEndian(command.AsSpan(32)) != 1) throw new Exception("first ready command was not Play");
+            ReadyTimeline(pausedStart, "playing", BinaryPrimitives.ReadUInt64LittleEndian(command.AsSpan(24)));
+        });
+        firstFrame.SetResult(); Await(Task.WhenAll(startWhenReady, acknowledge));
+        Check(File.Exists(control) && Field<string?>("session") == pausedStart && recorder.IsBusy, "first captured frame releases the shared timeline without replacing its session");
+        firstFrame = null; RestoredTimeline(pausedStart); Action("StopCurrentAsync");
+
+        var failedStart = NewTimelineSession(); ReadyTimeline(failedStart, "paused"); startupFailure = "synthetic no capture frames";
+        try { Action("CompletePlaybackStartAsync", new JsonObject { ["loaded"] = true, ["session_dir"] = failedStart, ["start_paused"] = true }, restored); throw new Exception("capture startup failure was hidden"); }
+        catch (InvalidOperationException error) { Check(error.Message.Contains("动作起点暂停") && error.Message.Contains(startupFailure), "failed capture explicitly leaves playback paused at its origin"); }
+        Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
+        Check(!File.Exists(Path.Combine(failedStart, "control.dat")) && Field<string?>("session") == failedStart, "capture failure sends no Play and retains recovery ownership");
+        startupFailure = null; RestoredTimeline(failedStart); Action("StopCurrentAsync");
+
+        var closing = NewTimelineSession(); LiveTimeline(closing, "playing");
+        Action("CompletePlaybackStartAsync", new JsonObject { ["loaded"] = true, ["session_dir"] = closing }, restored);
+        Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
+        finalization = new(TaskCreationOptions.RunContinuationsAsynchronously); captureStopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        var closePlayback = (Task)Call("ClosePlaybackAsync")!; Await(captureStopped.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Check(File.Exists(Path.Combine(closing, "stop.flag")) && !closePlayback.IsCompleted, "window shutdown requests game restoration before video finalization completes");
+        RestoredTimeline(closing);
+        var waitRestored = Task.Run(async () => {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            while (await window.Dispatcher.InvokeAsync(() => service.ActiveSession is not null || Field<string?>("session") is not null)) await Task.Delay(10, timeout.Token);
+        });
+        Await(waitRestored);
+        Check(!closePlayback.IsCompleted && recorder.IsBusy, "game ownership is retired while the video still finishes saving");
+        finalization.SetResult(); Await(closePlayback); finalization = null; captureStopped = null;
+
+        typeof(MediaService).GetField("lastError", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(media, "synthetic music error");
+        Call("UpdateMusicFeedback"); Check(Field<TextBlock>("status").Text.Contains("synthetic music error"), "audio worker failures are visible in the player");
+        typeof(MediaService).GetField("lastError", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(media, null);
+        Call("UpdateMusicFeedback"); Check(Field<TextBlock>("status").Text.Contains("配乐播放已恢复"), "successful audio retry clears the displayed failure");
         while (actors.Count > 0) { list.SelectedIndex = 0; Action("RemoveActorAsync"); }
         try { Call("Request"); throw new Exception("empty actor list accepted"); }
         catch (TargetInvocationException error) { Check(error.InnerException is InvalidOperationException, "empty list validation changed"); }

@@ -26,10 +26,14 @@ int wmain(int argc,wchar_t** argv){std::filesystem::path source,output,targetPat
             namespace rt=wwp_playback::ww_retarget;namespace lc=wwp_playback::local_clip;
             auto target=rt::ReadTarget(targetPath);rt::Compiler compiler;compiler.Bind(clip.motion,target);
             const bool estimatedScale=scale==0;if(estimatedScale)scale=compiler.GeometricTranslationScale();
-            lc::Clip local;local.bone_count=target.topology.count;local.fps=60;local.frame_count=uint32_t(std::ceil(clip.DurationSeconds()*60))+1;
+            const double sampledFrames=std::ceil(clip.DurationSeconds()*60)+1;
+            if(!std::isfinite(sampledFrames)||sampledFrames<1||sampledFrames>lc::kMaximumFrames)
+                throw std::runtime_error("Compiled motion exceeds the supported frame budget");
+            lc::Clip local;local.bone_count=target.topology.count;local.fps=60;local.frame_count=uint32_t(sampledFrames);
             local.duration=(local.frame_count-1)/60.;local.omit_provenance=omitProvenance;
             if(!omitProvenance){local.source_sha256=report["source_sha256"].get<std::string>();local.skeleton_sha256=Sha256(targetPath);}
-            local.frames.resize(uint64_t(local.frame_count)*local.bone_count);
+            const auto payloadBytes=lc::PayloadBytes(local);
+            local.frames.resize(size_t(payloadBytes/lc::kBoneBytes));
             wwp_ue::full_body::LocalFrame frame;for(uint32_t f=0;f<local.frame_count;++f){compiler.Sample(f/60.,float(scale),&frame);
                 for(uint32_t i=0;i<local.bone_count;++i)std::memcpy(&local.frames[uint64_t(f)*local.bone_count+i],&frame.bones[i],sizeof(lc::BoneCommand));}
             lc::WriteFile(compiledPath,local);

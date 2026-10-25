@@ -97,6 +97,13 @@ public:
         state_=PlayerState{};state_.clip_epoch=epoch;state_.duration_seconds=duration;
         state_.mode=PlayerMode::Stopped;clock_valid_=false;session_clock_active_=false;return true;
     }
+    // Host-only startup barrier, configured before callbacks are installed.
+    // Hold the first pose without starting the residency clock. A later Play
+    // starts the ordinary clock; an ordinary Pause still cannot activate Stop.
+    bool PreparePausedStart() noexcept {
+        if(state_.mode!=PlayerMode::Stopped||state_.seconds!=0||state_.restore_requested||session_clock_active_)return false;
+        state_.mode=PlayerMode::Paused;++state_.revision;return true;
+    }
     ControlCode Tick(double now) noexcept {
         if(!std::isfinite(now)||now<0)return ControlCode::ClockInvalid;
         if(!clock_valid_){last_clock_=now;clock_valid_=true;return ControlCode::Ok;}

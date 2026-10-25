@@ -11,6 +11,9 @@ static void Save(string path, JsonObject value) { var next = path + ".next"; Fil
 static JsonObject Timeline(string mode = "playing") => new() { ["clip_epoch"] = 123UL, ["last_sequence"] = 0UL, ["session_active"] = true, ["mode"] = mode, ["seconds"] = 2d, ["duration_seconds"] = 10d, ["speed"] = 1d, ["loop"] = false, ["restore_requested"] = false };
 var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(fixture);
+assertions += await MediaLifecycleChecks.RunAsync(fixture);
+assertions += CompiledMotionValidationChecks.Run();
+assertions += BundleValidationChecks.Run(fixture);
 var localWorkspace = Path.Combine(fixture, "workspace");
 Directory.CreateDirectory(Path.Combine(localWorkspace, "desktop", "WWPoser")); Directory.CreateDirectory(Path.Combine(localWorkspace, "data", "characters"));
 File.WriteAllText(Path.Combine(localWorkspace, "desktop", "WWPoser", "WWPoser.csproj"), "<Project />"); File.WriteAllText(Path.Combine(localWorkspace, "data", "characters", "index.json"), "{}");
@@ -122,6 +125,22 @@ Check(!OwnedMmdPlaybackService.RestorationConfirmed(mixed), "native restoration 
 Save(Path.Combine(mixed, "session_result.json"), new JsonObject { ["mmd_restoration_verified"] = true, ["managed_owner_retirement_checked"] = true });
 await new OwnedMmdPlaybackService(fixture).FinishSessionAsync(mixed);
 Check(OwnedMmdPlaybackService.RestorationConfirmed(mixed), "completed restoration supports an idempotent retry");
+{
+    var loading = new JsonObject { ["session_active"] = false, ["ready"] = false };
+    var waiting = new JsonObject { ["session_active"] = true, ["ready"] = false };
+    var ready = new JsonObject { ["session_active"] = true, ["ready"] = true };
+    long? since = OwnedMmdPlaybackService.CheckInitialPoseReadyTimeout(true, loading, 0, null);
+    since = OwnedMmdPlaybackService.CheckInitialPoseReadyTimeout(true, loading, 60000, since);
+    Check(since is null, "long actor loading and native graph discovery do not consume the first-pose timeout");
+    since = OwnedMmdPlaybackService.CheckInitialPoseReadyTimeout(true, waiting, 60000, since);
+    Check(since == 60000, "first-pose timeout begins only when the paused runtime becomes active");
+    Check(OwnedMmdPlaybackService.CheckInitialPoseReadyTimeout(true, waiting, 74999, since) == since, "first pose can arrive throughout its bounded readiness window");
+    try { OwnedMmdPlaybackService.CheckInitialPoseReadyTimeout(true, waiting, 75000, since); throw new Exception("missing paused first-pose deadline"); }
+    catch (TimeoutException error) { Check(error.Message.Contains("首姿态") && error.Message.Contains("恢复"), "stalled first pose produces an explicit recoverable timeout"); }
+    Check(OwnedMmdPlaybackService.CheckInitialPoseReadyTimeout(true, ready, 75000, since) is null, "a ready first pose wins over the timeout boundary");
+    Check(OwnedMmdPlaybackService.CheckInitialPoseReadyTimeout(false, waiting, 90000, since) is null, "ordinary playback is not constrained by the paused-start deadline");
+    Check(OwnedMmdPlaybackService.CheckInitialPoseReadyTimeout(true, loading, 90000, since) is null, "inactive runtime clears first-pose waiting state");
+}
 Console.WriteLine("PASS: arbitrary actor slots; mixed routing/status/music/bookmarks; legacy status reading; serialized commands; restoration retry. No game or GUI execution.");
 if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
 {
@@ -218,12 +237,14 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!); File.Copy(sourceFile, destination);
     }
     var prepareRuntime = typeof(OwnedMmdPlaybackService).GetMethod("PrepareRuntime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-    var sourceConfig = OwnedMmdPlaybackService.Config(firstPreparation!); sourceConfig["camera_controller_address"] = "0xdead"; sourceConfig["native_graph_binding"] = new JsonObject { ["stale"] = true };
+    var sourceConfig = OwnedMmdPlaybackService.Config(firstPreparation!); sourceConfig["camera_controller_address"] = "0xdead"; sourceConfig["native_graph_binding"] = new JsonObject { ["stale"] = true }; sourceConfig["start_paused"] = true;
     Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig); File.WriteAllText(Path.Combine(firstPreparation!, "owned_mmd_graph.json"), "stale identity fixture");
     var fakeGame = new GameIdentity(42, 123456, "0x1234", 567);
-    var snapshotA = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame])!;
-    var snapshotB = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame])!;
+    var snapshotA = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, false])!;
+    sourceConfig["start_paused"] = false; Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig);
+    var snapshotB = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, true])!;
     var snapshotConfigA = OwnedMmdPlaybackService.Config(snapshotA); var snapshotConfigB = OwnedMmdPlaybackService.Config(snapshotB);
+    Check(!snapshotConfigA["start_paused"]!.GetValue<bool>() && snapshotConfigB["start_paused"]!.GetValue<bool>(), "runtime start-paused selection overrides the opposite stale value in prepared material");
     Check(snapshotA != snapshotB && snapshotConfigA["session_epoch"]!.GetValue<ulong>() != snapshotConfigB["session_epoch"]!.GetValue<ulong>() && snapshotConfigA["session_epoch"]!.GetValue<ulong>() != sourceConfig["session_epoch"]!.GetValue<ulong>(), "every runtime snapshot has a fresh directory and session epoch");
     Check(snapshotConfigA["camera_controller_address"] is null && snapshotConfigA["native_graph_binding"] is null && !File.Exists(Path.Combine(snapshotA, "owned_mmd_graph.json")), "runtime snapshots never import prepared controller or actor graph identities");
     Check(OwnedMmdPlaybackService.ActorConfigs(snapshotConfigA).Count == 4 && OwnedMmdPlaybackService.ActorConfigs(snapshotConfigA).All(actor => File.Exists(Path.Combine(snapshotA, actor["actor_directory"]!.GetValue<string>(), "motion.wwlocal"))), "one runtime snapshot retains all actor assets");
