@@ -11,10 +11,49 @@ static void Save(string path, JsonObject value) { var next = path + ".next"; Fil
 static JsonObject Timeline(string mode = "playing") => new() { ["clip_epoch"] = 123UL, ["last_sequence"] = 0UL, ["session_active"] = true, ["mode"] = mode, ["seconds"] = 2d, ["duration_seconds"] = 10d, ["speed"] = 1d, ["loop"] = false, ["restore_requested"] = false };
 var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(fixture);
+var compilerWorkspace = Path.Combine(fixture, "compiler-cache");
+Directory.CreateDirectory(Path.Combine(compilerWorkspace, "data", "characters"));
+Directory.CreateDirectory(Path.Combine(compilerWorkspace, "tools", "mmd_outputs"));
+File.WriteAllText(Path.Combine(compilerWorkspace, "data", "characters", "index.json"), "{}");
+File.WriteAllText(Path.Combine(compilerWorkspace, OwnedCharacterCatalog.RelativePath), "{}");
+var motionForFingerprint = Path.Combine(compilerWorkspace, "source.vmd"); File.WriteAllText(motionForFingerprint, "unchanged source");
+var compilers = new[] { "mmd_vmd_cli.exe", "mmd_face_compile.exe", "mmd_camera_compile.exe" };
+foreach (var compiler in compilers) File.WriteAllText(Path.Combine(compilerWorkspace, "tools", "mmd_outputs", compiler), "original compiler");
+var compilerService = new PlaybackSessionService(compilerWorkspace);
+var compilerRequest = new PlaybackSessionRequest(PlaybackSource.MixedActors, [new PlaybackActorRequest(motionForFingerprint)]);
+var fingerprintMethod = typeof(PlaybackSessionService).GetMethod("CompilationFingerprint", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+var fingerprint = (string)fingerprintMethod.Invoke(compilerService, [compilerRequest])!;
+Save(Path.Combine(compilerWorkspace, "preparation_inputs.json"), new JsonObject { ["compilation_sha256"] = fingerprint });
+Check(!compilerService.RequiresPreparation(compilerWorkspace, compilerRequest), "unchanged compilers reuse the prepared motion");
+foreach (var compiler in compilers)
+{
+    var path = Path.Combine(compilerWorkspace, "tools", "mmd_outputs", compiler);
+    File.WriteAllText(path, "upgraded compiler");
+    Check(compilerService.RequiresPreparation(compilerWorkspace, compilerRequest), "upgrading " + compiler + " invalidates the old preparation");
+    File.WriteAllText(path, "original compiler");
+    Check(!compilerService.RequiresPreparation(compilerWorkspace, compilerRequest), "compiler content, not a timestamp, determines preparation reuse");
+}
+var sharedJson = Path.Combine(fixture, "shared-status.json");
+using (var writer = new FileStream(sharedJson, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete))
+{
+    writer.Write(Encoding.UTF8.GetBytes("{\"ready\":true}")); writer.Flush();
+    Check(JsonData.ReadObject(sharedJson)["ready"]!.GetValue<bool>(), "status reads coexist with a native writer handle");
+}
+var heightPresets = new PresetService(Path.Combine(fixture, "height-preset-cache"));
+foreach (var nativeFormation in new[] { false, true })
+{
+    var path = Path.Combine(fixture, "height-" + nativeFormation + ".wwpreset");
+    var heightPreset = new ShowPreset("height", new PlaybackSessionRequest(PlaybackSource.MixedActors, [], FormationNative: nativeFormation, GroundHeightCm: nativeFormation ? 0 : -3.5));
+    await heightPresets.SaveAsync(path, heightPreset);
+    var restoredHeight = (await heightPresets.LoadAsync(path)).Preset.Playback;
+    Check(restoredHeight.GroundHeightCm == heightPreset.Playback.GroundHeightCm && restoredHeight.FormationNative == nativeFormation,
+        "preset roundtrip preserves custom and explicit-zero shared height in both formation modes");
+}
 assertions += await MediaLifecycleChecks.RunAsync(fixture);
 assertions += await AudioFormatChecks.RunLifecycleAsync(fixture);
 assertions += CompiledMotionValidationChecks.Run();
 assertions += BundleValidationChecks.Run(fixture);
+assertions += await PresetChecks.RunAsync(fixture);
 var localWorkspace = Path.Combine(fixture, "workspace");
 Directory.CreateDirectory(Path.Combine(localWorkspace, "desktop", "WWPoser")); Directory.CreateDirectory(Path.Combine(localWorkspace, "data", "characters"));
 File.WriteAllText(Path.Combine(localWorkspace, "desktop", "WWPoser", "WWPoser.csproj"), "<Project />"); File.WriteAllText(Path.Combine(localWorkspace, "data", "characters", "index.json"), "{}");
@@ -180,13 +219,18 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     var previewRows = File.ReadAllLines(Path.Combine(previewDirectory, "actors.tsv")).Select(line => line.Split('	')).ToArray();
     var previewGrid = OwnedMmdPlaybackService.GridPosition(1, 2, 180);
     Check(previewConfig["preview"]!.GetValue<bool>() && previewRows.Length == 2 && previewRows.All(row => row.Length == 16 && row[6] != "" && row[15] == "1"), "preview stands enabled actors only, checks exact meshes, and never borrows team actors");
-    Check(previewRows[0][3..6].SequenceEqual(["-120", "340", "25"]) && previewRows[0][7] == "90", "preview uses the chosen stage position");
+    Check(previewRows[0][3..6].SequenceEqual(["-120", "340", "23"]) && previewRows[0][7] == "90", "preview applies the shared -2cm offset once to the chosen stage height");
     Check(double.Parse(previewRows[1][3], System.Globalization.CultureInfo.InvariantCulture) == previewGrid.X && double.Parse(previewRows[1][4], System.Globalization.CultureInfo.InvariantCulture) == previewGrid.Y, "preview uses the automatic grid otherwise");
     Check(File.ReadAllText(Path.Combine(previewDirectory,"stage_floor.tsv")) == "capsule_bottom\t2.5\n", "ordinary stage keeps its original capsule-bottom reference");
     OwnedMmdPlaybackService.ConfigureStage(previewConfig,180,true); OwnedMmdPlaybackService.WriteActorsFile(previewDirectory,previewConfig);
     Check(File.ReadAllText(Path.Combine(previewDirectory,"stage_floor.tsv")) == "walkable_floor\t2.5\n" && OwnedMmdPlaybackService.ActorConfigs(previewConfig).All(actor => actor["stage_z_cm"]!.GetValue<double>() == 0), "original formation requests floor correction in the motion layer without shifting actors");
     previewConfig["hide_scene_characters"] = true; OwnedMmdPlaybackService.WriteActorsFile(previewDirectory, previewConfig);
     Check(File.ReadAllText(Path.Combine(previewDirectory, "scene_visibility.tsv")) == "none\t10000\n", "standing previews never hide scene NPCs even when playback hiding is selected");
+    var nativeHeightPreview = new OwnedMmdPlaybackService(args[1]).PreviewConfig(new PlaybackSessionRequest(PlaybackSource.MixedActors,
+        [new PlaybackActorRequest("", CharacterId: selectedCharacter)], FormationNative:true, GroundHeightCm:-3));
+    Check(OwnedMmdPlaybackService.ActorConfigs(nativeHeightPreview)[0]["stage_z_cm"]!.GetValue<double>() == -3, "native formation preview uses the selected shared height");
+    var legacyHeightRequest = System.Text.Json.JsonSerializer.Deserialize<PlaybackSessionRequest>("{\"Source\":3,\"Actors\":[]}")!;
+    Check(legacyHeightRequest.GroundHeightCm == -2, "old requests without a height setting inherit the new -2cm default");
     Directory.Delete(previewDirectory, true);
     string? lastPreparation = null;
     string? firstPreparation = null;

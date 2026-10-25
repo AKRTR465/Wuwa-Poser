@@ -46,7 +46,7 @@ struct ActorRuntime {
 struct Runtime {
     bool initialized=false,multiActor=false,startPaused=false,payloadReleased=false;
     Json terminalStatus;
-    double formationHeightCorrection=0;
+    std::atomic<double> formationHeightCorrection{0};
     std::filesystem::path directory;
     uint64_t host=0,publishRva=0,slotRva=0,epoch=0,durationMs=0,frameRva=0x992f2d8,lastEngineFrame=0;
     play::Transport transport;play::SpscCommandQueue<64> commands;
@@ -89,7 +89,7 @@ inline void FreezeActorIndices(){auto& r=runtime;
     for(size_t i=1;i<r.bySlot.size();++i)Require(r.bySlot[i-1]->slot!=r.bySlot[i]->slot,"duplicate actor slot");
     for(size_t i=1;i<r.byMesh.size();++i)Require(r.byMesh[i-1]->tokens[Mesh].object!=r.byMesh[i]->tokens[Mesh].object,"one game actor cannot occupy multiple slots");
 }
-inline bool Routed(play::CommandKind kind){return kind==play::CommandKind::SetPhysics||(kind>=play::CommandKind::SetPlacementX&&kind<=play::CommandKind::ResetPlacement);}
+inline bool Routed(play::CommandKind kind){return kind==play::CommandKind::SetPhysics||kind==play::CommandKind::SetGroundHeight||(kind>=play::CommandKind::SetPlacementX&&kind<=play::CommandKind::ResetPlacement);}
 inline void ApplyActorCommand(ActorRuntime& actor,const play::Command& command){switch(command.kind){
     case play::CommandKind::SetPhysics:actor.physicsEnabled=command.value!=0;break;
     case play::CommandKind::SetPlacementX:actor.placement.x=command.value;break;
@@ -101,10 +101,12 @@ inline void ApplyActorCommand(ActorRuntime& actor,const play::Command& command){
     default:break;
 }}
 inline play::ControlCode ApplyCommand(const play::Command& command,double now){auto& r=runtime;
+    if(command.kind==play::CommandKind::SetGroundHeight&&command.target_slot)return play::ControlCode::InvalidCommand;
     if(command.target_slot&&!FindSlot(command.target_slot))return play::ControlCode::InvalidCommand;
     if(command.kind==play::CommandKind::SetCameraMode&&command.value==2&&!r.cameraFeatures.clip_available)return play::ControlCode::InvalidCommand;
     if(Routed(command.kind)){
         const auto code=r.transport.AcceptRoutedCommand(command,now);if(code!=play::ControlCode::Ok)return code;
+        if(command.kind==play::CommandKind::SetGroundHeight){r.formationHeightCorrection=command.value;return code;}
         if(command.target_slot)ApplyActorCommand(*FindSlot(command.target_slot),command);
         else for(auto& actor:r.actors)ApplyActorCommand(*actor,command);
         return code;
@@ -119,13 +121,12 @@ inline bool Advance(uint64_t engineFrame,double now){auto& r=runtime;if(engineFr
     if(r.transport.Tick(now)!=play::ControlCode::Ok){Fail(Error::Plan);return false;}
     if(r.transport.State().restore_requested){r.writing.store(false);r.closing.store(true);}return true;
 }
-inline play::placement::Settings EffectivePlacement(const ActorRuntime& actor){auto placed=actor.placement;placed.height+=runtime.formationHeightCorrection;return placed;}
-inline double FormationHeightCorrection(const Json& config,const Json& lifecycle){
-    if(!config.value("formation_native",false))return 0;
-    const auto fallback=config.value("formation_floor_fallback_cm",2.5);
-    Require(std::isfinite(fallback)&&fallback>=0&&fallback<=5,"invalid formation floor fallback");
-    const auto correction=lifecycle.value("stage_height_correction_cm",-fallback);
-    Require(std::isfinite(correction)&&correction>=-5&&correction<=0,"invalid formation height correction");return correction;
+inline play::placement::Settings EffectivePlacement(const ActorRuntime& actor){auto placed=actor.placement;placed.height+=runtime.formationHeightCorrection.load();return placed;}
+inline double FormationHeightCorrection(const Json& config,const Json&){
+    // One explicit offset for both formation modes. Do not additionally apply
+    // the previous capsule-gap correction, which would lower native formation twice.
+    const auto correction=config.value("ground_height_cm",-2.0);
+    Require(std::isfinite(correction)&&correction>=-1000&&correction<=1000,"invalid standing height");return correction;
 }
 inline play::PlayerState CameraState(const play::PlayerState& timeline){auto state=timeline;if(const auto* actor=runtime.cameraAnchor){
     state.placement_x=actor->placement.x;state.placement_y=actor->placement.y;state.placement_height=EffectivePlacement(*actor).height;
@@ -308,7 +309,7 @@ inline Json Status(){auto& r=runtime;WorkerLock lock;if(r.payloadReleased)return
         {"time_limit_seconds",state.time_limit_seconds},{"session_elapsed_seconds",state.session_elapsed_seconds},{"time_limit_reached",state.time_limit_reached||r.deadlineExpired.load()},
         {"camera_mode",state.camera_mode},{"camera_anchor_slot",r.cameraAnchor?r.cameraAnchor->slot:0},{"camera_available",r.cameraFeatures.available},{"camera_clip_available",r.cameraFeatures.clip_available},{"camera_failed",r.cameraFeatures.failed.load()},
         {"camera_stage_reference_used",r.cameraFeatures.stage.present},{"camera_stage_floor_used",r.cameraFeatures.stage.present},
-        {"formation_height_correction_cm",r.formationHeightCorrection},
+        {"formation_height_correction_cm",r.formationHeightCorrection.load()},{"ground_height_cm",r.formationHeightCorrection.load()},
         {"camera_anchor_coordinate_frame","world_local"},
         {"borrowed_stage_maintenance",r.maintenanceEnabled.load()&&borrowed!=0},{"scene_maintenance",r.maintenanceEnabled.load()},
         {"native_physics",anyNative},{"body_backend","per_actor"},{"native_input_frames",nativeFrames},{"native_input_error",nativeError},{"physics_available",allPhysics},{"expression_enabled",face},

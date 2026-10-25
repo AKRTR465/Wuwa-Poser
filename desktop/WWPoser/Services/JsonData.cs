@@ -9,7 +9,20 @@ public static class JsonData
     public static readonly JsonSerializerOptions Compact = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
     public static readonly JsonSerializerOptions Pretty = new(Compact) { WriteIndented = true };
 
-    public static JsonObject ReadObject(string path) => JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+    public static JsonObject ReadObject(string path)
+    {
+        var deadline = Environment.TickCount64 + 500;
+        while (true)
+        {
+            try
+            {
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                using var reader = new StreamReader(stream, Encoding.UTF8, true);
+                return JsonNode.Parse(reader.ReadToEnd())!.AsObject();
+            }
+            catch (Exception error) when (error is IOException or JsonException && Environment.TickCount64 < deadline) { Thread.Sleep(10); }
+        }
+    }
 
     public static void Write(string path, JsonNode value) => AtomicWrite(path, Encoding.UTF8.GetBytes(value.ToJsonString(Pretty) + "\n"));
 

@@ -59,7 +59,7 @@ public sealed partial class OwnedMmdPlaybackService(string repoRoot)
             ["local_clip_sha256"] = clip["sha256"]!.DeepClone(),
             ["fps"] = 60, ["frame_count"] = clip["frame_count"]!.DeepClone(), ["clip_duration_seconds"] = clip["duration_seconds"]!.DeepClone(),
             ["duration_ms"] = request.DurationMs, ["speed"] = request.Speed, ["loop"] = request.Loop, ["session_epoch"] = epoch,
-            ["expression_enabled"] = false, ["camera_enabled"] = false, ["native_physics"] = request.NativePhysics, ["body_backend"] = "game_native",
+            ["expression_enabled"] = false, ["camera_enabled"] = false, ["native_physics"] = request.NativePhysics, ["body_backend"] = "game_native", ["ground_height_cm"] = -2,
             ["placement"] = PlaybackAssets.Placement(request.Placement), ["target_slot"] = 1,
             ["physics_model_id"] = profile["physics_model_id"]?.DeepClone(), ["bone_chains_file"] = "bone_chains.json"
         };

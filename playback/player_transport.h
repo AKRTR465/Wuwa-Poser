@@ -13,7 +13,7 @@ namespace wwp_playback {
 enum class CommandKind : uint32_t {
     Play=1, Pause, SeekSeconds, StepFrames, SetLoop, SetSpeed, Stop, SetPhysics, SetCameraMode,
     SetPlacementX=10, SetPlacementY=11, SetPlacementHeight=12, SetPlacementYaw=13, SetPlacementInPlace=14, ResetPlacement=15,
-    SetTimeLimit=16
+    SetTimeLimit=16, SetGroundHeight=17
 };
 enum class PlayerMode : uint32_t {Empty, Stopped, Playing, Paused, Ended};
 enum class ControlCode : uint32_t {Ok, InvalidCommand, StaleEpoch, DuplicateSequence, ClockInvalid, RestorePending};
@@ -45,7 +45,7 @@ inline bool ValidCommand(const Command& command) {
     case CommandKind::SetSpeed:return command.value>=.1&&command.value<=4;
     case CommandKind::SetTimeLimit:return command.value>=0&&command.value<=10000000;
     case CommandKind::SetCameraMode:return command.value==0||command.value==1||command.value==2;
-    case CommandKind::SetPlacementX:case CommandKind::SetPlacementY:case CommandKind::SetPlacementHeight:return command.value>=-1000&&command.value<=1000;
+    case CommandKind::SetPlacementX:case CommandKind::SetPlacementY:case CommandKind::SetPlacementHeight:case CommandKind::SetGroundHeight:return command.value>=-1000&&command.value<=1000;
     case CommandKind::SetPlacementYaw:return command.value>=-180&&command.value<=180;
     }
     return false;
@@ -167,6 +167,7 @@ public:
         case CommandKind::ResetPlacement:
             state_.placement_x=state_.placement_y=state_.placement_height=state_.placement_yaw_degrees=0;
             state_.placement_in_place=false;break;
+        case CommandKind::SetGroundHeight:return ControlCode::InvalidCommand; // Scene host owns the shared height.
         case CommandKind::Stop:
             state_.restore_requested=state_.mode!=PlayerMode::Stopped||state_.seconds!=0||state_.restore_requested;
             state_.seconds=0;state_.mode=PlayerMode::Stopped;session_clock_active_=false;break;
@@ -179,7 +180,7 @@ public:
         const auto kind=command.kind;
         if(kind!=CommandKind::SetPhysics&&kind!=CommandKind::SetPlacementX&&kind!=CommandKind::SetPlacementY&&
            kind!=CommandKind::SetPlacementHeight&&kind!=CommandKind::SetPlacementYaw&&
-           kind!=CommandKind::SetPlacementInPlace&&kind!=CommandKind::ResetPlacement)return ControlCode::InvalidCommand;
+           kind!=CommandKind::SetPlacementInPlace&&kind!=CommandKind::ResetPlacement&&kind!=CommandKind::SetGroundHeight)return ControlCode::InvalidCommand;
         const auto ready=BeforeCommand(command,now);if(ready!=ControlCode::Ok)return ready;
         state_.last_sequence=command.sequence;++state_.revision;return ControlCode::Ok;
     }

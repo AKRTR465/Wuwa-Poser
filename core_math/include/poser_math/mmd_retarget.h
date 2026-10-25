@@ -109,6 +109,11 @@ inline bool MakeCalibrationTPose(RetargetProfile &profile,
   for (int role : {0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 13, 14, 15, 16, 17, 18})
     if (p.roles[role] < 0)
       return false;
+  // Capture shoes before pelvis/spine calibration rotates their ancestors.
+  // Reading them inside the leg loop would preserve the newly introduced
+  // body correction as a constant ankle tilt, even for a neutral VMD.
+  const std::array<Quat, 2> neutralFeet{
+      p.bones[p.roles[5]].restRot, p.bones[p.roles[6]].restRot};
   up = Norm(up);
   auto position = [&](int role) { return p.bones[p.roles[role]].restPos; };
   Vec3 left = position(13) - position(14);
@@ -192,17 +197,22 @@ inline bool MakeCalibrationTPose(RetargetProfile &profile,
     // Preserve foot pitch and roll while straightening the legs; resetting a
     // foot to identity makes heels point sideways on rigs with Biped axes.
     int foot = p.roles[5 + side];
-    Quat footWorld = p.bones[foot].restRot;
+    Quat footWorld = neutralFeet[side];
     align(1 + side, 3 + side, up * -1);
     align(3 + side, 5 + side, up * -1);
     setWorld(foot, footWorld);
     int toe = 19 + side;
     if (p.roles[toe] >= 0) {
       Vec3 v = position(toe) - position(5 + side);
-      float vertical = Dot(v, up);
-      Vec3 flat = v - up * vertical;
-      if (Len(flat) > 1e-5f)
-        align(5 + side, toe, forward * Len(flat) + up * vertical);
+      Vec3 flat = v - up * Dot(v, up);
+      if (Len(flat) > 1e-5f) {
+        // Align heading around up only. A shortest-arc rotation between two
+        // sloping ankle-to-toe vectors can also change shoe pitch and roll.
+        flat = Norm(flat);
+        const float yaw =
+            std::atan2(Dot(up, Cross(flat, forward)), Dot(flat, forward));
+        setWorld(foot, Quat::AxisAngle(up, yaw) * p.bones[foot].restRot);
+      }
     }
   }
   profile = std::move(p);

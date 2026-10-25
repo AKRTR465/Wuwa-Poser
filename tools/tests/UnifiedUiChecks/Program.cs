@@ -66,11 +66,11 @@ internal static class Program
         }
         void Action(string name, params object?[] values) => Await((Task)Call(name, values)!);
         void Check(bool good, string text) { if (!good) throw new Exception(text); checks++; }
-        void Render(string name)
+        void Render(string name, int width = 1120, int height = 1420)
         {
-            var view = (FrameworkElement)window.Content; view.Measure(new Size(1120, 1420)); view.Arrange(new Rect(0, 0, 1120, 1420)); view.UpdateLayout();
-            var bitmap = new RenderTargetBitmap(1120, 1420, 96, 96, PixelFormats.Pbgra32); var background = new DrawingVisual();
-            using (var draw = background.RenderOpen()) draw.DrawRectangle(window.Background, null, new Rect(0, 0, 1120, 1420));
+            var view = (FrameworkElement)window.Content; view.Measure(new Size(width, height)); view.Arrange(new Rect(0, 0, width, height)); view.UpdateLayout();
+            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32); var background = new DrawingVisual();
+            using (var draw = background.RenderOpen()) draw.DrawRectangle(window.Background, null, new Rect(0, 0, width, height));
             bitmap.Render(background); bitmap.Render(view); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
             using var file = File.Create(Path.Combine(output, name + ".png")); encoder.Save(file);
         }
@@ -87,14 +87,20 @@ internal static class Program
         var cameraDrop = (Grid)((Border)Field<FrameworkElement>("cameraFileDrop")).Child;
         Check(initialStageRequest.FormationNative && stagePanel.Visibility == Visibility.Collapsed,
             "a new window uses native formation and hides the manual stage");
+        Check(initialStageRequest.GroundHeightCm == -2 && Field<TextBox>("groundHeight").Text == "-2", "new windows default to a shared -2cm standing height");
         Call("ShowPage", 1); Render("stage-native-default");
+        Check(Field<TextBox>("groundHeight").ActualHeight > 0 && !stagePanel.IsAncestorOf(Field<TextBox>("groundHeight")),
+            "height adjustment is laid out outside the collapsed manual stage in native formation");
+        Field<TextBox>("groundHeight").Text = "-3.5";
         formation.SelectedIndex = 0; Render("stage-manual-expanded");
+        Check(((PlaybackSessionRequest)Call("BuildRequest", false)!).GroundHeightCm == -3.5, "manual formation retains the shared height selection");
         Check(stagePanel.Visibility == Visibility.Visible &&
             cameraDrop.TranslatePoint(new Point(), (UIElement)window.Content).Y < stagePanel.TranslatePoint(new Point(), (UIElement)window.Content).Y,
             "selecting the manual stage expands it below the camera settings");
         Field<TextBox>("stageX").Text = "345"; Call("ApplyStageFields");
         formation.SelectedIndex = 1;
         Check(stagePanel.Visibility == Visibility.Collapsed, "native formation collapses the manual stage again");
+        Check(((PlaybackSessionRequest)Call("BuildRequest", false)!).GroundHeightCm == -3.5, "native formation retains the same adjustable standing height");
         formation.SelectedIndex = 0;
         Check(((PlaybackSessionRequest)Call("BuildRequest", false)!).Actors[0].Stage?.X == 345,
             "switching formation modes preserves manually entered positions");
@@ -362,6 +368,14 @@ internal static class Program
         try { Call("Request"); throw new Exception("empty actor list accepted"); }
         catch (TargetInvocationException error) { Check(error.InnerException is InvalidOperationException, "empty list validation changed"); }
         Action("AddActorAsync"); Check(actors.Count == 1 && editor.Child is not null, "cannot add after clearing list");
+        checks += PresetUiChecks.Run(window, root, output, Await); Call("ShowPage", 0); Render("preset-loaded-actors");
+        Render("preset-compact", 1000, 642);
+        foreach (var label in new[] { "保存预设", "加载预设", "另存为" })
+        {
+            var button = Field<List<Button>>("actions").Single(b => Equals(b.Content, label));
+            var position = button.TranslatePoint(new Point(), (UIElement)window.Content);
+            Check(position.Y >= 0 && position.Y + button.ActualHeight <= 642 && button.ActualHeight > 20, "preset action clipped at minimum window size: " + label);
+        }
         if (args.Contains("--capture-window"))
         {
             // Only this test-owned HWND is captured. Never enumerate game windows.

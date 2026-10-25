@@ -20,7 +20,9 @@ public sealed partial class OwnedMmdPlaybackService
             SetStage(row, actor.Stage); actors.Add(row);
         }
         var config = new JsonObject { ["schema"] = 3, ["scope"] = "stage_preview", ["preview"] = true, ["session_epoch"] = NewEpoch(), ["actors"] = actors, ["actor_count"] = actors.Count, ["duration_ms"] = 0 };
-        ConfigureStage(config, request.SpacingCm, request.FormationNative);
+        ConfigureStage(config, request.SpacingCm, request.FormationNative, request.GroundHeightCm);
+        // Preview has no body publication layer to apply the shared height.
+        foreach (var actor in ActorConfigs(config)) actor["stage_z_cm"] = Contract.D(actor, "stage_z_cm") + request.GroundHeightCm;
         return config;
     }
 

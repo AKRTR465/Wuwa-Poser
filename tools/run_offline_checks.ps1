@@ -25,6 +25,8 @@ foreach ($script in @(
     'tools/tests/run_unified_transport_tests.bat',
     'tools/tests/run_owned_recovery_tests.bat',
     'tools/tests/run_local_clip_tests.bat',
+    'tools/tests/run_foot_calibration_tests.bat',
+    'tools/tests/run_hand_mapping_tests.bat',
     'tools/tests/run_camera_diagnostics_tests.bat',
     'tools/tests/run_unified_player_features_tests.bat',
     'tools/tests/run_dynamic_actor_tests.bat',

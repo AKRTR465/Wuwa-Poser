@@ -18,6 +18,8 @@ int main(){
     auto wire=Wire({42,1,CommandKind::SetPlacementX,25,3});
     Check(DecodeCommand(wire,&decoded)&&decoded.target_slot==3&&decoded.value==25,"actor slot must survive wire decoding");
     Check(DecodeCommand(Wire({42,1,CommandKind::Play,0}),&decoded)&&decoded.target_slot==0,"legacy untargeted wire remains valid");
+    Check(DecodeCommand(Wire({42,1,CommandKind::SetGroundHeight,-2}),&decoded)&&decoded.kind==CommandKind::SetGroundHeight&&decoded.value==-2,"shared standing height survives wire decoding");
+    Check(!ValidCommand({42,1,CommandKind::SetGroundHeight,1001}),"shared standing height rejects out-of-range values");
     Check(DecodeCommand(Wire({42,1,CommandKind::Play,0,UINT32_MAX}),&decoded)&&decoded.target_slot==UINT32_MAX,"full positive uint32 actor slot range accepted");
     wire[48]=1;Put32(wire,60,WireChecksum(wire));Check(!DecodeCommand(wire,&decoded),"reserved payload bytes remain reserved");
     wire=Wire({42,1,CommandKind::SetTimeLimit,0});wire[40]^=1;Check(!DecodeCommand(wire,&decoded),"modified payload checksum rejected");

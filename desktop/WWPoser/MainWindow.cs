@@ -93,7 +93,7 @@ public sealed partial class MainWindow : Window
             CharacterId: card.Character.SelectedValue?.ToString() ?? card.MissingCharacterId, Slot: checked((uint)index + 1), Stage: card.Stage)).ToArray();
         return new(PlaybackSource.MixedActors, selected, CameraSource: Optional(camera), CameraMode: cameraMode.SelectedIndex, Speed: Number(speed, .1, 4), Loop: loop.IsChecked == true,
             DurationSeconds: Number(duration, 0, 2147483), NativePhysics: native.IsChecked == true, Physics: secondary.IsChecked == true,
-            SpacingCm: Number(spacing, 0, 1000), FormationNative: placementMode.SelectedIndex == 1, HideSceneCharacters: hideSceneCharacters.IsChecked == true);
+            SpacingCm: Number(spacing, 0, 1000), FormationNative: placementMode.SelectedIndex == 1, HideSceneCharacters: hideSceneCharacters.IsChecked == true, GroundHeightCm: Number(groundHeight, -1000, 1000));
     }
     private async Task PrepareAsync()
     {
@@ -208,6 +208,13 @@ public sealed partial class MainWindow : Window
         if (placementTarget.SelectedItem is not ActorTarget target) return;
         var p = livePlacements.GetValueOrDefault(target.Slot) ?? target.Actor.Placement ?? new SquadPlacement();
         liveX.Text = F(p.OffsetX); liveY.Text = F(p.OffsetY); liveHeight.Text = F(p.Height); liveYaw.Text = F(p.Yaw); liveInPlace.IsChecked = p.InPlace;
+    }
+    private async Task ApplyGroundHeightAsync()
+    {
+        var height = Number(groundHeight, -1000, 1000);
+        await SendAsync("ground_height", height);
+        if (activeRequest is not null) activeRequest = activeRequest with { GroundHeightCm = height };
+        status.Text = "整体离地高度已应用。";
     }
     private async Task ApplyPlacementAsync()
     {
@@ -351,7 +358,7 @@ public sealed partial class MainWindow : Window
         camera.Text = request.CameraSource ?? ""; cameraMode.SelectedIndex = request.CameraMode; placementMode.SelectedIndex = request.FormationNative ? 1 : 0;
         speed.Text = F(request.Speed); loop.IsChecked = request.Loop; duration.Text = F(request.DurationSeconds);
         native.IsChecked = request.NativePhysics; secondary.IsChecked = request.Physics; spacing.Text = F(request.SpacingCm);
-        hideSceneCharacters.IsChecked = request.HideSceneCharacters;
+        hideSceneCharacters.IsChecked = request.HideSceneCharacters; groundHeight.Text = F(request.GroundHeightCm);
         actorEditor.Child = null; foreach (var previous in actors) previous.Changed -= RefreshActorList; actors.Clear();
         var catalog = characterCatalog;
         for (var i = 0; i < request.Actors.Count; i++)

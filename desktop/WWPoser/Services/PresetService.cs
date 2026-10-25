@@ -158,7 +158,7 @@ public sealed class PresetService(string? cacheDirectory = null)
         static void Range(double value, double min, double max) { if (!double.IsFinite(value) || value < min || value > max) throw new InvalidDataException("预设包含超出范围的数值。"); }
         if (preset is null || preset.Playback is not { } p || p.Actors is null || p.Actors.Count > 10000 || preset.Name is null ||
             (preset.ActorNames is { } names && names.Length != p.Actors.Count)) throw new InvalidDataException("预设演员配置无效。");
-        Range(p.Speed, .1, 4); Range(p.DurationSeconds, 0, 2147483); Range(p.SpacingCm, 0, 1000);
+        Range(p.Speed, .1, 4); Range(p.DurationSeconds, 0, 2147483); Range(p.SpacingCm, 0, 1000); Range(p.GroundHeightCm, -1000, 1000);
         if (p.CameraMode is < 0 or > 2 || (p.NativePhysics && p.Physics)) throw new InvalidDataException("预设镜头或物理设置无效。");
         foreach (var actor in p.Actors)
         {

@@ -24,6 +24,7 @@ public sealed partial class MainWindow
     private readonly TextBox camera = new(), audio = new();
     private readonly TextBox speed = new() { Text = "1", Tag = "倍" }, duration = new() { Text = "0", Tag = "秒" }, spacing = new() { Text = "180", Tag = "厘米" };
     private readonly TextBox offset = new() { Text = "0", Tag = "秒" }, volume = new() { Text = "1", Tag = "0–1" };
+    private readonly TextBox groundHeight = new() { Text = "-2", Tag = "厘米" };
     private readonly CheckBox loop = new() { Content = "放完后从头再来，一直循环" };
     private readonly CheckBox native = new() { Content = "使用游戏自带的头发与衣物摆动（推荐）", IsChecked = true }, secondary = new() { Content = "额外增强衣物惯性" };
     private readonly ComboBox cameraMode = new() { ItemsSource = new[] { "游戏跟随镜头", "固定镜头", "VMD 镜头轨道" }, SelectedIndex = 0, Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
@@ -164,6 +165,11 @@ public sealed partial class MainWindow
         cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(cameraFileDrop);
         cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(Label("队伍怎么站")); cameraBody.Children.Add(placementMode);
         cameraBody.Children.Add(Hint("默认使用「原作队形」：全员从舞台原点出发，保留动作自带的队形。需要手动摆放时，选择「站位舞台」展开下方站位图。"));
+        var heightRow = new WrapPanel { Margin = new(0, 14, 0, 0), VerticalAlignment = VerticalAlignment.Bottom };
+        heightRow.Children.Add(Field("整体离地高度", groundHeight, 160));
+        var applyHeight = Action("应用整体高度", ApplyGroundHeightAsync, "\uE73E", needsSession: true); applyHeight.VerticalAlignment = VerticalAlignment.Bottom;
+        heightRow.Children.Add(applyHeight); cameraBody.Children.Add(heightRow);
+        cameraBody.Children.Add(Hint("默认下移 2 厘米，负数向下。原作队形和站位舞台都适用；表演中修改后点「应用整体高度」。"));
         cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(hideSceneCharacters);
         cameraBody.Children.Add(Hint("隐藏起点周围 100 米内的 NPC 和怪物，结束或失败时恢复；保留演员、队员和动物。仅隐藏模型，AI、碰撞和头顶 UI 仍按游戏规则运行。"));
         content.Children.Add(Card("镜头", "跟着角色拍，或者使用作品自带的运镜。", "\uE722", cameraBody));

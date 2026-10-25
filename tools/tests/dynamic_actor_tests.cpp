@@ -60,11 +60,12 @@ int main(){
     bool allPlaced=true;for(const auto& actor:runtime.actors)allPlaced=allPlaced&&actor->placement.height==20;
     Check(allPlaced,"broadcast reaches the dynamic collection");
     const Json originalFormation={{"formation_native",true},{"formation_floor_fallback_cm",2.5}};
-    Check(Near(scene::FormationHeightCorrection(originalFormation,{{"stage_height_correction_cm",-2.15}}),-2.15),"original formation uses the captured capsule-to-floor gap");
-    Check(Near(scene::FormationHeightCorrection(originalFormation,Json::object()),-2.5),"missing floor capture uses the bounded 2.5cm fallback");
-    Check(Near(scene::FormationHeightCorrection({{"formation_native",false}},{{"stage_height_correction_cm",-2.15}}),0),"ordinary stage ignores floor compensation metadata");
-    bool badCorrection=false;try{scene::FormationHeightCorrection(originalFormation,{{"stage_height_correction_cm",-30}});}catch(const std::runtime_error&){badCorrection=true;}
-    Check(badCorrection,"floor correction cannot become an unbounded terrain offset");
+    Check(Near(scene::FormationHeightCorrection(originalFormation,{{"stage_height_correction_cm",-2.15}}),-2),"native formation defaults to -2cm without doubling the capsule gap");
+    Check(Near(scene::FormationHeightCorrection(originalFormation,Json::object()),-2),"missing legacy floor metadata keeps the same default height");
+    Check(Near(scene::FormationHeightCorrection({{"formation_native",false}},{{"stage_height_correction_cm",-2.15}}),-2),"manual stage shares the -2cm default");
+    Check(Near(scene::FormationHeightCorrection({{"formation_native",true},{"ground_height_cm",0}},Json::object()),0),"explicit zero height disables the shared offset");
+    bool badCorrection=false;try{scene::FormationHeightCorrection({{"ground_height_cm",-1001}},Json::object());}catch(const std::runtime_error&){badCorrection=true;}
+    Check(badCorrection,"shared height rejects out-of-range values");
     runtime.formationHeightCorrection=-2.15;runtime.cameraAnchor=runtime.actors.front().get();
     const auto effective=scene::EffectivePlacement(*runtime.cameraAnchor);
     Check(Near(effective.height,17.85)&&Near(runtime.cameraAnchor->placement.height,20),"floor correction is additive to manual height without mutating it");
@@ -81,6 +82,9 @@ int main(){
     Check(runtime.transport.State().mode==play::PlayerMode::Paused&&Near(runtime.transport.State().seconds,1),"shared pause retains all actor cursors");
     scene::ApplyCommand({77,5,play::CommandKind::SeekSeconds,10},500);scene::ApplyCommand({77,6,play::CommandKind::Play,0},500);scene::Advance(4,503);
     Check(runtime.transport.State().mode==play::PlayerMode::Ended&&!runtime.transport.State().restore_requested,"longest scene track holds its last frame until stopped");
+    Check(scene::ApplyCommand({77,7,play::CommandKind::SetGroundHeight,-2},503)==play::ControlCode::Ok,"shared height can change on a held pose");
+    Check(Near(scene::EffectivePlacement(*runtime.cameraAnchor).height,18)&&Near(scene::CameraState(runtime.transport.State()).placement_height,18),"shared adjustment reaches body and camera once while preserving per-actor height");
+    Check(scene::ApplyCommand({77,8,play::CommandKind::SetGroundHeight,-2,1},503)==play::ControlCode::InvalidCommand,"shared height cannot silently act as a per-actor command");
 
     auto report=scene::Status();Check(report.at("actor_count")==40&&report.at("actors").size()==40,"status reports the actual dynamic actor set");
     Check(report.at("borrowed_count")==3&&report.at("created_count")==37,"status reports actual mixed ownership rather than request assumptions");

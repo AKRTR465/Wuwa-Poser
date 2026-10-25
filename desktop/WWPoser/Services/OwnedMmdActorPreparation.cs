@@ -8,9 +8,11 @@ public sealed partial class OwnedMmdPlaybackService
     public static IReadOnlyList<JsonObject> ActorConfigs(JsonObject config) => config["actors"] is JsonArray actors
         ? actors.Select(actor => actor!.AsObject()).ToArray() : [config];
 
-    public static void ConfigureStage(JsonObject config, double spacingCm, bool formationNative = false)
+    public static void ConfigureStage(JsonObject config, double spacingCm, bool formationNative = false, double groundHeightCm = -2)
     {
+        if (!double.IsFinite(groundHeightCm) || groundHeightCm is < -1000 or > 1000) throw new InvalidDataException("整体离地高度需在 -1000–1000 厘米之间。");
         var actors = ActorConfigs(config);
+        config["ground_height_cm"] = groundHeightCm;
         config["spacing_cm"] = spacingCm;
         config["formation_native"] = formationNative;
         config["formation_floor_fallback_cm"] = 2.5;
@@ -119,7 +121,7 @@ public sealed partial class OwnedMmdPlaybackService
         await assets.CameraAsync(scene, output, cameraSource, request.CameraMode, anchorClip!, cancellation);
         scene["camera_enabled"] = true;
         scene["duration_seconds"] = Math.Max(duration, scene["camera_clip_duration_seconds"]?.GetValue<double>() ?? 0);
-        ConfigureStage(scene, request.SpacingCm, request.FormationNative); WriteActorsFile(output, scene);
+        ConfigureStage(scene, request.SpacingCm, request.FormationNative, request.GroundHeightCm); WriteActorsFile(output, scene);
         JsonData.Write(Path.Combine(output, "owned_mmd_config.json"), scene);
         return new JsonObject { ["state"] = "prepared_not_run", ["session_dir"] = output, ["config"] = Path.Combine(output, "owned_mmd_config.json"),
             ["session_epoch"] = epoch, ["actor_count"] = actors.Count, ["duration_seconds"] = scene["duration_seconds"]!.DeepClone(),

@@ -43,6 +43,7 @@ int wmain(int argc,wchar_t** argv){std::filesystem::path source,output,targetPat
                 rotations.push_back(target.canonical_local_rotations[i]);rotationMask.push_back(target.canonical_rotation_mask[i]);}
             report["compiled_target_clip"]={{"path",Decode(compiledPath.string(),CP_ACP)},{"fps",60},{"frame_count",local.frame_count},
                 {"bone_count",local.bone_count},{"duration_seconds",local.duration},{"source_to_target_scale",scale},
+                {"preserved_metacarpal_finger_chains",target.metacarpal_finger_chains},
                 {"camera_source_to_component_rotation_xyzw",Quat(compiler.SourceToTargetBasis())},
                 {"translation_scale_source",estimatedScale?"GenericStandardMmd geometry estimate; source PMX not supplied":"explicit CLI --scale override"},
                 {"skeleton_name",target.skeleton_name},{"bone_names",names},{"parents",parents},

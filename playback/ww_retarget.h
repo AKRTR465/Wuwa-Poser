@@ -20,6 +20,7 @@ struct PreparedTarget {
     std::array<std::array<float,3>,fb::kLimit> canonical_local_positions{};
     std::array<uint8_t,fb::kLimit> canonical_rotation_mask{};
     std::array<std::array<float,4>,fb::kLimit> canonical_local_rotations{};
+    uint32_t metacarpal_finger_chains=0;
 };
 inline int Role(const std::string& name) {
     static const std::pair<const char*,int> roles[]={
@@ -34,6 +35,36 @@ inline int Role(const std::string& name) {
         if(joint)bone+=std::to_string(joint);if(name==bone)return 24+side*15+finger*3+joint;
     }
     return -1;
+}
+// Some game hands have a palm/metacarpal link before the three phalanges.
+// Identify that layout from both hierarchy and anatomy; a fourth tip marker
+// on a normal three-joint finger must not shift the semantic roles.
+inline uint32_t MapMetacarpalFingers(mmd::RetargetProfile& profile) {
+    profile.globals();uint32_t changed=0;
+    auto find=[&](const std::string& name){for(size_t i=0;i<profile.bones.size();++i)
+        if(profile.bones[i].name==name)return int(i);return -1;};
+    for(int side=0;side<2;++side){
+        const int hand=profile.roles[17+side];if(hand<0)continue;
+        for(int finger=1;finger<5;++finger){
+            const auto stem=std::string("Bip001")+(side?"R":"L")+"Finger"+std::to_string(finger);
+            const std::array<int,4> chain{find(stem),find(stem+"1"),find(stem+"2"),find(stem+"3")};
+            if(std::any_of(chain.begin(),chain.end(),[](int i){return i<0;}))continue;
+            bool serial=profile.bones[chain[0]].parent==hand;
+            for(int i=1;i<4;++i)serial=serial&&profile.bones[chain[i]].parent==chain[i-1];
+            if(!serial)continue;
+            const auto wrist=profile.bones[hand].restPos;
+            const float palmRoot=Len(profile.bones[chain[0]].restPos-wrist);
+            const float knuckle=Len(profile.bones[chain[1]].restPos-wrist);
+            const float palmLength=Len(profile.bones[chain[1]].restPos-profile.bones[chain[0]].restPos);
+            const float phalanxLength=Len(profile.bones[chain[2]].restPos-profile.bones[chain[1]].restPos);
+            if(knuckle<1e-5f||phalanxLength<1e-5f||palmRoot>=knuckle*.35f||palmLength<=phalanxLength*1.5f)continue;
+            profile.bones[chain[0]].role=-1;
+            const int first=24+side*15+finger*3;
+            for(int joint=0;joint<3;++joint)profile.bones[chain[joint+1]].role=first+joint;
+            ++changed;
+        }
+    }
+    profile.globals();return changed;
 }
 inline PreparedTarget ReadTarget(const std::filesystem::path& path) {
     std::ifstream file(path,std::ios::binary);if(!file)throw std::runtime_error("cannot open skeleton export");
@@ -50,6 +81,7 @@ inline PreparedTarget ReadTarget(const std::filesystem::path& path) {
     if(!fb::PrepareTopology(proof,names,parents,&target.topology))throw std::runtime_error("invalid complete hierarchy");
     // Target asset coordinates are UE source +Z-up; core_math calibration is
     // parameterized, so preserve that source basis and explicitly pass up Z.
+    target.metacarpal_finger_chains=MapMetacarpalFingers(target.profile);
     if(!mmd::MakeCalibrationTPose(target.profile,{0,0,1}))throw std::runtime_error("required humanoid roles absent or T-pose calibration failed");
     for(uint32_t i=0;i<target.topology.count;++i){const auto& bone=target.profile.bones[i];
         target.canonical_local_positions[i]={{bone.localPos.x,bone.localPos.y,bone.localPos.z}};

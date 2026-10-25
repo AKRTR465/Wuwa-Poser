@@ -5,7 +5,7 @@ public enum PlaybackSource { CurrentCharacter, CurrentSquad, CreatedCharacter, M
 // X to its right, Y ahead, Z above its floor (cm), Yaw relative to its facing.
 public sealed record StagePosition(double X, double Y, double Z = 0, double Yaw = 0);
 public sealed record PlaybackActorRequest(string BodySource, string? FaceSource = null, double? Scale = null, SquadPlacement? Placement = null, long RoleId = 0, bool Enabled = true, string? CharacterId = null, uint Slot = 0, StagePosition? Stage = null);
-public sealed record PlaybackSessionRequest(PlaybackSource Source, IReadOnlyList<PlaybackActorRequest> Actors, string? CameraSource = null, int CameraMode = 0, double Speed = 1, bool Loop = false, double DurationSeconds = 0, bool NativePhysics = true, bool Physics = false, string? StageSession = null, double SpacingCm = 180, bool FormationNative = false, bool HideSceneCharacters = false);
+public sealed record PlaybackSessionRequest(PlaybackSource Source, IReadOnlyList<PlaybackActorRequest> Actors, string? CameraSource = null, int CameraMode = 0, double Speed = 1, bool Loop = false, double DurationSeconds = 0, bool NativePhysics = true, bool Physics = false, string? StageSession = null, double SpacingCm = 180, bool FormationNative = false, bool HideSceneCharacters = false, double GroundHeightCm = -2);
 
 // New requests use one dynamic actor host. The old source formats remain
 // readable so saved requests can be converted to the mixed actor preparation.
@@ -90,10 +90,10 @@ public sealed class PlaybackSessionService
             return new(PlaybackSource.MixedActors, actors, File.Exists(Path.Combine(directory, "camera_source.vmd")) ? Path.Combine(directory, "camera_source.vmd") : null,
                 config["camera_mode"]?.GetValue<int>() ?? 0, Contract.D(config, "speed"), Contract.True(config, "loop"), Contract.D(config, "duration_ms") / 1000d,
                 config["native_physics"]?.GetValue<bool>() ?? true, Contract.True(config, "physics_enabled"), SpacingCm: config["spacing_cm"]?.GetValue<double>() ?? 180,
-                FormationNative: config["formation_native"]?.GetValue<bool>() ?? false, HideSceneCharacters: Contract.True(config, "hide_scene_characters"));
+                FormationNative: config["formation_native"]?.GetValue<bool>() ?? false, HideSceneCharacters: Contract.True(config, "hide_scene_characters"), GroundHeightCm: config["ground_height_cm"]?.GetValue<double>() ?? -2);
         }
         var actor = new PlaybackActorRequest(Path.Combine(directory, "source.vmd"), CharacterId: config["character_id"]?.GetValue<string>());
-        return new(PlaybackSource.CreatedCharacter, [actor], CameraMode: config["camera_mode"]?.GetValue<int>() ?? 0, Speed: Contract.D(config, "speed"), Loop: Contract.True(config, "loop"), DurationSeconds: Contract.D(config, "duration_ms") / 1000d, NativePhysics: config["native_physics"]?.GetValue<bool>() ?? true, Physics: Contract.True(config, "physics_enabled"));
+        return new(PlaybackSource.CreatedCharacter, [actor], CameraMode: config["camera_mode"]?.GetValue<int>() ?? 0, Speed: Contract.D(config, "speed"), Loop: Contract.True(config, "loop"), DurationSeconds: Contract.D(config, "duration_ms") / 1000d, NativePhysics: config["native_physics"]?.GetValue<bool>() ?? true, Physics: Contract.True(config, "physics_enabled"), GroundHeightCm: config["ground_height_cm"]?.GetValue<double>() ?? -2);
     }
 
     private static int Milliseconds(double seconds) => checked((int)Math.Round(seconds * 1000));
@@ -110,6 +110,9 @@ public sealed class PlaybackSessionService
         }).ToArray());
         var forms = Path.Combine(root, "data", "characters", "character_forms.json");
         return JsonData.CanonicalDigest(new JsonObject { ["character_loading_version"] = 2,
+            ["body_compiler_sha256"] = Digest(Path.Combine(root, "tools", "mmd_outputs", "mmd_vmd_cli.exe")),
+            ["face_compiler_sha256"] = Digest(Path.Combine(root, "tools", "mmd_outputs", "mmd_face_compile.exe")),
+            ["camera_compiler_sha256"] = Digest(Path.Combine(root, "tools", "mmd_outputs", "mmd_camera_compile.exe")),
             ["catalog"] = Digest(Path.Combine(root, OwnedCharacterCatalog.RelativePath)), ["character_index"] = Digest(Path.Combine(root, "data", "characters", "index.json")),
             ["forms"] = File.Exists(forms) ? Digest(forms) : null,
             ["source"] = (int)request.Source, ["actors"] = actors, ["camera"] = Digest(request.CameraSource), ["stage"] = request.Source == PlaybackSource.CurrentSquad ? Digest(Path.Combine(request.StageSession!, "stage_config.json")) : null });
@@ -151,7 +154,7 @@ public sealed class PlaybackSessionService
                 actor["placement"] = PlaybackAssets.Placement(selected.Placement); OwnedMmdPlaybackService.SetStage(actor, selected.Stage);
                 foreach (var key in new[] { "native_physics", "physics_enabled", "physics_mode" }) actor[key] = mixed[key]!.DeepClone();
             }
-            OwnedMmdPlaybackService.ConfigureStage(mixed, request.SpacingCm, request.FormationNative);
+            OwnedMmdPlaybackService.ConfigureStage(mixed, request.SpacingCm, request.FormationNative, request.GroundHeightCm);
             OwnedMmdPlaybackService.WriteActorsFile(directory, mixed);
             JsonData.Write(Path.Combine(directory, "owned_mmd_config.json"), mixed);
             return;
