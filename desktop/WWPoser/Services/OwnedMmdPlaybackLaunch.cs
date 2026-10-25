@@ -14,7 +14,7 @@ public sealed partial class OwnedMmdPlaybackService
     public string LaunchStage { get; private set; } = "not_started";
     public event Action<string>? Progress;
 
-    private string PrepareRuntime(string prepared, GameIdentity game)
+    private string PrepareRuntime(string prepared, GameIdentity game, bool startPaused)
     {
         var config = Config(prepared);
         var legacy = config["actors"] is not JsonArray;
@@ -25,6 +25,7 @@ public sealed partial class OwnedMmdPlaybackService
             ConfigureStage(config, 180);
         }
         config["session_epoch"] = NewEpoch();
+        config["start_paused"] = startPaused;
         var catalog = CharacterCatalog(); var registry = new CharacterRegistry(root);
         foreach (var actor in ActorConfigs(config))
         {
@@ -47,6 +48,7 @@ public sealed partial class OwnedMmdPlaybackService
             foreach (var filename in new[] { "character_profile.json", "motion.wwlocal" }) File.Copy(Path.Combine(source, filename), Path.Combine(destination, filename));
             foreach (var filename in new[] { "source.vmd", "face_source.vmd", "character_skeleton.json", "compiled_report.json", "expression.wwexpr", "expression_profile.json", "bone_chains.json" })
                 if (File.Exists(Path.Combine(source, filename))) File.Copy(Path.Combine(source, filename), Path.Combine(destination, filename));
+            CompiledMotionValidation.Validate(destination, actor);
             JsonData.Write(Path.Combine(destination, "owned_mmd_config.json"), actor);
         }
         foreach (var filename in new[] { "camera.wwcam", "camera_source.vmd", "camera_profile.json", "camera_runtime_contract.json", "bone_chains.json", "unified_session_request.json" })
@@ -72,12 +74,12 @@ public sealed partial class OwnedMmdPlaybackService
 
     public static bool Finished(string directory) => File.Exists(Path.Combine(directory, "session_result.json"));
 
-    public async Task<JsonObject> LaunchAsync(string prepared, CancellationToken cancellation = default)
+    public async Task<JsonObject> LaunchAsync(string prepared, CancellationToken cancellation = default, bool startPaused = false)
     {
         if (ActiveSession is not null) throw new InvalidOperationException("请先停止当前演员会话并等待恢复。");
         LaunchStage = "runtime_preparation";
         var game = GameProcess.Current();
-        var directory = PrepareRuntime(Path.GetFullPath(prepared), game);
+        var directory = PrepareRuntime(Path.GetFullPath(prepared), game, startPaused);
         cancellation.ThrowIfCancellationRequested();
         await GameProcess.WaitForForegroundAsync(game, cancellation);
         Progress?.Invoke("正在加载演员：优先使用编队里的原角色，其余另行创建");
@@ -88,6 +90,7 @@ public sealed partial class OwnedMmdPlaybackService
         ActiveSession = directory;
         LaunchStage = "owned_target_export";
         var nativePrepared = false;
+        long? initialPoseWait = null;
         var routes = NativeTargetRoutes(Config(directory), directory);
         try
         {
@@ -124,8 +127,15 @@ public sealed partial class OwnedMmdPlaybackService
                     LaunchStage = "native_body_warmup";
                 }
                 var state = Status(directory);
-                if (Contract.True(state, "ready") && Contract.True(state, "session_active")) { LaunchStage = "actors_playing"; return new JsonObject { ["session_dir"] = directory, ["loaded"] = true, ["state"] = "actors_playing", ["actor_count"] = ActorConfigs(Config(directory)).Count }; }
                 if (Contract.True(state, "failed")) throw new InvalidOperationException("演员播放器初始化失败，保留会话等待恢复");
+                if (Contract.True(state, "ready") && Contract.True(state, "session_active"))
+                {
+                    if (startPaused && (Contract.S(state, "mode") != "paused" || Contract.D(state, "seconds") != 0))
+                        throw new InvalidDataException("运行模块未停在动作起点，无法保证完整录屏；请停止恢复，并在升级后重启游戏。");
+                    LaunchStage = startPaused ? "actors_paused" : "actors_playing";
+                    return new JsonObject { ["session_dir"] = directory, ["loaded"] = true, ["state"] = LaunchStage, ["start_paused"] = startPaused, ["actor_count"] = ActorConfigs(Config(directory)).Count };
+                }
+                initialPoseWait = CheckInitialPoseReadyTimeout(startPaused, state, Environment.TickCount64, initialPoseWait);
                 await Task.Delay(100, cancellation);
             }
         }
@@ -136,6 +146,17 @@ public sealed partial class OwnedMmdPlaybackService
             JsonData.AtomicWrite(Path.Combine(directory, "native_observers_restored.flag"), []);
             throw;
         }
+    }
+
+    internal static long? CheckInitialPoseReadyTimeout(bool startPaused, JsonObject state, long now, long? waitingSince)
+    {
+        // Actor loading and native graph discovery may legitimately take longer.
+        // Bound only the first-pose stage after the runtime starts writing.
+        if (!startPaused || !Contract.True(state, "session_active") || Contract.True(state, "ready")) return null;
+        waitingSince ??= now;
+        if (now - waitingSince.Value >= 15000)
+            throw new TimeoutException("演员或镜头的首姿态未能在 15 秒内就绪，正在停止并恢复；请等待恢复完成后重试。");
+        return waitingSince;
     }
 
     private static void RequestStop(string directory) => JsonData.AtomicWrite(Path.Combine(directory, "stop.flag"), []);

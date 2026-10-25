@@ -304,12 +304,7 @@ static void WaitForMmdRestoration() {
     while(MmdResourcesPending()||MmdRecoveryCallbacksActive())Sleep(10);
 }
 static playback::local_clip::Clip ReadLocalClip(const std::wstring& path){
-    namespace local=playback::local_clip;std::ifstream in(path,std::ios::binary);std::array<char,8> magic{};in.read(magic.data(),8);
-    if(!in||memcmp(magic.data(),"WWLOCAL1",8)||local::Read<uint32_t>(in)!=local::kVersion)throw std::runtime_error("invalid local clip");
-    local::Clip clip;clip.bone_count=local::Read<uint32_t>(in);clip.frame_count=local::Read<uint32_t>(in);clip.fps=local::Read<uint32_t>(in);clip.duration=local::Read<double>(in);
-    in.seekg(128,std::ios::cur);clip.frames.resize(size_t(clip.bone_count)*clip.frame_count);
-    if(!in.read((char*)clip.frames.data(),std::streamsize(clip.frames.size()*sizeof(local::BoneCommand))))throw std::runtime_error("truncated local clip");
-    return clip;
+    return playback::local_clip::ReadFile(std::filesystem::path(path));
 }
 static uint64_t HexField(const Json& value){return std::stoull(value.get<std::string>(),nullptr,16);}
 static void WorkerBody() {

@@ -40,14 +40,7 @@ static bool SquadNeedsNative(){for(const auto& m:dancers)if(m.enabled&&m.feature
 static Json SquadReadJson(const std::filesystem::path& path){std::ifstream input(path,std::ios::binary);Json value;
     if(!input||!(input>>value))throw std::runtime_error("squad native input file missing");return value;}
 static play::local_clip::Clip SquadReadClip(const std::filesystem::path& path){
-    std::ifstream in(path,std::ios::binary);std::array<char,play::local_clip::kHeaderBytes> header{};
-    scene_team_stage::Require(in&&in.read(header.data(),header.size())&&!std::memcmp(header.data(),"WWLOCAL1",8),"squad clip unreadable");
-    play::local_clip::Clip clip;std::memcpy(&clip.bone_count,header.data()+12,4);std::memcpy(&clip.frame_count,header.data()+16,4);
-    std::memcpy(&clip.fps,header.data()+20,4);std::memcpy(&clip.duration,header.data()+24,8);
-    clip.source_sha256.assign(header.data()+32,64);clip.skeleton_sha256.assign(header.data()+96,64);
-    clip.frames.resize(size_t(clip.bone_count)*clip.frame_count);
-    scene_team_stage::Require(bool(in.read(reinterpret_cast<char*>(clip.frames.data()),std::streamsize(clip.frames.size()*play::local_clip::kBoneBytes))),"squad clip payload truncated");
-    return clip;
+    return play::local_clip::ReadFile(path);
 }
 static void SquadPublish(void*);
 static void DanceFault(const char* reason){dance_error=reason;dance_clock.FaultStop();Issue(st::Code::IdentityChanged,true);}

@@ -3,6 +3,14 @@ param([string]$OutputDirectory,[switch]$Rebuild,[string]$DotNetExecutable='dotne
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$releaseRevision=$null
+if($PublicRelease){
+ if(-not $Rebuild){throw 'Public releases require -Rebuild so every native artifact matches the published source.'}
+ $releaseRevision=(& git -C $repo rev-parse HEAD 2>$null)
+ if($LASTEXITCODE -ne 0 -or @(& git -C $repo status --porcelain --untracked-files=normal).Count -ne 0){
+  throw 'Public releases require a clean committed source checkout.'
+ }
+}
 if(-not $OutputDirectory){$OutputDirectory=Join-Path $repo ('dist\ww-mmd-player-csharp_'+(Get-Date -Format 'yyyyMMdd_HHmmss'))}
 $destination=[IO.Path]::GetFullPath($OutputDirectory)
 if(Test-Path -LiteralPath $destination){throw 'Bundle directory already exists; choose a fresh destination.'}
@@ -14,7 +22,11 @@ if($Rebuild){
   if($LASTEXITCODE -ne 0){throw ('Native build failed: '+$script)}
  }
 }
-& (Join-Path $PSScriptRoot 'build_owned_mmd.ps1') -PackageDirectory $OwnedMmdPackageDirectory -Check
+& (Join-Path $PSScriptRoot 'build_owned_mmd.ps1') -PackageDirectory $OwnedMmdPackageDirectory -Check -ExpectedSourceRevision $releaseRevision
+& (Join-Path $PSScriptRoot 'prepare_player_dependencies.ps1') -Check
+if($PublicRelease){
+ & (Join-Path $PSScriptRoot 'run_offline_checks.ps1') -DotNetExecutable $DotNetExecutable -SkipCompilerBuild
+}
 if(-not $PublishDirectory){$PublishDirectory=Join-Path $repo 'desktop\WWPoser\publish'}
 $publishDirectory=[IO.Path]::GetFullPath($PublishDirectory)
 & $DotNetExecutable publish (Join-Path $repo 'desktop\WWPoser\WWPoser.csproj') -c Release --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:NuGetAudit=false --source 'https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json' -o $publishDirectory --nologo
@@ -82,11 +94,14 @@ start "" "%~dp0WWPoser.exe" --owned-mmd %*
 $sourceUrl='https://github.com/AKRTR465/Wuwa-Poser'
 $sourceRevision=(& git -C $repo rev-parse HEAD 2>$null)
 if($LASTEXITCODE -ne 0){$sourceRevision='uncommitted'}
+if($PublicRelease -and ($sourceRevision -cne $releaseRevision -or @(& git -C $repo status --porcelain --untracked-files=normal).Count -ne 0)){
+ throw 'The source changed during the release build; discard the incomplete package and rebuild.'
+}
 $sourceLine=if($PublicRelease){"Source: $sourceUrl/tree/$sourceRevision"}else{"Source workspace: $repo"}
 $notice="Wuwa Poser - Windows x64 portable package (AGPL-3.0).`n$sourceLine`nProject origins and dependencies: THIRD_PARTY_NOTICES.md.`nPython is not required. .NET Windows Desktop runtime is included.`nUser VMD, music and game reference assemblies are not included.`n"
 [IO.File]::WriteAllText((Join-Path $destination 'SOURCE_NOTICE.txt'),$notice,[Text.UTF8Encoding]::new($false))
-$entries=Get-ChildItem -LiteralPath $destination -Recurse -File|ForEach-Object {[ordered]@{path=$_.FullName.Substring($destination.Length+1).Replace('\','/');bytes=$_.Length}}
-$manifest=[ordered]@{schema=3;state='local_bundle_staged';created_at=(Get-Date).ToString('o');source_url=$sourceUrl;source_revision=$sourceRevision;license='AGPL-3.0';entrypoint='WWPoser.exe';runtime='csharp-net10-wpf';python_required=$false;self_contained=$true;files=@($entries)}
+$entries=Get-ChildItem -LiteralPath $destination -Recurse -File|ForEach-Object {[ordered]@{path=$_.FullName.Substring($destination.Length+1).Replace('\','/');bytes=$_.Length;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}}
+$manifest=[ordered]@{schema=4;state='local_bundle_staged';created_at=(Get-Date).ToString('o');source_url=$sourceUrl;source_revision=$sourceRevision;license='AGPL-3.0';entrypoint='WWPoser.exe';runtime='csharp-net10-wpf';python_required=$false;self_contained=$true;files=@($entries)}
 if(-not $PublicRelease){$manifest.source_root=$repo}
 [IO.File]::WriteAllText((Join-Path $destination 'manifest.json'),($manifest|ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false))
 $validation=Start-Process -FilePath (Join-Path $destination 'WWPoser.exe') -ArgumentList '--validate-bundle' -WorkingDirectory $destination -WindowStyle Hidden -PassThru -Wait

@@ -42,9 +42,11 @@ pwsh -NoProfile -File tools/prepare_player_dependencies.ps1 -Download
 pwsh -NoProfile -File tools/build_player.ps1 -Rebuild -PublicRelease -ReferenceDirectory 'D:\WuwaReferences'
 ```
 
-`-Rebuild` 编译托管桥、原生运行时、探测工具和 VMD 编译器，随后发布自带 .NET 运行库的 WPF 程序。`-PublicRelease` 排除本地会话占用记录，并在包内记录公开源码地址。输出位于 `dist/ww-mmd-player-csharp_<时间>/`。
+`-Rebuild` 编译托管桥、原生运行时、探测工具和 VMD 编译器，随后发布自带 .NET 运行库的 WPF 程序。`-PublicRelease` 要求干净且已提交的源码及 `-Rebuild`，执行离线回归，排除本地会话占用记录，并在包内记录公开源码地址。构建期间源码发生变化会拒绝完成公开包。输出位于 `dist/ww-mmd-player-csharp_<时间>/`。
 
-可用 `-OutputDirectory` 指定新的便携包目录；`-PublishDirectory` 可单独指定 WPF 中间发布目录。若原生输出已准备好，可省略 `-Rebuild`。已有运行时包还可通过 `-OwnedMmdPackageDirectory` 指定。
+可用 `-OutputDirectory` 指定新的便携包目录；`-PublishDirectory` 可单独指定 WPF 中间发布目录。本地开发包在原生输出已准备好时可省略 `-Rebuild`；已有运行时包还可通过 `-OwnedMmdPackageDirectory` 指定。公开发布会重新构建该目录，并核对运行时 manifest 的源码提交、干净状态和逐文件 SHA-256。
+
+公开发布的自定义输出、中间发布和运行时包目录应位于仓库外或已被 Git 忽略；默认的 `dist/`、`build/` 和 `desktop/WWPoser/publish/` 已忽略。放在仓库内的未忽略目录会使发布检查认为工作树发生了变化。
 
 校验便携包：
 
@@ -52,11 +54,21 @@ pwsh -NoProfile -File tools/build_player.ps1 -Rebuild -PublicRelease -ReferenceD
 .\dist\<便携包目录>\WWPoser.exe --validate-bundle
 ```
 
-此命令只校验包与角色目录，不启动或操作游戏。
+此命令只校验包与角色目录，不启动或操作游戏。新包的 schema 4 manifest 为每个文件记录字节数与 SHA-256，校验会拒绝缺失、长度不符、内容损坏和不合法的相对路径。旧 schema 3 清单仍检查文件长度，但没有散列的旧清单不能证明文件内容一致。
+
+`data/` 中的证书和契约使用原始文件字节散列。仓库通过 `.gitattributes` 保留它们既有的字节与换行，避免 `core.autocrlf` 改变校验结果。编辑这些文件后仍需更新相关证书，不能仅转换换行而沿用旧散列。
 
 ## 离线回归检查
 
-依次运行；两个 WPF 检查项目共享构建目录，应串行执行。
+Windows 完整离线检查可通过统一入口运行，无需游戏参考 DLL、游戏进程或录屏依赖：
+
+```powershell
+pwsh -NoProfile -File tools/run_offline_checks.ps1
+```
+
+入口会构建三个 VMD 编译器，使用合成素材检查演员准备，并运行下面的回归与数据证书检查。两个 WPF 检查项目共享构建目录，应串行执行。Windows/Linux 的 GitHub Actions 工作流会在提交和 PR 上执行相应离线检查。
+
+也可以分别运行：
 
 ```powershell
 dotnet run --project tools/tests/ManagedActorBorrowing/ManagedActorBorrowing.csproj
@@ -66,7 +78,20 @@ dotnet run --project tools/tests/UnifiedUiChecks/UnifiedUiChecks.csproj -- . tes
 .\tools\tests\run_unified_transport_tests.bat
 .\tools\tests\run_dynamic_actor_tests.bat
 .\tools\tests\run_owned_recovery_tests.bat
+.\tools\tests\run_local_clip_tests.bat
+.\tools\tests\run_camera_diagnostics_tests.bat
+.\tools\tests\run_session_retirement_tests.bat
+pwsh -NoProfile -File tools/tests/runtime_manifest_checks.ps1
 ```
+
+跨平台服务检查直接编译同一份生产服务和合成测试，不依赖 WPF：
+
+```sh
+dotnet run --project tools/tests/PortableServiceChecks/PortableServiceChecks.csproj
+dotnet run --project tools/tests/ManagedActorBorrowing/ManagedActorBorrowing.csproj
+```
+
+`unified_transport_tests.cpp`、`owned_recovery_tests.cpp`、`local_clip_tests.cpp` 和 `camera_diagnostics_tests.cpp` 也支持 C++17 编译器；并发镜头测试需要线程支持（例如 GCC 的 `-pthread`）。会话退役和其余原生测试使用 Windows API 的本进程测试对象。
 
 这些检查使用合成数据或本进程测试对象，不证明当前游戏版本、全角色物理、录屏或同进程连续播放的视觉效果。游戏运行验证需另行进行。
 

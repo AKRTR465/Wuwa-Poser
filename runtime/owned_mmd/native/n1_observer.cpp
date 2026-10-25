@@ -171,6 +171,10 @@ static DWORD WINAPI Worker(LPVOID){
     out["managed_owner_retirement_checked"]=released;out["loaded_graph_checked"]=loaded;
     out["display_started_tick_ms"]=display_started;out["display_elapsed_ms"]=display_elapsed;out["display_requested_ms"]=display_requested;out["display_interval_completed"]=display_completed;
     out["duration_ms"]=GetTickCount64()-trial_start;
+    // Reports retain the final actor counts and evidence after heavy per-session
+    // buffers are released. The DLL and original forwarding targets stay pinned.
+    body["retired_payload_released"]=false;
+    owned_mmd_body::ReleaseRetiredPayload(body);out["mmd_result"]=body;
     // worker_result.json is the installer's signal that dispatch is closed and drained.
     try{ww_report::Save(dir/L"mmd_status.json",body);ww_report::Save(dir/L"player_status.json",body);ww_report::Save(dir/L"mmd_result.json",body);ww_report::Save(dir/L"worker_result.json",out);}catch(...){return ERROR_WRITE_FAULT;}
     return full?ERROR_SUCCESS:ERROR_INVALID_DATA;

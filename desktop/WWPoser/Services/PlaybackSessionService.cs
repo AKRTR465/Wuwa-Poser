@@ -158,7 +158,7 @@ public sealed class PlaybackSessionService
     }
 
     public Task<JsonObject> LaunchAsync(string preparedDirectory, CancellationToken cancellation = default) => LaunchAsync(preparedDirectory, null, cancellation);
-    public async Task<JsonObject> LaunchAsync(string preparedDirectory, PlaybackSessionRequest? settings, CancellationToken cancellation = default)
+    public async Task<JsonObject> LaunchAsync(string preparedDirectory, PlaybackSessionRequest? settings, CancellationToken cancellation = default, bool startPaused = false)
     {
         if (ActiveSession is not null) throw new InvalidOperationException("请先停止当前演员会话并等待恢复。");
         var request = AssignSlots(settings ?? ReadPreparation(preparedDirectory));
@@ -171,7 +171,7 @@ public sealed class PlaybackSessionService
         UpdatePreparation(preparedDirectory, request);
         try
         {
-            var result = await owned.LaunchAsync(preparedDirectory, cancellation);
+            var result = await owned.LaunchAsync(preparedDirectory, cancellation, startPaused);
             var directory = Contract.S(result, "session_dir");
             WriteRequest(directory, request);
             ActiveSession = Contract.True(result, "cleanup_restored") ? null : directory;
@@ -180,10 +180,10 @@ public sealed class PlaybackSessionService
         catch { ActiveSession = owned.ActiveSession; throw; }
     }
 
-    public async Task<JsonObject> StartAsync(PlaybackSessionRequest request, CancellationToken cancellation = default)
+    public async Task<JsonObject> StartAsync(PlaybackSessionRequest request, CancellationToken cancellation = default, bool startPaused = false)
     {
         var prepared = await PrepareAsync(request, cancellation);
-        return await LaunchAsync(Contract.S(prepared, "session_dir"), cancellation);
+        return await LaunchAsync(Contract.S(prepared, "session_dir"), null, cancellation, startPaused);
     }
 
     // Preview needs characters and stage positions only, never motion files.

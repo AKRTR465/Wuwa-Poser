@@ -48,6 +48,23 @@ int main(){
     limited.AcknowledgeRestore();limited.Apply({99,4,CommandKind::SetTimeLimit,0},106);limited.Apply({99,5,CommandKind::Play,0},106);limited.Tick(10000);
     Check(!limited.State().time_limit_reached&&!limited.State().restore_requested,"explicit unlimited setting permits next restored playback");
 
+    Transport recording;Check(recording.SetClip(100,12),"recording clip configured");
+    recording.Apply({100,1,CommandKind::SetTimeLimit,5},0);
+    Check(recording.PreparePausedStart()&&recording.State().mode==PlayerMode::Paused,"recording barrier arms the first pose without Play");
+    recording.Tick(100);recording.Tick(1000);
+    Check(Close(recording.State().seconds,0)&&Close(recording.State().session_elapsed_seconds,0)&&!recording.State().restore_requested,
+        "slow capture startup consumes neither motion time nor residency limit");
+    Check(!recording.PreparePausedStart(),"startup cannot rearm an already active pose");
+    Check(recording.Apply({100,2,CommandKind::Play,0},1000)==ControlCode::Ok,"capture ready releases the playback barrier");
+    recording.Tick(1002);Check(Close(recording.State().seconds,2)&&Close(recording.State().session_elapsed_seconds,2),"playback starts both clocks from capture readiness");
+    recording.Apply({100,3,CommandKind::Pause,0},1002);recording.Tick(1005);
+    Check(recording.State().time_limit_reached&&recording.State().restore_requested,"ordinary pause after capture keeps residency semantics");
+    Transport failedCapture;failedCapture.SetClip(101,12);failedCapture.PreparePausedStart();failedCapture.Tick(1000);
+    Check(failedCapture.Apply({101,1,CommandKind::Stop,0},1000)==ControlCode::Ok&&failedCapture.State().restore_requested,
+        "capture startup failure can restore a posed but never played scene");
+    Transport ordinary;ordinary.SetClip(102,12);ordinary.Apply({102,1,CommandKind::Pause,0},0);
+    Check(ordinary.State().mode==PlayerMode::Stopped,"ordinary Pause still cannot activate a stopped clip");
+
     ww_mmd_squad::SharedTimeline squad;squad.Configure(55,{10,20,30},7);squad.Advance(1,100);
     Check(squad.Apply({55,1,CommandKind::Play,0},true)==ww_mmd_squad::ClockCode::Ok,"shared play accepted");
     squad.Advance(2,101);const auto first=squad.State().player.seconds;squad.Advance(2,101.75);
