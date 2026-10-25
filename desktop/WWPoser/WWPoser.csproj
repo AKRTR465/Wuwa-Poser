@@ -11,7 +11,7 @@
     <AssemblyName>WWPoser</AssemblyName>
     <RootNamespace>WWPoser</RootNamespace>
     <StartupObject>WWPoser.Program</StartupObject>
-    <Version>0.2.2-dev</Version>
+    <Version>0.2.2</Version>
     <Product>Wuwa Poser</Product>
     <Description>鸣潮 MMD 播放器</Description>
     <RepositoryUrl>https://github.com/AKRTR465/Wuwa-Poser</RepositoryUrl>
