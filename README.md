@@ -4,11 +4,11 @@
 
 [下载 Windows 版](https://github.com/AKRTR465/Wuwa-Poser/releases) · [播放器指南](tools/MMD_PLAYER.md) · [构建说明](docs/BUILDING.md) · [问题反馈](https://github.com/AKRTR465/Wuwa-Poser/issues)
 
-当前公开版本为 **v0.1.1 测试版**，面向 Windows x64。角色目录登记了 64 个配置、80 个角色与皮肤组合，另有 4 个独立形态选项；不同游戏版本、角色和动作的兼容性仍需逐项验证。
+当前公开版本为 **v0.2.1 测试版**，面向 Windows x64。角色目录登记了 64 个配置、80 个角色与皮肤组合，另有 4 个独立形态选项；不同游戏版本、角色和动作的兼容性仍需逐项验证。
 
 ## 下载与运行
 
-1. 在 [Releases](https://github.com/AKRTR465/Wuwa-Poser/releases/tag/v0.1.1) 下载 `Wuwa-Poser-v0.1.1-win-x64.zip`，完整解压到游戏目录之外的可写文件夹。
+1. 在 [Releases](https://github.com/AKRTR465/Wuwa-Poser/releases/tag/v0.2.1) 下载 `Wuwa-Poser-v0.2.1-win-x64.zip`，完整解压到游戏目录之外的可写文件夹。
 2. 双击 `WWPoser.exe` 或 `start.cmd`。便携包包含 .NET 运行库与录屏依赖，无需安装 Python、.NET 或 Blender。
 3. 打开鸣潮，进入角色可见的场景，在平坦地面站定。
 4. 在播放器按“演员与动作 → 站位与舞台 → 开始表演”完成设置，再点击开始。加载时按提示切回游戏，并确认系统弹出的权限请求。
