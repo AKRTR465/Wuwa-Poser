@@ -53,7 +53,7 @@ int main(){
     changed=bytes;changed.push_back(0);Reject(changed,"trailing payload rejected");
     changed=bytes;changed[32]='g';Reject(changed,"non-hex source digest rejected");
     changed=bytes;changed[159]=0;Reject(changed,"partially truncated skeleton digest rejected");
-    changed=bytes;std::fill(changed.begin()+32,changed.begin()+96,0);Reject(changed,"one omitted digest cannot bypass provenance validation");
+    changed=bytes;std::fill(changed.begin()+32,changed.begin()+96,'\0');Reject(changed,"one omitted digest cannot bypass provenance validation");
     changed=bytes;Put<uint32_t>(changed,160+28,4);Reject(changed,"unknown command mask rejected");
     changed=bytes;Put<uint32_t>(changed,160+32+28,3);Reject(changed,"non-root translation rejected");
     changed=bytes;Put<uint32_t>(changed,160+64+28,1);Reject(changed,"changing per-bone masks rejected");
