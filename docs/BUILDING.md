@@ -46,6 +46,8 @@ pwsh -NoProfile -File tools/build_player.ps1 -Rebuild -PublicRelease -ReferenceD
 
 可用 `-OutputDirectory` 指定新的便携包目录；`-PublishDirectory` 可单独指定 WPF 中间发布目录。本地开发包在原生输出已准备好时可省略 `-Rebuild`；已有运行时包还可通过 `-OwnedMmdPackageDirectory` 指定。公开发布会重新构建该目录，并核对运行时 manifest 的源码提交、干净状态和逐文件 SHA-256。
 
+明确需要快速发布时可加 `-SkipOfflineChecks` 跳过离线回归；默认仍运行回归。此开关保留源码提交约束、全量重新编译及包完整性校验，不代表游戏内效果已验证。
+
 公开发布的自定义输出、中间发布和运行时包目录应位于仓库外或已被 Git 忽略；默认的 `dist/`、`build/` 和 `desktop/WWPoser/publish/` 已忽略。放在仓库内的未忽略目录会使发布检查认为工作树发生了变化。
 
 校验便携包：

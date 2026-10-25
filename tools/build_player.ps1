@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$OutputDirectory,[switch]$Rebuild,[string]$DotNetExecutable='dotnet',[string]$OwnedMmdPackageDirectory,[string]$ReferenceDirectory,[string]$PublishDirectory,[switch]$PublicRelease)
+param([string]$OutputDirectory,[switch]$Rebuild,[string]$DotNetExecutable='dotnet',[string]$OwnedMmdPackageDirectory,[string]$ReferenceDirectory,[string]$PublishDirectory,[switch]$PublicRelease,[switch]$SkipOfflineChecks)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -24,7 +24,7 @@ if($Rebuild){
 }
 & (Join-Path $PSScriptRoot 'build_owned_mmd.ps1') -PackageDirectory $OwnedMmdPackageDirectory -Check -ExpectedSourceRevision $releaseRevision
 & (Join-Path $PSScriptRoot 'prepare_player_dependencies.ps1') -Check
-if($PublicRelease){
+if($PublicRelease -and -not $SkipOfflineChecks){
  & (Join-Path $PSScriptRoot 'run_offline_checks.ps1') -DotNetExecutable $DotNetExecutable -SkipCompilerBuild
 }
 if(-not $PublishDirectory){$PublishDirectory=Join-Path $repo 'desktop\WWPoser\publish'}

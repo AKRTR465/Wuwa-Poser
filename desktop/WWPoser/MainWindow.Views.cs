@@ -100,6 +100,7 @@ public sealed partial class MainWindow
             var entry = new StepEntry(index, title); entry.Button.Click += (_, _) => ShowPage(index); steps.Add(entry); list.Children.Add(entry.Button);
         }
         DockPanel.SetDock(list, Dock.Top); side.Children.Add(list);
+        var presetControls = BuildPresetControls(); DockPanel.SetDock(presetControls, Dock.Top); side.Children.Add(presetControls);
 
         var sessionCard = new Border { CornerRadius = new(14), Padding = new(16, 14, 16, 14), Margin = new(14, 0, 14, 18) }; sessionCard.SetResourceReference(Border.BackgroundProperty, "Card");
         var sessionBody = new StackPanel(); var line = new StackPanel { Orientation = Orientation.Horizontal }; line.Children.Add(sessionDot); line.Children.Add(sessionLabel);
@@ -364,6 +365,7 @@ public sealed partial class MainWindow
         hideSceneCharacters.IsEnabled = !busy && session is null && previewSession is null && player.ActiveSession is null;
         foreach (var button in actions) button.IsEnabled = !busy;
         foreach (var button in sessionActions) button.IsEnabled = !busy && session is not null && sessionControllable;
+        if (loadPresetButton is not null) loadPresetButton.IsEnabled = !busy && session is null && previewSession is null && player.ActiveSession is null && !recorder.IsBusy;
         if (stopButton is not null) stopButton.IsEnabled = (!busy && (session is not null || previewSession is not null || player.ActiveSession is not null)) || (busy && operationCancellation is { IsCancellationRequested: false });
         UpdateRecordingControls(); busyBar.Visibility = busy ? Visibility.Visible : Visibility.Hidden; UpdateSessionView();
     }
@@ -371,6 +373,7 @@ public sealed partial class MainWindow
     private void UpdateRecordingControls()
     {
         var recording = recorder.IsBusy;
+        if (loadPresetButton is not null) loadPresetButton.IsEnabled = !busy && session is null && previewSession is null && player.ActiveSession is null && !recording;
         autoRecord.IsEnabled = !busy && session is null && player.ActiveSession is null;
         recordingFps.IsEnabled = recordingSize.IsEnabled = !busy && !recording;
         if (recordButton is not null) recordButton.IsEnabled = !busy && !recording;
@@ -534,7 +537,17 @@ public sealed partial class MainWindow
         public event PropertyChangedEventHandler? PropertyChanged;
         public event Action? Changed;
         public string Number => (index + 1).ToString();
-        public string CharacterName => (Character.SelectedItem as OwnedCharacterSelection)?.DisplayName ?? "还没选角色";
+        public string CharacterName => (Character.SelectedItem as OwnedCharacterSelection)?.DisplayName ?? MissingCharacterName ?? MissingCharacterId ?? "还没选角色";
+        public string? MissingCharacterId { get; private set; }
+        public string? MissingCharacterName { get; private set; }
+        public long MissingRoleId { get; private set; }
+        private readonly TextBlock missingCharacter = Text("", 12, "AccentPressed");
+        public void MarkMissingCharacter(string id, long roleId, string? name = null)
+        {
+            MissingCharacterId = id; MissingRoleId = roleId; MissingCharacterName = name;
+            missingCharacter.Text = "缺少角色 / 皮肤 / 形态：" + (name ?? id) + "，请重新选择。";
+            missingCharacter.Visibility = Visibility.Visible; Notify(nameof(CharacterName)); Notify(nameof(IsReady));
+        }
         public string MotionSummary => string.IsNullOrWhiteSpace(Body.Text) ? "还没有身体动作" : System.IO.Path.GetFileNameWithoutExtension(Body.Text.Trim()) + (string.IsNullOrWhiteSpace(Face.Text) ? "" : " · 含表情");
         public bool IsReady => !string.IsNullOrWhiteSpace(Body.Text) && Character.SelectedItem is not null;
         public bool IsParticipating => Enabled.IsChecked == true;
@@ -551,7 +564,9 @@ public sealed partial class MainWindow
         public ActorCard(int index, OwnedCharacterCatalog catalog)
         {
             this.index = index; Name.Text = $"演员 {index + 1}"; Character.ItemsSource = catalog.Characters; Character.SelectedValue = catalog.DefaultCharacterId;
-            Character.SelectionChanged += (_, _) => { Notify(nameof(CharacterName)); Notify(nameof(IsReady)); Changed?.Invoke(); };
+            Character.SelectionChanged += (_, _) => {
+                if (Character.SelectedItem is not null) { MissingCharacterId = MissingCharacterName = null; MissingRoleId = 0; missingCharacter.Visibility = Visibility.Collapsed; }
+                Notify(nameof(CharacterName)); Notify(nameof(IsReady)); Changed?.Invoke(); };
             Enabled.Checked += (_, _) => { Notify(nameof(IsParticipating)); Changed?.Invoke(); }; Enabled.Unchecked += (_, _) => { Notify(nameof(IsParticipating)); Changed?.Invoke(); };
             Body.TextChanged += (_, _) => { Notify(nameof(MotionSummary)); Notify(nameof(IsReady)); Changed?.Invoke(); };
             Face.TextChanged += (_, _) => Notify(nameof(MotionSummary));
@@ -560,7 +575,8 @@ public sealed partial class MainWindow
             var head = new DockPanel { Margin = new(0, 0, 0, 20) }; DockPanel.SetDock(Enabled, Dock.Right); Enabled.VerticalAlignment = VerticalAlignment.Center; head.Children.Add(Enabled);
             var words = new StackPanel(); words.Children.Add(Name); words.Children.Add(Text("给 TA 选个角色，再挑一段想跳的动作。", 12, "Muted")); head.Children.Add(words);
             panel.Children.Add(head);
-            panel.Children.Add(Label("TA 是谁")); panel.Children.Add(Character); panel.Children.Add(Spacer(18));
+            panel.Children.Add(Label("TA 是谁")); panel.Children.Add(Character); missingCharacter.Visibility = Visibility.Collapsed;
+            panel.Children.Add(missingCharacter); panel.Children.Add(Spacer(18));
             panel.Children.Add(Label("TA 跳什么"));
             panel.Children.Add(FileDrop(Body, "身体动作 VMD", "把 .vmd 舞蹈动作拖到这里，或点击选择", "VMD 动作|*.vmd", "\uE805", required: true));
             panel.Children.Add(FileDrop(Face, "表情 VMD（可选）", "有表情会更生动，没有也没关系", "VMD 动作|*.vmd", "\uE76E"));

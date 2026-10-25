@@ -27,6 +27,7 @@ public sealed partial class MainWindow : Window
     private string? displayedMusicError;
     private PlaybackSessionRequest? activeRequest;
     private readonly Dictionary<uint, SquadPlacement> livePlacements = [];
+    private readonly Dictionary<uint, ActorCard> liveActorCards = [];
     private bool busy, polling, closeReady, sessionControllable;
     private CancellationToken Token => operationCancellation?.Token ?? lifetime.Token;
 
@@ -39,6 +40,7 @@ public sealed partial class MainWindow : Window
         native.Checked += (_, _) => UpdatePhysics(); native.Unchecked += (_, _) => UpdatePhysics();
         placementTarget.SelectionChanged += (_, _) => LoadLivePlacement();
         UpdatePhysics();
+        MarkPresetClean();
         if (startPolling)
         {
             var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
@@ -75,15 +77,20 @@ public sealed partial class MainWindow : Window
     // A stage preview needs characters and positions, not motion files.
     private PlaybackSessionRequest BuildRequest(bool motion)
     {
+        var request = CapturePlaybackRequest(); var selected = request.Actors;
+        if (!selected.Any(actor => actor.Enabled)) throw new InvalidOperationException("请选择至少一名参与演员。");
+        if (motion && selected.Any(actor => actor.Enabled && string.IsNullOrEmpty(actor.BodySource))) throw new InvalidOperationException("请为参与演员选择身体动作。");
+        if (actors.Any(card => card.Enabled.IsChecked == true && card.Character.SelectedItem is null)) throw new InvalidOperationException("请为每名参与演员选择角色与皮肤；预设中缺失的角色需要重新选择。");
+        if (motion && cameraMode.SelectedIndex == 2 && Optional(camera) is null) throw new InvalidOperationException("请先选择镜头 VMD。");
+        return request;
+    }
+    private PlaybackSessionRequest CapturePlaybackRequest()
+    {
         var selected = actors.Select((card, index) => new PlaybackActorRequest(
             BodySource: Optional(card.Body) ?? "", FaceSource: Optional(card.Face), Scale: string.IsNullOrWhiteSpace(card.Scale.Text) ? null : Number(card.Scale, .000001, 100),
             Placement: new SquadPlacement(Number(card.X, -1000, 1000), Number(card.Y, -1000, 1000), Number(card.Height, -1000, 1000), Number(card.Yaw, -180, 180), card.InPlace.IsChecked == true),
-            RoleId: (card.Character.SelectedItem as OwnedCharacterSelection)?.RoleId ?? 0, Enabled: card.Enabled.IsChecked == true,
-            CharacterId: card.Character.SelectedValue?.ToString(), Slot: checked((uint)index + 1), Stage: card.Stage)).ToArray();
-        if (!selected.Any(actor => actor.Enabled)) throw new InvalidOperationException("请选择至少一名参与演员。");
-        if (motion && selected.Any(actor => actor.Enabled && string.IsNullOrEmpty(actor.BodySource))) throw new InvalidOperationException("请为参与演员选择身体动作。");
-        if (selected.Any(actor => actor.Enabled && string.IsNullOrEmpty(actor.CharacterId))) throw new InvalidOperationException("请为每名参与演员选择角色与皮肤。");
-        if (motion && cameraMode.SelectedIndex == 2 && Optional(camera) is null) throw new InvalidOperationException("请先选择镜头 VMD。");
+            RoleId: (card.Character.SelectedItem as OwnedCharacterSelection)?.RoleId ?? card.MissingRoleId, Enabled: card.Enabled.IsChecked == true,
+            CharacterId: card.Character.SelectedValue?.ToString() ?? card.MissingCharacterId, Slot: checked((uint)index + 1), Stage: card.Stage)).ToArray();
         return new(PlaybackSource.MixedActors, selected, CameraSource: Optional(camera), CameraMode: cameraMode.SelectedIndex, Speed: Number(speed, .1, 4), Loop: loop.IsChecked == true,
             DurationSeconds: Number(duration, 0, 2147483), NativePhysics: native.IsChecked == true, Physics: secondary.IsChecked == true,
             SpacingCm: Number(spacing, 0, 1000), FormationNative: placementMode.SelectedIndex == 1, HideSceneCharacters: hideSceneCharacters.IsChecked == true);
@@ -130,7 +137,10 @@ public sealed partial class MainWindow : Window
         var catalog = characterCatalog;
         placementTarget.ItemsSource = request.Actors.Select((actor, index) => new ActorTarget(actor.Slot == 0 ? checked((uint)index + 1) : actor.Slot,
             $"{index + 1}. {catalog.Characters.FirstOrDefault(item => item.CharacterId == actor.CharacterId)?.DisplayName ?? actor.CharacterId}", actor)).Where(item => item.Actor.Enabled).ToArray();
-        livePlacements.Clear(); placementTarget.SelectedIndex = 0; await ApplyMusicAsync();
+        livePlacements.Clear(); liveActorCards.Clear();
+        for (var i = 0; i < request.Actors.Count && i < actors.Count; i++)
+            liveActorCards[request.Actors[i].Slot == 0 ? (uint)i + 1 : request.Actors[i].Slot] = actors[i];
+        placementTarget.SelectedIndex = 0; await ApplyMusicAsync();
         if (Contract.True(result, "start_paused"))
         {
             status.Text = "演员已停在动作起点，正在等待录屏首帧…";
@@ -205,7 +215,7 @@ public sealed partial class MainWindow : Window
         var p = new SquadPlacement(Number(liveX, -1000, 1000), Number(liveY, -1000, 1000), Number(liveHeight, -1000, 1000), Number(liveYaw, -180, 180), liveInPlace.IsChecked == true);
         await SendAsync("offset_x", p.OffsetX, target.Slot); await SendAsync("offset_y", p.OffsetY, target.Slot);
         await SendAsync("height", p.Height, target.Slot); await SendAsync("yaw", p.Yaw, target.Slot);
-        await SendAsync("in_place", p.InPlace ? 1 : 0, target.Slot); livePlacements[target.Slot] = p; status.Text = "演员位置与朝向已应用。";
+        await SendAsync("in_place", p.InPlace ? 1 : 0, target.Slot); RememberLivePlacement(target, p); status.Text = "演员位置与朝向已应用。";
     }
     private async Task StopCurrentAsync()
     {
@@ -222,7 +232,7 @@ public sealed partial class MainWindow : Window
             // The game restoration is already confirmed. Clear frontend ownership
             // before awaiting audio shutdown, which can fail independently.
             session = null; activeRequest = null; sessionControllable = false;
-            livePlacements.Clear(); placementTarget.ItemsSource = null;
+            livePlacements.Clear(); liveActorCards.Clear(); placementTarget.ItemsSource = null;
             await music.StopAsync();
         }
         finally { await recordingStop; UpdateActions(); }
@@ -350,6 +360,7 @@ public sealed partial class MainWindow : Window
             card.Body.Text = actor.BodySource; card.Face.Text = actor.FaceSource ?? ""; card.Scale.Text = actor.Scale is { } scale ? F(scale) : "";
             card.Enabled.IsChecked = actor.Enabled; card.X.Text = F(p.OffsetX); card.Y.Text = F(p.OffsetY); card.Height.Text = F(p.Height); card.Yaw.Text = F(p.Yaw); card.InPlace.IsChecked = p.InPlace;
             card.Character.SelectedValue = actor.CharacterId; card.Stage = actor.Stage;
+            if (card.Character.SelectedItem is null && !string.IsNullOrWhiteSpace(actor.CharacterId)) card.MarkMissingCharacter(actor.CharacterId, actor.RoleId);
             card.Changed += RefreshActorList; actors.Add(card);
         }
         RefreshActorList(); if (actors.Count > 0) actorList.SelectedIndex = 0;
