@@ -4,7 +4,7 @@ using System.Text.Encodings.Web;
 
 namespace WWPoser.Services;
 
-public sealed record PresetRecordingSettings(bool Automatic = false, int Fps = 30, int Height = 1080);
+public sealed record PresetRecordingSettings(bool Automatic = false, int Fps = 30, int Height = 1080, RecordingFormat Format = RecordingFormat.Compact);
 public sealed record ShowPreset(string Name, PlaybackSessionRequest Playback, MusicPreset? Music = null,
     PresetRecordingSettings? Recording = null, string[]? ActorNames = null);
 public sealed record PresetLoadResult(ShowPreset Preset, IReadOnlyList<string> Warnings);
@@ -168,6 +168,6 @@ public sealed class PresetService(string? cacheDirectory = null)
             if (actor.Stage is { } stage) { Range(stage.X, -5000, 5000); Range(stage.Y, -5000, 5000); Range(stage.Z, -1000, 1000); Range(stage.Yaw, -180, 180); }
         }
         if (preset.Music is { } music) { Range(music.OffsetSeconds, -3600, 3600); Range(music.Volume, 0, 1); }
-        if (preset.Recording is { } recording && (recording.Fps is not (30 or 60) || recording.Height is not (0 or 1080 or 1440))) throw new InvalidDataException("预设录屏参数无效。");
+        if (preset.Recording is { } recording && (recording.Fps is not (30 or 60) || recording.Height is not (0 or 1080 or 1440) || !Enum.IsDefined(recording.Format))) throw new InvalidDataException("预设录屏参数无效。");
     }
 }

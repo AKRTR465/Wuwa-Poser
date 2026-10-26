@@ -131,9 +131,9 @@ internal static class Program
         hideScene.IsChecked = false; Call("SetRequest", hideRequest);
         Check(hideScene.IsChecked == true, "saved playback requests restore the scene visibility checkbox");
         Call("ShowPage", 1); Render("scene-hide-options"); Call("ShowPage", 0); hideScene.IsChecked = false;
-        var automatic = Field<CheckBox>("autoRecord"); var fps = Field<ComboBox>("recordingFps"); var size = Field<ComboBox>("recordingSize");
-        Check(automatic.IsChecked == false && automatic.IsEnabled && fps.IsEnabled && size.IsEnabled && fps.SelectedIndex == 0 && size.SelectedIndex == 0,
-            "automatic recording defaults off and recording options are editable before playback");
+        var automatic = Field<CheckBox>("autoRecord"); var fps = Field<ComboBox>("recordingFps"); var size = Field<ComboBox>("recordingSize"); var format = Field<ComboBox>("recordingFormat");
+        Check(automatic.IsChecked == false && automatic.IsEnabled && fps.IsEnabled && size.IsEnabled && format.IsEnabled && fps.SelectedIndex == 0 && size.SelectedIndex == 0 && format.SelectedIndex == 0,
+            "automatic recording defaults off, compact HEVC is selected, and recording options are editable before playback");
         Check(size.Items.Cast<string>().Contains("2K（2560×1440）") && fps.Items.Cast<string>().Contains("60 FPS"), "2K and 60fps are available before playback");
         var recPanel = Field<FrameworkElement>("recordingPanel"); var performContent = (Panel)recPanel.Parent;
         Check(recPanel.Visibility == Visibility.Visible && ReferenceEquals(Field<FrameworkElement>("idlePanel").Parent, performContent) &&
@@ -289,12 +289,12 @@ internal static class Program
             "successful playback automatically uses the preselected 2K60 settings without a dialog");
         Check(Field<string?>("automaticRecordingSession") == terminal && recorder.IsBusy, "automatic capture belongs to the started playback session");
         Action("StartAutomaticRecordingAsync"); Check(captures.Count == 1, "start completion cannot launch a duplicate recorder");
-        Check(!fps.IsEnabled && !size.IsEnabled && !automatic.IsEnabled && !Field<Button>("recordButton").IsEnabled && Field<Button>("stopRecordingButton").IsEnabled,
+        Check(!fps.IsEnabled && !size.IsEnabled && !format.IsEnabled && !automatic.IsEnabled && !Field<Button>("recordButton").IsEnabled && Field<Button>("stopRecordingButton").IsEnabled,
             "active recording locks captured settings and exposes stop and save");
         Render("recording-playing"); Action("StopCurrentAsync");
         Check(captureStops == 1 && !recorder.IsBusy && Field<string?>("automaticRecordingSession") is null && Field<string?>("session") is null,
             "stopping playback stops and saves its automatic recording");
-        Check(fps.IsEnabled && size.IsEnabled && automatic.IsEnabled && automatic.IsChecked == true && fps.SelectedIndex == 1 && size.SelectedIndex == 1,
+        Check(fps.IsEnabled && size.IsEnabled && format.IsEnabled && automatic.IsEnabled && automatic.IsChecked == true && fps.SelectedIndex == 1 && size.SelectedIndex == 1,
             "recording preferences remain selected and become editable after stop");
         fps.SelectedIndex = 0; size.SelectedIndex = 0; Action("RecordAsync"); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
         Check(captures.Last().Fps == 30 && captures.Last().Height == 1080 && Field<string?>("automaticRecordingSession") is null,

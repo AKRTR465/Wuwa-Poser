@@ -25,7 +25,7 @@ internal static class PresetChecks
             new(copy, face, 1.2, new(-31, 22, 5, 90, true), 1505, true, "role1505-skin81001505", 23, new(-78, 90, 2, -45)),
             new("", CharacterId: "role1211-skin81001211-form-dark", Enabled: false)
         ], camera, 2, 1.25, true, 123.5, false, true, "stale/session", 234, false, true);
-        var preset = new ShowPreset("测试预设", request, new(music, -1.25, .67), new(true, 60, 1440), ["角色", "重复演员", "暗形态"]);
+        var preset = new ShowPreset("测试预设", request, new(music, -1.25, .67), new(true, 60, 1440, RecordingFormat.Compatible), ["角色", "重复演员", "暗形态"]);
         var path = Path.Combine(directory, "full.wwpreset"); await service.SaveAsync(path, preset);
         using (var zip = ZipFile.OpenRead(path)) Check(zip.Entries.Count == 5, "shared bytes stored once plus manifest");
         var loaded = await service.LoadAsync(path); var restored = loaded.Preset; var actors = restored.Playback.Actors;
@@ -76,6 +76,12 @@ internal static class PresetChecks
         await Rejected(() => service.LoadAsync(corrupt), "corrupt resource accepted");
         var future = Variant("future", zip => ChangeManifest(zip, doc => doc["schema"] = 99));
         await Rejected(() => service.LoadAsync(future), "future schema accepted");
+        var legacyRecording = Variant("legacy-recording", zip => ChangeManifest(zip, doc => doc["preset"]!["recording"]!.AsObject().Remove("format")));
+        Check((await service.LoadAsync(legacyRecording)).Preset.Recording == new PresetRecordingSettings(true, 60, 1440, RecordingFormat.Compact),
+            "old presets without recording format retain frame rate and size and default to compact HEVC");
+        var invalidRecording = Variant("invalid-recording-format", zip => ChangeManifest(zip, doc => doc["preset"]!["recording"]!["format"] = 99));
+        await Rejected(() => service.LoadAsync(invalidRecording), "unknown recording format accepted on load");
+        await Rejected(() => service.SaveAsync(draftPath, draft with { Recording = new(Format: (RecordingFormat)99) }), "unknown recording format accepted on save");
         var traversal = Variant("traversal", zip => ChangeManifest(zip, doc => doc["assets"]![0]!["entry"] = "../escape.vmd"));
         await Rejected(() => service.LoadAsync(traversal), "path traversal accepted");
         var external = Variant("external", zip => ChangeManifest(zip, doc => doc["preset"]!["playback"]!["cameraSource"] = "C:/outside.vmd"));

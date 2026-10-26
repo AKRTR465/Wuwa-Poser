@@ -12,13 +12,14 @@ internal static class RecordingCaptureChecks
         void Check(bool good, string text) { if (!good) throw new Exception(text); checks++; }
         string ffmpeg = Path.Combine(root, "tools", "recording_bin", "ffmpeg.exe"), ffprobe = Path.Combine(root, "tools", "recording_bin", "ffprobe.exe");
         var target = new WindowTarget((nint)123, 456, "synthetic only", 2560, 1440);
+        foreach (var encoder in new[] { RecordingEncoder.NvencD3D11, RecordingEncoder.HevcNvencD3D11 })
         foreach (int height in new[] { 1080, 1440, 0 }) foreach (int fps in new[] { 30, 60 })
         {
-            var arguments = RecordingService.BuildCaptureArguments(target, "unused.mkv", fps, height);
+            var arguments = RecordingService.BuildCaptureArguments(target, "unused.mkv", fps, height, encoder);
             string filter = arguments[arguments.ToList().IndexOf("-filter_complex") + 1];
-            Check(arguments.Contains("h264_nvenc") && !arguments.Contains("libx264") && !filter.Contains("hwdownload") &&
+            Check(arguments.Contains(encoder == RecordingEncoder.HevcNvencD3D11 ? "hevc_nvenc" : "h264_nvenc") && !arguments.Contains("libx264") && !filter.Contains("hwdownload") &&
                 filter.Contains($"max_framerate={fps}") && filter.Contains(height switch { 1080 => "width=1920:height=1080", 1440 => "width=2560:height=1440", _ => "width=-2:height=-2" }),
-                "every supported size/frame rate defaults to GPU-resident hardware capture");
+                "both formats preserve GPU-resident capture at every supported size/frame rate");
         }
         foreach (var invalid in new[] { (Fps: 24, Height: 1440), (Fps: 60, Height: 720) })
         {
@@ -26,30 +27,78 @@ internal static class RecordingCaptureChecks
             catch (ArgumentOutOfRangeException) { checks++; }
         }
         static IReadOnlyList<string> Fail() => ["-hide_banner", "-this-is-a-synthetic-initialization-failure"];
-        IReadOnlyList<string> Synthetic(RecordingEncoder encoder, string path, int fps = 60, int height = 1440, bool infinite = false)
+        IReadOnlyList<string> Synthetic(RecordingEncoder encoder, string path, int fps = 60, int height = 1440, bool infinite = false, int seconds = 1, bool realtime = true)
         {
             var production = RecordingService.BuildCaptureArguments(target, path, fps, height, encoder).ToList();
             int filter = production.IndexOf("-filter_complex"), map = production.IndexOf("-map");
             var arguments = production.Take(filter).ToList();
             int width = height == 1440 ? 2560 : 1920;
-            arguments.AddRange(["-re", "-f", "lavfi", "-i", $"testsrc2=size={width}x{height}:rate={fps}", "-filter_complex",
-                encoder == RecordingEncoder.NvencD3D11 ? "[0:v]format=bgra,hwupload[v]" : encoder == RecordingEncoder.NvencCompatible ? "[0:v]format=bgra[v]" : "[0:v]format=yuv420p[v]"]);
+            if (realtime) arguments.Add("-re");
+            arguments.AddRange(["-f", "lavfi", "-i", $"testsrc2=size={width}x{height}:rate={fps}", "-filter_complex",
+                encoder is RecordingEncoder.NvencD3D11 or RecordingEncoder.HevcNvencD3D11 ? "[0:v]format=bgra,hwupload[v]" : encoder is RecordingEncoder.NvencCompatible or RecordingEncoder.HevcNvencCompatible ? "[0:v]format=bgra[v]" : "[0:v]format=yuv420p[v]"]);
             arguments.AddRange(production.Skip(map).Take(production.Count - map - 1));
-            if (!infinite) arguments.AddRange(["-t", "1"]);
+            if (!infinite) arguments.AddRange(["-t", seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)]);
             arguments.Add(path); return arguments;
         }
         string Folder(string name) { string folder = Path.Combine(fixture, "capture-" + name); Directory.CreateDirectory(folder); return folder; }
         MusicJournal Journal(string folder) => new(Path.Combine(folder, "music"), ffmpeg);
         async Task<JsonObject> Inspect(string path)
         {
-            var result = await MediaJson.RunAsync(ffprobe, ["-v", "error", "-count_frames", "-select_streams", "v:0", "-show_entries", "stream=codec_name,width,height,r_frame_rate,nb_read_frames,pix_fmt", "-of", "json", path]);
+            var result = await MediaJson.RunAsync(ffprobe, ["-v", "error", "-count_frames", "-select_streams", "v:0", "-show_entries", "stream=codec_name,codec_tag_string,width,height,r_frame_rate,nb_read_frames,pix_fmt", "-of", "json", path]);
             if (result.ExitCode != 0) throw new Exception(result.Error);
             return (JsonObject)JsonNode.Parse(result.Output)!["streams"]![0]!;
         }
         {
-            string folder = Folder("d3d11-1440p60"); using var journal = Journal(folder); var recorder = new RecordingService(root);
+            string folder = Folder("hevc-d3d11-1440p60"); using var journal = Journal(folder); var recorder = new RecordingService(root);
             var video = await recorder.CaptureVideoAsync(target, folder, 60, 1440, journal, CancellationToken.None,
                 (encoder, path) => Synthetic(encoder, path), () => null);
+            Check(video is { Encoder: RecordingEncoder.HevcNvencD3D11, ExitCode: 0 } && video.Attempts.Count == 1,
+                "default compact format encodes actual D3D11 BGRA surfaces as HEVC without fallback");
+            var stream = await Inspect(video!.Path);
+            Check(stream["codec_name"]!.GetValue<string>() == "hevc" && stream["width"]!.GetValue<int>() == 2560 && stream["height"]!.GetValue<int>() == 1440 &&
+                stream["r_frame_rate"]!.GetValue<string>() == "60/1" && stream["nb_read_frames"]!.GetValue<string>() == "60" && stream["pix_fmt"]!.GetValue<string>() == "yuv420p",
+                "compact output decodes to 2560x1440 HEVC 60fps with all 60 frames");
+            string mp4 = Path.Combine(folder, "video.mp4");
+            string wav = Path.Combine(folder, "music.wav");
+            var tone = await MediaJson.RunAsync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-n", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000", "-t", "1", "-ac", "2", wav]);
+            Check(tone.ExitCode == 0, "synthetic local PCM music renders without an audio device");
+            var mux = await MediaJson.RunAsync(ffmpeg, RecordingService.BuildMuxArguments(video.Path, wav, mp4, 1, video.Encoder));
+            var saved = await Inspect(mp4);
+            Check(mux.ExitCode == 0 && saved["nb_read_frames"]!.GetValue<string>() == "60" && saved["codec_tag_string"]!.GetValue<string>() == "hvc1",
+                "HEVC MP4 stream copy retains all frames and uses the hvc1 playback tag");
+            var verified = await RecordingStorage.VerifyAsync(ffprobe, video.Path, mp4, 1);
+            Check(verified["method"]!.GetValue<string>() == "full_packet_scan" && verified["video_packets"]!.GetValue<long>() == 60 && verified["audio_packets"]!.GetValue<long>() > 0,
+                "production save validation scans the full HEVC/AAC MP4 before permitting cleanup");
+            long sourceBytes = new FileInfo(video.Path).Length, wavBytes = new FileInfo(wav).Length;
+            async Task Rejected(string path, double duration, string reason)
+            {
+                try { await RecordingStorage.VerifyAsync(ffprobe, video.Path, path, duration); throw new Exception("invalid saved video was accepted: " + reason); }
+                catch (IOException)
+                {
+                    Check(File.Exists(video.Path) && new FileInfo(video.Path).Length == sourceBytes && File.Exists(wav) && new FileInfo(wav).Length == wavBytes && File.Exists(path),
+                        reason + " is rejected while source video, PCM music and failed output remain recoverable");
+                }
+            }
+            string noAudio = Path.Combine(folder, "missing-audio.mp4");
+            var silentMux = await MediaJson.RunAsync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-n", "-i", video.Path, "-c:v", "copy", "-tag:v", "hvc1", noAudio]);
+            Check(silentMux.ExitCode == 0, "missing-audio rejection uses an otherwise readable HEVC MP4");
+            await Rejected(noAudio, 1, "missing AAC audio");
+            string shortAudio = Path.Combine(folder, "short-audio.mp4");
+            var shortMux = await MediaJson.RunAsync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-n", "-i", video.Path,
+                "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo:d=0.2", "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-tag:v", "hvc1", "-c:a", "aac", shortAudio]);
+            Check(shortMux.ExitCode == 0, "short-audio rejection uses a complete video with an incomplete AAC track");
+            await Rejected(shortAudio, 1, "truncated AAC duration");
+            string truncated = Path.Combine(folder, "truncated.mp4"); File.Copy(mp4, truncated);
+            using (var damaged = new FileStream(truncated, FileMode.Open, FileAccess.Write)) damaged.SetLength(Math.Min(1024, damaged.Length / 2));
+            await Rejected(truncated, 1, "truncated MP4");
+            await Rejected(mp4, 2, "mismatched expected duration");
+            Check(video.Problem is not null && video.Attempts.Count == 1,
+                "an encoder ending after usable HEVC frames retains its video without starting another encoder");
+        }
+        {
+            string folder = Folder("d3d11-1440p60"); using var journal = Journal(folder); var recorder = new RecordingService(root);
+            var video = await recorder.CaptureVideoAsync(target, folder, 60, 1440, journal, CancellationToken.None,
+                (encoder, path) => Synthetic(encoder, path), () => null, RecordingFormat.Compatible);
             Check(video is { Encoder: RecordingEncoder.NvencD3D11, ExitCode: 0 } && video.Attempts.Count == 1, "real D3D11 BGRA surfaces encode through NVENC without fallback");
             var stream = await Inspect(video!.Path);
             Check(stream["codec_name"]!.GetValue<string>() == "h264" && stream["width"]!.GetValue<int>() == 2560 && stream["height"]!.GetValue<int>() == 1440 &&
@@ -59,9 +108,24 @@ internal static class RecordingCaptureChecks
             Check(mux.ExitCode == 0 && (await Inspect(Path.Combine(folder, "video.mp4")))["nb_read_frames"]!.GetValue<string>() == "60", "hardware video survives final MP4 stream copy without frame loss");
         }
         {
+            string folder = Folder("hevc-unavailable"); using var journal = Journal(folder); var recorder = new RecordingService(root);
+            var video = await recorder.CaptureVideoAsync(target, folder, 60, 1440, journal, CancellationToken.None,
+                (encoder, path) => encoder == RecordingEncoder.HevcNvencD3D11 ? Fail() : Synthetic(encoder, path), () => null);
+            Check(video is { Encoder: RecordingEncoder.NvencD3D11, ExitCode: 0 } && video.Attempts.Count == 2 && video.Attempts[0]!["frames"]!.GetValue<long>() == 0,
+                "HEVC initialization failure falls back to GPU-resident H.264 before any CPU readback");
+            Check((await Inspect(video!.Path))["codec_name"]!.GetValue<string>() == "h264", "compact fallback reports and produces the actual H.264 codec");
+        }
+        {
+            string folder = Folder("hevc-compatible"); using var journal = Journal(folder); var recorder = new RecordingService(root);
+            var video = await recorder.CaptureVideoAsync(target, folder, 60, 1440, journal, CancellationToken.None,
+                (encoder, path) => encoder is RecordingEncoder.HevcNvencD3D11 or RecordingEncoder.NvencD3D11 ? Fail() : Synthetic(encoder, path), () => null);
+            Check(video is { Encoder: RecordingEncoder.HevcNvencCompatible, ExitCode: 0 } && video.Attempts.Count == 3 &&
+                (await Inspect(video.Path))["codec_name"]!.GetValue<string>() == "hevc", "both direct failures retain HEVC through the real compatibility encoder");
+        }
+        {
             string folder = Folder("nvenc-compatible"); using var journal = Journal(folder); var recorder = new RecordingService(root);
             var video = await recorder.CaptureVideoAsync(target, folder, 60, 1440, journal, CancellationToken.None,
-                (encoder, path) => encoder == RecordingEncoder.NvencD3D11 ? Fail() : Synthetic(encoder, path), () => null);
+                (encoder, path) => encoder == RecordingEncoder.NvencD3D11 ? Fail() : Synthetic(encoder, path), () => null, RecordingFormat.Compatible);
             Check(video is { Encoder: RecordingEncoder.NvencCompatible, ExitCode: 0 } && video.Attempts.Count == 2 && video.Attempts[0]!["frames"]!.GetValue<long>() == 0,
                 "failed direct initialization retries the actual NVENC compatibility encoder");
             Check(video!.Origin >= video.Start && video.Start > video.Attempts[0]!["process_start"]!.GetValue<double>() && File.Exists(Path.Combine(folder, "capture_attempts.json")),
@@ -72,7 +136,7 @@ internal static class RecordingCaptureChecks
             string folder = Folder("software-fallback"); using var journal = Journal(folder); var recorder = new RecordingService(root);
             var video = await recorder.CaptureVideoAsync(target, folder, 30, 1080, journal, CancellationToken.None,
                 (encoder, path) => encoder != RecordingEncoder.Software ? Fail() : Synthetic(encoder, path, 30, 1080), () => null);
-            Check(video is { Encoder: RecordingEncoder.Software, ExitCode: 0 } && video.Attempts.Count == 3, "both hardware initialization failures fall back to a real software encode");
+            Check(video is { Encoder: RecordingEncoder.Software, ExitCode: 0 } && video.Attempts.Count == 5, "all four hardware initialization failures fall back to a real software encode");
             var stream = await Inspect(video!.Path);
             Check(stream["width"]!.GetValue<int>() == 1920 && stream["r_frame_rate"]!.GetValue<string>() == "30/1" && stream["nb_read_frames"]!.GetValue<string>() == "30" && recorder.Snapshot.Message.Contains("软件编码"),
                 "fallback preserves the selected video settings and visibly identifies higher-overhead software encoding");
@@ -84,8 +148,8 @@ internal static class RecordingCaptureChecks
                 await recorder.CaptureVideoAsync(target, folder, 60, 1440, journal, CancellationToken.None, (_, _) => Fail(), () => null);
                 throw new Exception("all encoders failing was hidden");
             }
-            catch (IOException error) { Check(error.Message.Contains("启动失败") && JsonNode.Parse(File.ReadAllText(Path.Combine(folder, "capture_attempts.json")))!["attempts"]!.AsArray().Count == 3,
-                "exhausted startup retries produce a bounded error with all three attempt logs"); }
+            catch (IOException error) { Check(error.Message.Contains("启动失败") && JsonNode.Parse(File.ReadAllText(Path.Combine(folder, "capture_attempts.json")))!["attempts"]!.AsArray().Count == 5,
+                "exhausted startup retries produce a bounded error with all five attempt logs"); }
         }
         {
             string folder = Folder("cancel-before-start"); using var journal = Journal(folder); var recorder = new RecordingService(root); using var stop = new CancellationTokenSource(); stop.Cancel();
@@ -106,8 +170,23 @@ internal static class RecordingCaptureChecks
             while (!pending.IsCompleted && recorder.Snapshot.State != "recording" && DateTime.UtcNow < deadline) await Task.Delay(25);
             bool recording = recorder.Snapshot.State == "recording"; stop.Cancel();
             var video = await pending.WaitAsync(TimeSpan.FromSeconds(20));
-            Check(recording && video is { Encoder: RecordingEncoder.NvencD3D11, ExitCode: 0 } && video.Attempts.Count == 1 &&
+            Check(recording && video is { Encoder: RecordingEncoder.HevcNvencD3D11, ExitCode: 0 } && video.Attempts.Count == 1 &&
                 (await Inspect(video.Path))["nb_read_frames"]!.GetValue<string>() != "0", "stop after frames flushes a usable hardware video without restarting or discarding it");
+        }
+        {
+            // Reproducible size evidence, not a promise about game footage or visual quality.
+            string folder = Folder("format-size-comparison"); var comparison = new JsonObject { ["source"] = "lavfi testsrc2 2560x1440 60fps 6s", ["synthetic_only"] = true };
+            foreach (var encoder in new[] { RecordingEncoder.NvencD3D11, RecordingEncoder.HevcNvencD3D11 })
+            {
+                string path = Path.Combine(folder, encoder + ".mkv");
+                var result = await MediaJson.RunAsync(ffmpeg, Synthetic(encoder, path, seconds: 6, realtime: false));
+                Check(result.ExitCode == 0 && (await Inspect(path))["nb_read_frames"]!.GetValue<string>() == "360", "size comparison encodes all 360 identical-source frames for " + encoder);
+                comparison[encoder.ToString()] = new JsonObject { ["bytes"] = new FileInfo(path).Length, ["stream"] = (await Inspect(path)).DeepClone() };
+            }
+            long h264 = comparison[RecordingEncoder.NvencD3D11.ToString()]!["bytes"]!.GetValue<long>(), hevc = comparison[RecordingEncoder.HevcNvencD3D11.ToString()]!["bytes"]!.GetValue<long>();
+            comparison["hevc_size_fraction"] = hevc / (double)h264;
+            File.WriteAllText(Path.Combine(folder, "comparison.json"), comparison.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            Console.WriteLine($"Synthetic 2K60 6s: H.264 {h264:N0} bytes, HEVC {hevc:N0} bytes ({hevc / (double)h264:P1} of H.264). Quality has not been visually accepted.");
         }
         Console.WriteLine($"PASS {checks} recording checks: synthetic video and actual GPU encoders; no screen/game/audio capture. Artifacts: {fixture}");
         return checks;

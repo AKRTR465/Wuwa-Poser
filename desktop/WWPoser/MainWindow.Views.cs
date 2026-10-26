@@ -31,6 +31,7 @@ public sealed partial class MainWindow
     private readonly ComboBox placementMode = new() { ItemsSource = new[] { "站位舞台", "原作队形（共用原点）" }, SelectedIndex = 1, Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly ComboBox recordingFps = new() { ItemsSource = new[] { "30 FPS", "60 FPS" }, SelectedIndex = 0, Width = 120, Margin = new(0, 0, 8, 0) };
     private readonly ComboBox recordingSize = new() { ItemsSource = new[] { "1080p", "2K（2560×1440）", "原始尺寸" }, SelectedIndex = 0, Width = 190, Margin = new(0, 0, 8, 0) };
+    private readonly ComboBox recordingFormat = new() { ItemsSource = new[] { "省空间（HEVC）", "兼容（H.264）" }, SelectedIndex = 0, Width = 175, Margin = new(0, 0, 8, 0) };
     private readonly CheckBox autoRecord = new() { Content = "开始播放时自动录屏", IsChecked = false };
     private readonly CheckBox hideSceneCharacters = new() { Content = "播放时隐藏附近 NPC 和怪物模型", IsChecked = false };
     private readonly Slider progress = new() { Minimum = 0, Maximum = 1, IsMoveToPointEnabled = true, Margin = new(0, 14, 0, 10) };
@@ -224,14 +225,14 @@ public sealed partial class MainWindow
         content.Children.Add(Card("播放方式", "速度、循环和时长，随时都能改。", "\uE916", playStyle));
 
         var rec = new StackPanel(); rec.Children.Add(autoRecord); rec.Children.Add(Spacer(12));
-        var recOptions = new WrapPanel(); recOptions.Children.Add(recordingFps); recOptions.Children.Add(recordingSize); rec.Children.Add(recOptions);
+        var recOptions = new WrapPanel(); recOptions.Children.Add(recordingFps); recOptions.Children.Add(recordingSize); recOptions.Children.Add(recordingFormat); rec.Children.Add(recOptions);
         rec.Children.Add(Hint("支持 2K / 60 FPS，默认 NVENC 硬件编码，优先 GPU 直连以降低开销；启动失败会自动回退兼容模式或软件编码。"));
         rec.Children.Add(Hint("开启自动录屏后，播放时开始录制，播完自动保存。循环播放会持续录制，直到手动停止。"));
         var recButtons = new WrapPanel { Margin = new(0, 12, 0, 0) };
         recordButton = Action("录制鸣潮窗口", RecordAsync, "\uE7C8", "PrimaryButton"); recButtons.Children.Add(recordButton);
         stopRecordingButton = Action("停止并保存录屏", StopRecordingAsync, "\uE74E"); recButtons.Children.Add(stopRecordingButton);
         recButtons.Children.Add(Action("打开录屏文件夹", OpenRecordingFolderAsync, "\uE8B7", "LinkButton"));
-        rec.Children.Add(recButtons); rec.Children.Add(Hint("只录鸣潮窗口，配乐也会写进视频。录制中更改设置需先停止录屏。"));
+        rec.Children.Add(recButtons); rec.Children.Add(Hint("只录鸣潮窗口，配乐也会写进视频。HEVC 更省空间，需要支持 HEVC 的播放器；需要通用兼容时选 H.264。"));
         recordingLocation.Text = "保存位置：" + recorder.OutputDirectory; recordingLocation.TextWrapping = TextWrapping.Wrap; recordingLocation.Margin = new(0, 8, 0, 0); rec.Children.Add(recordingLocation);
         recordingPanel = Card("录屏设置", "开始前就能选好，也可以随时手动录制。", "\uE714", rec); content.Children.Add(recordingPanel);
 
@@ -382,7 +383,7 @@ public sealed partial class MainWindow
         var recording = recorder.IsBusy;
         if (loadPresetButton is not null) loadPresetButton.IsEnabled = !busy && session is null && previewSession is null && player.ActiveSession is null && !recording;
         autoRecord.IsEnabled = !busy && session is null && player.ActiveSession is null;
-        recordingFps.IsEnabled = recordingSize.IsEnabled = !busy && !recording;
+        recordingFps.IsEnabled = recordingSize.IsEnabled = recordingFormat.IsEnabled = !busy && !recording;
         if (recordButton is not null) recordButton.IsEnabled = !busy && !recording;
         if (stopRecordingButton is not null) stopRecordingButton.IsEnabled = !busy && recording;
     }

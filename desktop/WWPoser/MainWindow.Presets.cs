@@ -27,7 +27,8 @@ public sealed partial class MainWindow
         currentPresetPath is null ? "未命名表演" : Path.GetFileNameWithoutExtension(currentPresetPath), CapturePlaybackRequest(),
         new MusicPreset(Optional(audio) ?? "", Number(offset, -3600, 3600), Number(volume, 0, 1)),
         new PresetRecordingSettings(autoRecord.IsChecked == true, recordingFps.SelectedIndex == 0 ? 30 : 60,
-            recordingSize.SelectedIndex switch { 0 => 1080, 1 => 1440, _ => 0 }), actors.Select(card => card.CharacterName).ToArray());
+            recordingSize.SelectedIndex switch { 0 => 1080, 1 => 1440, _ => 0 },
+            recordingFormat.SelectedIndex == 0 ? RecordingFormat.Compact : RecordingFormat.Compatible), actors.Select(card => card.CharacterName).ToArray());
 
     private string PresetSignature() => JsonSerializer.Serialize(CapturePreset());
     private void MarkPresetClean() => cleanPresetSignature = PresetSignature();
@@ -103,6 +104,7 @@ public sealed partial class MainWindow
         audio.Text = musicPreset.AudioFile; offset.Text = F(musicPreset.OffsetSeconds); volume.Text = F(musicPreset.Volume);
         var recording = preset.Recording ?? new PresetRecordingSettings(); autoRecord.IsChecked = recording.Automatic;
         recordingFps.SelectedIndex = recording.Fps == 30 ? 0 : 1; recordingSize.SelectedIndex = recording.Height switch { 1080 => 0, 1440 => 1, _ => 2 };
+        recordingFormat.SelectedIndex = recording.Format == RecordingFormat.Compact ? 0 : 1;
         preparedDirectory = null; preparation.Text = "已载入预设；开始时会按当前版本准备动作。";
         currentPresetPath = Path.GetFullPath(path); presetLabel.Text = Path.GetFileNameWithoutExtension(path); presetLabel.ToolTip = currentPresetPath;
         MarkPresetClean(); RefreshActorList(); UpdateActions();

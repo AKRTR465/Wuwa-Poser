@@ -8,7 +8,8 @@ using System.Text;
 namespace WWPoser.Services;
 
 public sealed record WindowTarget(nint Hwnd, uint Pid, string Title, int Width, int Height);
-public enum RecordingEncoder { NvencD3D11, NvencCompatible, Software }
+public enum RecordingEncoder { NvencD3D11, NvencCompatible, Software, HevcNvencD3D11, HevcNvencCompatible }
+public enum RecordingFormat { Compact, Compatible }
 public sealed record RecordingSnapshot(string State, string Message, double Elapsed = 0,
     string? OutputPath = null, string? WorkDirectory = null, string? StopReason = null, int? CaptureExitCode = null);
 
@@ -17,7 +18,7 @@ public sealed class RecordingService
 {
     private readonly object gate = new();
     private readonly string ffmpeg, ffprobe;
-    private readonly Func<string, int, int, CancellationToken, Task> capture;
+    private readonly Func<string, int, int, CancellationToken, Task>? capture;
     private string? session;
     private MusicPreset? preset;
     private CancellationTokenSource? stop;
@@ -28,7 +29,7 @@ public sealed class RecordingService
     internal RecordingService(string repositoryRoot, Func<string, int, int, CancellationToken, Task>? capture)
     {
         ffmpeg = Path.Combine(repositoryRoot, "tools", "recording_bin", "ffmpeg.exe"); ffprobe = Path.Combine(repositoryRoot, "tools", "recording_bin", "ffprobe.exe");
-        this.capture = capture ?? CaptureAsync; OutputDirectory = DefaultOutputDirectory(repositoryRoot);
+        this.capture = capture; OutputDirectory = DefaultOutputDirectory(repositoryRoot);
     }
     public string OutputDirectory { get; }
     internal static string DefaultOutputDirectory(string runtimeRoot)
@@ -49,9 +50,10 @@ public sealed class RecordingService
     {
         lock (gate) { session = sessionDirectory; preset = music; }
     }
-    public Task StartAsync(string folder, int fps = 30, int height = 1080)
+    public Task StartAsync(string folder, int fps = 30, int height = 1080, RecordingFormat format = RecordingFormat.Compact)
     {
         ValidateSettings(fps, height);
+        ValidateFormat(format);
         lock (gate)
         {
             if (worker is { IsCompleted: false }) throw new InvalidOperationException("录屏尚未结束");
@@ -61,7 +63,11 @@ public sealed class RecordingService
             var token = stop.Token;
             worker = Task.Run(async () =>
             {
-                try { await capture(Path.GetFullPath(folder), fps, height, token); }
+                try
+                {
+                    if (capture is not null) await capture(Path.GetFullPath(folder), fps, height, token);
+                    else await CaptureAsync(Path.GetFullPath(folder), fps, height, format, token);
+                }
                 catch (Exception error) { Update(Snapshot with { State = "error", Message = error.Message }); }
                 finally { ready.TrySetResult(false); }
             });
@@ -113,12 +119,23 @@ public sealed class RecordingService
         if (fps is not (30 or 60)) throw new ArgumentOutOfRangeException(nameof(fps));
         if (height is not (0 or 1080 or 1440)) throw new ArgumentOutOfRangeException(nameof(height));
     }
+    private static void ValidateFormat(RecordingFormat format)
+    { if (format is not (RecordingFormat.Compact or RecordingFormat.Compatible)) throw new ArgumentOutOfRangeException(nameof(format)); }
+    internal static bool IsHevc(RecordingEncoder encoder) => encoder is RecordingEncoder.HevcNvencD3D11 or RecordingEncoder.HevcNvencCompatible;
+    private static string EncoderName(RecordingEncoder encoder) => encoder == RecordingEncoder.Software ? "libx264" : IsHevc(encoder) ? "hevc_nvenc" : "h264_nvenc";
     private static string EncoderLabel(RecordingEncoder encoder) => encoder switch {
-        RecordingEncoder.NvencD3D11 => "NVENC 硬件编码 · GPU 直连", RecordingEncoder.NvencCompatible => "NVENC 硬件编码 · 兼容模式",
+        RecordingEncoder.HevcNvencD3D11 => "HEVC 硬件编码 · GPU 直连", RecordingEncoder.HevcNvencCompatible => "HEVC 硬件编码 · 兼容模式",
+        RecordingEncoder.NvencD3D11 => "H.264 硬件编码 · GPU 直连", RecordingEncoder.NvencCompatible => "H.264 硬件编码 · 兼容模式",
         _ => "软件编码（硬件不可用，开销较高）" };
     internal static IReadOnlyList<string> BuildEncodingArguments(int fps, RecordingEncoder encoder = RecordingEncoder.NvencD3D11) => encoder == RecordingEncoder.Software ? new[] {
         "-an", "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency", "-crf", "20", "-bf", "0", "-threads", "4",
-        "-colorspace", "bt470bg", "-color_range", "tv", "-r", fps.ToString(CultureInfo.InvariantCulture), "-fps_mode", "cfr" } : new[] {
+        "-colorspace", "bt470bg", "-color_range", "tv", "-r", fps.ToString(CultureInfo.InvariantCulture), "-fps_mode", "cfr" } : IsHevc(encoder) ? new[] {
+        // Preserve the existing audio-origin estimate: reordered B frames or
+        // lookahead would delay progress timestamps relative to capture time.
+        "-an", "-c:v", "hevc_nvenc", "-preset", "p4", "-tune", "ll", "-rc", "vbr", "-cq", "25", "-b:v", "0", "-profile:v", "main",
+        "-bf", "0", "-rc-lookahead", "0", "-spatial-aq", "0", "-temporal-aq", "0", "-multipass", "disabled",
+        "-g", (fps * 2).ToString(CultureInfo.InvariantCulture), "-colorspace", "bt470bg", "-color_range", "tv",
+        "-r", fps.ToString(CultureInfo.InvariantCulture), "-fps_mode", "cfr" } : new[] {
         "-an", "-c:v", "h264_nvenc", "-preset", "p4", "-tune", "ll", "-rc", "constqp", "-qp", "21", "-profile:v", "high",
         "-bf", "0", "-rc-lookahead", "0", "-spatial-aq", "0", "-temporal-aq", "0", "-multipass", "disabled",
         // NVENC's packed-RGB conversion produces limited-range BT.601 YUV.
@@ -134,9 +151,9 @@ public sealed class RecordingService
         // Compatibility mode still uses NVENC, but allows WGC's default capture adapter.
         string filter = $"gfxcapture=hwnd={(ulong)target.Hwnd}:capture_cursor=0:capture_border=0:display_border=1:width={width}:height={outputHeight}:resize_mode=scale_aspect:max_framerate={fps}:output_fmt=bgra";
         var arguments = new List<string> { "-hide_banner", "-loglevel", "warning", "-n", "-stats_period", "0.1", "-progress", "pipe:1" };
-        if (encoder == RecordingEncoder.NvencD3D11)
+        if (encoder is RecordingEncoder.NvencD3D11 or RecordingEncoder.HevcNvencD3D11)
             arguments.AddRange(["-init_hw_device", "d3d11va=recording:,vendor_id=0x10de", "-filter_hw_device", "recording"]);
-        else if (encoder is RecordingEncoder.NvencCompatible or RecordingEncoder.Software)
+        else if (encoder is RecordingEncoder.NvencCompatible or RecordingEncoder.HevcNvencCompatible or RecordingEncoder.Software)
             filter += ",hwdownload,format=bgra" + (encoder == RecordingEncoder.Software ? ",format=yuv420p" : "");
         else throw new ArgumentOutOfRangeException(nameof(encoder));
         // setparams changes frame metadata only, including for hardware frames.
@@ -144,7 +161,7 @@ public sealed class RecordingService
         arguments.AddRange(["-filter_complex", filter + ",setparams=colorspace=bt470bg:range=limited[v]", "-map", "[v]"]);
         arguments.AddRange(BuildEncodingArguments(fps, encoder)); arguments.AddRange(["-f", "matroska", videoPath]); return arguments;
     }
-    private async Task CaptureAsync(string folder, int fps, int height, CancellationToken requestStop)
+    private async Task CaptureAsync(string folder, int fps, int height, RecordingFormat format, CancellationToken requestStop)
     {
         MusicJournal? journal = null; string? work = null;
         try
@@ -154,41 +171,72 @@ public sealed class RecordingService
             string output = Path.Combine(folder, stem + ".mp4"); work = Path.Combine(folder, "." + stem); Directory.CreateDirectory(work);
             Update(new RecordingSnapshot("starting", "正在连接鸣潮窗口", WorkDirectory: work));
             journal = new MusicJournal(Path.Combine(work, "music"), ffmpeg);
-            var video = await CaptureVideoAsync(target, work, fps, height, journal, requestStop);
+            var video = await CaptureVideoAsync(target, work, fps, height, journal, requestStop, format: format);
             if (video is null) { Update(new RecordingSnapshot("idle", "已取消录屏", WorkDirectory: work)); return; }
             string silent = video.Path; double duration = await VideoDurationAsync(silent), origin = video.Origin;
             Update(new RecordingSnapshot("finishing", "正在合成 MMD 音乐并保存 MP4", duration, WorkDirectory: work));
             string journalPath = journal.Finish(duration, origin), wav = Path.Combine(work, "music.wav");
             JsonObject audio = await AudioRenderer.RenderAsync(journalPath, wav, ffmpeg, CancellationToken.None);
-            var mux = await MediaJson.RunAsync(ffmpeg, new[] { "-hide_banner", "-loglevel", "error", "-n", "-i", silent, "-i", wav, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "320k", "-t", duration.ToString("R", CultureInfo.InvariantCulture), "-movflags", "+faststart", output });
+            string pendingOutput = Path.Combine(work, "final.mp4");
+            var mux = await MediaJson.RunAsync(ffmpeg, BuildMuxArguments(silent, wav, pendingOutput, duration, video.Encoder));
             if (mux.ExitCode != 0) throw new IOException("MP4 合成失败，原始文件保留在 " + work + "：" + mux.Error);
-            JsonData.Write(Path.Combine(work, "result.json"), new JsonObject { ["schema"] = 1, ["target"] = new JsonObject { ["hwnd"] = (ulong)target.Hwnd, ["pid"] = target.Pid, ["title"] = target.Title, ["width"] = target.Width, ["height"] = target.Height },
+            Update(new RecordingSnapshot("finishing", "正在校验视频并释放临时空间", duration, WorkDirectory: work));
+            var verification = await RecordingStorage.VerifyAsync(ffprobe, silent, pendingOutput, duration);
+            File.Move(pendingOutput, output);
+            var result = new JsonObject { ["schema"] = 2, ["target"] = new JsonObject { ["hwnd"] = (ulong)target.Hwnd, ["pid"] = target.Pid, ["title"] = target.Title, ["width"] = target.Width, ["height"] = target.Height },
                 ["duration"] = duration, ["fps"] = fps, ["requested_height"] = height, ["output"] = output, ["audio"] = audio, ["video_origin_estimate"] = origin, ["capture_process_start"] = video.Start,
-                ["video_encoder"] = video.Encoder == RecordingEncoder.Software ? "libx264" : "h264_nvenc", ["capture_backend"] = video.Encoder.ToString(), ["capture_attempts"] = video.Attempts,
-                ["capture_exit_code"] = video.ExitCode, ["stop_reason"] = video.Problem ?? "user_stop" });
-            Update(new RecordingSnapshot("saved", "已保存：" + Path.GetFileName(output) + " · " + EncoderLabel(video.Encoder), duration, output, work, video.Problem ?? "user_stop", video.ExitCode));
+                ["requested_format"] = format.ToString(), ["video_encoder"] = EncoderName(video.Encoder), ["capture_backend"] = video.Encoder.ToString(), ["capture_attempts"] = video.Attempts,
+                ["output_bytes"] = new FileInfo(output).Length, ["verification"] = verification,
+                ["capture_exit_code"] = video.ExitCode, ["stop_reason"] = video.Problem ?? "user_stop" };
+            string? cleanupWarning = null;
+            try { JsonData.Write(Path.Combine(work, "result.json"), result); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { cleanupWarning = error.Message; }
+            // Keep interrupted captures recoverable. Only a normal stop and a
+            // verified final MP4 allow removing this run's generated media.
+            var cleanup = video.ExitCode == 0 && video.Problem is null && cleanupWarning is null ? RecordingStorage.CleanupGeneratedMedia(work) :
+                new JsonObject { ["media_retained"] = true, ["reason"] = cleanupWarning is null ? "interrupted_capture" : "metadata_write_failed" };
+            result["cleanup"] = cleanup;
+            try { JsonData.Write(Path.Combine(work, "result.json"), result); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { cleanupWarning = error.Message; }
+            var cleanupErrors = cleanup["errors"] as JsonArray;
+            string suffix = cleanupErrors is { Count: > 0 } || cleanupWarning is not null ? " · 部分临时文件或清理日志待处理" : "";
+            Update(new RecordingSnapshot("saved", "已保存：" + Path.GetFileName(output) + " · " + EncoderLabel(video.Encoder) + suffix, duration, output, work, video.Problem ?? "user_stop", video.ExitCode));
         }
         catch (Exception error)
         {
             Update(new RecordingSnapshot("error", error.Message, WorkDirectory: work));
-            if (work is not null) File.WriteAllText(Path.Combine(work, "error.txt"), error.ToString(), new UTF8Encoding(false));
+            if (work is not null)
+                try { File.WriteAllText(Path.Combine(work, "error.txt"), error.ToString(), new UTF8Encoding(false)); }
+                catch (Exception diagnosticError) when (diagnosticError is IOException or UnauthorizedAccessException) { }
         }
         finally { journal?.Dispose(); }
+    }
+    internal static IReadOnlyList<string> BuildMuxArguments(string silent, string wav, string output, double duration, RecordingEncoder encoder)
+    {
+        var arguments = new List<string> { "-hide_banner", "-loglevel", "error", "-n", "-i", silent, "-i", wav, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy" };
+        if (IsHevc(encoder)) arguments.AddRange(["-tag:v", "hvc1"]);
+        arguments.AddRange(["-c:a", "aac", "-b:a", "192k", "-t", duration.ToString("R", CultureInfo.InvariantCulture), "-movflags", "+faststart", output]);
+        return arguments;
     }
     internal sealed record CapturedVideo(string Path, RecordingEncoder Encoder, double Start, double Origin, int ExitCode, string? Problem, JsonArray Attempts);
     // The optional argument/window providers let offline checks exercise actual
     // child-process startup, retry and stop handling using synthetic video only.
     internal async Task<CapturedVideo?> CaptureVideoAsync(WindowTarget target, string work, int fps, int height, MusicJournal journal,
-        CancellationToken requestStop, Func<RecordingEncoder, string, IReadOnlyList<string>>? buildArguments = null, Func<string?>? windowProblem = null)
+        CancellationToken requestStop, Func<RecordingEncoder, string, IReadOnlyList<string>>? buildArguments = null, Func<string?>? windowProblem = null,
+        RecordingFormat format = RecordingFormat.Compact)
     {
         ValidateSettings(fps, height);
+        ValidateFormat(format);
         buildArguments ??= (encoder, path) => BuildCaptureArguments(target, path, fps, height, encoder);
         windowProblem ??= () => GameWindows.Problem(target);
         var attempts = new JsonArray();
-        foreach (var encoder in new[] { RecordingEncoder.NvencD3D11, RecordingEncoder.NvencCompatible, RecordingEncoder.Software })
+        var encoders = format == RecordingFormat.Compact ? new[] { RecordingEncoder.HevcNvencD3D11, RecordingEncoder.NvencD3D11, RecordingEncoder.HevcNvencCompatible, RecordingEncoder.NvencCompatible, RecordingEncoder.Software } :
+            new[] { RecordingEncoder.NvencD3D11, RecordingEncoder.NvencCompatible, RecordingEncoder.Software };
+        foreach (var encoder in encoders)
         {
             if (requestStop.IsCancellationRequested) return null;
-            string silent = Path.Combine(work, encoder switch { RecordingEncoder.NvencD3D11 => "video.mkv", RecordingEncoder.NvencCompatible => "video-nvenc-compatible.mkv", _ => "video-software.mkv" });
+            string silent = Path.Combine(work, encoder switch { RecordingEncoder.HevcNvencD3D11 => "video-hevc.mkv", RecordingEncoder.HevcNvencCompatible => "video-hevc-compatible.mkv",
+                RecordingEncoder.NvencD3D11 => "video.mkv", RecordingEncoder.NvencCompatible => "video-nvenc-compatible.mkv", _ => "video-software.mkv" });
             Update(new RecordingSnapshot("starting", "正在启动 " + EncoderLabel(encoder), WorkDirectory: work));
             var start = new ProcessStartInfo(ffmpeg) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (string argument in buildArguments(encoder, silent)) start.ArgumentList.Add(argument);

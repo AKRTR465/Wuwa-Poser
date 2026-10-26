@@ -38,6 +38,7 @@ internal static class PresetUiChecks
         Call("SetRequest", request);
         Field<TextBox>("audio").Text = music; Field<TextBox>("offset").Text = "-1.25"; Field<TextBox>("volume").Text = "0.67";
         Field<CheckBox>("autoRecord").IsChecked = true; Field<ComboBox>("recordingFps").SelectedIndex = 1; Field<ComboBox>("recordingSize").SelectedIndex = 1;
+        Field<ComboBox>("recordingFormat").SelectedIndex = 1;
         foreach (var label in new[] { "保存预设", "加载预设", "另存为" })
             Check(Field<List<Button>>("actions").Any(b => Equals(b.Content, label) && b.IsEnabled), "preset sidebar control missing: " + label);
         var path = Path.Combine(folder, "完整表演.wwpreset"); Run("SavePresetFileAsync", path);
@@ -45,6 +46,7 @@ internal static class PresetUiChecks
         foreach (var source in new[] { body, second, face, camera, music }) File.Move(source, source + ".moved", true);
         Call("SetRequest", new PlaybackSessionRequest(PlaybackSource.MixedActors, [])); Field<TextBox>("audio").Text = "";
         Field<CheckBox>("autoRecord").IsChecked = false; Field<ComboBox>("recordingFps").SelectedIndex = 0; Field<ComboBox>("recordingSize").SelectedIndex = 0;
+        Field<ComboBox>("recordingFormat").SelectedIndex = 0;
         Set("preparedDirectory", "old-compiled-session"); Run("LoadPresetFileAsync", path);
         var restored = (ShowPreset)Call("CapturePreset")!; var actors = Field<IList>("actors");
         Check(actors.Count == 3 && restored.Playback.Actors[0].CharacterId == normal.CharacterId && restored.Playback.Actors[1].CharacterId == normal.CharacterId && restored.Playback.Actors[2].CharacterId == dark.CharacterId,
@@ -55,13 +57,14 @@ internal static class PresetUiChecks
             "all playback settings, camera choice, formation and positions restore");
         Check(File.ReadAllText(restored.Playback.Actors[0].BodySource) == "body-a" && File.ReadAllText(restored.Playback.Actors[1].BodySource) == "body-b" && File.ReadAllText(restored.Playback.CameraSource!) == "camera" && File.ReadAllText(restored.Music!.AudioFile) == "audio",
             "loaded editors use bundled material after originals move");
-        Check(restored.Recording == new PresetRecordingSettings(true, 60, 1440) && restored.Music?.OffsetSeconds == -1.25 && restored.Music.Volume == .67,
-            "audio timing/volume and automatic recording restore");
+        Check(restored.Recording == new PresetRecordingSettings(true, 60, 1440, RecordingFormat.Compatible) && Field<ComboBox>("recordingFormat").SelectedIndex == 1 && restored.Music?.OffsetSeconds == -1.25 && restored.Music.Volume == .67,
+            "audio timing/volume, automatic recording and H.264 compatibility selection restore");
         Check(Field<string?>("preparedDirectory") is null && Field<string?>("session") is null && Field<PlaybackSessionService>("player").ActiveSession is null,
             "loading discards old preparation without launching game actors");
         Check(Field<FrameworkElement>("stageMapPanel").Visibility == Visibility.Collapsed && Field<ComboBox>("cameraMode").SelectedIndex == 1,
             "saved native formation stays collapsed and saved camera is not auto-overridden");
         Check(!(bool)Call("HasPresetChanges")!, "loading establishes clean authoring state");
+        Field<ComboBox>("recordingFormat").SelectedIndex = 0; Check((bool)Call("HasPresetChanges")!, "recording format edits count as unsaved"); Field<ComboBox>("recordingFormat").SelectedIndex = 1;
         Field<TextBox>("volume").Text = "0.5"; Check((bool)Call("HasPresetChanges")!, "music edits count as unsaved"); Field<TextBox>("volume").Text = "0.67";
         foreach (var field in new[] { "session", "previewSession" })
         {
@@ -70,6 +73,7 @@ internal static class PresetUiChecks
             Rejected(() => Run("LoadPresetFileAsync", path), "active session did not block preset loading"); Set(field, null);
         }
         var recorder = Field<RecordingService>("recorder"); wait(recorder.StartAsync(folder, 30, 1080)); Call("UpdateRecordingControls");
+        Check(!Field<ComboBox>("recordingFormat").IsEnabled, "recording locks format alongside captured settings");
         Check(!Field<Button>("loadPresetButton").IsEnabled, "recording disables preset load");
         Rejected(() => Run("LoadPresetFileAsync", path), "recording did not block loading"); wait(recorder.StopAsync()); Call("UpdateActions");
         var unknown = Path.Combine(folder, "unknown.wwpreset");
