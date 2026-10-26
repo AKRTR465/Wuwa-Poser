@@ -49,6 +49,7 @@ namespace WwPoser.ColdLoad
             public UiModelDataComponent Data;
             public EntityHandle Handle;
             public WorldEntity Entity;
+            public int EntityId, EntityIndex;
             public CharacterActorComponent BorrowedComponent;
             public int Index;
             public bool Borrowed, HasIndex, HoldAdded, LoadReturned, Shown, DestroyReturned, Released;
@@ -75,6 +76,7 @@ namespace WwPoser.ColdLoad
         {
             public Candidate Target;
             public ulong ActorAddress, MeshAddress;
+            public int EntityId, EntityIndex;
             public string HoldReason;
             public bool ActorHidden, MeshVisible, MeshHidden, HoldAdded, Released;
         }
@@ -303,7 +305,14 @@ namespace WwPoser.ColdLoad
         private static bool AssetPath(string value) { return !String.IsNullOrEmpty(value) && value.StartsWith("/Game/", StringComparison.Ordinal) && value.IndexOfAny(new char[] { '\t', '\r', '\n', '|', '\\' }) < 0 && !value.Contains(".."); }
         private static bool HandleCurrent(EntityHandle handle, WorldEntity entity)
         {
-            if (handle == null || entity == null || handle.PendingRemoving || !Object.ReferenceEquals(handle.Entity, entity) || handle.Id != entity.Id || handle.Index != entity.Index) return false;
+            return handle != null && !handle.PendingRemoving && HandleRegistered(handle, entity, handle.Id, handle.Index);
+        }
+        private static bool HandleRegistered(EntityHandle handle, WorldEntity entity, int entityId, int entityIndex)
+        {
+            // A held original may be pending removal. Recovery may return its
+            // state and hold, but only for the exact acquired registration.
+            if (handle == null || entity == null || !Object.ReferenceEquals(handle.Entity, entity) ||
+                handle.Id != entityId || entity.Id != entityId || handle.Index != entityIndex || entity.Index != entityIndex) return false;
             var c = Bind(); var flags = Convert.ToInt32(c.EntityFlags.GetValue(entity), CultureInfo.InvariantCulture);
             if ((flags & 0x10) == 0 || (flags & 0x80) != 0 || (uint)handle.Index != ((uint)handle.Id >> 16)) return false;
             var character = c.CharacterInstance.GetValue(null); var objects = c.ObjectInstance.GetValue(null); if (character == null || objects == null) return false;
@@ -345,6 +354,7 @@ namespace WwPoser.ColdLoad
                 if (candidate != null)
                 {
                     owner.Borrowed = true; owner.Actor = candidate.Actor; owner.Mesh = candidate.Mesh; owner.Handle = candidate.Handle; owner.Entity = candidate.Entity; owner.BorrowedComponent = candidate.Component;
+                    owner.EntityId = candidate.Handle.Id; owner.EntityIndex = candidate.Handle.Index;
                     owner.HoldReason = "WWPoser:" + s_session + ":" + owner.Slot.ToString(CultureInfo.InvariantCulture);
                     owner.Handle.AddHoldEntity(owner.HoldReason); owner.HoldAdded = owner.Handle.HoldEntityMap.ContainsKey(owner.HoldReason);
                     if (!owner.HoldAdded) throw new InvalidOperationException("Could not retain requested team actor.");
@@ -467,10 +477,11 @@ namespace WwPoser.ColdLoad
             mesh.bPauseAnims = false; mesh.bNoSkeletonUpdate = false; mesh.bOnlyAllowAutonomousTickPose = false; mesh.bEnableUpdateRateOptimizations = false; mesh.bRenderStatic = false;
             mesh.VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption.AlwaysTickPoseAndRefreshBones;
         }
-        private static void ValidatePlayerVisibility(PlayerVisibility saved)
+        private static void ValidatePlayerVisibility(PlayerVisibility saved, bool restoring)
         {
             var target = saved.Target; var character = target.Actor as ACharacter;
-            if (!HandleCurrent(target.Handle, target.Entity) || !Valid(target.Actor) || !Valid(target.Mesh) ||
+            if (!HandleRegistered(target.Handle, target.Entity, saved.EntityId, saved.EntityIndex) || (!restoring && target.Handle.PendingRemoving) ||
+                !Valid(target.Actor) || !Valid(target.Mesh) ||
                 !Valid(character) || !Valid(character.Mesh) || Address(character.Mesh) != saved.MeshAddress ||
                 !Object.ReferenceEquals(target.Entity.GetComponent<CharacterActorComponent>(), target.Component) ||
                 Address(target.Actor) != saved.ActorAddress || Address(target.Mesh) != saved.MeshAddress ||
@@ -480,7 +491,7 @@ namespace WwPoser.ColdLoad
         }
         private static void HidePlayerModel(PlayerVisibility saved)
         {
-            ValidatePlayerVisibility(saved);
+            ValidatePlayerVisibility(saved, false);
             var pawn = UGameplayStatics.GetPlayerPawn(s_owners[0].Actor, 0);
             if (!Valid(pawn) || Address(pawn) != saved.ActorAddress) throw new InvalidOperationException("Controlled player changed during staging.");
             if (!saved.Target.Actor.bHidden) saved.Target.Actor.SetActorHiddenInGame(true);
@@ -500,6 +511,7 @@ namespace WwPoser.ColdLoad
             foreach (var candidate in CurrentTeam()) if (Address(candidate.Actor) == actorAddress && Address(candidate.Mesh) == meshAddress) { target = candidate; break; }
             if (target == null) throw new InvalidOperationException("Cannot verify the non-performing controlled player's team identity.");
             var saved = new PlayerVisibility { Target = target, ActorAddress = actorAddress, MeshAddress = meshAddress,
+                EntityId = target.Handle.Id, EntityIndex = target.Handle.Index,
                 ActorHidden = pawn.bHidden, MeshVisible = pawn.Mesh.bVisible, MeshHidden = pawn.Mesh.bHiddenInGame,
                 HoldReason = "WWPoser:" + s_session + ":nonperforming-player" };
             // Record ownership before the first mutation so partial failures
@@ -512,7 +524,7 @@ namespace WwPoser.ColdLoad
         private static void RestorePlayerVisibility()
         {
             var saved = s_playerVisibility; if (saved == null || saved.Released) return;
-            ValidatePlayerVisibility(saved); var target = saved.Target; var errors = new List<string>();
+            ValidatePlayerVisibility(saved, true); var target = saved.Target; var errors = new List<string>();
             // Only display flags belong to this lease. Movement, collisions,
             // animation and tick settings of the non-performer remain its own.
             Attempt(delegate { target.Actor.SetActorHiddenInGame(saved.ActorHidden); }, errors, "actor_hidden");
@@ -659,7 +671,12 @@ namespace WwPoser.ColdLoad
         }
         private static void RestoreBorrowed(Owner owner)
         {
-            if (!HandleCurrent(owner.Handle, owner.Entity) || !Valid(owner.Actor) || !Valid(owner.Mesh) || Address((AActor)Bind().ActorInternal.GetValue(owner.BorrowedComponent)) != Address(owner.Actor) || Address(owner.BorrowedComponent.SkeletalMesh) != Address(owner.Mesh) || (owner.ActorAddress != 0 && (Address(owner.Actor) != owner.ActorAddress || Address(owner.Mesh) != owner.MeshAddress))) throw new InvalidOperationException("Borrowed actor identity no longer matches; no replacement actor will be modified.");
+            if (!HandleRegistered(owner.Handle, owner.Entity, owner.EntityId, owner.EntityIndex) || !Valid(owner.Actor) || !Valid(owner.Mesh) ||
+                !Object.ReferenceEquals(owner.Entity.GetComponent<CharacterActorComponent>(), owner.BorrowedComponent) ||
+                !Valid((AActor)Bind().ActorInternal.GetValue(owner.BorrowedComponent)) || !Valid(owner.BorrowedComponent.SkeletalMesh) ||
+                Address((AActor)Bind().ActorInternal.GetValue(owner.BorrowedComponent)) != Address(owner.Actor) || Address(owner.BorrowedComponent.SkeletalMesh) != Address(owner.Mesh) ||
+                (owner.ActorAddress != 0 && (Address(owner.Actor) != owner.ActorAddress || Address(owner.Mesh) != owner.MeshAddress)))
+                throw new InvalidOperationException("Borrowed actor identity no longer matches; no replacement actor will be modified.");
             var errors = new List<string>(); var saved = owner.Before; var mesh = owner.Mesh;
             if (saved != null)
             {
