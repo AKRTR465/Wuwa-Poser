@@ -28,7 +28,7 @@ public sealed partial class MainWindow : Window
     private PlaybackSessionRequest? activeRequest;
     private readonly Dictionary<uint, SquadPlacement> livePlacements = [];
     private readonly Dictionary<uint, ActorCard> liveActorCards = [];
-    private bool busy, polling, closeReady, sessionControllable;
+    private bool busy, polling, closeReady, closing, sessionControllable;
     private CancellationToken Token => operationCancellation?.Token ?? lifetime.Token;
 
     public MainWindow(string repositoryRoot, bool startPolling = true) : this(repositoryRoot, startPolling, new RecordingService(repositoryRoot)) { }
@@ -353,10 +353,24 @@ public sealed partial class MainWindow : Window
     private async void CloseRequested(object? sender, CancelEventArgs args)
     {
         if (closeReady) return; args.Cancel = true;
-        if (busy) { operationCancellation?.Cancel(); status.Text = "正在取消当前操作，请等待恢复后关闭。"; return; }
-        busy = true; UpdateActions();
-        try { await ClosePlaybackAsync(); closeReady = true; lifetime.Cancel(); Close(); }
-        catch (Exception error) { status.Text = "关闭尚未完成：" + error.Message; } finally { busy = false; UpdateActions(); }
+        if (closing) return;
+        closing = true; IsEnabled = false;
+        try
+        {
+            if (busy) { operationCancellation?.Cancel(); status.Text = "正在取消当前操作，完成恢复后将自动关闭…"; }
+            // Even an idle window can finish cleanup synchronously. Let WPF
+            // leave the first Closing event before requesting the final Close.
+            await System.Windows.Threading.Dispatcher.Yield(DispatcherPriority.Background);
+            while (busy) await Task.Delay(25);
+            busy = true; UpdateActions(); status.Text = "正在停止并恢复、保存录屏，完成后将自动关闭…";
+            await ClosePlaybackAsync(); closeReady = true; Close(); lifetime.Cancel();
+        }
+        catch (Exception error) { closeReady = false; status.Text = "关闭尚未完成：" + error.Message; }
+        finally
+        {
+            closing = false; busy = false;
+            if (!closeReady) { IsEnabled = true; UpdateActions(); }
+        }
     }
     public void SelectOwnedMmdPage() { if (actors.Count == 0) _ = AddActorAsync(); actorList.SelectedIndex = 0; }
     public void LoadOwnedPreparation(string directory)

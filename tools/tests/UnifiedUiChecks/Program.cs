@@ -425,6 +425,7 @@ internal static class Program
             var position = button.TranslatePoint(new Point(), (UIElement)window.Content);
             Check(position.Y >= 0 && position.Y + button.ActualHeight <= 642 && button.ActualHeight > 20, "preset action clipped at minimum window size: " + label);
         }
+        checks += WindowCloseChecks.Run(root, output, Await);
         if (args.Contains("--capture-window"))
         {
             // Only this test-owned HWND is captured. Never enumerate game windows.
