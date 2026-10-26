@@ -308,8 +308,9 @@
                     <Grid>
                         <ToggleButton Template="{StaticResource ComboToggle}" Focusable="False" ClickMode="Press"
                                       IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
-                        <ContentPresenter Margin="12,0,34,0" VerticalAlignment="Center" IsHitTestVisible="False"
-                                          Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" />
+                        <TextBlock x:Name="PART_SelectedName" Margin="12,0,34,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                   Text="{Binding SelectedItem.DisplayName, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=请选择角色, FallbackValue=请选择角色}"
+                                   Foreground="{TemplateBinding Foreground}" TextTrimming="CharacterEllipsis" />
                         <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade" IsOpen="{TemplateBinding IsDropDownOpen}">
                             <Border Background="White" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="10" Margin="0,4,8,10" Padding="8"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}">

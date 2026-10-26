@@ -48,6 +48,15 @@ internal static class CharacterSearchUiChecks
         var empty = (TextBlock)picker.Template.FindName("NoMatches", picker);
         var popup = (Popup)picker.Template.FindName("PART_Popup", picker);
         Check(search is not null && results is not null && popup is not null, "the actual role selector exposes a search box and candidate list");
+        void CheckSelectedName(string snapshot)
+        {
+            Render(picker, snapshot, 560, 36);
+            var labels = TextLabels(picker).ToArray();
+            string expected = (picker.SelectedItem as OwnedCharacterSelection)?.DisplayName ?? "请选择角色";
+            Check(labels.Contains(expected) && labels.All(label => !label.Contains("OwnedCharacterSelection") && !label.Contains("CharacterId =")),
+                "the collapsed selector renders only the selected display name: " + expected);
+        }
+        CheckSelectedName("character-selection-initial");
         object original = picker.SelectedItem; int changed = 0;
         SelectionChangedEventHandler observe = (_, _) => changed++;
         picker.SelectionChanged += observe;
@@ -96,6 +105,7 @@ internal static class CharacterSearchUiChecks
             Key(System.Windows.Input.Key.Enter);
             Check(picker.SelectedItem is OwnedCharacterSelection { RoleId: 1210, Form: not null } && changed == 1 && picker.SearchText == "",
                 "Enter commits the exact highlighted form and resets the transient query");
+            CheckSelectedName("character-selection-form");
             object committed = picker.SelectedItem;
             search.Text = "shouanren"; search.GetBindingExpression(TextBox.TextProperty)!.UpdateSource(); Key(System.Windows.Input.Key.Escape);
             Check(ReferenceEquals(picker.SelectedItem, committed) && picker.SearchText == "" && picker.Results.Count == catalog.Characters.Count && changed == 1,
@@ -107,9 +117,11 @@ internal static class CharacterSearchUiChecks
                 { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent, Source = candidate });
             Check(picker.SelectedItem is OwnedCharacterSelection { RoleId: 1205, SkinId: 81011205 } && changed == 2,
                 "clicking a real filtered result commits its exact skin through the popup handler");
+            CheckSelectedName("character-selection-skin");
             picker.SearchText = "not-found";
             picker.SelectedValue = catalog.Characters.First(character => character.RoleId == 1505).CharacterId;
             Check(picker.SelectedItem is OwnedCharacterSelection { RoleId: 1505 }, "preset/programmatic selection can choose any catalog item during a search");
+            CheckSelectedName("character-selection-shorekeeper");
         }
         finally
         {
@@ -118,9 +130,16 @@ internal static class CharacterSearchUiChecks
         Console.WriteLine($"PASS {checks} character search and real selector checks; offline catalog and invisible input host only.");
         return checks;
 
-        void Render(UIElement view, string name, int width)
+        static IEnumerable<string> TextLabels(DependencyObject view)
         {
-            view.Measure(new Size(width, 380)); view.Arrange(new Rect(0, 0, width, Math.Max(90, view.DesiredSize.Height)));
+            if (view is TextBlock label) yield return label.Text;
+            for (int child = 0; child < VisualTreeHelper.GetChildrenCount(view); child++)
+                foreach (string text in TextLabels(VisualTreeHelper.GetChild(view, child))) yield return text;
+        }
+
+        void Render(UIElement view, string name, int width, int? exactHeight = null)
+        {
+            view.Measure(new Size(width, exactHeight ?? 380)); view.Arrange(new Rect(0, 0, width, exactHeight ?? Math.Max(90, view.DesiredSize.Height)));
             view.UpdateLayout(); int height = Math.Max(1, (int)Math.Ceiling(view.RenderSize.Height));
             var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32); bitmap.Render(view);
             var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
