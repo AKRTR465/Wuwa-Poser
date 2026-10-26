@@ -81,6 +81,7 @@ internal static class Program
         foreach (string label in new[] { "添加演员", "移除所选演员", "播放", "暂停", "上一帧", "下一帧", "跳转到滑块位置", "保存书签", "载入书签", "应用位置与朝向", "应用配乐", "录制鸣潮窗口" })
             Check(Field<List<Button>>("actions").Any(b => Equals(b.Content, label) && b.IsEnabled == !sessionOnlyLabels.Contains(label)), "missing control or invalid idle state: " + label);
         Render("actors-1");
+        checks += CharacterSearchUiChecks.Run(window, root, output);
         var initialStageRequest = (PlaybackSessionRequest)Call("BuildRequest", false)!;
         var formation = Field<ComboBox>("placementMode"); var stagePanel = Field<FrameworkElement>("stageMapPanel");
         var cameraSelector = Field<ComboBox>("cameraMode"); var cameraSource = Field<TextBox>("camera");

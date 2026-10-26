@@ -564,7 +564,7 @@ public sealed partial class MainWindow
         public Border Panel { get; }
         public TextBlock Name { get; } = Text("", 22, "Ink", FontWeights.SemiBold);
         public CheckBox Enabled { get; } = new() { Content = "参与表演", IsChecked = true, Margin = new(0) };
-        public ComboBox Character { get; } = new() { DisplayMemberPath = nameof(OwnedCharacterSelection.DisplayName), SelectedValuePath = nameof(OwnedCharacterSelection.CharacterId), MaxDropDownHeight = 380 };
+        public CharacterPicker Character { get; } = new();
         public readonly TextBox Body = new(), Face = new(), Scale = new() { Tag = "倍" };
         public readonly TextBox X = new() { Text = "0", Tag = "厘米" }, Y = new() { Text = "0", Tag = "厘米" }, Height = new() { Text = "0", Tag = "厘米" }, Yaw = new() { Text = "0", Tag = "度" };
         public CheckBox InPlace { get; } = new() { Content = "原地跳（不随动作走动）" };
