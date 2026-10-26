@@ -90,6 +90,9 @@ static DWORD WINAPI Worker(LPVOID){
     std::array<v20_vmt_slot_patch::State,ng::kHooks> patches{};bool ran=false,bound=false;
     try{
         std::filesystem::create_directories(directory/L"logs");Save(statusPath,report);
+        // Recovery publishes stop before checking this atomic marker. A late
+        // worker must announce itself, then honor stop before touching targets.
+        if(std::filesystem::exists(directory/L"stop.flag"))throw std::runtime_error("observer cancelled before target access");
         Json cfg;std::ifstream input(configPath);input>>cfg;
         const auto& stage=cfg.at("native_identity_bootstrap");const unsigned duration=stage.at("duration_ms");
         bootstrapState.owner_limit=stage.at("owner_limit");report["owner_limit"]=bootstrapState.owner_limit;
@@ -143,6 +146,8 @@ static DWORD WINAPI Worker(LPVOID){
     return 0;
 }
 } // namespace identity_carrier
+// The installer advertises this capability only for a DLL with the guard above.
+extern "C" __declspec(dllexport) void WwPoserObserverRecoveryV1() {}
 extern "C" __declspec(dllexport) LRESULT CALLBACK HookProc(int code,WPARAM w,LPARAM l){using namespace identity_carrier;
     if(code>=0&&InterlockedCompareExchange(&started,1,0)==0){wchar_t host[32768]{};GetModuleFileNameW(nullptr,host,32768);HMODULE retained=nullptr;
         if(!_wcsicmp(std::filesystem::path(host).filename().c_str(),L"Client-Win64-Shipping.exe")&&

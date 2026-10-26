@@ -5,6 +5,12 @@ using System.Text;
 using System.Text.Json.Nodes;
 using WWPoser.Services;
 
+if (args.Length == 2 && args[0] == "--observer-installer-fixture")
+{
+    Environment.ExitCode = await NativeObserverRecoveryChecks.RunInstallerFixtureAsync(args[1]);
+    return;
+}
+
 var assertions = 0;
 void Check(bool value, string message) { if (!value) throw new Exception(message); assertions++; }
 static void Save(string path, JsonObject value) { var next = path + ".next"; File.WriteAllText(next, value.ToJsonString()); File.Move(next, path, true); }
@@ -50,6 +56,7 @@ foreach (var nativeFormation in new[] { false, true })
         "preset roundtrip preserves custom and explicit-zero shared height in both formation modes");
 }
 assertions += await MediaLifecycleChecks.RunAsync(fixture);
+assertions += await NativeObserverRecoveryChecks.RunAsync(fixture);
 assertions += await AudioFormatChecks.RunLifecycleAsync(fixture);
 assertions += CompiledMotionValidationChecks.Run();
 assertions += BundleValidationChecks.Run(fixture);

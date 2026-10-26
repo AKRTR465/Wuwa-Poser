@@ -74,16 +74,49 @@ public static class GameProcess
 
 public static class CarrierLoader
 {
+    // The uncancelled completion owns the Process until it really exits. Cancelling
+    // a caller's wait must neither kill an armed installer nor lose its exit proof.
+    internal static Task<int> StartInstallation(string sessionDirectory)
+    {
+        var process = Process.Start(new ProcessStartInfo(Path.Combine(sessionDirectory, "hook_install_v20.exe")) { WorkingDirectory = sessionDirectory, Arguments = "--timeout-seconds 30", UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden })!;
+        return WaitForInstallationExitAsync(process);
+    }
+    internal static async Task<int> WaitForInstallationExitAsync(Process process)
+    {
+        using (process)
+        {
+            await process.WaitForExitAsync().ConfigureAwait(false);
+            return process.ExitCode;
+        }
+    }
+    internal static void EnsureSuccess(string sessionDirectory, int exitCode)
+    {
+        var result = Path.Combine(sessionDirectory, "installer_result.json");
+        if (exitCode != 0) throw new InvalidOperationException("加载未完成或临时安装器未撤销：" + (File.Exists(result) ? File.ReadAllText(result) : "exit " + exitCode));
+    }
     public static async Task LoadAsync(string sessionDirectory, CancellationToken cancellation = default)
     {
-        using var process = Process.Start(new ProcessStartInfo(Path.Combine(sessionDirectory, "hook_install_v20.exe")) { WorkingDirectory = sessionDirectory, Arguments = "--timeout-seconds 30", UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden })!;
-        await process.WaitForExitAsync(cancellation);
-        var result = Path.Combine(sessionDirectory, "installer_result.json");
-        if (process.ExitCode != 0) throw new InvalidOperationException("加载未完成或临时安装器未撤销：" + (File.Exists(result) ? File.ReadAllText(result) : "exit " + process.ExitCode));
+        cancellation.ThrowIfCancellationRequested();
+        EnsureSuccess(sessionDirectory, await StartInstallation(sessionDirectory).WaitAsync(cancellation).ConfigureAwait(false));
+    }
+    internal static JsonObject? ReadEvidence(string path)
+    {
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return JsonNode.Parse(stream) as JsonObject;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { return null; }
     }
     public static bool NotLoaded(string sessionDirectory)
     {
-        var result = Path.Combine(sessionDirectory, "installer_result.json");
-        return File.Exists(result) && File.ReadAllText(result).Contains("\"loaded\":false", StringComparison.Ordinal);
+        var result = ReadEvidence(Path.Combine(sessionDirectory, "installer_result.json"));
+        // "armed" is an intermediate state. Even a disarmed timeout may have
+        // a delayed callback, so only failures before hook installation prove
+        // that this carrier cannot start later.
+        return result?["stage"] is JsonValue stageValue && stageValue.TryGetValue<string>(out var stage) &&
+            stage is "load_library_failed" or "hook_failed" or "hook_export_missing" or "cancelled_before_hook" &&
+            result["loaded"] is JsonValue loadedValue && loadedValue.TryGetValue<bool>(out var loaded) && !loaded &&
+            Contract.True(result, "disarmed");
     }
 }
