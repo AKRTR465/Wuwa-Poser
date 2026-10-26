@@ -1,0 +1,952 @@
+{
+  "schema": 1,
+  "profile_id": "wuwa-current-layout-v1",
+  "source_baseline": "d94f861577e38efe9a07454de6463a4165d83804",
+  "description": "Version-sensitive game constants. Generated language bindings and deployed layout are derived from this file. Character resource profiles remain separate.",
+  "native": {
+    "GObjectsRva": {
+      "type": "u64",
+      "value": "0x99a3ff0"
+    },
+    "NamePoolRva": {
+      "type": "u64",
+      "value": "0x9967340"
+    },
+    "EngineFrameRva": {
+      "type": "u64",
+      "value": "0x992f2d8"
+    },
+    "ObjectArrayRva": {
+      "type": "u64",
+      "value": "0x99a3fe0"
+    },
+    "FunctionAllocateSerialNumberRva": {
+      "type": "u64",
+      "value": "0x33f11d0"
+    },
+    "FunctionAssignWeakObjectRva": {
+      "type": "u64",
+      "value": "0x3404280"
+    },
+    "FunctionLocalToComponentRva": {
+      "type": "u64",
+      "value": "0x4e0ba10"
+    },
+    "FunctionSharedSkeletalControlEvaluateCSRva": {
+      "type": "u64",
+      "value": "0x49a34d0"
+    },
+    "FunctionSharedSkeletalControlUpdateRva": {
+      "type": "u64",
+      "value": "0x49dd440"
+    },
+    "FunctionGroupEvaluateRva": {
+      "type": "u64",
+      "value": "0xa3db40"
+    },
+    "FunctionGroupInitializeBoneReferencesRva": {
+      "type": "u64",
+      "value": "0xa40710"
+    },
+    "FunctionGroupInitializeModifyBonesRva": {
+      "type": "u64",
+      "value": "0xa3fc60"
+    },
+    "FunctionComponentSpaceTransformGetterRva": {
+      "type": "u64",
+      "value": "0xa3f270"
+    },
+    "FunctionAnimInstanceRootEvaluationCounterRva": {
+      "type": "u64",
+      "value": "0x4dedaa0"
+    },
+    "FunctionCachedPoseEvaluationCounterRva": {
+      "type": "u64",
+      "value": "0x4e0d850"
+    },
+    "FunctionSkeletalControlLODAllowedRva": {
+      "type": "u64",
+      "value": "0x4e1abc0"
+    },
+    "FunctionGroupIsValidToEvaluateRva": {
+      "type": "u64",
+      "value": "0xa40a50"
+    },
+    "FunctionSharedUpdateInternalRva": {
+      "type": "u64",
+      "value": "0xa44ae0"
+    },
+    "FunctionSetMorphTargetRva": {
+      "type": "u64",
+      "value": "0x5009b50"
+    },
+    "FunctionUpdateCameraRva": {
+      "type": "u64",
+      "value": "0x542faa0"
+    },
+    "VtableLocalToComponentRva": {
+      "type": "u64",
+      "value": "0x83ec178"
+    },
+    "VtableKawaiiPhysicsGroupRva": {
+      "type": "u64",
+      "value": "0x7405e28"
+    },
+    "VtableKawaiiPhysicsSingleRva": {
+      "type": "u64",
+      "value": "0x7405cf0"
+    },
+    "PointerMinimum": {
+      "type": "u64",
+      "value": "0x10000"
+    },
+    "PointerMaximum": {
+      "type": "u64",
+      "value": "0x800000000000"
+    },
+    "PointerBytes": {
+      "type": "u32",
+      "value": "0x8"
+    },
+    "NameBytes": {
+      "type": "u32",
+      "value": "0xc"
+    },
+    "NameWordBytes": {
+      "type": "u32",
+      "value": "0x4"
+    },
+    "NameWordCount": {
+      "type": "u32",
+      "value": "0x3"
+    },
+    "NameNumberOffset": {
+      "type": "u32",
+      "value": "0x8"
+    },
+    "ObjectHeaderBytes": {
+      "type": "u32",
+      "value": "0x30"
+    },
+    "ObjectVtableOffset": {
+      "type": "u32",
+      "value": "0x0"
+    },
+    "ObjectFlagsOffset": {
+      "type": "u32",
+      "value": "0x8"
+    },
+    "ObjectIndexOffset": {
+      "type": "u32",
+      "value": "0xc"
+    },
+    "ObjectClassOffset": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "ObjectNameOffset": {
+      "type": "u32",
+      "value": "0x18"
+    },
+    "ObjectOuterOffset": {
+      "type": "u32",
+      "value": "0x28"
+    },
+    "ObjectInvalidFlagsMask": {
+      "type": "u32",
+      "value": "0x18000"
+    },
+    "ObjectItemBytes": {
+      "type": "u32",
+      "value": "0x18"
+    },
+    "ObjectItemObjectOffset": {
+      "type": "u32",
+      "value": "0x0"
+    },
+    "ObjectItemFlagsOffset": {
+      "type": "u32",
+      "value": "0x8"
+    },
+    "ObjectItemSerialOffset": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "ObjectItemInvalidFlagsMask": {
+      "type": "u32",
+      "value": "0x30000000"
+    },
+    "ObjectArrayHeaderBytes": {
+      "type": "u32",
+      "value": "0x20"
+    },
+    "ObjectArrayTableOffset": {
+      "type": "u32",
+      "value": "0x0"
+    },
+    "ObjectArrayMaxElementsOffset": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "ObjectArrayCountOffset": {
+      "type": "u32",
+      "value": "0x14"
+    },
+    "ObjectArrayMaxChunksOffset": {
+      "type": "u32",
+      "value": "0x18"
+    },
+    "ObjectArrayNumChunksOffset": {
+      "type": "u32",
+      "value": "0x1c"
+    },
+    "ObjectArrayChunkShift": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "ObjectArrayChunkMask": {
+      "type": "u32",
+      "value": "0xffff"
+    },
+    "ObjectArrayElementsPerChunk": {
+      "type": "u32",
+      "value": "0x10000"
+    },
+    "ObjectArrayMaximumChunks": {
+      "type": "u32",
+      "value": "0x1000"
+    },
+    "NamePoolHeaderBytes": {
+      "type": "u32",
+      "value": "0x18"
+    },
+    "NamePoolCurrentBlockOffset": {
+      "type": "u32",
+      "value": "0x8"
+    },
+    "NamePoolCursorOffset": {
+      "type": "u32",
+      "value": "0xc"
+    },
+    "NamePoolBlocksOffset": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "NamePoolMaximumBlocks": {
+      "type": "u32",
+      "value": "0x2000"
+    },
+    "NamePoolMaximumCursor": {
+      "type": "u32",
+      "value": "0x40000"
+    },
+    "NameTaggedIndexMask": {
+      "type": "u32",
+      "value": "0x1fffffff"
+    },
+    "NameBlockShift": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "NameBlockMask": {
+      "type": "u32",
+      "value": "0xffff"
+    },
+    "NameEntryStride": {
+      "type": "u32",
+      "value": "0x4"
+    },
+    "NameEntryHeaderOffset": {
+      "type": "u32",
+      "value": "0x4"
+    },
+    "NameEntryTextOffset": {
+      "type": "u32",
+      "value": "0x6"
+    },
+    "NameMaximumCharacters": {
+      "type": "u32",
+      "value": "0x1ff"
+    },
+    "TArrayHeaderBytes": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "TArrayDataOffset": {
+      "type": "u32",
+      "value": "0x0"
+    },
+    "TArrayNumOffset": {
+      "type": "u32",
+      "value": "0x8"
+    },
+    "TArrayCapacityOffset": {
+      "type": "u32",
+      "value": "0xc"
+    },
+    "TransformBytes": {
+      "type": "u32",
+      "value": "0x30"
+    },
+    "TransformRotationOffset": {
+      "type": "u32",
+      "value": "0x0"
+    },
+    "TransformRotationBytes": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "TransformTranslationOffset": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "TransformScaleOffset": {
+      "type": "u32",
+      "value": "0x20"
+    },
+    "VectorBytes": {
+      "type": "u32",
+      "value": "0xc"
+    },
+    "FloatBytes": {
+      "type": "u32",
+      "value": "0x4"
+    },
+    "ReferenceBoneInfoBytes": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "ReferenceBoneParentOffset": {
+      "type": "u32",
+      "value": "0xc"
+    },
+    "ComponentOwnerOffset": {
+      "type": "u32",
+      "value": "0xa8"
+    },
+    "ComponentAssetOffset": {
+      "type": "u32",
+      "value": "0x5d0"
+    },
+    "ComponentMainAnimOffset": {
+      "type": "u32",
+      "value": "0x910"
+    },
+    "ComponentExternalRouteOffset": {
+      "type": "u32",
+      "value": "0x145a"
+    },
+    "ComponentToWorldOffset": {
+      "type": "u32",
+      "value": "0x1e0"
+    },
+    "ActorRootOffset": {
+      "type": "u32",
+      "value": "0x1a0"
+    },
+    "AssetSkeletonOffset": {
+      "type": "u32",
+      "value": "0xd8"
+    },
+    "AssetRefBoneInfoOffset": {
+      "type": "u32",
+      "value": "0x3b8"
+    },
+    "AssetMorphArrayOffset": {
+      "type": "u32",
+      "value": "0x368"
+    },
+    "ComponentMorphMapOffset": {
+      "type": "u32",
+      "value": "0xef0"
+    },
+    "ComponentPoseBuffer0Offset": {
+      "type": "u32",
+      "value": "0x630"
+    },
+    "ComponentPoseBuffer1Offset": {
+      "type": "u32",
+      "value": "0x640"
+    },
+    "ComponentPublishedPoseOffset": {
+      "type": "u32",
+      "value": "0x680"
+    },
+    "ComponentLocalPoseOffset": {
+      "type": "u32",
+      "value": "0x950"
+    },
+    "ComponentPoseReadIndexOffset": {
+      "type": "u32",
+      "value": "0x6c0"
+    },
+    "ComponentPosePreviousIndexOffset": {
+      "type": "u32",
+      "value": "0x6c4"
+    },
+    "ComponentPoseGenerationOffset": {
+      "type": "u32",
+      "value": "0x6c8"
+    },
+    "ComponentPoseFlagsOffset": {
+      "type": "u32",
+      "value": "0x80c"
+    },
+    "AnimContextProxyOffset": {
+      "type": "u32",
+      "value": "0x0"
+    },
+    "AnimContextPoseOffset": {
+      "type": "u32",
+      "value": "0x8"
+    },
+    "AnimContextTransformsOffset": {
+      "type": "u32",
+      "value": "0x8"
+    },
+    "AnimContextExtraVectorsOffset": {
+      "type": "u32",
+      "value": "0x18"
+    },
+    "AnimContextExtraVectorsActiveOffset": {
+      "type": "u32",
+      "value": "0x28"
+    },
+    "AnimContextBoneContainerOffset": {
+      "type": "u32",
+      "value": "0x30"
+    },
+    "AnimContextFlagsOffset": {
+      "type": "u32",
+      "value": "0x38"
+    },
+    "AnimUpdateContextDeltaOffset": {
+      "type": "u32",
+      "value": "0x18"
+    },
+    "AnimProxyOwnerOffset": {
+      "type": "u32",
+      "value": "0xa0"
+    },
+    "AnimProxyOwnerAltOffset": {
+      "type": "u32",
+      "value": "0xa8"
+    },
+    "AnimProxySkeletonOffset": {
+      "type": "u32",
+      "value": "0xb8"
+    },
+    "AnimProxyMeshOffset": {
+      "type": "u32",
+      "value": "0xc0"
+    },
+    "AnimProxyMainProxyOffset": {
+      "type": "u32",
+      "value": "0xd0"
+    },
+    "AnimProxyFrameOffset": {
+      "type": "u32",
+      "value": "0x528"
+    },
+    "AnimProxyCounterOffset": {
+      "type": "u32",
+      "value": "0x530"
+    },
+    "AnimProxyIdentityBytes": {
+      "type": "u32",
+      "value": "0xd8"
+    },
+    "AnimProxyObservationBytes": {
+      "type": "u32",
+      "value": "0x538"
+    },
+    "AnimProxyBoneContainerOffset": {
+      "type": "u32",
+      "value": "0x5a0"
+    },
+    "BoneContainerWeakMeshOffset": {
+      "type": "u32",
+      "value": "0x38"
+    },
+    "BoneContainerWeakSkeletonOffset": {
+      "type": "u32",
+      "value": "0x40"
+    },
+    "BoneContainerSkeletonToCompactOffset": {
+      "type": "u32",
+      "value": "0x80"
+    },
+    "BoneContainerCompactParentsOffset": {
+      "type": "u32",
+      "value": "0x90"
+    },
+    "BoneContainerObservationBytes": {
+      "type": "u32",
+      "value": "0xa0"
+    },
+    "KawaiiAlphaOffset": {
+      "type": "u32",
+      "value": "0x28"
+    },
+    "KawaiiAlphaTypeOffset": {
+      "type": "u32",
+      "value": "0x2c"
+    },
+    "CurveNameOffset": {
+      "type": "u32",
+      "value": "0x88"
+    },
+    "KawaiiDeltaOffset": {
+      "type": "u32",
+      "value": "0x280"
+    },
+    "KawaiiRootsOffset": {
+      "type": "u32",
+      "value": "0x288"
+    },
+    "KawaiiExtendedRootsOffset": {
+      "type": "u32",
+      "value": "0x298"
+    },
+    "KawaiiRootBytes": {
+      "type": "u32",
+      "value": "0x14"
+    },
+    "AlphaTypeFloat": {
+      "type": "u32",
+      "value": "0x0"
+    },
+    "AlphaTypeBool": {
+      "type": "u32",
+      "value": "0x1"
+    },
+    "AlphaTypeCurve": {
+      "type": "u32",
+      "value": "0x2"
+    },
+    "SlotLocalToComponentEvaluateCS": {
+      "type": "u32",
+      "value": "0x20"
+    },
+    "SlotSkeletalControlEvaluateCS": {
+      "type": "u32",
+      "value": "0x20"
+    },
+    "SlotSkeletalControlUpdate": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "SlotKawaiiGroupEvaluate": {
+      "type": "u32",
+      "value": "0x118"
+    },
+    "SlotUpdateCamera": {
+      "type": "u32",
+      "value": "0x790"
+    },
+    "FunctionLocalToComponentBytes": {
+      "type": "u32",
+      "value": "0x21e"
+    },
+    "FunctionSharedSkeletalControlEvaluateCSBytes": {
+      "type": "u32",
+      "value": "0xfd"
+    },
+    "FunctionSharedSkeletalControlUpdateBytes": {
+      "type": "u32",
+      "value": "0x1cd"
+    },
+    "FunctionGroupEvaluateBytes": {
+      "type": "u32",
+      "value": "0x1ab"
+    },
+    "FunctionAllocateSerialNumberBytes": {
+      "type": "u32",
+      "value": "0xa9"
+    },
+    "FunctionAssignWeakObjectBytes": {
+      "type": "u32",
+      "value": "0x3b"
+    },
+    "ControllerCameraManagerOffset": {
+      "type": "u32",
+      "value": "0x360"
+    },
+    "ControllerPawnOffset": {
+      "type": "u32",
+      "value": "0x2e8"
+    },
+    "ControllerAcknowledgedPawnOffset": {
+      "type": "u32",
+      "value": "0x340"
+    },
+    "PawnControllerOffset": {
+      "type": "u32",
+      "value": "0x2e8"
+    },
+    "PawnMeshOffset": {
+      "type": "u32",
+      "value": "0x310"
+    },
+    "CameraViewTargetOffset": {
+      "type": "u32",
+      "value": "0x1880"
+    },
+    "CameraCacheOffset": {
+      "type": "u32",
+      "value": "0x2e40"
+    },
+    "CameraLastCacheOffset": {
+      "type": "u32",
+      "value": "0x38e0"
+    },
+    "CameraPovOffset": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "CameraLocationOffset": {
+      "type": "u32",
+      "value": "0x0"
+    },
+    "CameraRotationOffset": {
+      "type": "u32",
+      "value": "0xc"
+    },
+    "CameraFovOffset": {
+      "type": "u32",
+      "value": "0x18"
+    },
+    "CameraAspectRatioOffset": {
+      "type": "u32",
+      "value": "0x2c"
+    },
+    "MorphMapHeaderBytes": {
+      "type": "u32",
+      "value": "0x50"
+    },
+    "MorphMapDataOffset": {
+      "type": "u32",
+      "value": "0x0"
+    },
+    "MorphMapSlotsOffset": {
+      "type": "u32",
+      "value": "0x8"
+    },
+    "MorphMapAllocationPointerOffset": {
+      "type": "u32",
+      "value": "0x20"
+    },
+    "MorphMapAllocationInlineOffset": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "MorphMapRowBytes": {
+      "type": "u32",
+      "value": "0x18"
+    },
+    "MorphMapWeightOffset": {
+      "type": "u32",
+      "value": "0xc"
+    },
+    "SourceBuildSha256": {
+      "type": "string",
+      "value": "c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18"
+    },
+    "FunctionAllocateSerialNumberRvaText": {
+      "type": "hexref",
+      "value": "@FunctionAllocateSerialNumberRva"
+    },
+    "FunctionAssignWeakObjectRvaText": {
+      "type": "hexref",
+      "value": "@FunctionAssignWeakObjectRva"
+    },
+    "FunctionAllocateSerialNumberSha256": {
+      "type": "string",
+      "value": "d061ffb1798bb5262881a0842045a842350288a0a34a07728bb43bf0c70a106e"
+    },
+    "FunctionAssignWeakObjectSha256": {
+      "type": "string",
+      "value": "165872ef14eebb05c725a39e381bf60d31d5b8e5beb16cc4f33627eff3eb2b1b"
+    },
+    "FunctionPublishRva": {
+      "type": "u64",
+      "value": "0x4ff3cd0"
+    },
+    "VtableSkeletalMeshComponentRva": {
+      "type": "u64",
+      "value": "0x843eb78"
+    },
+    "SlotComponentPublish": {
+      "type": "u32",
+      "value": "0xab8"
+    },
+    "SlotComponentPublishRva": {
+      "type": "u64",
+      "value": "0x843f630"
+    },
+    "RegisteredGameThreadIdRva": {
+      "type": "u64",
+      "value": "0x992f300"
+    },
+    "RegisteredGameThreadInitializedRva": {
+      "type": "u64",
+      "value": "0x992f310"
+    },
+    "ObjectArrayObjectsOffset": {
+      "type": "u32",
+      "value": "0x10"
+    },
+    "FunctionGroupInitializeBoneReferencesBytes": {
+      "type": "u32",
+      "value": 315
+    },
+    "FunctionGroupInitializeModifyBonesBytes": {
+      "type": "u32",
+      "value": 2458
+    },
+    "NameEntryWideFlagMask": {
+      "type": "u32",
+      "value": 1
+    },
+    "NameEntryLengthShift": {
+      "type": "u32",
+      "value": 1
+    },
+    "FunctionAnimInstanceRootEvaluationCounterBytes": {
+      "value": 1777,
+      "type": "u32"
+    },
+    "FunctionGroupIsValidToEvaluateBytes": {
+      "value": 239,
+      "type": "u32"
+    },
+    "FunctionSharedUpdateInternalBytes": {
+      "value": 78,
+      "type": "u32"
+    },
+    "FunctionComponentSpaceTransformGetterBytes": {
+      "value": 194,
+      "type": "u32"
+    },
+    "FunctionCachedPoseEvaluationCounterBytes": {
+      "value": 606,
+      "type": "u32"
+    },
+    "FunctionSkeletalControlLODAllowedBytes": {
+      "value": 166,
+      "type": "u32"
+    }
+  },
+  "managed": {
+    "ManagedFieldInstance": {
+      "type": "string",
+      "value": "_instance"
+    },
+    "ManagedFieldMap": {
+      "type": "string",
+      "value": "UiSceneRoleActorMap"
+    },
+    "ManagedFieldLoadState": {
+      "type": "string",
+      "value": "ModelLoadStateInternal"
+    },
+    "ManagedFieldNativePointer": {
+      "type": "string",
+      "value": "_NativePtr"
+    },
+    "ManagedFieldPlayerInstance": {
+      "type": "string",
+      "value": "_Instance"
+    },
+    "ManagedFieldPlayerId": {
+      "type": "string",
+      "value": "Id"
+    },
+    "ManagedFieldTeamInstance": {
+      "type": "string",
+      "value": "_Instance"
+    },
+    "ManagedFieldTeamPlayers": {
+      "type": "string",
+      "value": "TeamPlayerMap"
+    },
+    "ManagedFieldTeamItems": {
+      "type": "string",
+      "value": "TeamItems"
+    },
+    "ManagedFieldPlayerGroup": {
+      "type": "string",
+      "value": "CurrentGroupType"
+    },
+    "ManagedFieldPlayerGroups": {
+      "type": "string",
+      "value": "GroupMap"
+    },
+    "ManagedFieldGroupRoles": {
+      "type": "string",
+      "value": "RoleList"
+    },
+    "ManagedFieldItemPlayer": {
+      "type": "string",
+      "value": "PlayerId"
+    },
+    "ManagedFieldItemRole": {
+      "type": "string",
+      "value": "ConfigId"
+    },
+    "ManagedFieldItemCreature": {
+      "type": "string",
+      "value": "CreatureDataId"
+    },
+    "ManagedFieldItemHandle": {
+      "type": "string",
+      "value": "EntityHandleInternal"
+    },
+    "ManagedFieldItemLocal": {
+      "type": "string",
+      "value": "IsMyRoleInternal"
+    },
+    "ManagedFieldItemGroup": {
+      "type": "string",
+      "value": "GroupType"
+    },
+    "ManagedFieldActorInternal": {
+      "type": "string",
+      "value": "ActorInternal"
+    },
+    "ManagedFieldSkinId": {
+      "type": "string",
+      "value": "SkinId"
+    },
+    "ManagedFieldEntityFlags": {
+      "type": "string",
+      "value": "FlagInternal"
+    },
+    "ManagedFieldDataRole": {
+      "type": "string",
+      "value": "RoleId"
+    },
+    "ManagedFieldDataPlayer": {
+      "type": "string",
+      "value": "PlayerId"
+    },
+    "ManagedFieldDataCreature": {
+      "type": "string",
+      "value": "CreatureDataId"
+    },
+    "ManagedFieldCharacterInstance": {
+      "type": "string",
+      "value": "_Instance"
+    },
+    "ManagedFieldCharacterHandles": {
+      "type": "string",
+      "value": "Handles"
+    },
+    "ManagedFieldObjectInstance": {
+      "type": "string",
+      "value": "_instance"
+    },
+    "ManagedFieldObjectList": {
+      "type": "string",
+      "value": "Objects"
+    },
+    "ManagedFieldObjectVersions": {
+      "type": "string",
+      "value": "Versions"
+    },
+    "ManagedTypeObjectSystem": {
+      "type": "string",
+      "value": "ObjectSystem"
+    },
+    "ManagedMethodCreateUiSceneRoleActor": {
+      "type": "string",
+      "value": "CreateUiSceneRoleActor"
+    },
+    "ManagedMethodDestroyUiSceneRoleActor": {
+      "type": "string",
+      "value": "DestroyUiSceneRoleActor"
+    },
+    "MonoExportAssemblyOpen": {
+      "type": "string",
+      "value": "mono_assembly_open"
+    },
+    "MonoExportAssemblyGetImage": {
+      "type": "string",
+      "value": "mono_assembly_get_image"
+    },
+    "MonoExportClassFromName": {
+      "type": "string",
+      "value": "mono_class_from_name"
+    },
+    "MonoExportClassGetMethodFromName": {
+      "type": "string",
+      "value": "mono_class_get_method_from_name"
+    },
+    "MonoExportRuntimeInvoke": {
+      "type": "string",
+      "value": "mono_runtime_invoke"
+    },
+    "MonoRuntimeModuleWide": {
+      "type": "wstr",
+      "value": "coreclr.dll"
+    },
+    "EntityFlagRegistered": {
+      "type": "i32",
+      "value": 16
+    },
+    "EntityFlagRetired": {
+      "type": "i32",
+      "value": 128
+    },
+    "EntityHandleIndexShift": {
+      "type": "i32",
+      "value": 16
+    },
+    "EntityHandleVersionMask": {
+      "type": "i32",
+      "value": 65535
+    },
+    "EntityHandleRegistryLimit": {
+      "type": "i32",
+      "value": 65536
+    },
+    "UiModelLoadedState": {
+      "type": "i32",
+      "value": 2
+    },
+    "MovementModeWalking": {
+      "type": "i32",
+      "value": 1
+    },
+    "MovementModeNavWalking": {
+      "type": "i32",
+      "value": 2
+    }
+  },
+  "runtime_layout": {
+    "hook_mode": "vmt_slot",
+    "publish_rva": "@FunctionPublishRva",
+    "gobjects_rva": "@GObjectsRva",
+    "name_pool_rva": "@NamePoolRva",
+    "vmt_rva": "@VtableSkeletalMeshComponentRva",
+    "vmt_slot_offset": "@SlotComponentPublish",
+    "slot_rva": "@SlotComponentPublishRva",
+    "component_owner": "@ComponentOwnerOffset",
+    "actor_root": "@ActorRootOffset",
+    "component_asset": "@ComponentAssetOffset",
+    "asset_skeleton": "@AssetSkeletonOffset",
+    "asset_ref_bone_info": "@AssetRefBoneInfoOffset",
+    "component_main_anim": "@ComponentMainAnimOffset",
+    "registered_game_thread_id_rva": "@RegisteredGameThreadIdRva",
+    "registered_game_thread_initialized_rva": "@RegisteredGameThreadInitializedRva",
+    "engine_frame_rva": "@EngineFrameRva"
+  },
+  "evidence": {
+    "identity": "data/native_identity_registration_contract.json",
+    "native_physics": "data/runtime_contracts/native_kawaii.json",
+    "activation": "data/runtime_contracts/native_activation.json",
+    "root_layout": "data/runtime_contracts/native_graph_layout.json",
+    "camera": "data/camera_runtime_contract.json",
+    "publication": "data/runtime_contracts/publication.json"
+  }
+}

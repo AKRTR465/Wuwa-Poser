@@ -5,6 +5,8 @@ Set-StrictMode -Version Latest
 if (-not $IsWindows) { throw 'The full offline suite requires Windows; use PortableServiceChecks and the pure C++ tests on other systems.' }
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repo 'test_outputs/offline' }
+& (Join-Path $PSScriptRoot 'generate_game_compat.ps1') -Check
+& (Join-Path $PSScriptRoot 'tests/game_compat_generation_checks.ps1')
 [IO.Directory]::CreateDirectory($OutputDirectory) | Out-Null
 function Run-Native([string]$Relative) {
     & (Join-Path $repo $Relative)
@@ -37,7 +39,10 @@ foreach ($script in @(
     'tools/tests/run_camera_diagnostics_tests.bat',
     'tools/tests/run_unified_player_features_tests.bat',
     'tools/tests/run_dynamic_actor_tests.bat',
-    'tools/tests/run_session_retirement_tests.bat'
+    'tools/tests/run_session_retirement_tests.bat',
+    'tools/tests/run_game_compat_resolution_tests.bat',
+    'tools/tests/run_native_function_witness_tests.bat',
+    'tools/tests/run_game_object_anchors_tests.bat'
 )) { Run-Native $script }
 Run-Managed 'tools/tests/ManagedActorBorrowing/ManagedActorBorrowing.csproj'
 # The WPF projects share their referenced desktop output and must run serially.

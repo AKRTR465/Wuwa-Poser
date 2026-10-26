@@ -1,4 +1,5 @@
 #pragma once
+#include "../../runtime/generated/GameCompat.generated.h"
 // In-process readers for the GObjects table and Kuro name pool. The anchors are
 // located by scanning the main image's writable sections once per scan session.
 #define WIN32_LEAN_AND_MEAN
@@ -25,7 +26,7 @@
 using Json = nlohmann::json;
 static std::string Hex(uint64_t n) { char b[32]; sprintf_s(b,"0x%llx",(unsigned long long)n); return b; }
 template<class T> static T At(const unsigned char* p,size_t off) { T v; memcpy(&v,p+off,sizeof(v));return v; }
-static bool Pointer(uint64_t p) { return p>=0x10000 && p<0x0000800000000000ull && !(p&7); }
+static bool Pointer(uint64_t p) { return p>=ww_game_compat::PointerMinimum && p<ww_game_compat::PointerMaximum && !(p&(ww_game_compat::PointerBytes-1)); }
 static bool Readable(DWORD p) {
     if(p&(PAGE_GUARD|PAGE_NOACCESS))return false;
     p &= 0xff;
@@ -47,48 +48,48 @@ struct Reader {
 struct Go {uint64_t address=0,table=0;uint32_t count=0;};
 struct Pool {uint64_t address=0,blocks=0;uint32_t current=0,cursor=0;};
 static bool GoShape(const unsigned char* b) {
-    uint32_t max=At<uint32_t>(b,16),n=At<uint32_t>(b,20),cap=At<uint32_t>(b,24),used=At<uint32_t>(b,28);
-    return Pointer(At<uint64_t>(b,0))&&cap&&cap<=4096&&used&&used<=cap&&
-        (uint64_t)max==(uint64_t)cap*65536&&n>=4&&n<=max&&used>=(n+65535ull)/65536;
+    uint32_t max=At<uint32_t>(b,ww_game_compat::ObjectArrayMaxElementsOffset),n=At<uint32_t>(b,ww_game_compat::ObjectArrayCountOffset),cap=At<uint32_t>(b,ww_game_compat::ObjectArrayMaxChunksOffset),used=At<uint32_t>(b,ww_game_compat::ObjectArrayNumChunksOffset);
+    return Pointer(At<uint64_t>(b,ww_game_compat::ObjectArrayTableOffset))&&cap&&cap<=ww_game_compat::ObjectArrayMaximumChunks&&used&&used<=cap&&
+        (uint64_t)max==(uint64_t)cap*ww_game_compat::ObjectArrayElementsPerChunk&&n>=4&&n<=max&&used>=(n+uint64_t(ww_game_compat::ObjectArrayChunkMask))/ww_game_compat::ObjectArrayElementsPerChunk;
 }
 static bool Object(Reader& r,const Go& go,uint32_t index,uint64_t& object) {
     uint64_t chunk=0;
-    return index<go.count&&r.Get(go.table+(uint64_t)(index>>16)*8,chunk)&&Pointer(chunk)&&
-        r.Get(chunk+(uint64_t)(index&65535)*24,object)&&Pointer(object);
+    return index<go.count&&r.Get(go.table+(uint64_t)(index>>ww_game_compat::ObjectArrayChunkShift)*ww_game_compat::PointerBytes,chunk)&&Pointer(chunk)&&
+        r.Get(chunk+(uint64_t)(index&ww_game_compat::ObjectArrayChunkMask)*ww_game_compat::ObjectItemBytes,object)&&Pointer(object);
 }
 static bool ValidateGo(Reader& r,uint64_t address,Go& out) {
-    unsigned char b[32];if(!r.Read(address,b,sizeof(b))||!GoShape(b))return false;
-    Go g{address,At<uint64_t>(b,0),At<uint32_t>(b,20)};int valid=0;
+    unsigned char b[ww_game_compat::ObjectArrayHeaderBytes];if(!r.Read(address,b,sizeof(b))||!GoShape(b))return false;
+    Go g{address,At<uint64_t>(b,ww_game_compat::ObjectArrayTableOffset),At<uint32_t>(b,ww_game_compat::ObjectArrayCountOffset)};int valid=0;
     for(uint32_t i=0;i<(std::min)(g.count,32u);++i) {
-        uint64_t obj=0;unsigned char h[32];
-        if(Object(r,g,i,obj)&&r.Read(obj,h,sizeof(h))&&At<uint32_t>(h,12)==i&&Pointer(At<uint64_t>(h,16)))++valid;
+        uint64_t obj=0;unsigned char h[ww_game_compat::ObjectNameOffset+ww_game_compat::PointerBytes];
+        if(Object(r,g,i,obj)&&r.Read(obj,h,sizeof(h))&&At<uint32_t>(h,ww_game_compat::ObjectIndexOffset)==i&&Pointer(At<uint64_t>(h,ww_game_compat::ObjectClassOffset)))++valid;
     }
     if(valid<3)return false;out=g;return true;
 }
 static bool Decode(Reader& r,const Pool& pool,uint32_t tagged,std::string& out) {
-    uint32_t id=tagged&0x1fffffffu,block=id>>16;
-    if(block>pool.current||block>=8192)return false;
-    uint64_t data=0;if(!r.Get(pool.blocks+(uint64_t)block*8,data)||!Pointer(data))return false;
-    uint64_t entry=data+(uint64_t)(id&65535)*4;
-    uint16_t header=0;if(!r.Get(entry+4,header))return false;
-    uint32_t length=header>>1;if(!length||length>511)return false;
+    uint32_t id=tagged&ww_game_compat::NameTaggedIndexMask,block=id>>ww_game_compat::NameBlockShift;
+    if(block>pool.current||block>=ww_game_compat::NamePoolMaximumBlocks)return false;
+    uint64_t data=0;if(!r.Get(pool.blocks+(uint64_t)block*ww_game_compat::PointerBytes,data)||!Pointer(data))return false;
+    uint64_t entry=data+(uint64_t)(id&ww_game_compat::NameBlockMask)*ww_game_compat::NameEntryStride;
+    uint16_t header=0;if(!r.Get(entry+ww_game_compat::NameEntryHeaderOffset,header))return false;
+    uint32_t length=header>>1;if(!length||length>ww_game_compat::NameMaximumCharacters)return false;
     if(!(header&1)) {
-        char text[512];if(!r.Read(entry+6,text,length))return false;
+        char text[512];if(!r.Read(entry+ww_game_compat::NameEntryTextOffset,text,length))return false;
         for(uint32_t i=0;i<length;++i)if((unsigned char)text[i]<32||(unsigned char)text[i]>126)return false;
         out.assign(text,length);return true;
     }
     wchar_t wide[512];char utf8[2048];
-    if(!r.Read(entry+6,wide,length*sizeof(wchar_t)))return false;
+    if(!r.Read(entry+ww_game_compat::NameEntryTextOffset,wide,length*sizeof(wchar_t)))return false;
     int n=WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,wide,length,utf8,sizeof(utf8),nullptr,nullptr);
     if(n<=0)return false;out.assign(utf8,n);return true;
 }
 static bool PoolShape(const unsigned char* b) {
-    uint32_t current=At<uint32_t>(b,8),cursor=At<uint32_t>(b,12);
-    return current<8192&&cursor>=16&&cursor<=0x40000&&Pointer(At<uint64_t>(b,16));
+    uint32_t current=At<uint32_t>(b,ww_game_compat::NamePoolCurrentBlockOffset),cursor=At<uint32_t>(b,ww_game_compat::NamePoolCursorOffset);
+    return current<ww_game_compat::NamePoolMaximumBlocks&&cursor>=ww_game_compat::NamePoolBlocksOffset&&cursor<=ww_game_compat::NamePoolMaximumCursor&&Pointer(At<uint64_t>(b,ww_game_compat::NamePoolBlocksOffset));
 }
 static bool ValidatePool(Reader& r,uint64_t address,Pool& out) {
-    unsigned char b[24];if(!r.Read(address,b,sizeof(b))||!PoolShape(b))return false;
-    Pool p{address,address+16,At<uint32_t>(b,8),At<uint32_t>(b,12)};std::string name;
+    unsigned char b[ww_game_compat::NamePoolHeaderBytes];if(!r.Read(address,b,sizeof(b))||!PoolShape(b))return false;
+    Pool p{address,address+ww_game_compat::NamePoolBlocksOffset,At<uint32_t>(b,ww_game_compat::NamePoolCurrentBlockOffset),At<uint32_t>(b,ww_game_compat::NamePoolCursorOffset)};std::string name;
     if(!Decode(r,p,0,name)||name!="None")return false;out=p;return true;
 }
 // A GObjects/name-pool pair is the real one when sampled objects decode to
@@ -96,10 +97,10 @@ static bool ValidatePool(Reader& r,uint64_t address,Pool& out) {
 static bool Consistent(Reader& r,const Go& go,const Pool& pool) {
     unsigned checked=0,decoded=0,metaClasses=0;
     for(uint32_t i=0;i<(std::min)(go.count,1024u)&&checked<64;++i) {
-        uint64_t obj=0;unsigned char h[48];
-        if(!Object(r,go,i,obj)||!r.Read(obj,h,sizeof(h))||At<uint32_t>(h,12)!=i)continue;
+        uint64_t obj=0;unsigned char h[ww_game_compat::ObjectHeaderBytes];
+        if(!Object(r,go,i,obj)||!r.Read(obj,h,sizeof(h))||At<uint32_t>(h,ww_game_compat::ObjectIndexOffset)!=i)continue;
         ++checked;uint32_t classId=0;std::string name,cls;
-        if(!Decode(r,pool,At<uint32_t>(h,24),name)||!r.Get(At<uint64_t>(h,16)+24,classId)||!Decode(r,pool,classId,cls))continue;
+        if(!Decode(r,pool,At<uint32_t>(h,ww_game_compat::ObjectNameOffset),name)||!r.Get(At<uint64_t>(h,ww_game_compat::ObjectClassOffset)+ww_game_compat::ObjectNameOffset,classId)||!Decode(r,pool,classId,cls))continue;
         ++decoded;if(cls=="Class"||cls=="Package"||cls=="Function"||cls=="ScriptStruct"||cls=="Enum")++metaClasses;
     }
     return checked>=4&&decoded*10>=checked*9&&metaClasses>0;
@@ -126,9 +127,9 @@ static Json ReconProcess(uint64_t image,Go* chosenGo,Pool* chosenPool) {
             if(!VirtualQuery((LPCVOID)address,&mbi,sizeof(mbi)))throw std::runtime_error("main image page query failed");
             const uint64_t stop=(std::min)(end,(uint64_t)mbi.BaseAddress+mbi.RegionSize);
             if(mbi.State!=MEM_COMMIT||!Readable(mbi.Protect)){address=stop;continue;}
-            while(address<stop) {size_t n=(size_t)(std::min)(stop-address,65536ull+32);std::vector<unsigned char> b(n);
+            while(address<stop) {size_t n=(size_t)(std::min)(stop-address,65536ull+ww_game_compat::ObjectArrayHeaderBytes);std::vector<unsigned char> b(n);
                 if(!r.Read(address,b.data(),n))throw std::runtime_error("main image read failed");
-                for(size_t off=0;off+32<=n;off+=8) {
+                for(size_t off=0;off+ww_game_compat::ObjectArrayHeaderBytes<=n;off+=ww_game_compat::PointerBytes) {
                     Go g;if(GoShape(b.data()+off)&&ValidateGo(r,address+off,g)&&std::none_of(objects.begin(),objects.end(),[&](const Go& x){return x.address==g.address;}))objects.push_back(g);
                     Pool p;if(PoolShape(b.data()+off)&&ValidatePool(r,address+off,p)&&std::none_of(names.begin(),names.end(),[&](const Pool& x){return x.address==p.address;}))names.push_back(p);
                 }

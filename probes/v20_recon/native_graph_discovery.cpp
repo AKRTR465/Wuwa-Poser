@@ -5,6 +5,8 @@
 #include "vmt_slot_patch.h"
 #include "native_graph_discovery.h"
 #include "native_animation_target_config.h"
+#include "game_compat_witness.h"
+#include "../../runtime/generated/GameCompat.generated.h"
 #include <atomic>
 #include <array>
 #include <filesystem>
@@ -12,6 +14,7 @@
 
 namespace graph_carrier {
 namespace ng=native_graph_discovery;
+namespace compat=ww_game_compat;namespace witness=ww_game_compat_witness;
 using Fn2=void(*)(void*,void*);using Fn3=void(*)(void*,void*,void*);
 static const char kBuild[]="c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18";
 static HMODULE selfModule=nullptr;static volatile LONG started=0;
@@ -23,8 +26,8 @@ static std::atomic<uint64_t> unreadableTarget{0};
 static bool rootLayoutVerified=false;
 static std::vector<std::string> referenceBoneNames;
 static Json rootSetJson=Json::array(); // Worker-only decoded cache, after quiescence.
-static constexpr uint64_t kRootRvas[]={0xa40710,0xa3fc60};
-static constexpr unsigned kRootBytes[]={315,2458};
+static constexpr uint64_t kRootRvas[]={compat::FunctionGroupInitializeBoneReferencesRva,compat::FunctionGroupInitializeModifyBonesRva};
+static constexpr unsigned kRootBytes[]={compat::FunctionGroupInitializeBoneReferencesBytes,compat::FunctionGroupInitializeModifyBonesBytes};
 static bool Read(uint64_t address,void* out,size_t bytes) noexcept {
     if(!ng::Range(address,bytes))return false;SIZE_T got=0;
     return ReadProcessMemory(GetCurrentProcess(),reinterpret_cast<void*>(address),out,bytes,&got)&&got==bytes;
@@ -71,12 +74,13 @@ static void SingleBase(void* n,void* c){Detour(4,n,c,nullptr);}
 static void* DetourAddress(unsigned i){switch(i){case 0:return reinterpret_cast<void*>(&L2C);case 1:return reinterpret_cast<void*>(&GroupBase);
     case 2:return reinterpret_cast<void*>(&GroupUpdate);case 3:return reinterpret_cast<void*>(&GroupEvaluate);default:return reinterpret_cast<void*>(&SingleBase);}}
 static void* OriginalAddress(unsigned i){return ng::kSpecs[i].arity==2?reinterpret_cast<void*>(originals2[i]):reinterpret_cast<void*>(originals3[i]);}
-static uint64_t Address(const Json& j){return std::stoull(j.get<std::string>(),nullptr,16);}
+static uint64_t Address(const Json& j){uint64_t parsed=0;std::string error;
+    if(!j.is_string()||!ww_game_compat_resolution::ParseHexU64(j.get<std::string>(),parsed,error))throw std::runtime_error("invalid hexadecimal address: "+error);return parsed;}
 struct Config {
     unsigned duration_ms=5000,node_limit=ng::kNodes,frame_limit=ng::kFrames;
     uint64_t go_rva=0,pool_rva=0;std::string profile,skeleton_sha;
     unsigned bone_count=0;std::vector<std::string> bone_names;std::vector<int32_t> parents;
-    bool root_witnesses_present=false;
+    Json function_witnesses,root_witnesses;
 };
 static Config ParseConfig(const Json& j){Config c;
     const auto& d=j.at("native_graph_discovery");
@@ -84,20 +88,21 @@ static Config ParseConfig(const Json& j){Config c;
     c.go_rva=Address(j.at("gobjects_rva"));c.pool_rva=Address(j.at("name_pool_rva"));c.profile=j.at("character_profile_id");c.bone_count=j.at("expected_bone_count");
     c.skeleton_sha=j.at("expected_skeleton_sha256");
     c.bone_names=j.at("expected_bone_names").get<std::vector<std::string>>();c.parents=j.at("expected_bone_parents").get<std::vector<int32_t>>();
-    c.root_witnesses_present=d.contains("root_layout_witnesses");
+    c.function_witnesses=d.at("function_witnesses");c.root_witnesses=d.at("root_layout_witnesses");
+    if(!c.bone_count||c.bone_count>ng::kBones||c.parents.size()!=c.bone_count||c.bone_names.size()!=c.bone_count)throw std::runtime_error("reference topology bounds differ");
     return c;
 }
 static bool FullName(Reader& r,const Pool& pool,const std::array<uint32_t,3>& words,std::string& value){
     if(!Decode(r,pool,words[0],value)||value.empty())return false;if(words[2])value+="_"+std::to_string(words[2]-1);return true;
 }
-static std::array<uint32_t,3> NameWords(const ng::Token& t){return {{ng::Get<uint32_t>(t.header.data(),24),ng::Get<uint32_t>(t.header.data(),28),ng::Get<uint32_t>(t.header.data(),32)}};}
+static std::array<uint32_t,3> NameWords(const ng::Token& t){return {{ng::Get<uint32_t>(t.header.data(),compat::ObjectNameOffset),ng::Get<uint32_t>(t.header.data(),compat::ObjectNameOffset+compat::NameWordBytes),ng::Get<uint32_t>(t.header.data(),compat::ObjectNameOffset+compat::NameNumberOffset)}};}
 static Json TokenJson(Reader& r,const Pool& pool,const ng::Token& t){
     std::string name,className;ng::Token classToken;const bool named=FullName(r,pool,NameWords(t),name);
     const bool classRead=ng::CaptureToken(Read,binding.go,ng::Class(t),classToken,false);const bool classNamed=classRead&&FullName(r,pool,NameWords(classToken),className);
     return {{"address",Hex(t.address)},{"item_address",Hex(t.item)},{"index",ng::Index(t)},{"serial",ng::Serial(t)},
         {"class_address",Hex(ng::Class(t))},{"class",className},{"class_name",className},{"class_name_verified",classNamed},
-        {"outer_address",Hex(ng::Get<uint64_t>(t.header.data(),40))},{"vtable",Hex(ng::Get<uint64_t>(t.header.data(),0))},
-        {"object_flags",ng::Get<uint32_t>(t.header.data(),8)},{"item_flags",ng::Get<uint32_t>(t.item_bytes.data(),8)},
+        {"outer_address",Hex(ng::Get<uint64_t>(t.header.data(),compat::ObjectOuterOffset))},{"vtable",Hex(ng::Get<uint64_t>(t.header.data(),compat::ObjectVtableOffset))},
+        {"object_flags",ng::Get<uint32_t>(t.header.data(),compat::ObjectFlagsOffset)},{"item_flags",ng::Get<uint32_t>(t.item_bytes.data(),compat::ObjectItemFlagsOffset)},
         {"name",name},{"name_verified",named},{"name_words",NameWords(t)},{"class_name_words",classRead?Json(NameWords(classToken)):Json(nullptr)},
         {"identity_rechecked",true},{"strong_identity",ng::Serial(t)!=0}};
 }
@@ -116,20 +121,20 @@ static ng::Binding Bind(Reader& r,const Pool& pool,const Go& go,const Config& c,
     capture("mesh",Address(cfg.at("object")),b.mesh);capture("actor",Address(cfg.at("outer_address")),b.pawn);
     if(native_animation_target_config::Policy(cfg)==native_animation_target::OwnerPolicy::ControlledPlayer)capture("controller",Address(cfg.at("controller_address")),b.controller);
     uint64_t asset=0,skeleton=0,main=0;
-    if(!Read(b.mesh.address+0x5d0,&asset,8)||!Read(asset+0xd8,&skeleton,8)||!Read(b.mesh.address+0x910,&main,8))throw std::runtime_error("main/assets unavailable");
+    if(!Read(b.mesh.address+compat::ComponentAssetOffset,&asset,compat::PointerBytes)||!Read(asset+compat::AssetSkeletonOffset,&skeleton,compat::PointerBytes)||!Read(b.mesh.address+compat::ComponentMainAnimOffset,&main,compat::PointerBytes))throw std::runtime_error("main/assets unavailable");
     capture("mesh_asset",asset,b.mesh_asset);capture("skeleton_asset",skeleton,b.skeleton_asset);capture("main_anim",main,b.main_anim);
     b.authority=native_animation_target_config::Parse(cfg,b.pawn,b.mesh,b.mesh_asset,b.skeleton_asset,b.main_anim);
-    ng::ArrayHead h;std::vector<uint8_t> rows(size_t(c.bone_count)*16);
-    if(!Read(asset+0x3b8,&h,16)||h.num!=int32_t(c.bone_count)||!Read(h.data,rows.data(),rows.size()))throw std::runtime_error("reference table unavailable");
-    for(unsigned i=0;i<c.bone_count;++i){const uint8_t* p=rows.data()+i*16;std::array<uint32_t,3> words{{ng::Get<uint32_t>(p,0),ng::Get<uint32_t>(p,4),ng::Get<uint32_t>(p,8)}};std::string bone;
-        if(!FullName(r,pool,words,bone)||bone!=c.bone_names[i]||ng::Get<int32_t>(p,12)!=c.parents[i])throw std::runtime_error("full reference topology differs");}
+    ng::ArrayHead h;std::vector<uint8_t> rows(size_t(c.bone_count)*compat::ReferenceBoneInfoBytes);
+    if(!Read(asset+compat::AssetRefBoneInfoOffset,&h,sizeof(h))||h.num!=int32_t(c.bone_count)||!Read(h.data,rows.data(),rows.size()))throw std::runtime_error("reference table unavailable");
+    for(unsigned i=0;i<c.bone_count;++i){const uint8_t* p=rows.data()+i*compat::ReferenceBoneInfoBytes;std::array<uint32_t,3> words{{ng::Get<uint32_t>(p,0),ng::Get<uint32_t>(p,compat::NameWordBytes),ng::Get<uint32_t>(p,compat::NameNumberOffset)}};std::string bone;
+        if(!FullName(r,pool,words,bone)||bone!=c.bone_names[i]||ng::Get<int32_t>(p,compat::ReferenceBoneParentOffset)!=c.parents[i])throw std::runtime_error("full reference topology differs");}
     return b;
 }
 static Json HeadJson(const ng::ArrayHead& h){return {{"data",Hex(h.data)},{"num",h.num},{"capacity",h.capacity}};}
 static Json RootJson(Reader& r,const Pool& pool,const ng::RootSnapshot& roots){
     Json names=Json::array(),wordsList=Json::array(),indices=Json::array();bool decoded=roots.read&&roots.roots.num>0;
     if(roots.read)for(int32_t i=0;i<roots.roots.num;++i){const auto* row=roots.bytes.data()+size_t(i)*ng::kRootStride;
-        const std::array<uint32_t,3> words{{ng::Get<uint32_t>(row,0),ng::Get<uint32_t>(row,4),ng::Get<uint32_t>(row,8)}};
+        const std::array<uint32_t,3> words{{ng::Get<uint32_t>(row,0),ng::Get<uint32_t>(row,compat::NameWordBytes),ng::Get<uint32_t>(row,compat::NameNumberOffset)}};
         std::string name;const bool named=FullName(r,pool,words,name);const auto found=std::find(referenceBoneNames.begin(),referenceBoneNames.end(),name);
         const bool matched=named&&found!=referenceBoneNames.end();decoded=decoded&&matched;wordsList.push_back(words);names.push_back(named?Json(name):Json(nullptr));
         indices.push_back(matched?Json(size_t(found-referenceBoneNames.begin())):Json(nullptr));
@@ -155,7 +160,7 @@ static Json PhaseJson(Reader& r,const Pool& pool,const ng::Phase& p,unsigned hoo
     std::string curve;const bool named=fields&&FullName(r,pool,p.curve_name_words,curve);
     j["node_fields"]={{"verified",fields},{"alpha",fields&&std::isfinite(p.alpha)?Json(p.alpha):Json(nullptr)},{"alpha_type",fields?Json(p.alpha_type):Json(nullptr)},
         {"delta",fields&&std::isfinite(p.delta)?Json(p.delta):Json(nullptr)},{"update_delta",hook==unsigned(ng::Kind::GroupUpdate)&&std::isfinite(p.update_delta)?Json(p.update_delta):Json(nullptr)},
-        {"curve_name_offset","0x88"},{"curve_name_offset_verified",fields},{"curve_name_words",fields?Json(p.curve_name_words):Json(nullptr)},
+        {"curve_name_offset",Hex(compat::CurveNameOffset)},{"curve_name_offset_verified",fields},{"curve_name_words",fields?Json(p.curve_name_words):Json(nullptr)},
         {"curve_name",named?Json(curve):Json(nullptr)},{"curve_name_decoded",named},{"curve_semantically_active",fields&&p.alpha_type==2}};
     j["node_fields"]["root_bones"]=Json::array();j["node_fields"]["root_bones_verified"]=false;
     j["node_fields"]["root_bones_reason"]=rootLayoutVerified?"root_snapshot_unavailable":"layout_not_verified";
@@ -205,37 +210,55 @@ static DWORD WINAPI Worker(LPVOID){
     Json report={{"schema",1},{"kind","native_graph_discovery"},{"phase","discovery"},{"status","error"},{"pid",GetCurrentProcessId()},
         {"readonly_animation",true},{"pose_writes",0},{"alpha_writes",0},{"native_update_calls",0},{"engine_getter_calls",0},{"vtable_writes_only",true},
         {"dll_retained_until_process_exit",true},{"hooks",Json::array()},{"identity_stable",false},{"all_hooks_restored",true},{"callbacks_quiescent",false},
-        {"truncated",false},{"reasons",Json::array()},{"scope","Executed callbacks in one bounded frame window; unexecuted branches are not covered."}};
-    std::array<v20_vmt_slot_patch::State,ng::kHooks> patches{};Pool pool;bool bound=false,ran=false;Json cfg;Config config;
+        {"truncated",false},{"reasons",Json::array()},{"scope","Executed callbacks in one bounded frame window; unexecuted branches are not covered."},
+        {"compatibility_profile",compat::ProfileId},{"compatibility_source_sha256",compat::SourceSha256},
+        {"checks_performed",Json::array()},{"root_layout_verified",false},{"game_image_sha256_verified",false}};
+    std::array<v20_vmt_slot_patch::State,ng::kHooks> patches{};std::array<uint64_t,ng::kHooks> hookSlots{};Pool pool;bool bound=false,ran=false;Json cfg;Config config;
     try{
         std::filesystem::create_directories(directory/L"logs");Save(statusPath,report);
         // Recovery publishes stop before checking this atomic marker. A late
         // worker must announce itself, then honor stop before touching targets.
         if(std::filesystem::exists(directory/L"stop.flag"))throw std::runtime_error("observer cancelled before target access");
         std::ifstream input(configPath,std::ios::binary);input>>cfg;
+        std::string verificationError;
+        if(!witness::CompatibleSource(cfg,compat::ProfileId,compat::SourceSha256,report["checks_performed"],verificationError))throw std::runtime_error(verificationError);
         config=ParseConfig(cfg);report["host_sha256"]=kBuild;
         MODULEINFO module{};if(!GetModuleInformation(GetCurrentProcess(),GetModuleHandleW(nullptr),&module,sizeof(module)))throw std::runtime_error("main module unavailable");
         const uint64_t image=reinterpret_cast<uint64_t>(module.lpBaseOfDll);report["image_base"]=Hex(image);
-        Reader reader{GetCurrentProcess()};Go go;if(!ValidateGo(reader,image+config.go_rva,go)||!ValidatePool(reader,image+config.pool_rva,pool))throw std::runtime_error("fresh anchors invalid");
+        std::vector<witness::Function> hookFunctions;
+        for(const auto& spec:ng::kSpecs)if(std::none_of(hookFunctions.begin(),hookFunctions.end(),[&](const witness::Function& value){return value.rva==spec.function_rva;}))
+            hookFunctions.push_back({spec.name,spec.function_rva,spec.function_bytes});
+        if(!witness::VerifyFunctions(Read,image,module.SizeOfImage,config.function_witnesses,hookFunctions,report["checks_performed"],"graph_hooks",verificationError))throw std::runtime_error(verificationError);
+        const std::vector<witness::Function> rootFunctions={
+            {"GroupInitializeBoneReferences",kRootRvas[0],kRootBytes[0]},
+            {"GroupInitializeModifyBones",kRootRvas[1],kRootBytes[1]}};
+        if(!witness::VerifyFunctions(Read,image,module.SizeOfImage,config.root_witnesses,rootFunctions,report["checks_performed"],"graph_root_layout",verificationError))throw std::runtime_error(verificationError);
+        rootLayoutVerified=true;report["root_layout_verified"]=true;
+        uint64_t goAddress=0,poolAddress=0;
+        if(!ww_game_compat_resolution::ResolveImageAddress(image,module.SizeOfImage,config.go_rva,compat::ObjectArrayHeaderBytes,goAddress)||
+           !ww_game_compat_resolution::ResolveImageAddress(image,module.SizeOfImage,config.pool_rva,compat::NamePoolHeaderBytes,poolAddress))throw std::runtime_error("graph anchor RVA out of image");
+        Reader reader{GetCurrentProcess()};Go go;if(!ValidateGo(reader,goAddress,go)||!ValidatePool(reader,poolAddress,pool))throw std::runtime_error("fresh anchors invalid");
         binding=Bind(reader,pool,go,config,cfg,image);bound=true;report["identity_before"]=BindingJson(reader,pool,binding);
         referenceBoneNames=config.bone_names;
         report["profile_id"]=config.profile;report["bone_count"]=config.bone_count;report["skeleton_sha256"]=config.skeleton_sha;report["watch_mesh"]=Hex(binding.mesh.address);
         report["reference_bone_names"]=config.bone_names;report["reference_bone_parents"]=config.parents;
         recorder.node_limit=config.node_limit;recorder.frame_limit=config.frame_limit;
-        report["root_layout_witnesses"]=Json::array();
-        if(config.root_witnesses_present){for(unsigned i=0;i<2;++i)report["root_layout_witnesses"].push_back({{"rva",Hex(kRootRvas[i])},{"witness_bytes",kRootBytes[i]}});
-            rootLayoutVerified=true;}
-        report["root_layout_verified"]=rootLayoutVerified;
+        report["evidence"]["root_layout_witnesses"]=Json::array();
+        for(unsigned i=0;i<2;++i)report["evidence"]["root_layout_witnesses"].push_back({{"rva",Hex(kRootRvas[i])},{"witness_bytes",kRootBytes[i]}});
         for(unsigned i=0;i<ng::kHooks;++i){const auto& s=ng::kSpecs[i];uint64_t original=0;
-            if(!Read(image+s.vtable_rva+s.slot_bytes,&original,8)||original!=image+s.function_rva)throw std::runtime_error("fixed hook slot differs");
+            const bool inImage=s.vtable_rva<module.SizeOfImage&&s.slot_bytes<=module.SizeOfImage-s.vtable_rva&&
+                ww_game_compat_resolution::ResolveImageAddress(image,module.SizeOfImage,s.vtable_rva+s.slot_bytes,compat::PointerBytes,hookSlots[i]);
+            const bool read=inImage&&Read(hookSlots[i],&original,compat::PointerBytes),matched=read&&original==image+s.function_rva;
+            report["checks_performed"].push_back({{"kind","vtable_slot"},{"label",s.name},{"performed",inImage},{"read_succeeded",read},{"matched",matched}});
+            if(!matched)throw std::runtime_error("fixed hook slot differs");
             if(s.arity==2)originals2[i]=reinterpret_cast<Fn2>(original);else originals3[i]=reinterpret_cast<Fn3>(original);
             report["hooks"].push_back({{"kind",s.name},{"node_kind",s.node_kind},{"rva",Hex(s.function_rva)},{"vtable_rva",Hex(s.vtable_rva)},
                 {"slot_bytes",s.slot_bytes},{"witness_bytes",s.function_bytes},{"arity",s.arity}});
         }
         // Enable capture only after every required hook is installed, so a
         // recorded frame cannot silently omit a not-yet-installed category.
-        for(unsigned i=0;i<ng::kHooks;++i){const auto& s=ng::kSpecs[i];const auto o=v20_vmt_slot_patch::Install(patches[i],
-            reinterpret_cast<void**>(image+s.vtable_rva+s.slot_bytes),OriginalAddress(i),DetourAddress(i));report["hooks"][i]["install"]=Outcome(o);
+        for(unsigned i=0;i<ng::kHooks;++i){const auto o=v20_vmt_slot_patch::Install(patches[i],
+            reinterpret_cast<void**>(hookSlots[i]),OriginalAddress(i),DetourAddress(i));report["hooks"][i]["install"]=Outcome(o);
             if(o.code!=v20_vmt_slot_patch::Code::Ok)throw std::runtime_error("hook installation refused");}
         observing.store(true,std::memory_order_release);ran=true;report["status"]="observing";Save(statusPath,report);
         const auto begin=GetTickCount64();while(GetTickCount64()-begin<config.duration_ms&&!recorder.window_closed.load()&&

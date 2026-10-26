@@ -1,4 +1,5 @@
 #pragma once
+#include "../runtime/generated/GameCompat.generated.h"
 // Fixed caller-owned storage. No helper heap allocation; native UE insertion
 // may allocate normally. Caller owns the game-thread phase.
 #include "ww_face_snapshot.h"
@@ -7,7 +8,7 @@ namespace fs=face_snapshot;
 struct Prepared {
     fs::Manifest snapshot;
     uint32_t count=0;
-    std::array<std::array<uint32_t,3>,fs::kMaxMorphs> names{};
+    std::array<std::array<uint32_t,ww_game_compat::NameWordCount>,fs::kMaxMorphs> names{};
     std::array<uint8_t,fs::kMaxMorphs> mapped{};
 };
 struct Backup {bool originally_present=false,pending=false;float original=0,last_written=0;};
@@ -24,11 +25,11 @@ struct State {
 struct Scratch {
     MapSnapshot map;
     std::array<uint8_t,fs::kMaxHeader> header{};
-    std::array<uint8_t,fs::kMaxSlots*24> payload{};
+    std::array<uint8_t,fs::kMaxSlots*ww_game_compat::MorphMapRowBytes> payload{};
     std::array<uint8_t,fs::kMaxSlots/8> bits{};
-    std::array<uint8_t,24> row{};
+    std::array<uint8_t,ww_game_compat::MorphMapRowBytes> row{};
 };
-inline bool Key(const std::array<uint32_t,3>& a,const std::array<uint32_t,3>& b){return a[0]==b[0]&&a[2]==b[2];}
+inline bool Key(const std::array<uint32_t,ww_game_compat::NameWordCount>& a,const std::array<uint32_t,ww_game_compat::NameWordCount>& b){return a[0]==b[0]&&a[ww_game_compat::NameNumberOffset/ww_game_compat::NameWordBytes]==b[ww_game_compat::NameNumberOffset/ww_game_compat::NameWordBytes];}
 inline bool Close(float a,float b){return std::isfinite(a)&&std::isfinite(b)&&std::fabs(a-b)<=1e-5f;}
 inline bool Pending(const State& state){for(uint32_t i=0;i<state.count&&i<fs::kMaxMorphs;++i)if(state.backup[i].pending)return true;return false;}
 namespace detail {
@@ -48,15 +49,15 @@ template<class Reader>bool Bits(Reader& r,const fs::SparseMapLayout& l,const Map
     if(head.heap)return r.Read(head.heap,out,bytes);std::memcpy(out,header+l.allocation_inline,bytes);return true;
 }
 inline void Weight(const uint8_t* row,fs::Weight& out){
-    for(unsigned k=0;k<3;++k)out.name[k]=fs::detail::U32(row+k*4);
-    const uint32_t raw=fs::detail::U32(row+12);std::memcpy(&out.value,&raw,4);
+    for(unsigned k=0;k<ww_game_compat::NameWordCount;++k)out.name[k]=fs::detail::U32(row+k*ww_game_compat::NameWordBytes);
+    const uint32_t raw=fs::detail::U32(row+ww_game_compat::MorphMapWeightOffset);std::memcpy(&out.value,&raw,sizeof(out.value));
 }
-template<class Reader>bool MapValue(Reader& r,const Prepared& p,Scratch& s,const std::array<uint32_t,3>& key,float& value,bool& exists){
+template<class Reader>bool MapValue(Reader& r,const Prepared& p,Scratch& s,const std::array<uint32_t,ww_game_compat::NameWordCount>& key,float& value,bool& exists){
     const auto& m=p.snapshot;const auto& l=m.map;MapHead head;value=0;exists=false;
     if(!r.Read(m.expected_mesh.address+m.map_offset,s.header.data(),l.header_bytes)||!Header(l,s.header.data(),head)||
         !Bits(r,l,head,s.header.data(),s.bits.data()))return false;
     for(uint32_t i=0;i<head.slots;++i)if(s.bits[i/8]&(1u<<(i%8))){fs::Weight weight;
-        if(!r.Read(head.data+uint64_t(i)*24,s.row.data(),24))return false;Weight(s.row.data(),weight);
+        if(!r.Read(head.data+uint64_t(i)*ww_game_compat::MorphMapRowBytes,s.row.data(),ww_game_compat::MorphMapRowBytes))return false;Weight(s.row.data(),weight);
         if(Key(weight.name,key)){exists=true;value=weight.value;return true;}
     }
     return true;
@@ -72,11 +73,11 @@ template<class Reader>bool ObserveMap(Reader& reader,const Prepared& prepared,Sc
     if(!reader.Read(m.expected_mesh.address+m.map_offset,out->raw_map_header.data(),l.header_bytes)||
         !detail::Header(l,out->raw_map_header.data(),head)||!detail::Bits(reader,l,head,out->raw_map_header.data(),s.bits.data()))return false;
     out->weight_count=0;
-    const size_t bytes=size_t(head.slots)*24;if(bytes&&!reader.Read(head.data,s.payload.data(),bytes))return false;
-    for(uint32_t i=0;i<head.slots;++i)if(s.bits[i/8]&(1u<<(i%8)))detail::Weight(s.payload.data()+i*24,out->weights[out->weight_count++]);
+    const size_t bytes=size_t(head.slots)*ww_game_compat::MorphMapRowBytes;if(bytes&&!reader.Read(head.data,s.payload.data(),bytes))return false;
+    for(uint32_t i=0;i<head.slots;++i)if(s.bits[i/8]&(1u<<(i%8)))detail::Weight(s.payload.data()+i*ww_game_compat::MorphMapRowBytes,out->weights[out->weight_count++]);
     return true;
 }
-inline void Value(const MapSnapshot& snap,const std::array<uint32_t,3>& key,float& value,bool& exists){
+inline void Value(const MapSnapshot& snap,const std::array<uint32_t,ww_game_compat::NameWordCount>& key,float& value,bool& exists){
     for(uint32_t i=0;i<snap.weight_count;++i)if(Key(snap.weights[i].name,key)){value=snap.weights[i].value;exists=true;return;}
     value=0;exists=false;
 }

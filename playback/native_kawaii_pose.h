@@ -1,4 +1,5 @@
 #pragma once
+#include "../runtime/generated/GameCompat.generated.h"
 // Detached helpers for the native Kawaii input adapter. Raw address reading,
 // writing and native getter execution belong to the caller, which runs on the
 // live evaluation thread inside the selected converter callback.
@@ -9,14 +10,14 @@
 
 namespace wwp_playback { namespace native_kawaii {
 constexpr uint32_t kLimit = 1024;
-using Transform = std::array<uint8_t, 48>;
+using Transform = std::array<uint8_t, ww_game_compat::TransformBytes>;
 struct ArrayHeader { uintptr_t data=0; int32_t num=0, capacity=0; };
-static_assert(sizeof(ArrayHeader)==16, "x64 TArray header required");
+static_assert(sizeof(ArrayHeader)==ww_game_compat::TArrayHeaderBytes, "x64 TArray header required");
 
 struct Layout {
-    uint32_t proxy=0, pose=8, transforms=8, extra_vectors=0x18;
-    uint32_t extra_vectors_active=0x28, bone_container=0x30, flags=0x38;
-    uint32_t proxy_mesh=0xc0, skeleton_to_compact=0x80, compact_parents=0x90;
+    uint32_t proxy=ww_game_compat::AnimContextProxyOffset, pose=ww_game_compat::AnimContextPoseOffset, transforms=ww_game_compat::AnimContextTransformsOffset, extra_vectors=ww_game_compat::AnimContextExtraVectorsOffset;
+    uint32_t extra_vectors_active=ww_game_compat::AnimContextExtraVectorsActiveOffset, bone_container=ww_game_compat::AnimContextBoneContainerOffset, flags=ww_game_compat::AnimContextFlagsOffset;
+    uint32_t proxy_mesh=ww_game_compat::AnimProxyMeshOffset, skeleton_to_compact=ww_game_compat::BoneContainerSkeletonToCompactOffset, compact_parents=ww_game_compat::BoneContainerCompactParentsOffset;
 };
 enum class Error {
     none, unreadable, bad_count, pointer_mismatch, extra_channel_unsupported, bad_mapping, getter_failed
@@ -33,7 +34,7 @@ struct Snapshot {
 };
 inline bool Header(const ArrayHeader& a, uint32_t count) { return a.data && a.num==static_cast<int32_t>(count); }
 inline bool ExtraVectorsAbsent(const ArrayHeader& a, uint8_t mode) {
-    // L2C (0x4e0ba10) clears/copies this array independently of the mode byte;
+    // Local-to-component conversion clears/copies this array independently of the mode byte;
     // only the canonical null array is supported.
     return mode<=1 && a.data==0 && a.num==0 && a.capacity==0;
 }

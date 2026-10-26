@@ -35,6 +35,8 @@ static void CallOwned(owned::Action action){
         // for every operation, so a rejected second session cannot strand the
         // first session's pending Stop/CheckReleased operations.
     util::Require(SetEnvironmentVariableW(L"WWPOSER_OWNED_SESSION_DIR",caller_directory.c_str())!=0,"actor session environment binding failed");
+    util::Require(SetEnvironmentVariableA("WWPOSER_EXPECTED_COMPAT_PROFILE",ww_game_compat::ProfileId)!=0&&
+        SetEnvironmentVariableA("WWPOSER_EXPECTED_COMPAT_SOURCE_SHA256",ww_game_compat::SourceSha256)!=0,"actor compatibility environment binding failed");
     bridge.Run(caller_helper,action);
 }
 static bool Invoke(owned::Action action){
@@ -69,8 +71,13 @@ static DWORD WINAPI Worker(LPVOID){
     try{
         const auto mmd=ReadJson(dir/L"owned_mmd_config.json");display_requested=mmd.at("duration_ms");
         const auto layout=ReadJson(dir/L"owned_mmd_layout.json");const auto host=reinterpret_cast<Address>(GetModuleHandleW(nullptr));
-        util::Require(*reinterpret_cast<const uint32_t*>(host+ww_object::Rva(layout.at("registered_game_thread_id_rva")))==config.thread&&
-            *reinterpret_cast<const uint8_t*>(host+ww_object::Rva(layout.at("registered_game_thread_initialized_rva")))==1,"selected window thread is not registered GameThread");
+        util::Require(layout.value("compatibility_profile",std::string())==ww_game_compat::ProfileId&&
+            layout.value("compatibility_source_sha256",std::string())==ww_game_compat::SourceSha256,"runtime layout and compiled compatibility profile differ; rebuild the runtime package");
+        out["compatibility_profile"]=ww_game_compat::ProfileId;out["compatibility_source_sha256"]=ww_game_compat::SourceSha256;
+        Reader threadReader{GetCurrentProcess()};uint32_t registeredThread=0;uint8_t threadInitialized=0;
+        util::Require(threadReader.Get(host+ww_object::Rva(layout.at("registered_game_thread_id_rva")),registeredThread)&&
+            threadReader.Get(host+ww_object::Rva(layout.at("registered_game_thread_initialized_rva")),threadInitialized)&&
+            registeredThread==config.thread&&threadInitialized==1,"selected window thread is not registered GameThread");
         calls_ready.store(true,std::memory_order_release);
         run(owned::Action::BeginTarget);began=bridge.BeginEntered();
         while(!(loaded=dispatch(owned::Action::CheckLoaded))&&!Cancelled())Sleep(1000);

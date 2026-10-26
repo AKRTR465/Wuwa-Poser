@@ -17,6 +17,7 @@ static void Save(string path, JsonObject value) { var next = path + ".next"; Fil
 static JsonObject Timeline(string mode = "playing") => new() { ["clip_epoch"] = 123UL, ["last_sequence"] = 0UL, ["session_active"] = true, ["mode"] = mode, ["seconds"] = 2d, ["duration_seconds"] = 10d, ["speed"] = 1d, ["loop"] = false, ["restore_requested"] = false };
 var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(fixture);
+assertions += GameCompatibilityChecks.Run(fixture);
 var compilerWorkspace = Path.Combine(fixture, "compiler-cache");
 Directory.CreateDirectory(Path.Combine(compilerWorkspace, "data", "characters"));
 Directory.CreateDirectory(Path.Combine(compilerWorkspace, "tools", "mmd_outputs"));

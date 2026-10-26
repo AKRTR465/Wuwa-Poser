@@ -1,4 +1,5 @@
 #pragma once
+#include "../../runtime/generated/GameCompat.generated.h"
 // Allocation-free observation helpers. Read callbacks never materialize a pose
 // or invoke engine getters. Caller owns hook lifetime.
 #include <array>
@@ -10,38 +11,38 @@
 
 namespace native_graph_discovery {
 constexpr unsigned kNodes=128,kFrames=8,kEvents=8192,kMappings=128,kBones=1024,kHooks=5;
-constexpr unsigned kRoots=128,kRootSets=256,kRootStride=20;
-constexpr uint64_t kTop=0x800000000000ull;
+constexpr unsigned kRoots=128,kRootSets=256,kRootStride=ww_game_compat::KawaiiRootBytes;
+constexpr uint64_t kTop=ww_game_compat::PointerMaximum;
 enum class Kind:unsigned {LocalToComponent,GroupBaseCS,GroupUpdate,GroupEvaluate,SingleBaseCS};
 struct HookSpec {const char* name;const char* node_kind;uint64_t vtable_rva,function_rva;unsigned slot_bytes,function_bytes,arity;};
 constexpr HookSpec kSpecs[kHooks]={
-    {"local_to_component","local_to_component",0x83ec178,0x4e0ba10,0x20,542,2},
-    {"group_base_cs","kawaii_group",0x7405e28,0x49a34d0,0x20,253,2},
-    {"group_update","kawaii_group",0x7405e28,0x49dd440,0x10,461,2},
-    {"group_evaluate","kawaii_group",0x7405e28,0xa3db40,0x118,427,3},
-    {"single_base_cs","kawaii_single",0x7405cf0,0x49a34d0,0x20,253,2}
+    {"local_to_component","local_to_component",ww_game_compat::VtableLocalToComponentRva,ww_game_compat::FunctionLocalToComponentRva,ww_game_compat::SlotLocalToComponentEvaluateCS,ww_game_compat::FunctionLocalToComponentBytes,2},
+    {"group_base_cs","kawaii_group",ww_game_compat::VtableKawaiiPhysicsGroupRva,ww_game_compat::FunctionSharedSkeletalControlEvaluateCSRva,ww_game_compat::SlotSkeletalControlEvaluateCS,ww_game_compat::FunctionSharedSkeletalControlEvaluateCSBytes,2},
+    {"group_update","kawaii_group",ww_game_compat::VtableKawaiiPhysicsGroupRva,ww_game_compat::FunctionSharedSkeletalControlUpdateRva,ww_game_compat::SlotSkeletalControlUpdate,ww_game_compat::FunctionSharedSkeletalControlUpdateBytes,2},
+    {"group_evaluate","kawaii_group",ww_game_compat::VtableKawaiiPhysicsGroupRva,ww_game_compat::FunctionGroupEvaluateRva,ww_game_compat::SlotKawaiiGroupEvaluate,ww_game_compat::FunctionGroupEvaluateBytes,3},
+    {"single_base_cs","kawaii_single",ww_game_compat::VtableKawaiiPhysicsSingleRva,ww_game_compat::FunctionSharedSkeletalControlEvaluateCSRva,ww_game_compat::SlotSkeletalControlEvaluateCS,ww_game_compat::FunctionSharedSkeletalControlEvaluateCSBytes,2}
 };
 template<class T> inline T Get(const uint8_t* p,unsigned off){T v{};std::memcpy(&v,p+off,sizeof(v));return v;}
-inline bool Range(uint64_t address,size_t bytes){return bytes&&address>=0x10000&&address<kTop&&bytes<=kTop-address;}
+inline bool Range(uint64_t address,size_t bytes){return bytes&&address>=ww_game_compat::PointerMinimum&&address<kTop&&bytes<=kTop-address;}
 struct GoView {uint64_t table=0;uint32_t count=0;};
-struct Token {uint64_t address=0,item=0;std::array<uint8_t,48> header{};std::array<uint8_t,24> item_bytes{};};
-inline uint32_t Index(const Token& t){return Get<uint32_t>(t.header.data(),12);}
-inline uint32_t Serial(const Token& t){return Get<uint32_t>(t.item_bytes.data(),16);}
-inline uint64_t Class(const Token& t){return Get<uint64_t>(t.header.data(),16);}
+struct Token {uint64_t address=0,item=0;std::array<uint8_t,ww_game_compat::ObjectHeaderBytes> header{};std::array<uint8_t,ww_game_compat::ObjectItemBytes> item_bytes{};};
+inline uint32_t Index(const Token& t){return Get<uint32_t>(t.header.data(),ww_game_compat::ObjectIndexOffset);}
+inline uint32_t Serial(const Token& t){return Get<uint32_t>(t.item_bytes.data(),ww_game_compat::ObjectItemSerialOffset);}
+inline uint64_t Class(const Token& t){return Get<uint64_t>(t.header.data(),ww_game_compat::ObjectClassOffset);}
 inline bool Same(const Token& a,const Token& b){return a.address==b.address&&a.item==b.item&&a.header==b.header&&a.item_bytes==b.item_bytes;}
 template<class Read> bool CaptureToken(Read&& read,const GoView& go,uint64_t address,Token& t,bool strong=true){
     Token v;v.address=address;uint64_t chunk=0;
-    if(!Range(address,48)||!read(address,v.header.data(),48)||Index(v)>=go.count||
-       !Range(Class(v),48)||(Get<uint32_t>(v.header.data(),8)&0x18000u)||
-       !read(go.table+uint64_t(Index(v)>>16)*8,&chunk,8)||!Range(chunk,24))return false;
-    v.item=chunk+uint64_t(Index(v)&65535)*24;
-    if(!read(v.item,v.item_bytes.data(),24)||Get<uint64_t>(v.item_bytes.data(),0)!=address||
-       (Get<uint32_t>(v.item_bytes.data(),8)&0x30000000u)||(strong&&!Serial(v)))return false;
+    if(!Range(address,ww_game_compat::ObjectHeaderBytes)||!read(address,v.header.data(),ww_game_compat::ObjectHeaderBytes)||Index(v)>=go.count||
+       !Range(Class(v),ww_game_compat::ObjectHeaderBytes)||(Get<uint32_t>(v.header.data(),ww_game_compat::ObjectFlagsOffset)&ww_game_compat::ObjectInvalidFlagsMask)||
+       !read(go.table+uint64_t(Index(v)>>ww_game_compat::ObjectArrayChunkShift)*ww_game_compat::PointerBytes,&chunk,sizeof(uint64_t))||!Range(chunk,ww_game_compat::ObjectItemBytes))return false;
+    v.item=chunk+uint64_t(Index(v)&ww_game_compat::ObjectArrayChunkMask)*ww_game_compat::ObjectItemBytes;
+    if(!read(v.item,v.item_bytes.data(),ww_game_compat::ObjectItemBytes)||Get<uint64_t>(v.item_bytes.data(),ww_game_compat::ObjectItemObjectOffset)!=address||
+       (Get<uint32_t>(v.item_bytes.data(),ww_game_compat::ObjectItemFlagsOffset)&ww_game_compat::ObjectItemInvalidFlagsMask)||(strong&&!Serial(v)))return false;
     t=v;return true;
 }
 template<class Read> bool Alive(Read&& read,const Token& t){
-    std::array<uint8_t,48> h{};std::array<uint8_t,24> i{};
-    return t.address&&Serial(t)&&read(t.address,h.data(),48)&&read(t.item,i.data(),24)&&h==t.header&&i==t.item_bytes;
+    std::array<uint8_t,ww_game_compat::ObjectHeaderBytes> h{};std::array<uint8_t,ww_game_compat::ObjectItemBytes> i{};
+    return t.address&&Serial(t)&&read(t.address,h.data(),ww_game_compat::ObjectHeaderBytes)&&read(t.item,i.data(),ww_game_compat::ObjectItemBytes)&&h==t.header&&i==t.item_bytes;
 }
 struct Binding {
     GoView go;uint64_t image=0;uint32_t bone_count=0;
@@ -50,11 +51,11 @@ struct Binding {
     std::array<int32_t,kBones> parents{};
 };
 struct ArrayHead {uint64_t data=0;int32_t num=0,capacity=0;};
-static_assert(sizeof(ArrayHead)==16,"x64 TArray");
-inline bool Array(const ArrayHead& a){return a.num>=0&&a.num<=int32_t(kBones)&&a.capacity>=a.num&&a.capacity<=int32_t(kBones*8)&&(!a.num||Range(a.data,size_t(a.num)*4));}
+static_assert(sizeof(ArrayHead)==ww_game_compat::TArrayHeaderBytes,"x64 TArray");
+inline bool Array(const ArrayHead& a){return a.num>=0&&a.num<=int32_t(kBones)&&a.capacity>=a.num&&a.capacity<=int32_t(kBones*8)&&(!a.num||Range(a.data,size_t(a.num)*sizeof(int32_t)));}
 inline bool SameHead(const ArrayHead& a,const ArrayHead& b){return a.data==b.data&&a.num==b.num&&a.capacity==b.capacity;}
 inline bool ExtraVectorsAbsent(const ArrayHead& a,uint8_t mode){
-    // L2C 0x4e0ba10 and SetBoneContainer 0x17212c0 set the adjacent mode byte
+    // Local-to-component conversion and bone-container setup set the adjacent mode byte
     // independently of array presence. Only observed Boolean modes with a
     // canonical null array are supported; no retained/populated storage.
     return mode<=1&&a.data==0&&a.num==0&&a.capacity==0;
@@ -66,12 +67,12 @@ struct RootSnapshot {
 inline bool SameRoots(const RootSnapshot& a,const RootSnapshot& b){return SameHead(a.roots,b.roots)&&SameHead(a.extended,b.extended)&&
     a.headers_read==b.headers_read&&a.read==b.read&&a.stable==b.stable&&a.identity_stable==b.identity_stable&&a.bytes==b.bytes;}
 template<class Read> void CaptureRoots(Read&& read,uint64_t node,RootSnapshot& out){
-    out.headers_read=read(node+0x288,&out.roots,16)&&read(node+0x298,&out.extended,16);
+    out.headers_read=read(node+ww_game_compat::KawaiiRootsOffset,&out.roots,ww_game_compat::TArrayHeaderBytes)&&read(node+ww_game_compat::KawaiiExtendedRootsOffset,&out.extended,ww_game_compat::TArrayHeaderBytes);
     if(!out.headers_read||!Array(out.roots)||out.roots.num>int32_t(kRoots)||!Array(out.extended)||out.extended.num!=0)return;
     const size_t bytes=size_t(out.roots.num)*kRootStride;
     out.read=!bytes||(Range(out.roots.data,bytes)&&read(out.roots.data,out.bytes.data(),bytes));
     out.stable=out.read;out.identity_stable=out.read;
-    // Only the first 12 bytes of each 20-byte element will be interpreted.
+    // Interpret only each root element's FName; its trailing cache is ignored.
 }
 struct Mapping {
     unsigned skeleton_count=0,compact_count=0;bool read=false,stable=false,bijective=false,parents_match=false;
@@ -89,47 +90,47 @@ struct Phase {
     Token owner;
     ArrayHead transforms,flags,extra_vectors,skeleton_to_compact,compact_parents;
     std::array<uint32_t,2> weak_mesh{},weak_skeleton{};
-    std::array<uint32_t,3> curve_name_words{};
+    std::array<uint32_t,ww_game_compat::NameWordCount> curve_name_words{};
     uint8_t alpha_type=0,extra_active=0,external_route=0;float alpha=0,delta=0,update_delta=0;
     int32_t mapping_id=-1,root_snapshot_id=-1;
 };
 template<class Read> bool CapturePhase(Read&& read,const Binding& b,Kind kind,uint64_t node,uint64_t context,Phase& p,Mapping& mapping,RootSnapshot* roots=nullptr){
     p.node=node;p.context=context;const auto& spec=kSpecs[unsigned(kind)];
-    if(!read(context,&p.proxy,8)||!Range(p.proxy,0x538)||!read(p.proxy+0xc0,&p.mesh,8)||p.mesh!=b.mesh.address)return false;
-    if(!read(p.proxy+0xa0,&p.owner_a0,8)||!read(p.proxy+0xa8,&p.owner_a8,8)||!read(p.proxy+0xd0,&p.main_proxy,8)||
-       !read(p.proxy+0xb8,&p.skeleton,8)||!read(p.proxy+0x528,&p.frame,8)||!read(p.proxy+0x530,&p.counter,2)||
-       !read(node,&p.vtable,8)||!read(b.mesh.address+0x145a,&p.external_route,1))return false;
+    if(!read(context+ww_game_compat::AnimContextProxyOffset,&p.proxy,sizeof(p.proxy))||!Range(p.proxy,ww_game_compat::AnimProxyObservationBytes)||!read(p.proxy+ww_game_compat::AnimProxyMeshOffset,&p.mesh,sizeof(uint64_t))||p.mesh!=b.mesh.address)return false;
+    if(!read(p.proxy+ww_game_compat::AnimProxyOwnerOffset,&p.owner_a0,sizeof(uint64_t))||!read(p.proxy+ww_game_compat::AnimProxyOwnerAltOffset,&p.owner_a8,sizeof(uint64_t))||!read(p.proxy+ww_game_compat::AnimProxyMainProxyOffset,&p.main_proxy,sizeof(uint64_t))||
+       !read(p.proxy+ww_game_compat::AnimProxySkeletonOffset,&p.skeleton,sizeof(uint64_t))||!read(p.proxy+ww_game_compat::AnimProxyFrameOffset,&p.frame,sizeof(uint64_t))||!read(p.proxy+ww_game_compat::AnimProxyCounterOffset,&p.counter,2)||
+       !read(node,&p.vtable,sizeof(uint64_t))||!read(b.mesh.address+ww_game_compat::ComponentExternalRouteOffset,&p.external_route,1))return false;
     p.read=true;p.type_verified=p.vtable==b.image+spec.vtable_rva;
     p.binding_alive=true;p.owner_verified=CaptureToken(read,b.go,p.owner_a0,p.owner);
     p.owner_is_main=p.owner_a0==b.main_anim.address;
     uint64_t mainOwner=0,mainMesh=0,mainSelf=0;
-    p.owner_role_verified=p.owner_verified&&p.owner_a8==p.owner_a0&&Range(p.main_proxy,0x538)&&
-        read(p.main_proxy+0xa0,&mainOwner,8)&&mainOwner==b.main_anim.address&&
-        read(p.main_proxy+0xc0,&mainMesh,8)&&mainMesh==b.mesh.address&&
-        read(p.main_proxy+0xd0,&mainSelf,8)&&mainSelf==p.main_proxy&&
+    p.owner_role_verified=p.owner_verified&&p.owner_a8==p.owner_a0&&Range(p.main_proxy,ww_game_compat::AnimProxyObservationBytes)&&
+        read(p.main_proxy+ww_game_compat::AnimProxyOwnerOffset,&mainOwner,sizeof(uint64_t))&&mainOwner==b.main_anim.address&&
+        read(p.main_proxy+ww_game_compat::AnimProxyMeshOffset,&mainMesh,sizeof(uint64_t))&&mainMesh==b.mesh.address&&
+        read(p.main_proxy+ww_game_compat::AnimProxyMainProxyOffset,&mainSelf,sizeof(uint64_t))&&mainSelf==p.main_proxy&&
         (!p.owner_is_main||p.proxy==p.main_proxy)&&
-        read(p.main_proxy+0x528,&p.main_frame,8)&&read(p.main_proxy+0x530,&p.main_counter,2);
+        read(p.main_proxy+ww_game_compat::AnimProxyFrameOffset,&p.main_frame,sizeof(uint64_t))&&read(p.main_proxy+ww_game_compat::AnimProxyCounterOffset,&p.main_counter,2);
     if(kind!=Kind::LocalToComponent&&p.type_verified){
-        p.node_fields_read=read(node+0x28,&p.alpha,4)&&read(node+0x2c,&p.alpha_type,1)&&
-            read(node+0x88,p.curve_name_words.data(),12)&&read(node+0x280,&p.delta,4);
-        if(kind==Kind::GroupUpdate)p.node_fields_read=p.node_fields_read&&read(context+0x18,&p.update_delta,4);
+        p.node_fields_read=read(node+ww_game_compat::KawaiiAlphaOffset,&p.alpha,4)&&read(node+ww_game_compat::KawaiiAlphaTypeOffset,&p.alpha_type,1)&&
+            read(node+ww_game_compat::CurveNameOffset,p.curve_name_words.data(),ww_game_compat::NameBytes)&&read(node+ww_game_compat::KawaiiDeltaOffset,&p.delta,4);
+        if(kind==Kind::GroupUpdate)p.node_fields_read=p.node_fields_read&&read(context+ww_game_compat::AnimUpdateContextDeltaOffset,&p.update_delta,sizeof(p.update_delta));
     }
     if(roots&&p.type_verified&&p.binding_alive&&p.owner_verified&&
        (kind==Kind::GroupBaseCS||kind==Kind::GroupUpdate||kind==Kind::GroupEvaluate))CaptureRoots(read,node,*roots);
     p.mapping_applicable=kind!=Kind::GroupUpdate;
     if(p.mapping_applicable){
-        p.pose_headers_read=read(context+8,&p.transforms,16)&&read(context+0x38,&p.flags,16)&&read(context+0x18,&p.extra_vectors,16)&&
-            read(context+0x28,&p.extra_active,1)&&read(context+0x30,&p.bone_container,8);
-        p.headers_read=p.pose_headers_read&&Range(p.bone_container,0xa0)&&
-            read(p.bone_container+0x80,&p.skeleton_to_compact,16)&&read(p.bone_container+0x90,&p.compact_parents,16)&&
-            read(p.bone_container+0x38,p.weak_mesh.data(),8)&&read(p.bone_container+0x40,p.weak_skeleton.data(),8);
+        p.pose_headers_read=read(context+ww_game_compat::AnimContextTransformsOffset,&p.transforms,ww_game_compat::TArrayHeaderBytes)&&read(context+ww_game_compat::AnimContextFlagsOffset,&p.flags,ww_game_compat::TArrayHeaderBytes)&&read(context+ww_game_compat::AnimContextExtraVectorsOffset,&p.extra_vectors,ww_game_compat::TArrayHeaderBytes)&&
+            read(context+ww_game_compat::AnimContextExtraVectorsActiveOffset,&p.extra_active,1)&&read(context+ww_game_compat::AnimContextBoneContainerOffset,&p.bone_container,sizeof(p.bone_container));
+        p.headers_read=p.pose_headers_read&&Range(p.bone_container,ww_game_compat::BoneContainerObservationBytes)&&
+            read(p.bone_container+ww_game_compat::BoneContainerSkeletonToCompactOffset,&p.skeleton_to_compact,ww_game_compat::TArrayHeaderBytes)&&read(p.bone_container+ww_game_compat::BoneContainerCompactParentsOffset,&p.compact_parents,ww_game_compat::TArrayHeaderBytes)&&
+            read(p.bone_container+ww_game_compat::BoneContainerWeakMeshOffset,p.weak_mesh.data(),sizeof(uint64_t))&&read(p.bone_container+ww_game_compat::BoneContainerWeakSkeletonOffset,p.weak_skeleton.data(),sizeof(uint64_t));
         p.extra_vectors_absent=p.headers_read&&ExtraVectorsAbsent(p.extra_vectors,p.extra_active);
         p.weak_assets_match=p.headers_read&&p.weak_mesh==std::array<uint32_t,2>{{Index(b.mesh_asset),Serial(b.mesh_asset)}}&&
             p.weak_skeleton==std::array<uint32_t,2>{{Index(b.skeleton_asset),Serial(b.skeleton_asset)}}&&p.skeleton==b.skeleton_asset.address;
         if(p.headers_read&&Array(p.skeleton_to_compact)&&Array(p.compact_parents)&&p.skeleton_to_compact.num>0&&p.compact_parents.num>0){
             mapping.skeleton_count=unsigned(p.skeleton_to_compact.num);mapping.compact_count=unsigned(p.compact_parents.num);
-            mapping.read=read(p.skeleton_to_compact.data,mapping.skeleton_to_compact.data(),mapping.skeleton_count*4)&&
-                read(p.compact_parents.data,mapping.compact_parents.data(),mapping.compact_count*4);
+            mapping.read=read(p.skeleton_to_compact.data,mapping.skeleton_to_compact.data(),mapping.skeleton_count*sizeof(int32_t))&&
+                read(p.compact_parents.data,mapping.compact_parents.data(),mapping.compact_count*sizeof(int32_t));
             mapping.stable=mapping.read;
             mapping.bijective=mapping.stable&&mapping.skeleton_count==b.bone_count&&mapping.compact_count==b.bone_count;
             std::array<bool,kBones> used{};

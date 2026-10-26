@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p build/offline
-          for name in unified_transport owned_recovery local_clip camera_diagnostics; do
+          for name in unified_transport owned_recovery local_clip camera_diagnostics game_compat_resolution; do
             g++ -std=c++17 -O1 -g -pthread -fsanitize=address,undefined -fno-omit-frame-pointer \
               tools/tests/"$name"_tests.cpp -o "build/offline/$name"
             "build/offline/$name"
@@ -65,3 +65,5 @@ jobs:
           ./tools/validate_owned_character_catalog.ps1
           ./tools/validate_character_forms.ps1
           ./tools/tests/runtime_manifest_checks.ps1
+          ./tools/generate_game_compat.ps1 -Check
+          ./tools/tests/game_compat_generation_checks.ps1

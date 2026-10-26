@@ -1,5 +1,6 @@
 #pragma once
 #include "object_identity.h"
+#include "../../runtime/generated/GameCompat.generated.h"
 #include "../../playback/native_animation_target.h"
 #include "native_animation_target_config.h"
 
@@ -49,7 +50,9 @@ template<class R>Json Export(R& reader,const Go& go,const Pool& pool,const Json&
     cfg["class_address"]=Hex(mesh.cls);cfg["outer_address"]=Hex(mesh.outer);cfg["vtable"]=Hex(mesh.vtable);
     cfg["name_words"]=mesh.name;cfg["expected_pawn_class"]=actorToken.at("class_name");
     cfg["expected_actor_class"]=actorToken.at("class_name");cfg["expected_component_name"]=meshToken.at("name");
-    cfg["gobjects_rva"]="0x99a3ff0";cfg["name_pool_rva"]="0x9967340";
+    const auto image=uint64_t(GetModuleHandleW(nullptr));
+    cfg["gobjects_rva"]=Hex(go.address-image);cfg["name_pool_rva"]=Hex(pool.address-image);
+    cfg["compatibility_profile"]=ww_game_compat::ProfileId;cfg["compatibility_source_sha256"]=ww_game_compat::SourceSha256;
     cfg["source_sha256"]=ww_object::kLayoutHash;cfg["profile_resolution"]="fresh_target_identity";
     cfg["game_pid"]=GetCurrentProcessId();cfg["expected_game_pid"]=GetCurrentProcessId();cfg["expected_process_creation_filetime"]=ProcessBirth();
     cfg["animation_target"]={{"schema",1},{"owner_policy",target::PolicyName(policy)},{"session_epoch",Hex(epoch)},

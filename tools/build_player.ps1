@@ -42,11 +42,11 @@ $files=@(
  'data\bone_chains.json','data\morph_targets.json','data\camera_runtime_contract.json','data\native_identity_registration_contract.json',
  'data\native_pose_empty_channel_contract.json',
  'tools\MMD_PLAYER.md','tools\MMD_SQUAD.md',
- 'README.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','docs\BUILDING.md','docs\CHARACTER_FORMS.md',
+ 'README.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','docs\BUILDING.md','docs\CHARACTER_FORMS.md','docs\GAME_COMPATIBILITY.md',
  'data\dependencies\ffmpeg.json','data\dependencies\ffmpeg.README.txt'
 )
 foreach($directory in @('licenses')){$files+=@(Get-ChildItem -LiteralPath (Join-Path $repo $directory) -Recurse -File|ForEach-Object {$_.FullName.Substring($repo.Length+1)})}
-foreach($directory in @('data\characters','data\runtime_contracts')){$files+=@(Get-ChildItem -LiteralPath (Join-Path $repo $directory) -Recurse -File|ForEach-Object {$_.FullName.Substring($repo.Length+1)})}
+foreach($directory in @('data\characters','data\runtime_contracts','data\game_compat')){$files+=@(Get-ChildItem -LiteralPath (Join-Path $repo $directory) -Recurse -File|ForEach-Object {$_.FullName.Substring($repo.Length+1)})}
 $files+='data\native_graphs\index.json'
 $files+='data\native_graphs\owned_ui_source_certificate.json'
 $files+=@(Get-ChildItem -LiteralPath (Join-Path $repo 'data\native_graphs\runtime') -File|ForEach-Object {$_.FullName.Substring($repo.Length+1)})

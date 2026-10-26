@@ -5,6 +5,15 @@ using WwPoser.ColdLoad;
 var assertions = 0;
 void Check(bool condition, string label) { if (!condition) throw new Exception(label); assertions++; }
 void Throws(Action action, string label) { try { action(); } catch (InvalidOperationException) { assertions++; return; } throw new Exception(label); }
+Environment.SetEnvironmentVariable("WWPOSER_EXPECTED_COMPAT_PROFILE", GameCompat.ProfileId);
+Environment.SetEnvironmentVariable("WWPOSER_EXPECTED_COMPAT_SOURCE_SHA256", "outdated-helper-digest");
+Throws(ManagedBridge.VerifyCompatibility, "a retained helper with another source cannot pass the native handshake");
+Throws(ManagedBridge.BindSession, "source mismatch is rejected before session acquisition");
+Environment.SetEnvironmentVariable("WWPOSER_EXPECTED_COMPAT_SOURCE_SHA256", GameCompat.SourceSha256);
+Environment.SetEnvironmentVariable("WWPOSER_EXPECTED_COMPAT_PROFILE", "another-profile");
+Throws(ManagedBridge.VerifyCompatibility, "profile mismatch cannot pass the native handshake");
+Environment.SetEnvironmentVariable("WWPOSER_EXPECTED_COMPAT_PROFILE", GameCompat.ProfileId);
+ManagedBridge.VerifyCompatibility(); Check(true, "matching generated helper/native sources pass before actor access");
 var root = Path.Combine(AppContext.BaseDirectory, "fixtures-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
 var group = new SceneTeamGroup(); var player = new SceneTeamPlayer(); player.GroupMap.Add(ETeamGroupType.Default, group); SceneTeamModel._Instance.TeamPlayerMap.Add(7, player);
 (ACharacter Actor, USkeletalMeshComponent Mesh, EntityHandle Handle) TeamActor(int role, int skin, FVectorDouble location)

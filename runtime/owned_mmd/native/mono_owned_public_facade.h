@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include "owned_recovery.h"
+#include "../../generated/GameCompat.generated.h"
 
 namespace mono_owned {
 inline void Require(bool value,const char* message){if(!value)throw std::runtime_error(message);}
@@ -22,17 +23,22 @@ class Bridge {
     template<class F>static F Export(HMODULE module,const char* name){const auto entry=GetProcAddress(module,name);Require(entry,"public Mono export unavailable");return reinterpret_cast<F>(entry);}
     void Bind(const std::string& helper){
         if(bind_session_)return;
-        const auto module=GetModuleHandleW(L"coreclr.dll");Require(module,"Mono runtime unavailable");
-        const auto open=Export<Assembly* (__cdecl*)(const char*,int32_t*)>(module,"mono_assembly_open");
-        const auto image=Export<Image* (__cdecl*)(Assembly*)>(module,"mono_assembly_get_image");
-        const auto find_class=Export<Klass* (__cdecl*)(Image*,const char*,const char*)>(module,"mono_class_from_name");
-        const auto find_method=Export<Method* (__cdecl*)(Klass*,const char*,int32_t)>(module,"mono_class_get_method_from_name");
-        invoke_=Export<Object* (__cdecl*)(Method*,void*,void**,Object**)>(module,"mono_runtime_invoke");
+        const auto module=GetModuleHandleW(ww_game_compat::MonoRuntimeModuleWide);Require(module,"Mono runtime unavailable");
+        const auto open=Export<Assembly* (__cdecl*)(const char*,int32_t*)>(module,ww_game_compat::MonoExportAssemblyOpen);
+        const auto image=Export<Image* (__cdecl*)(Assembly*)>(module,ww_game_compat::MonoExportAssemblyGetImage);
+        const auto find_class=Export<Klass* (__cdecl*)(Image*,const char*,const char*)>(module,ww_game_compat::MonoExportClassFromName);
+        const auto find_method=Export<Method* (__cdecl*)(Klass*,const char*,int32_t)>(module,ww_game_compat::MonoExportClassGetMethodFromName);
+        invoke_=Export<Object* (__cdecl*)(Method*,void*,void**,Object**)>(module,ww_game_compat::MonoExportRuntimeInvoke);
         int32_t status=-1;const auto assembly=open(helper.c_str(),&status);Require(assembly&&status==0,"owned helper open failed");
         const auto klass=find_class(image(assembly),"WwPoser.ColdLoad","ManagedBridge");Require(klass,"owned helper class unavailable");
         for(size_t i=0;i<methods_.size();++i){methods_[i]=find_method(klass,kActionNames[i],0);Require(methods_[i],"loaded actor helper lacks a required action; restart the game once for this version");}
-        // Mono keeps the first loaded helper for the game process; an older one lacks BindSession.
-        bind_session_=find_method(klass,"BindSession",0);Require(bind_session_,"loaded owned helper lacks session isolation; restart the game once");
+        // Mono can retain a helper from an earlier package with identical
+        // action names. Verify its compiled source before acquiring actors.
+        const auto compatibility=find_method(klass,"VerifyCompatibility",0);
+        Require(compatibility,"loaded actor helper lacks compatibility verification; restart the game once");
+        const auto bind_session=find_method(klass,"BindSession",0);Require(bind_session,"loaded owned helper lacks session isolation; restart the game once");
+        Call(compatibility);
+        bind_session_=bind_session;
     }
     void Call(Method* method){Object* exception=nullptr;invoke_(method,nullptr,nullptr,&exception);Require(!exception,"owned helper raised managed exception");}
 public:

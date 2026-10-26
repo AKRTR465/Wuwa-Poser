@@ -9,6 +9,9 @@ param(
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+& (Join-Path $PSScriptRoot 'generate_game_compat.ps1') -Check:$Check
+$compatibilitySource=Get-Content -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$compatibilityDigest=(Get-FileHash -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Algorithm SHA256).Hash.ToLowerInvariant()
 if(-not $PackageDirectory){$PackageDirectory=Join-Path $repo 'build\owned_mmd'}
 $packageRoot=[IO.Path]::GetFullPath($PackageDirectory)
 $purpose='single_owned_character_native_mmd'
@@ -23,11 +26,12 @@ function Assert-RuntimeFiles {
 function Assert-RuntimeManifest {
  if(-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)){throw 'Owned MMD runtime manifest missing; run tools/build_owned_mmd.ps1.'}
  $manifest=Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
- if($manifest.schema -notin @(1,2) -or $manifest.purpose -ne $purpose){throw 'Owned MMD runtime manifest schema or purpose invalid.'}
+ if($manifest.schema -ne 2 -or $manifest.purpose -ne $purpose){throw 'Owned MMD runtime requires the current schema 2 manifest; rebuild the runtime package.'}
  $listed=@($manifest.files)
  if($listed.Count -ne $files.Count -or @($listed | Select-Object -Unique).Count -ne $files.Count){throw 'Owned MMD runtime manifest must list exactly four files.'}
  foreach($file in $listed){if($file -isnot [string] -or $file -cnotin $files){throw ('Unexpected owned MMD runtime file: '+$file)}}
  if($manifest.schema -eq 2){
+  if(-not $manifest.PSObject.Properties['compatibility_profile'] -or -not $manifest.PSObject.Properties['compatibility_source_sha256'] -or $manifest.compatibility_profile -cne $compatibilitySource.profile_id -or $manifest.compatibility_source_sha256 -cne $compatibilityDigest){throw 'Owned MMD runtime compatibility profile is stale; rebuild it.'}
   $artifacts=@($manifest.artifacts)
   if($artifacts.Count -ne $files.Count){throw 'Owned MMD runtime digest list is incomplete.'}
   foreach($file in $files){
@@ -67,9 +71,10 @@ if($Check){
  }
  $referencePaths=@($references | ForEach-Object {Join-Path $referenceRoot $_})
  $sourcePath=Join-Path $managedDirectory 'ManagedBridge.cs'
+ $generatedSourcePath=Join-Path $repo 'runtime/generated/ManagedCompat.generated.cs'
  $nativeScript=Join-Path $nativeDirectory 'build_observer.bat'
  $layoutPath=Join-Path $nativeDirectory 'owned_mmd_layout.json'
- foreach($path in @($compilerPath,$sourcePath,$nativeScript,$layoutPath)+$referencePaths){
+ foreach($path in @($compilerPath,$sourcePath,$generatedSourcePath,$nativeScript,$layoutPath)+$referencePaths){
   if(-not (Test-Path -LiteralPath $path -PathType Leaf)){throw ('Owned MMD build input missing: '+$path)}
  }
  New-Item -ItemType Directory -Path $packageRoot -Force|Out-Null
@@ -82,6 +87,7 @@ if($Check){
  $arguments=@('/nologo','/utf8output','/target:library','/platform:anycpu','/langversion:latest','/nullable:disable','/nostdlib+','/optimize+','/deterministic+','/unsafe-','/warn:4','/warnaserror+',('/out:"'+$outputPath+'"'))
  $arguments+=@($referencePaths | ForEach-Object {'/reference:"'+$_+'"'})
  $arguments+='"'+$sourcePath+'"'
+ $arguments+='"'+$generatedSourcePath+'"'
  $responsePath=Join-Path $compileDirectory 'compile.rsp'
  [IO.File]::WriteAllLines($responsePath,$arguments,[Text.UTF8Encoding]::new($false))
  & $compilerPath /noconfig ('@'+$responsePath)
@@ -98,7 +104,7 @@ if($Check){
   $path=Join-Path $packageRoot $_
   [ordered]@{path=$_;bytes=(Get-Item -LiteralPath $path).Length;sha256=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()}
  })
- $manifest=[ordered]@{schema=2;purpose=$purpose;source_revision=$buildRevision;source_dirty=$buildDirty;files=$files;artifacts=$artifacts}
+ $manifest=[ordered]@{schema=2;purpose=$purpose;source_revision=$buildRevision;source_dirty=$buildDirty;compatibility_profile=$compatibilitySource.profile_id;compatibility_source_sha256=$compatibilityDigest;files=$files;artifacts=$artifacts}
  [IO.File]::WriteAllText($manifestPath,($manifest|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
 }
 [ordered]@{status=if($Check){'owned_mmd_runtime_files_present'}else{'owned_mmd_runtime_built'};files=$files.Count;runtime_executed=$false;package=$packageRoot}|ConvertTo-Json -Compress

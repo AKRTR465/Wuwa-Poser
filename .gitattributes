@@ -2,3 +2,7 @@
 # file bytes. Preserve the committed bytes, including existing line endings,
 # regardless of a contributor's core.autocrlf setting.
 /data/** -text
+# Generated bindings are compared byte-for-byte on Windows and Linux.
+/runtime/generated/* text eol=lf
+/desktop/WWPoser/Generated/* text eol=lf
+/runtime/owned_mmd/native/owned_mmd_layout.json text eol=lf

@@ -5,11 +5,15 @@
 #include "native_identity_bootstrap.h"
 #include "native_identity_witness.h"
 #include "native_animation_target_config.h"
+#include "game_compat_witness.h"
+#include "runtime_evidence.h"
+#include "../../runtime/generated/GameCompat.generated.h"
 #include <filesystem>
 #include <fstream>
 
 namespace identity_carrier {
 namespace nb=native_identity_bootstrap;namespace ng=native_graph_discovery;
+namespace compat=ww_game_compat;namespace witness=ww_game_compat_witness;
 using Fn2=void(*)(void*,void*);using Fn3=void(*)(void*,void*,void*);using Allocator=int32_t(*)(void*,int32_t);
 constexpr const char* kBuild="c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18";
 static HMODULE selfModule=nullptr;static volatile LONG started=0;
@@ -19,14 +23,15 @@ static std::array<Fn2,ng::kHooks> originals2{};static std::array<Fn3,ng::kHooks>
 static uint64_t objectArray=0,allocatorAddress=0;
 static bool Read(uint64_t address,void* out,size_t bytes)noexcept{if(!ng::Range(address,bytes))return false;SIZE_T got=0;
     return ReadProcessMemory(GetCurrentProcess(),reinterpret_cast<void*>(address),out,bytes,&got)&&got==bytes;}
-static uint64_t Address(const Json& value){return std::stoull(value.get<std::string>(),nullptr,16);}
+static uint64_t Address(const Json& value){uint64_t parsed=0;std::string error;
+    if(!value.is_string()||!ww_game_compat_resolution::ParseHexU64(value.get<std::string>(),parsed,error))throw std::runtime_error("invalid hexadecimal address: "+error);return parsed;}
 static bool AnimationClass(const ng::Token& token)noexcept{
-    const uint32_t tagged=ng::Get<uint32_t>(token.header.data(),24),id=tagged&0x1fffffffu,block=id>>16;
+    const uint32_t tagged=ng::Get<uint32_t>(token.header.data(),compat::ObjectNameOffset),id=tagged&compat::NameTaggedIndexMask,block=id>>compat::NameBlockShift;
     if(block>namePool.current)return false;uint64_t data=0;uint16_t header=0;
-    if(!Read(namePool.blocks+uint64_t(block)*8,&data,8))return false;
-    const uint64_t entry=data+uint64_t(id&65535)*4;if(!Read(entry+4,&header,2)||(header&1))return false;
-    const unsigned length=header>>1;if(length<6||length>511)return false;std::array<char,512> text{};
-    if(!Read(entry+6,text.data(),length))return false;
+    if(!Read(namePool.blocks+uint64_t(block)*compat::PointerBytes,&data,compat::PointerBytes))return false;
+    const uint64_t entry=data+uint64_t(id&compat::NameBlockMask)*compat::NameEntryStride;if(!Read(entry+compat::NameEntryHeaderOffset,&header,sizeof(header))||(header&compat::NameEntryWideFlagMask))return false;
+    const unsigned length=header>>compat::NameEntryLengthShift;if(length<6||length>compat::NameMaximumCharacters)return false;std::array<char,compat::NameMaximumCharacters+1> text{};
+    if(!Read(entry+compat::NameEntryTextOffset,text.data(),length))return false;
     return text[0]=='A'&&text[1]=='B'&&text[2]=='P'&&text[3]=='_'&&text[length-2]=='_'&&text[length-1]=='C';
 }
 // Leaf SEH wrapper: no C++ objects needing unwind and no manually written slot.
@@ -53,22 +58,22 @@ static void SingleBase(void* node,void* context){Detour(4,node,context,nullptr);
 static void* DetourAddress(unsigned index){switch(index){case 0:return reinterpret_cast<void*>(&L2C);case 1:return reinterpret_cast<void*>(&GroupBase);
     case 2:return reinterpret_cast<void*>(&GroupUpdate);case 3:return reinterpret_cast<void*>(&GroupEvaluate);default:return reinterpret_cast<void*>(&SingleBase);}}
 static void* OriginalAddress(unsigned index){return ng::kSpecs[index].arity==2?reinterpret_cast<void*>(originals2[index]):reinterpret_cast<void*>(originals3[index]);}
-static std::string TokenName(Reader& reader,const ng::Token& token){std::string name;const auto id=ng::Get<uint32_t>(token.header.data(),24),number=ng::Get<uint32_t>(token.header.data(),32);
+static std::string TokenName(Reader& reader,const ng::Token& token){std::string name;const auto id=ng::Get<uint32_t>(token.header.data(),compat::ObjectNameOffset),number=ng::Get<uint32_t>(token.header.data(),compat::ObjectNameOffset+compat::NameNumberOffset);
     Decode(reader,namePool,id,name);if(number)name+="_"+std::to_string(number-1);return name;}
 static Json TokenJson(Reader& reader,const ng::Token& token){if(!token.address)return nullptr;ng::Token klass;
     const bool namedClass=ng::CaptureToken(Read,bootstrapState.basis.go,ng::Class(token),klass,false);
     return {{"address",Hex(token.address)},{"item_address",Hex(token.item)},{"index",ng::Index(token)},{"serial",ng::Serial(token)},
         {"class_address",Hex(ng::Class(token))},{"class_name",namedClass?TokenName(reader,klass):std::string()},
-        {"outer_address",Hex(ng::Get<uint64_t>(token.header.data(),40))},{"vtable",Hex(ng::Get<uint64_t>(token.header.data(),0))},
-        {"object_flags",ng::Get<uint32_t>(token.header.data(),8)},{"item_flags",ng::Get<uint32_t>(token.item_bytes.data(),8)},
-        {"name",TokenName(reader,token)},{"name_words",Json::array({ng::Get<uint32_t>(token.header.data(),24),ng::Get<uint32_t>(token.header.data(),28),ng::Get<uint32_t>(token.header.data(),32)})},
+        {"outer_address",Hex(ng::Get<uint64_t>(token.header.data(),compat::ObjectOuterOffset))},{"vtable",Hex(ng::Get<uint64_t>(token.header.data(),compat::ObjectVtableOffset))},
+        {"object_flags",ng::Get<uint32_t>(token.header.data(),compat::ObjectFlagsOffset)},{"item_flags",ng::Get<uint32_t>(token.item_bytes.data(),compat::ObjectItemFlagsOffset)},
+        {"name",TokenName(reader,token)},{"name_words",Json::array({ng::Get<uint32_t>(token.header.data(),compat::ObjectNameOffset),ng::Get<uint32_t>(token.header.data(),compat::ObjectNameOffset+compat::NameWordBytes),ng::Get<uint32_t>(token.header.data(),compat::ObjectNameOffset+compat::NameNumberOffset)})},
         {"identity_rechecked",true},{"strong_identity",ng::Serial(token)!=0}};
 }
 static void BindBasis(const Go& objects,const Json& cfg,uint64_t image){auto& basis=bootstrapState.basis;basis.go={objects.table,objects.count};basis.image=image;
     auto capture=[&](uint64_t address,ng::Token& token,bool strong){if(!ng::CaptureToken(Read,basis.go,address,token,strong))throw std::runtime_error("target identity unavailable");};
     capture(Address(cfg.at("object")),basis.mesh,true);capture(Address(cfg.at("outer_address")),basis.pawn,true);
     if(native_animation_target_config::Policy(cfg)==native_animation_target::OwnerPolicy::ControlledPlayer)capture(Address(cfg.at("controller_address")),basis.controller,true);
-    uint64_t asset=0,skeleton=0,main=0;if(!Read(basis.mesh.address+0x5d0,&asset,8)||!Read(asset+0xd8,&skeleton,8)||!Read(basis.mesh.address+0x910,&main,8))throw std::runtime_error("target assets unavailable");
+    uint64_t asset=0,skeleton=0,main=0;if(!Read(basis.mesh.address+compat::ComponentAssetOffset,&asset,compat::PointerBytes)||!Read(asset+compat::AssetSkeletonOffset,&skeleton,compat::PointerBytes)||!Read(basis.mesh.address+compat::ComponentMainAnimOffset,&main,compat::PointerBytes))throw std::runtime_error("target assets unavailable");
     capture(asset,basis.mesh_asset,false);capture(skeleton,basis.skeleton_asset,false);capture(main,basis.main_candidate,false);
     basis.authority=native_animation_target_config::Parse(cfg,basis.pawn,basis.mesh,basis.mesh_asset,basis.skeleton_asset,basis.main_candidate);
 }
@@ -81,38 +86,76 @@ static DWORD WINAPI Worker(LPVOID){
     wchar_t modulePath[32768]{};GetModuleFileNameW(selfModule,modulePath,32768);const auto directory=std::filesystem::path(modulePath).parent_path();
     const auto configPath=directory/L"observe_target.json",resultPath=directory/L"native_identity_bootstrap.json",statusPath=directory/L"logs"/L"carrier_status.json";
     Json report={{"schema",1},{"kind","native_identity_bootstrap"},{"phase","identity_registration"},{"status","error"},{"pid",GetCurrentProcessId()},
-        {"host_sha256",kBuild},{"registration_contract_sha256",native_identity_witness::kSha},{"readonly",false},{"readonly_animation",true},
+        {"host_sha256",kBuild},{"archive_evidence_sha256",native_identity_witness::kSha},{"readonly",false},{"readonly_animation",true},
         {"pose_writes",0},{"alpha_writes",0},{"manual_serial_writes",0},{"native_update_calls",0},{"engine_getter_calls",0},
         {"vtable_writes_only",false},{"serial_metadata_registration",true},{"registry_metadata_mutation_only",true},
         {"serial_rollback_attempted",false},{"serial_restore_policy","engine_managed_no_rollback"},{"dll_retained_until_process_exit",true},
         {"hooks",Json::array()},{"owners",Json::array()},{"support_registrations",Json::array()},{"rejections",Json::array()},{"reasons",Json::array()},
-        {"all_hooks_restored",true},{"callbacks_quiescent",false},{"main_strong_identity_confirmed",false}};
-    std::array<v20_vmt_slot_patch::State,ng::kHooks> patches{};bool ran=false,bound=false;
+        {"all_hooks_restored",true},{"callbacks_quiescent",false},{"main_strong_identity_confirmed",false},
+        {"compatibility_profile",compat::ProfileId},{"compatibility_source_sha256",compat::SourceSha256},
+        {"checks_performed",Json::array()},{"game_image_sha256_verified",false}};
+    std::array<v20_vmt_slot_patch::State,ng::kHooks> patches{};std::array<uint64_t,ng::kHooks> hookSlots{};bool ran=false,bound=false;
     try{
         std::filesystem::create_directories(directory/L"logs");Save(statusPath,report);
         // Recovery publishes stop before checking this atomic marker. A late
         // worker must announce itself, then honor stop before touching targets.
         if(std::filesystem::exists(directory/L"stop.flag"))throw std::runtime_error("observer cancelled before target access");
         Json cfg;std::ifstream input(configPath);input>>cfg;
+        std::string verificationError;
+        if(!witness::CompatibleSource(cfg,compat::ProfileId,compat::SourceSha256,report["checks_performed"],verificationError))throw std::runtime_error(verificationError);
         const auto& stage=cfg.at("native_identity_bootstrap");const unsigned duration=stage.at("duration_ms");
         bootstrapState.owner_limit=stage.at("owner_limit");report["owner_limit"]=bootstrapState.owner_limit;
         MODULEINFO module{};if(!GetModuleInformation(GetCurrentProcess(),GetModuleHandleW(nullptr),&module,sizeof(module)))throw std::runtime_error("module unavailable");
         const uint64_t image=reinterpret_cast<uint64_t>(module.lpBaseOfDll);report["image_base"]=Hex(image);
-        objectArray=image+native_identity_witness::kObjectArrayRva;allocatorAddress=image+native_identity_witness::kAllocatorRva;report["allocator_witnesses"]=Json::array();
+        report["evidence"]["allocator_witnesses"]=Json::array();
         for(const auto& witness:native_identity_witness::kFunctions)
-            report["allocator_witnesses"].push_back({{"label",witness.label},{"rva",witness.rva},{"sha256",witness.sha256},{"bytes",witness.bytes}});
-        Reader reader{GetCurrentProcess()};Go objects;if(!ValidateGo(reader,image+Address(cfg.at("gobjects_rva")),objects)||!ValidatePool(reader,image+Address(cfg.at("name_pool_rva")),namePool))throw std::runtime_error("bootstrap anchors invalid");
+            report["evidence"]["allocator_witnesses"].push_back({{"label",witness.label},{"rva",witness.rva},{"sha256",witness.sha256},{"bytes",witness.bytes}});
+        std::vector<witness::Function> hookFunctions;
+        for(const auto& spec:ng::kSpecs)if(std::none_of(hookFunctions.begin(),hookFunctions.end(),[&](const witness::Function& value){return value.rva==spec.function_rva;}))
+            hookFunctions.push_back({spec.name,spec.function_rva,spec.function_bytes});
+        if(!witness::VerifyFunctions(Read,image,module.SizeOfImage,stage.at("function_witnesses"),hookFunctions,report["checks_performed"],"identity_hooks",verificationError))throw std::runtime_error(verificationError);
+        std::ifstream registrationInput(directory/L"native_identity_registration_contract.json",std::ios::binary);
+        registrationInput.seekg(0,std::ios::end);const std::streamoff registrationBytes=registrationInput.tellg();
+        if(registrationBytes<=0||registrationBytes>8*1024*1024)throw std::runtime_error("staged identity registration contract unavailable or oversized");
+        std::string registrationText(static_cast<size_t>(registrationBytes),'\0');registrationInput.seekg(0,std::ios::beg);
+        if(!registrationInput.read(registrationText.data(),registrationBytes))throw std::runtime_error("staged identity registration contract truncated");
+        const auto registrationDigest=runtime_evidence::Sha256(registrationText.data(),registrationText.size());
+        const bool digestMatches=stage.contains("registration_contract_sha256")&&stage["registration_contract_sha256"].is_string()&&stage["registration_contract_sha256"]==registrationDigest;
+        report["registration_contract_sha256"]=registrationDigest;report["registration_contract_sha256_verified"]=digestMatches;
+        report["registration_contract_sha256_supplied"]=stage.value("registration_contract_sha256",std::string());
+        report["registration_source_archive_sha256_supplied"]=stage.value("registration_source_archive_sha256",std::string());
+        report["checks_performed"].push_back({{"kind","staged_contract_sha256"},{"performed",true},{"matched",digestMatches}});
+        if(!digestMatches)throw std::runtime_error("staged identity registration contract digest differs from configuration");
+        const Json registration=Json::parse(registrationText);
+        const std::vector<witness::Function> allocatorFunctions={
+            {"FUObjectArray_AllocateSerialNumber",compat::FunctionAllocateSerialNumberRva,compat::FunctionAllocateSerialNumberBytes},
+            {"FWeakObjectPtr_AssignObject",compat::FunctionAssignWeakObjectRva,compat::FunctionAssignWeakObjectBytes}};
+        if(!witness::VerifyFunctions(Read,image,module.SizeOfImage,registration.at("functions"),allocatorFunctions,report["checks_performed"],"identity_allocator",verificationError))throw std::runtime_error(verificationError);
+        if(!ww_game_compat_resolution::Contains({image,module.SizeOfImage},image+compat::FunctionAllocateSerialNumberRva,compat::FunctionAllocateSerialNumberBytes))throw std::runtime_error("allocator address out of image");
+        allocatorAddress=image+compat::FunctionAllocateSerialNumberRva;
+        uint64_t goAddress=0,poolAddress=0;
+        if(!ww_game_compat_resolution::ResolveImageAddress(image,module.SizeOfImage,Address(cfg.at("gobjects_rva")),compat::ObjectArrayHeaderBytes,goAddress)||
+           !ww_game_compat_resolution::ResolveImageAddress(image,module.SizeOfImage,Address(cfg.at("name_pool_rva")),compat::NamePoolHeaderBytes,poolAddress))throw std::runtime_error("bootstrap anchor RVA out of image");
+        Reader reader{GetCurrentProcess()};Go objects;if(!ValidateGo(reader,goAddress,objects)||!ValidatePool(reader,poolAddress,namePool))throw std::runtime_error("bootstrap anchors invalid");
+        if(objects.address<compat::ObjectArrayObjectsOffset)throw std::runtime_error("object array base underflow");
+        objectArray=objects.address-compat::ObjectArrayObjectsOffset;
+        if(!ww_game_compat_resolution::Contains({image,module.SizeOfImage},objectArray,compat::ObjectArrayObjectsOffset+compat::ObjectArrayHeaderBytes))throw std::runtime_error("object array base out of image");
+        report["object_array_rva"]=Hex(objectArray-image);report["allocator_rva"]=Hex(allocatorAddress-image);
         BindBasis(objects,cfg,image);bound=true;
         report["controlled_mesh"]=TokenJson(reader,bootstrapState.basis.mesh);report["controlled_pawn"]=TokenJson(reader,bootstrapState.basis.pawn);
         report["controlled_controller"]=TokenJson(reader,bootstrapState.basis.controller);report["main_candidate_before"]=TokenJson(reader,bootstrapState.basis.main_candidate);
         report["owner_policy"]=native_animation_target::PolicyName(bootstrapState.basis.authority.policy);
         if(cfg.contains("animation_target"))report["animation_target"]=cfg.at("animation_target");
         for(unsigned index=0;index<ng::kHooks;++index){const auto& spec=ng::kSpecs[index];uint64_t original=0;
-            if(!Read(image+spec.vtable_rva+spec.slot_bytes,&original,8)||original!=image+spec.function_rva)throw std::runtime_error("bootstrap hook slot differs");
+            const bool inImage=spec.vtable_rva<module.SizeOfImage&&spec.slot_bytes<=module.SizeOfImage-spec.vtable_rva&&
+                ww_game_compat_resolution::ResolveImageAddress(image,module.SizeOfImage,spec.vtable_rva+spec.slot_bytes,compat::PointerBytes,hookSlots[index]);
+            const bool read=inImage&&Read(hookSlots[index],&original,compat::PointerBytes),matched=read&&original==image+spec.function_rva;
+            report["checks_performed"].push_back({{"kind","vtable_slot"},{"label",spec.name},{"performed",inImage},{"read_succeeded",read},{"matched",matched}});
+            if(!matched)throw std::runtime_error("bootstrap hook slot differs");
             if(spec.arity==2)originals2[index]=reinterpret_cast<Fn2>(original);else originals3[index]=reinterpret_cast<Fn3>(original);
             report["hooks"].push_back({{"kind",spec.name},{"node_kind",spec.node_kind},{"rva",Hex(spec.function_rva)},{"vtable_rva",Hex(spec.vtable_rva)},
                 {"slot_bytes",spec.slot_bytes},{"witness_bytes",spec.function_bytes},{"arity",spec.arity}});}
-        for(unsigned index=0;index<ng::kHooks;++index){const auto& spec=ng::kSpecs[index];const auto outcome=v20_vmt_slot_patch::Install(patches[index],reinterpret_cast<void**>(image+spec.vtable_rva+spec.slot_bytes),OriginalAddress(index),DetourAddress(index));
+        for(unsigned index=0;index<ng::kHooks;++index){const auto outcome=v20_vmt_slot_patch::Install(patches[index],reinterpret_cast<void**>(hookSlots[index]),OriginalAddress(index),DetourAddress(index));
             report["hooks"][index]["install"]=Outcome(outcome);if(outcome.code!=v20_vmt_slot_patch::Code::Ok)throw std::runtime_error("bootstrap hook installation refused");}
         enabled.store(true,std::memory_order_release);ran=true;const auto begin=GetTickCount64();report["status"]="registering";Save(statusPath,report);
         while(GetTickCount64()-begin<duration&&!bootstrapState.failed.load()&&!std::filesystem::exists(directory/L"stop.flag"))Sleep(10);

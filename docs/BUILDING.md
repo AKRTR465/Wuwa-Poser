@@ -99,6 +99,8 @@ dotnet run --project tools/tests/ManagedActorBorrowing/ManagedActorBorrowing.csp
 
 ## 源码目录
 
+游戏版本相关的默认运行参数统一维护在 `data/game_compat/ww_runtime.json`。修改后运行 `tools/generate_game_compat.ps1`；生成物校验、动态发现范围及版本更新流程见 [游戏兼容定义](GAME_COMPATIBILITY.md)。
+
 | 目录 | 内容 |
 | --- | --- |
 | `desktop/WWPoser/` | WPF 界面、时间轴、媒体与会话编排 |

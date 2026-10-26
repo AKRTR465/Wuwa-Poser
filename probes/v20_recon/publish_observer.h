@@ -1,4 +1,5 @@
 #pragma once
+#include "../../runtime/generated/GameCompat.generated.h"
 // Callback-safe sampler of the skeletal publication metadata. No hooks, writes,
 // heap allocation or file IO; the caller owns the result.
 #include <cstdint>
@@ -11,15 +12,15 @@ struct OffsetManifest {
     uint32_t read_index, previous_index, generation, flags;
     uint32_t max_bones;
 };
-constexpr OffsetManifest kVerifiedLayout{0x630, 0x640, 0x680, 0x950,
-                                        0x6c0, 0x6c4, 0x6c8, 0x80c, 4096};
+constexpr OffsetManifest kVerifiedLayout{ww_game_compat::ComponentPoseBuffer0Offset, ww_game_compat::ComponentPoseBuffer1Offset, ww_game_compat::ComponentPublishedPoseOffset, ww_game_compat::ComponentLocalPoseOffset,
+                                        ww_game_compat::ComponentPoseReadIndexOffset, ww_game_compat::ComponentPosePreviousIndexOffset, ww_game_compat::ComponentPoseGenerationOffset, ww_game_compat::ComponentPoseFlagsOffset, 4096};
 struct TargetIdentity {
     uint64_t address = 0, class_address = 0, outer_address = 0, vtable = 0;
     uint32_t index = UINT32_MAX, serial = 0;
     bool verified = false;
 };
 struct ArrayHead {uint64_t data = 0; int32_t num = 0, max = 0;};
-static_assert(sizeof(ArrayHead) == 16, "TArray head layout");
+static_assert(sizeof(ArrayHead) == ww_game_compat::TArrayHeaderBytes, "TArray head layout");
 struct Metadata {
     ArrayHead heads[4]{}; // 0:+630, 1:+640, 2:+680 published, 3:+950 local.
     int32_t read_index = -1, previous_index = -1;
@@ -32,7 +33,7 @@ struct Sample {
     bool accepted = false;
 };
 inline bool Pointer(uint64_t address) {
-    return address >= 0x10000 && address < 0x800000000000ull && !(address & 7);
+    return address >= ww_game_compat::PointerMinimum && address < ww_game_compat::PointerMaximum && !(address & (ww_game_compat::PointerBytes-1));
 }
 inline bool Same(const TargetIdentity& a, const TargetIdentity& b) {
     return a.address == b.address && a.class_address == b.class_address &&

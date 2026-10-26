@@ -1,7 +1,9 @@
 #pragma once
+#include "../../generated/GameCompat.generated.h"
 // One scene coordinator, one clock and camera, and any number of stable actors.
 // Actor/index storage is prepared before callbacks and never grows while live.
 #include "../../../probes/v20_recon/object_identity.h"
+#include "../../../probes/v20_recon/game_object_anchors.h"
 #include "../../../probes/v20_recon/publish_observer.h"
 #include "../../../probes/v20_recon/vmt_slot_patch.h"
 #include "../../../playback/vmd_local_clip.h"
@@ -48,7 +50,7 @@ struct Runtime {
     Json terminalStatus;
     std::atomic<double> formationHeightCorrection{0};
     std::filesystem::path directory;
-    uint64_t host=0,publishRva=0,slotRva=0,epoch=0,durationMs=0,frameRva=0x992f2d8,lastEngineFrame=0;
+    uint64_t host=0,publishRva=0,slotRva=0,epoch=0,durationMs=0,frameRva=ww_game_compat::EngineFrameRva,lastEngineFrame=0;
     play::Transport transport;play::SpscCommandQueue<64> commands;
     uint64_t initialSequence=0,lastWireSequence=0;DWORD gameThread=0;
     Go go{};Pool pool{};
@@ -150,8 +152,8 @@ inline void Detour(void* object){auto& r=runtime;r.active.fetch_add(1,std::memor
 }
 inline bool NativeAuthority(void* user,const v20_shared_native_physics::Access& access){
     const auto& a=*static_cast<ActorRuntime*>(user);uint64_t owner=0,asset=0,skeleton=0,main=0;
-    return access.Get(a.tokens[Mesh].object+0xa8,owner)&&owner==a.tokens[Actor].object&&access.Get(a.tokens[Mesh].object+0x5d0,asset)&&asset==a.tokens[Asset].object&&
-        access.Get(asset+0xd8,skeleton)&&skeleton==a.tokens[Skeleton].object&&access.Get(a.tokens[Mesh].object+0x910,main)&&main==a.tokens[MainAnim].object;
+    return access.Get(a.tokens[Mesh].object+ww_game_compat::ComponentOwnerOffset,owner)&&owner==a.tokens[Actor].object&&access.Get(a.tokens[Mesh].object+ww_game_compat::ComponentAssetOffset,asset)&&asset==a.tokens[Asset].object&&
+        access.Get(asset+ww_game_compat::AssetSkeletonOffset,skeleton)&&skeleton==a.tokens[Skeleton].object&&access.Get(a.tokens[Mesh].object+ww_game_compat::ComponentMainAnimOffset,main)&&main==a.tokens[MainAnim].object;
 }
 inline void NativeCommitted(void* user,uint32_t count){static_cast<ActorRuntime*>(user)->writes.fetch_add(count);}
 inline bool NeedsNative(){for(const auto& actor:runtime.actors)if(actor->nativePhysics)return true;return false;}
@@ -184,11 +186,11 @@ inline void InitializeActor(ActorRuntime& a,const Json& graph,const Json& profil
     Require(ownership=="borrowed"||ownership=="created","unknown actor ownership");
     a.ownership=ownership=="borrowed"?native_animation_target::OwnerPolicy::SceneTeamMember:native_animation_target::OwnerPolicy::OwnedUiActor;
     a.boneNames=config.at("bone_names").get<std::vector<std::string>>();a.parents=config.at("bone_parents").get<std::vector<int32_t>>();
-    ob::ArrayHead ref;std::array<unsigned char,fb::kLimit*16> reference{};
-    Require(reader.Get(a.tokens[Asset].object+0x3b8,ref)&&ref.num==int32_t(a.boneNames.size())&&ref.num<=int32_t(fb::kLimit)&&reader.Read(ref.data,reference.data(),size_t(ref.num)*16),"actor reference skeleton unreadable");
+    ob::ArrayHead ref;std::array<unsigned char,fb::kLimit*ww_game_compat::ReferenceBoneInfoBytes> reference{};
+    Require(reader.Get(a.tokens[Asset].object+ww_game_compat::AssetRefBoneInfoOffset,ref)&&ref.num==int32_t(a.boneNames.size())&&ref.num<=int32_t(fb::kLimit)&&reader.Read(ref.data,reference.data(),size_t(ref.num)*ww_game_compat::ReferenceBoneInfoBytes),"actor reference skeleton unreadable");
     std::vector<std::string> names;std::vector<int32_t> parents;
-    for(int32_t i=0;i<ref.num;++i){const auto* row=reference.data()+size_t(i)*16;std::string name;Require(id::DecodeName(reader,r.pool,At<uint32_t>(row,0),name),"actor bone name unavailable");
-        const auto number=At<uint32_t>(row,8);if(number)name+="_"+std::to_string(number-1);names.push_back(name);parents.push_back(At<int32_t>(row,12));}
+    for(int32_t i=0;i<ref.num;++i){const auto* row=reference.data()+size_t(i)*ww_game_compat::ReferenceBoneInfoBytes;std::string name;Require(id::DecodeName(reader,r.pool,At<uint32_t>(row,0),name),"actor bone name unavailable");
+        const auto number=At<uint32_t>(row,ww_game_compat::NameNumberOffset);if(number)name+="_"+std::to_string(number-1);names.push_back(name);parents.push_back(At<int32_t>(row,ww_game_compat::ReferenceBoneParentOffset));}
     sub::Manifest manifest;manifest.expected_count=uint32_t(a.boneNames.size());manifest.expected_names=a.boneNames;manifest.expected_parents=a.parents;
     Require(fb::PrepareTopology(manifest,names,parents,&a.topology),"actor reference skeleton differs");a.motion=ReadClip(a.directory/config.at("local_clip_file").get<std::string>());
     a.positions=config.at("canonical_local_positions").get<std::vector<std::array<float,3>>>();a.rotations=config.at("canonical_local_rotations").get<std::vector<std::array<float,4>>>();
@@ -209,11 +211,12 @@ inline void InitializeActor(ActorRuntime& a,const Json& graph,const Json& profil
 inline void Initialize(const std::filesystem::path& directory,const Json& graph,const Json& config,const Json& legacyProfile,const Json& layout,uint64_t host,uint64_t window){auto& r=runtime;r.initialized=true;
     try{
         r.host=host;r.directory=directory;r.gameThread=GetWindowThreadProcessId(reinterpret_cast<HWND>(window),nullptr);Require(r.gameThread!=0,"game window thread unavailable");
-        r.publishRva=id::Rva(layout.at("publish_rva"));r.slotRva=id::Rva(layout.at("slot_rva"));r.frameRva=layout.contains("engine_frame_rva")?id::Rva(layout.at("engine_frame_rva")):0x992f2d8;
+        r.publishRva=id::Rva(layout.at("publish_rva"));r.slotRva=id::Rva(layout.at("slot_rva"));r.frameRva=layout.contains("engine_frame_rva")?id::Rva(layout.at("engine_frame_rva")):ww_game_compat::EngineFrameRva;
         r.epoch=config.at("session_epoch");r.durationMs=config.value("duration_ms",uint64_t(0));r.multiActor=config.contains("actors");
-        Reader reader;unsigned char goBytes[32],poolBytes[24];const auto goAddress=host+id::Rva(layout.at("gobjects_rva")),poolAddress=host+id::Rva(layout.at("name_pool_rva"));
-        Require(reader.Read(goAddress,goBytes,sizeof(goBytes))&&GoShape(goBytes)&&reader.Read(poolAddress,poolBytes,sizeof(poolBytes))&&PoolShape(poolBytes),"current object/name anchors invalid");
-        r.go={goAddress,At<uint64_t>(goBytes,0),At<uint32_t>(goBytes,20)};r.pool={poolAddress,poolAddress+16,At<uint32_t>(poolBytes,8),At<uint32_t>(poolBytes,12)};
+        ::Reader anchorReader{GetCurrentProcess()};
+        const auto anchors=ww_game_object_anchors::Resolve(anchorReader,host,id::Rva(layout.at("gobjects_rva")),id::Rva(layout.at("name_pool_rva")),r.go,r.pool);
+        ww_report::Save(directory/L"game_compatibility.json",anchors);
+        Require(anchors.value("status",std::string())=="anchors_cross_validated","current object/name anchors unresolved; see game_compatibility.json");
         const auto configs=r.multiActor?config.at("actors"):Json::array({config});Require(configs.is_array()&&!configs.empty(),"scene has no actors");
         double duration=0;r.actors.reserve(configs.size());Json targets=Json::array();
         for(const auto& actorConfig:configs){if(!actorConfig.value("enabled",true))continue;auto actor=std::make_unique<ActorRuntime>();auto& a=*actor;a.config=actorConfig;a.slot=actorConfig.value("slot",actorConfig.value("target_slot",uint32_t(1)));

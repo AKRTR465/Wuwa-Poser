@@ -1,4 +1,5 @@
 #pragma once
+#include "../runtime/generated/GameCompat.generated.h"
 // Pure component-pose patch types and byte helpers. No memory reads/writes,
 // hooks, engine calls, target addresses, or implicit index mapping.
 #include <array>
@@ -10,7 +11,7 @@
 #include <vector>
 
 namespace wwp_ue { namespace subtree_rotation {
-using TransformBytes=std::array<uint8_t,48>;
+using TransformBytes=std::array<uint8_t,ww_game_compat::TransformBytes>;
 struct Manifest {
     uint32_t expected_count=0;
     std::vector<std::string> expected_names;
@@ -43,7 +44,7 @@ inline Q Conj(Q q){return {{-q[0],-q[1],-q[2],q[3]}};}
 inline double Norm(const Q& q){return std::sqrt(q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3]);}
 inline Q Unit(Q q){const double n=Norm(q);for(double& x:q)x/=n;return q;}
 inline V Rotate(const Q& q,const V& v){const Q result=Mul(Mul(q,{{v[0],v[1],v[2],0}}),Conj(q));return {{result[0],result[1],result[2]}};}
-inline Q Rotation(const TransformBytes& b){return {{Float(b.data()),Float(b.data()+4),Float(b.data()+8),Float(b.data()+12)}};}
-inline V Position(const TransformBytes& b){return {{Float(b.data()+16),Float(b.data()+20),Float(b.data()+24)}};}
+inline Q Rotation(const TransformBytes& b){return {{Float(b.data()+ww_game_compat::TransformRotationOffset),Float(b.data()+ww_game_compat::TransformRotationOffset+sizeof(float)),Float(b.data()+ww_game_compat::TransformRotationOffset+2*sizeof(float)),Float(b.data()+ww_game_compat::TransformRotationOffset+3*sizeof(float))}};}
+inline V Position(const TransformBytes& b){return {{Float(b.data()+ww_game_compat::TransformTranslationOffset),Float(b.data()+ww_game_compat::TransformTranslationOffset+sizeof(float)),Float(b.data()+ww_game_compat::TransformTranslationOffset+2*sizeof(float))}};}
 }
 }} // namespace wwp_ue::subtree_rotation

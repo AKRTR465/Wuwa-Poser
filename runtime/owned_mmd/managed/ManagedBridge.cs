@@ -131,22 +131,22 @@ namespace WwPoser.ColdLoad
         {
             if (s_contract != null) return s_contract;
             var value = new Contract();
-            value.Instance = Field(typeof(UiSceneRoleActorManager), "_instance"); value.Map = Field(typeof(UiSceneRoleActorManager), "UiSceneRoleActorMap");
-            value.LoadState = Field(typeof(UiModelDataComponent), "ModelLoadStateInternal"); value.NativePointer = Field(typeof(UnrealObject), "_NativePtr");
-            value.Create = Method(typeof(UiSceneRoleActorManager), "CreateUiSceneRoleActor", typeof(EUiModelUseWay)); value.Destroy = Method(typeof(UiSceneRoleActorManager), "DestroyUiSceneRoleActor", typeof(int));
+            value.Instance = Field(typeof(UiSceneRoleActorManager), GameCompat.ManagedFieldInstance); value.Map = Field(typeof(UiSceneRoleActorManager), GameCompat.ManagedFieldMap);
+            value.LoadState = Field(typeof(UiModelDataComponent), GameCompat.ManagedFieldLoadState); value.NativePointer = Field(typeof(UnrealObject), GameCompat.ManagedFieldNativePointer);
+            value.Create = Method(typeof(UiSceneRoleActorManager), GameCompat.ManagedMethodCreateUiSceneRoleActor, typeof(EUiModelUseWay)); value.Destroy = Method(typeof(UiSceneRoleActorManager), GameCompat.ManagedMethodDestroyUiSceneRoleActor, typeof(int));
             // Declared field scopes follow the verified SceneTeam business chain.
-            value.PlayerInstance = Field(typeof(PlayerInfoModel), "_Instance"); value.PlayerId = Field(typeof(PlayerInfoModel), "Id");
-            value.TeamInstance = Field(typeof(SceneTeamModel), "_Instance"); value.TeamPlayers = Field(typeof(SceneTeamModel), "TeamPlayerMap");
-            value.TeamItems = Field(typeof(SceneTeamModel), "TeamItems"); value.PlayerGroup = Field(typeof(SceneTeamPlayer), "CurrentGroupType");
-            value.PlayerGroups = Field(typeof(SceneTeamPlayer), "GroupMap"); value.GroupRoles = Field(typeof(SceneTeamGroup), "RoleList");
-            value.ItemPlayer = Field(typeof(SceneTeamItem), "PlayerId"); value.ItemRole = Field(typeof(SceneTeamItem), "ConfigId");
-            value.ItemCreature = Field(typeof(SceneTeamItem), "CreatureDataId"); value.ItemHandle = Field(typeof(SceneTeamItem), "EntityHandleInternal");
-            value.ItemLocal = Field(typeof(SceneTeamItem), "IsMyRoleInternal"); value.ItemGroup = Field(typeof(SceneTeamItem), "GroupType");
-            value.ActorInternal = Field(typeof(BaseActorComponent), "ActorInternal"); value.SkinId = Field(typeof(CreatureDataComponent), "SkinId");
-            value.EntityFlags = Field(typeof(Entity), "FlagInternal"); value.DataRole = Field(typeof(CreatureDataComponent), "RoleId"); value.DataPlayer = Field(typeof(CreatureDataComponent), "PlayerId"); value.DataCreature = Field(typeof(CreatureDataComponent), "CreatureDataId");
-            value.CharacterInstance = Field(typeof(CharacterModel), "_Instance"); value.CharacterHandles = Field(typeof(CharacterModel), "Handles");
-            var objectSystem = typeof(Entity).Assembly.GetType("ObjectSystem", true);
-            value.ObjectInstance = Field(objectSystem, "_instance"); value.ObjectList = Field(objectSystem, "Objects"); value.ObjectVersions = Field(objectSystem, "Versions");
+            value.PlayerInstance = Field(typeof(PlayerInfoModel), GameCompat.ManagedFieldPlayerInstance); value.PlayerId = Field(typeof(PlayerInfoModel), GameCompat.ManagedFieldPlayerId);
+            value.TeamInstance = Field(typeof(SceneTeamModel), GameCompat.ManagedFieldTeamInstance); value.TeamPlayers = Field(typeof(SceneTeamModel), GameCompat.ManagedFieldTeamPlayers);
+            value.TeamItems = Field(typeof(SceneTeamModel), GameCompat.ManagedFieldTeamItems); value.PlayerGroup = Field(typeof(SceneTeamPlayer), GameCompat.ManagedFieldPlayerGroup);
+            value.PlayerGroups = Field(typeof(SceneTeamPlayer), GameCompat.ManagedFieldPlayerGroups); value.GroupRoles = Field(typeof(SceneTeamGroup), GameCompat.ManagedFieldGroupRoles);
+            value.ItemPlayer = Field(typeof(SceneTeamItem), GameCompat.ManagedFieldItemPlayer); value.ItemRole = Field(typeof(SceneTeamItem), GameCompat.ManagedFieldItemRole);
+            value.ItemCreature = Field(typeof(SceneTeamItem), GameCompat.ManagedFieldItemCreature); value.ItemHandle = Field(typeof(SceneTeamItem), GameCompat.ManagedFieldItemHandle);
+            value.ItemLocal = Field(typeof(SceneTeamItem), GameCompat.ManagedFieldItemLocal); value.ItemGroup = Field(typeof(SceneTeamItem), GameCompat.ManagedFieldItemGroup);
+            value.ActorInternal = Field(typeof(BaseActorComponent), GameCompat.ManagedFieldActorInternal); value.SkinId = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldSkinId);
+            value.EntityFlags = Field(typeof(Entity), GameCompat.ManagedFieldEntityFlags); value.DataRole = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataRole); value.DataPlayer = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataPlayer); value.DataCreature = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataCreature);
+            value.CharacterInstance = Field(typeof(CharacterModel), GameCompat.ManagedFieldCharacterInstance); value.CharacterHandles = Field(typeof(CharacterModel), GameCompat.ManagedFieldCharacterHandles);
+            var objectSystem = typeof(Entity).Assembly.GetType(GameCompat.ManagedTypeObjectSystem, true);
+            value.ObjectInstance = Field(objectSystem, GameCompat.ManagedFieldObjectInstance); value.ObjectList = Field(objectSystem, GameCompat.ManagedFieldObjectList); value.ObjectVersions = Field(objectSystem, GameCompat.ManagedFieldObjectVersions);
             s_contract = value; return value;
         }
         private static Dictionary<int, TsUiSceneRoleActor> Map(Owner owner) { return (Dictionary<int, TsUiSceneRoleActor>)Bind().Map.GetValue(owner.Manager); }
@@ -154,6 +154,12 @@ namespace WwPoser.ColdLoad
         private static ulong Address(UnrealObject wrapper) { return (ulong)((IntPtr)Bind().NativePointer.GetValue(wrapper)).ToInt64(); }
         private static bool AllReleased() { foreach (var owner in s_owners) if (!owner.Released) return false; foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) return false; return s_playerVisibility == null || s_playerVisibility.Released; }
         public static void Probe() { Bind(); }
+        public static void VerifyCompatibility()
+        {
+            if (!String.Equals(Environment.GetEnvironmentVariable("WWPOSER_EXPECTED_COMPAT_PROFILE"), GameCompat.ProfileId, StringComparison.Ordinal) ||
+                !String.Equals(Environment.GetEnvironmentVariable("WWPOSER_EXPECTED_COMPAT_SOURCE_SHA256"), GameCompat.SourceSha256, StringComparison.Ordinal))
+                throw new InvalidOperationException("Loaded actor helper uses a different compatibility configuration; restart the game after rebuilding the runtime.");
+        }
         public static void VerifySession()
         {
             var caller = Environment.GetEnvironmentVariable(SessionVariable);
@@ -161,6 +167,7 @@ namespace WwPoser.ColdLoad
         }
         public static void BindSession()
         {
+            VerifyCompatibility();
             var next = Path.GetFullPath(Environment.GetEnvironmentVariable(SessionVariable));
             if (String.Equals(next, s_session, StringComparison.OrdinalIgnoreCase)) return;
             if (!AllReleased()) throw new InvalidOperationException("Previous actors still require restoration.");
@@ -203,7 +210,7 @@ namespace WwPoser.ColdLoad
             var handle = saved.Handle; var entity = saved.Entity; var c = Bind();
             if (handle == null || entity == null || !Object.ReferenceEquals(handle.Entity, entity) || handle.Id != saved.EntityId || entity.Id != saved.EntityId ||
                 handle.Index != saved.EntityIndex || entity.Index != saved.EntityIndex ||
-                (uint)handle.Index != ((uint)handle.Id >> 16) || !Valid(saved.Actor) || Address(saved.Actor) != saved.ActorAddress) return false;
+                (uint)handle.Index != ((uint)handle.Id >> GameCompat.EntityHandleIndexShift) || !Valid(saved.Actor) || Address(saved.Actor) != saved.ActorAddress) return false;
             var character = c.CharacterInstance.GetValue(null); var objects = c.ObjectInstance.GetValue(null);
             if (character == null || objects == null) return false;
             var handles = (List<EntityHandle>)c.CharacterHandles.GetValue(character); var values = (List<ObjectBase>)c.ObjectList.GetValue(objects);
@@ -211,7 +218,7 @@ namespace WwPoser.ColdLoad
             // Pending removal is allowed for restoration while this exact object
             // is still registered. Recycled handles/actors are never modified.
             return index >= 0 && index < handles.Count && index < values.Count && index < versions.Count &&
-                Object.ReferenceEquals(handles[index], handle) && Object.ReferenceEquals(values[index], entity) && versions[index] == (handle.Id & 65535) &&
+                Object.ReferenceEquals(handles[index], handle) && Object.ReferenceEquals(values[index], entity) && versions[index] == (handle.Id & GameCompat.EntityHandleVersionMask) &&
                 Object.ReferenceEquals(entity.GetComponent<CharacterActorComponent>(), saved.Component) &&
                 Object.ReferenceEquals(entity.GetComponent<CreatureDataComponent>(), saved.Data) &&
                 Valid((AActor)c.ActorInternal.GetValue(saved.Component)) && Address((AActor)c.ActorInternal.GetValue(saved.Component)) == saved.ActorAddress;
@@ -247,7 +254,7 @@ namespace WwPoser.ColdLoad
                     var seen = new HashSet<ulong>(protectedActors);
                     foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) seen.Add(saved.ActorAddress);
                     // Character handles are indexed by the bounded entity registry.
-                    for (var index = 0; index < handles.Count && index < 65536; index++)
+                    for (var index = 0; index < handles.Count && index < GameCompat.EntityHandleRegistryLimit; index++)
                     {
                         var handle = handles[index];
                         if (handle == null || !HandleCurrent(handle, handle.Entity)) continue;
@@ -314,10 +321,10 @@ namespace WwPoser.ColdLoad
             if (handle == null || entity == null || !Object.ReferenceEquals(handle.Entity, entity) ||
                 handle.Id != entityId || entity.Id != entityId || handle.Index != entityIndex || entity.Index != entityIndex) return false;
             var c = Bind(); var flags = Convert.ToInt32(c.EntityFlags.GetValue(entity), CultureInfo.InvariantCulture);
-            if ((flags & 0x10) == 0 || (flags & 0x80) != 0 || (uint)handle.Index != ((uint)handle.Id >> 16)) return false;
+            if ((flags & GameCompat.EntityFlagRegistered) == 0 || (flags & GameCompat.EntityFlagRetired) != 0 || (uint)handle.Index != ((uint)handle.Id >> GameCompat.EntityHandleIndexShift)) return false;
             var character = c.CharacterInstance.GetValue(null); var objects = c.ObjectInstance.GetValue(null); if (character == null || objects == null) return false;
             var handles = (List<EntityHandle>)c.CharacterHandles.GetValue(character); var values = (List<ObjectBase>)c.ObjectList.GetValue(objects); var versions = (List<int>)c.ObjectVersions.GetValue(objects); var index = handle.Index;
-            return index >= 0 && index < handles.Count && index < values.Count && index < versions.Count && Object.ReferenceEquals(handles[index], handle) && Object.ReferenceEquals(values[index], entity) && versions[index] == (handle.Id & 65535);
+            return index >= 0 && index < handles.Count && index < values.Count && index < versions.Count && Object.ReferenceEquals(handles[index], handle) && Object.ReferenceEquals(values[index], entity) && versions[index] == (handle.Id & GameCompat.EntityHandleVersionMask);
         }
         private static List<Candidate> CurrentTeam()
         {
@@ -393,7 +400,7 @@ namespace WwPoser.ColdLoad
             }
             else
             {
-                if (!owner.LoadReturned || (int)(EUiModelLoadState)Bind().LoadState.GetValue(owner.Data) != 2) throw new InvalidOperationException("Role model is still loading.");
+                if (!owner.LoadReturned || (int)(EUiModelLoadState)Bind().LoadState.GetValue(owner.Data) != GameCompat.UiModelLoadedState) throw new InvalidOperationException("Role model is still loading.");
                 ApplyForm(owner); owner.Mesh = owner.ActorComponent.MainMeshComponent;
             }
             if (!Valid(owner.Actor) || !Valid(owner.Mesh)) throw new InvalidOperationException("Actor resources are unavailable.");
@@ -603,7 +610,7 @@ namespace WwPoser.ColdLoad
             var movement = pawn.CharacterMovement;
             if (!Valid(movement)) return;
             var mode = (byte)movement.MovementMode;
-            if (mode != 1 && mode != 2) return; // Walking / NavWalking only.
+            if (mode != GameCompat.MovementModeWalking && mode != GameCompat.MovementModeNavWalking) return;
             var floor = movement.CurrentFloor;
             if (floor == null || !floor.bBlockingHit || !floor.bWalkableFloor) return;
             var distance = floor.bLineTrace ? floor.LineDist : floor.FloorDist;

@@ -1,4 +1,7 @@
 {
+  "schema": 2,
+  "compatibility_profile": "wuwa-current-layout-v1",
+  "compatibility_source_sha256": "4ebdd321d3f5152f9527ca57fcd13e376bbb7493ee21328512ef5a4817be3a7e",
   "hook_mode": "vmt_slot",
   "publish_rva": "0x4ff3cd0",
   "gobjects_rva": "0x99a3ff0",
@@ -12,7 +15,7 @@
   "asset_skeleton": "0xd8",
   "asset_ref_bone_info": "0x3b8",
   "component_main_anim": "0x910",
-  "schema": 1,
   "registered_game_thread_id_rva": "0x992f300",
-  "registered_game_thread_initialized_rva": "0x992f310"
+  "registered_game_thread_initialized_rva": "0x992f310",
+  "engine_frame_rva": "0x992f2d8"
 }

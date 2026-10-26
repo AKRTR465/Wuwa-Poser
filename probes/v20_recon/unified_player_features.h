@@ -1,4 +1,5 @@
 #pragma once
+#include "../../runtime/generated/GameCompat.generated.h"
 // Shared per-actor expression/direct-pose features and scene camera overlay.
 // Preparation performs file IO and fresh catalog capture. Frame functions run
 // only after the caller's original publication / UpdateCamera callback.
@@ -57,7 +58,7 @@ inline bool ActorPending(const ActorFeatures& a){return fr::Pending(a.face_state
 inline bool ActorAlive(ActorFeatures& a,::Reader& r){ww_object::Identity mesh,asset;uint64_t pointer=0;
     return ww_object::ReadStable(r,a.objects,a.mesh.object,&mesh)&&ww_object::Same(mesh,a.mesh)&&
         ww_object::ReadStable(r,a.objects,a.asset.object,&asset)&&ww_object::Same(asset,a.asset)&&
-        r.Get(a.mesh.object+0x5d0,pointer)&&pointer==a.asset.object;}
+        r.Get(a.mesh.object+ww_game_compat::ComponentAssetOffset,pointer)&&pointer==a.asset.object;}
 inline void PrepareActor(ActorFeatures& a,::Reader& r,Go& go,Pool& pool,const Json& cfg,const std::filesystem::path& directory,
     uint64_t mesh,uint64_t asset,const play::local_clip::Clip& clip,const body::Topology& topology,const body::Request& request,uint64_t epoch){
     a.objects=go;a.pool=pool;a.epoch=epoch;a.clip=&clip;a.topology=topology;a.request=request;
@@ -77,11 +78,11 @@ inline void PrepareActor(ActorFeatures& a,::Reader& r,Go& go,Pool& pool,const Js
             const auto at=std::find(names.begin(),names.end(),name);Require(at!=names.end(),"expression shape absent from live catalog");
             a.face_order[i]=uint32_t(at-names.begin());a.face_prepared.names[i]=catalog->morphs[i].identity.name;
             a.face_prepared.mapped[i]=std::find(mapped.begin(),mapped.end(),name)!=mapped.end();}
-        a.morph_function=uint64_t(GetModuleHandleW(nullptr))+0x5009b50;
+        a.morph_function=uint64_t(GetModuleHandleW(nullptr))+ww_game_compat::FunctionSetMorphTargetRva;
     }
     if(!a.native_physics){
         try{obs::Metadata metadata;Require(obs::ReadMetadata(r,mesh,obs::kVerifiedLayout,metadata)&&metadata.previous_index>=0&&metadata.previous_index<2,"direct reference pose unavailable");
-            const auto& head=metadata.heads[metadata.previous_index];Require(head.num==int32_t(topology.count)&&r.Read(head.data,a.pose.data(),size_t(topology.count)*48),"direct reference pose unreadable");
+            const auto& head=metadata.heads[metadata.previous_index];Require(head.num==int32_t(topology.count)&&r.Read(head.data,a.pose.data(),size_t(topology.count)*ww_game_compat::TransformBytes),"direct reference pose unreadable");
             const auto names=cfg.contains("bone_names")?cfg.at("bone_names").get<std::vector<std::string>>():cfg.at("expected_bone_names").get<std::vector<std::string>>();
             const auto parents=cfg.contains("parents")?cfg.at("parents").get<std::vector<int32_t>>():cfg.at("expected_bone_parents").get<std::vector<int32_t>>();
             const auto profile=play::ww_secondary::ReadCharacterProfile(FeaturePath(cfg,"bone_chains_file",directory,"bone_chains.json"),names,parents,cfg.at("physics_model_id"));
@@ -107,11 +108,11 @@ inline bool RestorePose(ActorFeatures& a,::Reader& r,const obs::Metadata& metada
     for(unsigned slot=0;slot<2;++slot){auto& backup=a.backups[slot];if(!backup.valid)continue;const auto& head=metadata.heads[slot];
         bool restored=true;
         if(head.data==backup.head.data&&head.num==backup.head.num)for(unsigned k=0;k<backup.plan.count;++k){const auto& p=backup.plan.patches[k];
-            const auto address=head.data+uint64_t(p.bone)*48;std::array<uint8_t,16> q{};std::array<uint8_t,12> position{};
-            if(!r.Read(address,q.data(),16)){restored=false;continue;}
-            if(!memcmp(q.data(),p.rotated_rotation.data(),16)&&!Write(address,p.original_rotation.data(),16))restored=false;
-            if(p.position_changed){if(!r.Read(address+16,position.data(),12))restored=false;
-                else if(!memcmp(position.data(),p.rotated_position.data(),12)&&!Write(address+16,p.original_position.data(),12))restored=false;}}
+            const auto address=head.data+uint64_t(p.bone)*ww_game_compat::TransformBytes;std::array<uint8_t,ww_game_compat::TransformRotationBytes> q{};std::array<uint8_t,ww_game_compat::VectorBytes> position{};
+            if(!r.Read(address,q.data(),ww_game_compat::TransformRotationBytes)){restored=false;continue;}
+            if(!memcmp(q.data(),p.rotated_rotation.data(),ww_game_compat::TransformRotationBytes)&&!Write(address,p.original_rotation.data(),ww_game_compat::TransformRotationBytes))restored=false;
+            if(p.position_changed){if(!r.Read(address+ww_game_compat::TransformTranslationOffset,position.data(),ww_game_compat::VectorBytes))restored=false;
+                else if(!memcmp(position.data(),p.rotated_position.data(),ww_game_compat::VectorBytes)&&!Write(address+ww_game_compat::TransformTranslationOffset,p.original_position.data(),ww_game_compat::VectorBytes))restored=false;}}
         backup.valid=!restored;ok=ok&&restored;
     }
     if(ok)a.anchor_captured=false;return ok;
@@ -125,39 +126,39 @@ inline bool ActorFrame(ActorFeatures& a,::Reader& r,const play::PlayerState& sta
     if(!feed)return RestorePose(a,r,metadata);
     if(metadata.previous_index<0||metadata.previous_index>1)return false;
     const auto slot=unsigned(metadata.previous_index);const auto& head=metadata.heads[slot];const auto count=a.topology.count;
-    if(head.num!=int32_t(count)||!r.Read(head.data,a.pose.data(),size_t(count)*48))return false;
+    if(head.num!=int32_t(count)||!r.Read(head.data,a.pose.data(),size_t(count)*ww_game_compat::TransformBytes))return false;
     auto& backup=a.backups[slot];
     if(backup.valid&&head.data==backup.head.data)for(unsigned i=0;i<backup.plan.count;++i){const auto& p=backup.plan.patches[i];auto& b=a.pose[p.bone];
-        if(!memcmp(b.data(),p.rotated_rotation.data(),16))memcpy(b.data(),p.original_rotation.data(),16);
-        if(p.position_changed&&!memcmp(b.data()+16,p.rotated_position.data(),12))memcpy(b.data()+16,p.original_position.data(),12);}
+        if(!memcmp(b.data(),p.rotated_rotation.data(),ww_game_compat::TransformRotationBytes))memcpy(b.data(),p.original_rotation.data(),ww_game_compat::TransformRotationBytes);
+        if(p.position_changed&&!memcmp(b.data()+ww_game_compat::TransformTranslationOffset,p.rotated_position.data(),ww_game_compat::VectorBytes))memcpy(b.data()+ww_game_compat::TransformTranslationOffset,p.original_position.data(),ww_game_compat::VectorBytes);}
     if(!a.anchor_captured){a.request.root_anchor_position=sub::detail::Position(a.pose[0]);a.request.root_anchor_rotation=sub::detail::Rotation(a.pose[0]);
         a.request.root_anchor_enabled=a.request.root_rotation_enabled=true;a.anchor_captured=true;}
     if(!play::local_clip::Sample(*a.clip,state.seconds,a.samples.data(),count))return false;
     a.body_frame.clip_epoch=a.epoch;a.body_frame.sequence=a.frames+1;a.body_frame.time_seconds=state.seconds;a.body_frame.bone_count=count;
     for(unsigned i=0;i<count;++i){auto& dst=a.body_frame.bones[i];const auto& src=a.samples[i];
-        memcpy(dst.translation_delta,src.translation_delta,12);memcpy(dst.rotation_xyzw,src.rotation_xyzw,16);dst.mask=src.mask;}
+        memcpy(dst.translation_delta,src.translation_delta,ww_game_compat::VectorBytes);memcpy(dst.rotation_xyzw,src.rotation_xyzw,ww_game_compat::TransformRotationBytes);dst.mask=src.mask;}
     body::Request placed;body::Failure failure;
     if(!play::placement::Apply(placement,a.request,a.body_frame.bones[0],&placed,&a.body_frame.bones[0])||
         !body::MakePlan(a.topology,placed,a.pose.data(),count,a.body_frame,&a.body_scratch,&a.plan,&failure))return false;
     if(state.physics_enabled&&!a.physics_available)return false;
     if(a.physics_available){
         std::copy_n(a.pose.begin(),count,a.secondary_pose.begin());
-        for(unsigned i=0;i<a.plan.count;++i){const auto& p=a.plan.patches[i];memcpy(a.secondary_pose[p.bone].data(),p.rotated_rotation.data(),16);
-            if(p.position_changed)memcpy(a.secondary_pose[p.bone].data()+16,p.rotated_position.data(),12);}
+        for(unsigned i=0;i<a.plan.count;++i){const auto& p=a.plan.patches[i];memcpy(a.secondary_pose[p.bone].data(),p.rotated_rotation.data(),ww_game_compat::TransformRotationBytes);
+            if(p.position_changed)memcpy(a.secondary_pose[p.bone].data()+ww_game_compat::TransformTranslationOffset,p.rotated_position.data(),ww_game_compat::VectorBytes);}
         play::ww_chain::Control control;control.enabled=state.physics_enabled;control.playing=state.mode==play::PlayerMode::Playing;
         control.epoch=a.epoch;control.clock_seconds=GetTickCount64()/1000.;control.cursor_seconds=state.seconds;
         control.reset=state.last_sequence!=a.physics_sequence;a.physics_sequence=state.last_sequence;
         if(!play::ww_chain::Step(a.chain_profile,control,a.secondary_pose.data(),count,&a.chain_runtime,&a.chain_scratch,&a.secondary_plan))return false;
         if(a.secondary_plan.count){for(unsigned i=0;i<a.secondary_plan.count;++i){const auto& p=a.secondary_plan.patches[i];
-                memcpy(a.secondary_pose[p.bone].data(),p.rotated_rotation.data(),16);if(p.position_changed)memcpy(a.secondary_pose[p.bone].data()+16,p.rotated_position.data(),12);}
+                memcpy(a.secondary_pose[p.bone].data(),p.rotated_rotation.data(),ww_game_compat::TransformRotationBytes);if(p.position_changed)memcpy(a.secondary_pose[p.bone].data()+ww_game_compat::TransformTranslationOffset,p.rotated_position.data(),ww_game_compat::VectorBytes);}
             a.combined_plan.count=0;
-            for(unsigned i=0;i<count;++i){sub::Patch p;p.bone=i;memcpy(p.original_rotation.data(),a.pose[i].data(),16);memcpy(p.original_position.data(),a.pose[i].data()+16,12);
-                memcpy(p.rotated_rotation.data(),a.secondary_pose[i].data(),16);memcpy(p.rotated_position.data(),a.secondary_pose[i].data()+16,12);
+            for(unsigned i=0;i<count;++i){sub::Patch p;p.bone=i;memcpy(p.original_rotation.data(),a.pose[i].data(),ww_game_compat::TransformRotationBytes);memcpy(p.original_position.data(),a.pose[i].data()+ww_game_compat::TransformTranslationOffset,ww_game_compat::VectorBytes);
+                memcpy(p.rotated_rotation.data(),a.secondary_pose[i].data(),ww_game_compat::TransformRotationBytes);memcpy(p.rotated_position.data(),a.secondary_pose[i].data()+ww_game_compat::TransformTranslationOffset,ww_game_compat::VectorBytes);
                 p.position_changed=p.original_position!=p.rotated_position;
                 if(p.position_changed||p.original_rotation!=p.rotated_rotation)a.combined_plan.patches[a.combined_plan.count++]=p;}a.plan=a.combined_plan;}}
     backup.head=head;backup.plan=a.plan;backup.valid=a.plan.count!=0;
-    for(unsigned i=0;i<a.plan.count;++i){const auto& p=a.plan.patches[i];const auto address=head.data+uint64_t(p.bone)*48;
-        if(!Write(address,p.rotated_rotation.data(),16)||(p.position_changed&&!Write(address+16,p.rotated_position.data(),12)))return false;}
+    for(unsigned i=0;i<a.plan.count;++i){const auto& p=a.plan.patches[i];const auto address=head.data+uint64_t(p.bone)*ww_game_compat::TransformBytes;
+        if(!Write(address,p.rotated_rotation.data(),ww_game_compat::TransformRotationBytes)||(p.position_changed&&!Write(address+ww_game_compat::TransformTranslationOffset,p.rotated_position.data(),ww_game_compat::VectorBytes)))return false;}
     ++a.frames;a.writes+=a.plan.count;return true;
 }
 
@@ -214,13 +215,13 @@ inline void PrepareCamera(CameraFeatures& c,::Reader& r,Go& go,const Json& cfg,c
     c.stage=stage;
     uint64_t pcm=0;ww_object::Identity controller_id,pawn_id,pcm_id;
     Require(ww_object::ReadStable(r,go,controller,&controller_id)&&ww_object::ReadStable(r,go,pawn,&pawn_id)&&
-        r.Get(controller+0x360,pcm)&&ww_object::ReadStable(r,go,pcm,&pcm_id)&&r.Get(pawn+0x310,c.pawn_mesh),"camera current chain unavailable");
+        r.Get(controller+ww_game_compat::ControllerCameraManagerOffset,pcm)&&ww_object::ReadStable(r,go,pcm,&pcm_id)&&r.Get(pawn+ww_game_compat::PawnMeshOffset,c.pawn_mesh),"camera current chain unavailable");
     c.anchor_identities.clear();
     for(uint64_t mesh:c.anchor_meshes){ww_object::Identity anchor;Require(ww_object::ReadStable(r,go,mesh,&anchor),"camera mesh identities unavailable");c.anchor_identities.push_back(anchor);}
     Require(ww_object::ReadStable(r,go,c.pawn_mesh,&c.pawn_mesh_identity),"camera mesh identities unavailable");
     auto& m=c.prepared.snapshot;m.controller=CameraToken(controller_id);m.pawn=CameraToken(pawn_id);m.pcm=CameraToken(pcm_id);
     m.allow_unassigned_pcm_serial=!pcm_id.serial;m.pcm_name_words=pcm_id.name;c.prepared.session=epoch;c.prepared.game_thread=thread;
-    c.prepared.expected_update_target=uint64_t(GetModuleHandleW(nullptr))+0x542faa0;c.available=true;
+    c.prepared.expected_update_target=uint64_t(GetModuleHandleW(nullptr))+ww_game_compat::FunctionUpdateCameraRva;c.available=true;
     c.clip_available=cfg.value("camera_clip_enabled",false);
     if(c.clip_available){c.clip=play::camera_clip::ReadFile(FeaturePath(cfg,"camera_clip_file",directory,"camera.wwcam"));
         const auto basis=cfg.at("camera_source_to_component_rotation_xyzw").get<std::array<float,4>>();c.source_basis={basis[0],basis[1],basis[2],basis[3]};
@@ -244,8 +245,8 @@ inline bool CameraFrame(CameraFeatures& c,::Reader& native,const play::PlayerSta
             {c.settings.source_to_ue.x,c.settings.source_to_ue.y,c.settings.source_to_ue.z,c.settings.source_to_ue.w},c.settings.source_unit_scale});
     }} diagnostic{c};
     CameraReader reader{native,c};struct Writer{bool Write(uint64_t a,const void* p,size_t n){return unified_player_features::Write(a,p,n);}} writer;
-    uint64_t pawn=0,ack=0;const bool controlled=native.Get(c.prepared.snapshot.controller.address+0x2e8,pawn)&&
-        native.Get(c.prepared.snapshot.controller.address+0x340,ack)&&pawn==c.prepared.snapshot.pawn.address&&ack==pawn;
+    uint64_t pawn=0,ack=0;const bool controlled=native.Get(c.prepared.snapshot.controller.address+ww_game_compat::ControllerPawnOffset,pawn)&&
+        native.Get(c.prepared.snapshot.controller.address+ww_game_compat::ControllerAcknowledgedPawnOffset,ack)&&pawn==c.prepared.snapshot.pawn.address&&ack==pawn;
     cr::Phase phase{c.prepared.session,pcm,c.prepared.expected_update_target,GetCurrentThreadId(),true,controlled};
     if(!feed||!controlled||player.mode==play::PlayerMode::Stopped||player.restore_requested){
         const bool ok=cr::Restore(reader,writer,c.prepared,phase,&c.state);c.fixed_captured=c.anchor_captured=c.last_ready=false;c.previous_mode=0;return ok;}
@@ -253,7 +254,7 @@ inline bool CameraFrame(CameraFeatures& c,::Reader& native,const play::PlayerSta
     cr::Frame frame;const unsigned mode=player.camera_mode;
     if(mode==1){if(!c.fixed_captured||c.previous_mode!=1){
             if(c.last_ready)c.fixed=c.last;
-            else {memcpy(c.fixed.location.data(),c.state.fields[0].original.data(),12);memcpy(c.fixed.rotation.data(),c.state.fields[1].original.data(),12);memcpy(&c.fixed.fov,c.state.fields[2].original.data(),4);}c.fixed_captured=true;}frame=c.fixed;
+            else {memcpy(c.fixed.location.data(),c.state.fields[0].original.data(),ww_game_compat::VectorBytes);memcpy(c.fixed.rotation.data(),c.state.fields[1].original.data(),ww_game_compat::VectorBytes);memcpy(&c.fixed.fov,c.state.fields[2].original.data(),4);}c.fixed_captured=true;}frame=c.fixed;
     }else{
         ww_object::Identity anchor_now,pawn_mesh_now;
         if(!ww_object::ReadStable(native,c.objects,c.pawn_mesh,&pawn_mesh_now)||!ww_object::Same(pawn_mesh_now,c.pawn_mesh_identity))return false;
@@ -263,7 +264,7 @@ inline bool CameraFrame(CameraFeatures& c,::Reader& native,const play::PlayerSta
         std::array<double,3> live{};Vec3 first_spot{},first_mesh_position{};Quat world;float unit=1;bool first=true;
         for(size_t i=0;i<c.anchor_meshes.size();++i){
             if(!ww_object::ReadStable(native,c.objects,c.anchor_meshes[i],&anchor_now)||!ww_object::Same(anchor_now,c.anchor_identities[i]))return false;
-            std::array<uint8_t,48> bytes{};if(!native.Read(c.anchor_meshes[i]+0x1e0,bytes.data(),48))return false;
+            std::array<uint8_t,ww_game_compat::TransformBytes> bytes{};if(!native.Read(c.anchor_meshes[i]+ww_game_compat::ComponentToWorldOffset,bytes.data(),ww_game_compat::TransformBytes))return false;
             const auto transform=play::world_snapshot::Decode(bytes);
             for(unsigned k=0;k<3;++k)live[k]+=transform.translation[k];
             const auto& start=c.anchor_clip_starts[i];
@@ -275,9 +276,9 @@ inline bool CameraFrame(CameraFeatures& c,::Reader& native,const play::PlayerSta
         const double inverse=1.0/double(c.anchor_meshes.size());
         for(unsigned k=0;k<3;++k)live[k]*=inverse;
         const Vec3 offset=world*Vec3{float(player.placement_x),float(player.placement_y),float(player.placement_height)};
-        if(mode==0){std::array<uint8_t,48> pawn_bytes{};if(!native.Read(c.pawn_mesh+0x1e0,pawn_bytes.data(),48))return false;
-            const auto pawn_transform=play::world_snapshot::Decode(pawn_bytes);memcpy(frame.location.data(),c.state.fields[0].original.data(),12);
-            memcpy(frame.rotation.data(),c.state.fields[1].original.data(),12);memcpy(&frame.fov,c.state.fields[2].original.data(),4);
+        if(mode==0){std::array<uint8_t,ww_game_compat::TransformBytes> pawn_bytes{};if(!native.Read(c.pawn_mesh+ww_game_compat::ComponentToWorldOffset,pawn_bytes.data(),ww_game_compat::TransformBytes))return false;
+            const auto pawn_transform=play::world_snapshot::Decode(pawn_bytes);memcpy(frame.location.data(),c.state.fields[0].original.data(),ww_game_compat::VectorBytes);
+            memcpy(frame.rotation.data(),c.state.fields[1].original.data(),ww_game_compat::VectorBytes);memcpy(&frame.fov,c.state.fields[2].original.data(),4);
             const float delta[]={float(live[0])-pawn_transform.translation[0]+offset.x,float(live[1])-pawn_transform.translation[1]+offset.y,float(live[2])-pawn_transform.translation[2]+offset.z};
             for(unsigned k=0;k<3;++k)frame.location[k]+=delta[k];
         }else if(mode==2){if(!c.clip_available)return false;
@@ -319,7 +320,7 @@ inline void CameraDetour(void* object,float delta){auto* camera=owned_camera;if(
 }
 inline bool InstallCamera(CameraFeatures& c){if(!c.available)return true;if(owned_camera&&owned_camera!=&c)return false;
     owned_camera=&c;c.original=(void(*)(void*,float))c.prepared.expected_update_target;c.observing.store(true);
-    const auto result=v20_vmt_slot_patch::Install(c.hook,(void**)(c.prepared.snapshot.pcm.vtable+0x790),(void*)c.original,(void*)&CameraDetour);
+    const auto result=v20_vmt_slot_patch::Install(c.hook,(void**)(c.prepared.snapshot.pcm.vtable+ww_game_compat::SlotUpdateCamera),(void*)c.original,(void*)&CameraDetour);
     return result.code==v20_vmt_slot_patch::Code::Ok;
 }
 inline bool UninstallCamera(CameraFeatures& c){if(!c.available)return true;c.feed.store(false);

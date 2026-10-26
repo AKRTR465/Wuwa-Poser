@@ -3,16 +3,46 @@ public sealed partial class NativeGraphService(string repoRoot)
 {
     private readonly string root = Path.GetFullPath(repoRoot);
     private readonly CharacterRegistry registry = new(repoRoot);
-    private static readonly string[] ObserverFunctions = ["0x4e0ba10", "0x49a34d0", "0x49dd440", "0xa3db40"];
+    private static readonly (string Label, ulong Rva)[] ObserverFunctions =
+    [
+        ("ConvertLocalToComponentEvaluate", GameCompat.FunctionLocalToComponentRva),
+        ("SharedSkeletalControlEvaluateCS", GameCompat.FunctionSharedSkeletalControlEvaluateCSRva),
+        ("SharedSkeletalControlUpdate", GameCompat.FunctionSharedSkeletalControlUpdateRva),
+        ("GroupEvaluate", GameCompat.FunctionGroupEvaluateRva)
+    ];
 
-    private JsonArray FunctionWitnesses(params string[] rvas)
+    private JsonArray FunctionWitnesses(params (string Label, ulong Rva)[] functions)
     {
         var rows = new[] { "native_kawaii.json", "native_activation.json" }.SelectMany(file => Contract.A(JsonData.ReadObject(Path.Combine(root, "data", "runtime_contracts", file)), "functions")).ToArray();
-        return new JsonArray(rvas.Select(rva => (JsonNode)new JsonObject { ["rva"] = rva, ["function_bytes_hex"] = Contract.S(rows.First(n => Contract.S(n!, "rva") == rva)!, "function_bytes_hex").ToLowerInvariant() }).ToArray());
+        return ResolveFunctionWitnesses(rows, functions);
     }
-    public JsonArray RootWitnesses() => FunctionWitnesses("0xa40710", "0xa3fc60");
-    public JsonArray InputWitnesses() => FunctionWitnesses("0x4e0ba10", "0xa3f270", "0x4dedaa0", "0x4e0d850");
-    public JsonArray ActivationWitnesses() => FunctionWitnesses("0x49dd440", "0x4e1abc0", "0xa40a50", "0xa44ae0");
+
+    private static JsonArray ResolveFunctionWitnesses(IEnumerable<JsonNode?> rows, params (string Label, ulong Rva)[] functions)
+    {
+        // The saved contracts retain the byte evidence for each semantic
+        // function. Execution addresses come from the selected compatibility
+        // definition, so a relocated function need not rewrite its archive.
+        return new JsonArray(functions.Select(function =>
+        {
+            var witnesses = rows.Where(row => Contract.S(row!, "label") == function.Label)
+                .Select(row => Contract.S(row!, "function_bytes_hex").ToLowerInvariant()).Distinct(StringComparer.Ordinal).ToArray();
+            Contract.Require(witnesses.Length == 1, "函数字节证据缺失或存在冲突：" + function.Label);
+            return (JsonNode)new JsonObject { ["label"] = function.Label, ["rva"] = GameCompat.AddressHex(function.Rva), ["function_bytes_hex"] = witnesses[0] };
+        }).ToArray());
+    }
+    public JsonArray RootWitnesses() => FunctionWitnesses(
+        ("GroupInitializeBoneReferences", GameCompat.FunctionGroupInitializeBoneReferencesRva),
+        ("GroupInitializeModifyBones", GameCompat.FunctionGroupInitializeModifyBonesRva));
+    public JsonArray InputWitnesses() => FunctionWitnesses(
+        ("ConvertLocalToComponentEvaluate", GameCompat.FunctionLocalToComponentRva),
+        ("ComponentSpaceTransformGetter", GameCompat.FunctionComponentSpaceTransformGetterRva),
+        ("AnimInstanceRootEvaluationCounterWitness", GameCompat.FunctionAnimInstanceRootEvaluationCounterRva),
+        ("CachedPoseEvaluationCounterWitness", GameCompat.FunctionCachedPoseEvaluationCounterRva));
+    public JsonArray ActivationWitnesses() => FunctionWitnesses(
+        ("SharedSkeletalControlUpdate", GameCompat.FunctionSharedSkeletalControlUpdateRva),
+        ("SkeletalControlLODAllowed", GameCompat.FunctionSkeletalControlLODAllowedRva),
+        ("GroupIsValidToEvaluate", GameCompat.FunctionGroupIsValidToEvaluateRva),
+        ("SharedUpdateInternal", GameCompat.FunctionSharedUpdateInternalRva));
 
     public void PrepareIdentity(string configPath, string output, int pid)
     {
@@ -20,8 +50,7 @@ public sealed partial class NativeGraphService(string repoRoot)
         var registration = Path.Combine(root, "data", "native_identity_registration_contract.json");
         cfg.Remove("native_graph_discovery");
         cfg["native_identity_bootstrap"] = new JsonObject { ["schema"] = 1, ["phase"] = "identity_registration", ["expected_pid"] = pid,
-            ["duration_ms"] = 2000, ["owner_limit"] = 32, ["function_witnesses"] = FunctionWitnesses(ObserverFunctions),
-            ["registration_contract_sha256"] = JsonData.Digest(registration) };
+            ["duration_ms"] = 2000, ["owner_limit"] = 32, ["function_witnesses"] = FunctionWitnesses(ObserverFunctions) };
         StageObserver(cfg, output, "native_identity_bootstrap.dll", registration);
     }
 
@@ -38,11 +67,24 @@ public sealed partial class NativeGraphService(string repoRoot)
     private void StageObserver(JsonObject cfg, string output, string dll, string? registration = null)
     {
         Directory.CreateDirectory(Path.Combine(output, "logs"));
+        cfg["compatibility_profile"] = GameCompat.ProfileId;
+        cfg["compatibility_source_sha256"] = GameCompat.SourceSha256;
+        if (registration != null)
+        {
+            var contract = JsonData.ReadObject(registration);
+            contract["functions"] = ResolveFunctionWitnesses(Contract.A(contract, "functions"),
+                ("FUObjectArray_AllocateSerialNumber", GameCompat.FunctionAllocateSerialNumberRva),
+                ("FWeakObjectPtr_AssignObject", GameCompat.FunctionAssignWeakObjectRva));
+            contract["source_archive_sha256"] = JsonData.Digest(registration);
+            contract["compatibility_profile"] = GameCompat.ProfileId;
+            contract["compatibility_source_sha256"] = GameCompat.SourceSha256;
+            var stagedRegistration = Path.Combine(output, "native_identity_registration_contract.json");
+            JsonData.Write(stagedRegistration, contract);
+            Contract.O(cfg, "native_identity_bootstrap")["registration_contract_sha256"] = JsonData.Digest(stagedRegistration);
+        }
         JsonData.Write(Path.Combine(output, "observe_target.json"), cfg);
         File.Copy(Path.Combine(root, "probes", "v20_recon", dll), Path.Combine(output, "recon_carrier_v20.dll"));
         File.Copy(Path.Combine(root, "probes", "v20_recon", "hook_install_v20.exe"), Path.Combine(output, "hook_install_v20.exe"));
-        if (registration != null)
-            File.Copy(registration, Path.Combine(output, "native_identity_registration_contract.json"));
     }
 
     public static JsonObject PromoteTargetIdentity(string configPath, string identityDirectory)

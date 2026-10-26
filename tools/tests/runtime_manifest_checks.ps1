@@ -20,6 +20,8 @@ try {
     $manifest = [ordered]@{
         schema = 2; purpose = 'single_owned_character_native_mmd'
         source_revision = $revision; source_dirty = $false; files = $files
+        compatibility_profile = (Get-Content -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Raw | ConvertFrom-Json).profile_id
+        compatibility_source_sha256 = (Get-FileHash -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Algorithm SHA256).Hash.ToLowerInvariant()
         artifacts = @($files | ForEach-Object {
             $path = Join-Path $fixture $_
             [ordered]@{ path = $_; bytes = (Get-Item $path).Length; sha256 = (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant() }
@@ -36,13 +38,19 @@ try {
     $manifest.source_dirty = $true; Save-Manifest
     Reject { & $builder -PackageDirectory $fixture -Check -ExpectedSourceRevision $revision } 'dirty release provenance'
     $manifest.source_dirty = $false
+    $compatibilityDigest = $manifest.compatibility_source_sha256
+    $manifest.compatibility_source_sha256 = '0' * 64; Save-Manifest
+    Reject { & $builder -PackageDirectory $fixture -Check } 'a stale compatibility profile'
+    $manifest.compatibility_source_sha256 = $compatibilityDigest
     $manifest.artifacts[1].path = $files[0]; Save-Manifest
     Reject { & $builder -PackageDirectory $fixture -Check } 'duplicate digest entries'
     $manifest.schema = 1; Save-Manifest
-    & $builder -PackageDirectory $fixture -Check | Out-Null
-    $script:wwManifestChecks++
+    Reject { & $builder -PackageDirectory $fixture -Check } 'a legacy runtime without compatibility provenance'
     Reject { & $builder -PackageDirectory $fixture -Check -ExpectedSourceRevision $revision } 'legacy unsigned release provenance'
     Write-Output ("PASS: {0} runtime manifest checks; no runtime artifact was executed." -f $script:wwManifestChecks)
 } finally {
+    $fixtureFull = [IO.Path]::GetFullPath($fixture)
+    $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar
+    if (-not $fixtureFull.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Manifest fixture cleanup escaped the temporary directory.' }
     if (Test-Path -LiteralPath $fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
 }

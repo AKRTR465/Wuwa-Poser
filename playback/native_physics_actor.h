@@ -1,4 +1,5 @@
 #pragma once
+#include "../runtime/generated/GameCompat.generated.h"
 // Per-instance native animation input. Detached from hooks/process APIs so the
 // same evaluation code serves controlled, owned and SceneTeam actors.
 #include "native_kawaii_pose.h"
@@ -18,7 +19,7 @@ namespace body=wwp_ue::full_body;
 namespace sub=wwp_ue::subtree_rotation;
 enum class Gate:uint32_t {Allowed,LodDenied,ValidityDenied,Exception};
 // SharedSkeletalControlUpdate branches around UpdateInternal at alpha <= this
-// value (RVA 0x49dd595, scalar at 0x7403660).
+// value used by the validated native skeletal-control update implementation.
 constexpr float kNativeRelevantAlpha=1e-8f;
 struct Access {
     void* user=nullptr;
@@ -33,7 +34,7 @@ struct Access {
     template<class T>bool Get(uintptr_t a,T& out) const {return Read(a,&out,sizeof(out));}
 };
 struct Snapshot {uint64_t epoch=0;double seconds=0;placement::Settings placement;bool feed=false,stop=false;};
-struct ObjectToken {uint64_t address=0,item=0;uint32_t index=0,serial=0;std::array<uint8_t,48> header{};};
+struct ObjectToken {uint64_t address=0,item=0;uint32_t index=0,serial=0;std::array<uint8_t,ww_game_compat::ObjectHeaderBytes> header{};};
 struct CurveStats {
     std::atomic<unsigned> calls{0},forced{0},natural_positive_delta_updates{0};
     std::atomic<float> alpha{0},delta{0};
@@ -58,6 +59,8 @@ struct Actor {
     std::atomic<bool> ready{false};
     uint64_t warmup_frame=0;int16_t warmup_counter=0;bool warmup_token_valid=false;
     std::atomic<unsigned> plan_code{0},plan_bone{UINT32_MAX};
+    std::atomic<unsigned> function_witnesses_required{0},function_witnesses_matched{0};
+    std::atomic<bool> function_witnesses_verified{false};
     std::atomic<bool> feed{false},pending{false},admission_closed{false};
     uint64_t pending_frame=0;int16_t pending_counter=0;bool pending_token_valid=false;
     std::atomic<bool>* external_feed=nullptr,*external_writing=nullptr,*external_pending=nullptr;
@@ -109,8 +112,8 @@ inline bool Alive(const Actor& a,const Access& r){
     auto read=[&](uint64_t p,void* out,size_t n){return r.Read(p,out,n);};
     if(!native_animation_target::AuthorityAlive(read,a.target))return false;
     uint64_t owner=0,asset=0,main=0,vtable=0;
-    return r.Get(a.target.mesh+0xa8,owner)&&owner==a.target.actor&&r.Get(a.target.mesh+0x5d0,asset)&&asset==a.target.mesh_asset&&
-        r.Get(a.target.mesh+0x910,main)&&main==a.target.main_anim&&r.Get(a.node,vtable)&&vtable==a.node_vtable;
+    return r.Get(a.target.mesh+ww_game_compat::ComponentOwnerOffset,owner)&&owner==a.target.actor&&r.Get(a.target.mesh+ww_game_compat::ComponentAssetOffset,asset)&&asset==a.target.mesh_asset&&
+        r.Get(a.target.mesh+ww_game_compat::ComponentMainAnimOffset,main)&&main==a.target.main_anim&&r.Get(a.node,vtable)&&vtable==a.node_vtable;
 }
 inline bool Restored(const Actor& a){return !a.pending.load()&&!a.force_pending.load()&&!a.work.load()&&!a.group_work.load();}
 inline void PrepareMotion(Actor& a,const local_clip::Clip& motion,const body::Topology& topology,const body::Request& request,uint64_t epoch){
@@ -124,7 +127,7 @@ inline void PrepareMotion(Actor& a,const local_clip::Clip& motion,const body::To
 inline void InputFrame(Actor& a,uintptr_t node,uintptr_t context,const Access& r){
     ++a.work;struct Work{Actor& a;~Work(){--a.work;}} work{a};
     ++a.calls;uint64_t proxy=0,mesh=0,anim=0;
-    if(!r.Get(context,proxy)||!proxy||!r.Get(proxy+0xc0,mesh)||mesh!=a.target.mesh||!r.Get(proxy+0xa0,anim)||anim!=a.target.main_anim)return;
+    if(!r.Get(context+ww_game_compat::AnimContextProxyOffset,proxy)||!proxy||!r.Get(proxy+ww_game_compat::AnimProxyMeshOffset,mesh)||mesh!=a.target.mesh||!r.Get(proxy+ww_game_compat::AnimProxyOwnerOffset,anim)||anim!=a.target.main_anim)return;
     if(node!=a.node)return;++a.selected;
     if(a.busy.test_and_set(std::memory_order_acquire)){Fail(a,2);return;}
     struct Release{Actor& a;~Release(){a.busy.clear(std::memory_order_release);}} release{a};a.evaluation_thread=r.thread;
@@ -134,7 +137,7 @@ inline void InputFrame(Actor& a,uintptr_t node,uintptr_t context,const Access& r
     if(a.proxy&&a.proxy!=proxy){Fail(a,7);return;}a.proxy=proxy;
     Snapshot state;if(!ReadSnapshot(a,&state))return;
     const bool feed=Feeding(a)&&state.feed&&!state.stop;
-    uint64_t frame=0;int16_t counter=0;if(!r.Get(proxy+0x528,frame)||!r.Get(proxy+0x530,counter)){Fail(a,6);return;}
+    uint64_t frame=0;int16_t counter=0;if(!r.Get(proxy+ww_game_compat::AnimProxyFrameOffset,frame)||!r.Get(proxy+ww_game_compat::AnimProxyCounterOffset,counter)){Fail(a,6);return;}
     if(!feed&&a.pending.load()){
         // A later natural evaluation retires the previous input write.
         if(a.pending_token_valid&&(frame!=a.pending_frame||counter!=a.pending_counter)){
@@ -156,14 +159,14 @@ inline void InputFrame(Actor& a,uintptr_t node,uintptr_t context,const Access& r
     if(!local_clip::Sample(*a.motion,state.seconds,a.sample.data(),a.topology.count)){Fail(a,10);return;}
     a.frame.clip_epoch=a.epoch;a.frame.sequence=a.frames.load()+1;a.frame.time_seconds=state.seconds;a.frame.bone_count=a.topology.count;
     for(uint32_t i=0;i<a.topology.count;++i){const auto& src=a.sample[i];auto& dst=a.frame.bones[i];
-        memcpy(dst.translation_delta,src.translation_delta,12);memcpy(dst.rotation_xyzw,src.rotation_xyzw,16);dst.mask=src.mask;}
+        memcpy(dst.translation_delta,src.translation_delta,ww_game_compat::VectorBytes);memcpy(dst.rotation_xyzw,src.rotation_xyzw,ww_game_compat::TransformRotationBytes);dst.mask=src.mask;}
     body::Request placed;body::Failure failure;
     if(!placement::Apply(state.placement,a.anchored_request,a.frame.bones[0],&placed,&a.frame.bones[0])){
         a.plan_code.store(unsigned(body::Code::InvalidFrame));a.plan_bone.store(0);Fail(a,11);return;}
     if(!body::MakePlan(a.topology,placed,a.pose.data(),a.topology.count,a.frame,&a.scratch,&a.plan,&failure)){
         a.plan_code.store(unsigned(failure.code));a.plan_bone.store(failure.bone);Fail(a,11);return;}
-    for(uint32_t i=0;i<a.plan.count;++i){const auto& patch=a.plan.patches[i];memcpy(a.pose[patch.bone].data(),patch.rotated_rotation.data(),16);
-        if(patch.position_changed)memcpy(a.pose[patch.bone].data()+16,patch.rotated_position.data(),12);}
+    for(uint32_t i=0;i<a.plan.count;++i){const auto& patch=a.plan.patches[i];memcpy(a.pose[patch.bone].data(),patch.rotated_rotation.data(),ww_game_compat::TransformRotationBytes);
+        if(patch.position_changed)memcpy(a.pose[patch.bone].data()+ww_game_compat::TransformTranslationOffset,patch.rotated_position.data(),ww_game_compat::VectorBytes);}
     input::PrepareInput(a.mapping,a.pose.data(),a.mask.data(),&a.prepared_pose);
     if(!feed){
         if(!a.warmup_token_valid||frame!=a.warmup_frame||counter!=a.warmup_counter){a.warmup_frame=frame;a.warmup_counter=counter;a.warmup_token_valid=true;
@@ -172,7 +175,7 @@ inline void InputFrame(Actor& a,uintptr_t node,uintptr_t context,const Access& r
         return; // preflight materializes native CS caches but makes no input/alpha write
     }
     if(!Feeding(a))return;
-    if(!r.writable(r.user,view.transforms.data,size_t(view.transforms.num)*48)||!r.writable(r.user,view.flags.data,size_t(view.flags.num))){Fail(a,12);return;}
+    if(!r.writable(r.user,view.transforms.data,size_t(view.transforms.num)*ww_game_compat::TransformBytes)||!r.writable(r.user,view.flags.data,size_t(view.flags.num))){Fail(a,12);return;}
     a.pending_frame=frame;a.pending_counter=counter;a.pending_token_valid=true;Pending(a,true);
     auto write=[&](uintptr_t p,const void* in,size_t n){return r.write(r.user,p,in,n);};
     if(!input::CommitInput(view,a.prepared_pose,write)){Fail(a,12);return;}
@@ -188,13 +191,13 @@ inline void ForceGroup(Actor& a,unsigned index,uintptr_t node,uintptr_t context,
     if(!Alive(a,r)){Fail(a,607);return;}
     const unsigned bit=1u<<index;
     uint64_t proxy=0,skeleton=0;uint8_t type=0,external=0;float alpha=0,dt=0,native_dt=0;
-    if(!r.Get(context,proxy)||!r.Get(proxy+0xb8,skeleton)||!r.Get(node+0x2c,type)||
-       !r.Get(node+0x28,alpha)||!r.Get(context+0x18,dt)||!r.Get(a.target.mesh+0x145a,external)){Fail(a,602);return;}
-    const bool sample=r.Get(node+0x280,native_dt);
-    uint64_t frame=0;int16_t counter=0;if(!r.Get(proxy+0x528,frame)||!r.Get(proxy+0x530,counter)){Fail(a,6);return;}
+    if(!r.Get(context+ww_game_compat::AnimContextProxyOffset,proxy)||!r.Get(proxy+ww_game_compat::AnimProxySkeletonOffset,skeleton)||!r.Get(node+ww_game_compat::KawaiiAlphaTypeOffset,type)||
+       !r.Get(node+ww_game_compat::KawaiiAlphaOffset,alpha)||!r.Get(context+ww_game_compat::AnimUpdateContextDeltaOffset,dt)||!r.Get(a.target.mesh+ww_game_compat::ComponentExternalRouteOffset,external)){Fail(a,602);return;}
+    const bool sample=r.Get(node+ww_game_compat::KawaiiDeltaOffset,native_dt);
+    uint64_t frame=0;int16_t counter=0;if(!r.Get(proxy+ww_game_compat::AnimProxyFrameOffset,frame)||!r.Get(proxy+ww_game_compat::AnimProxyCounterOffset,counter)){Fail(a,6);return;}
     // A duplicate Update in the same evaluation, or a zero-delta callback,
     // cannot certify that the previous forced update naturally retired.
-    if(a.force_pending.load()&bit){if(!g.pending_token_valid||(frame==g.pending_frame&&counter==g.pending_counter)||type!=2||dt<=0)return;
+    if(a.force_pending.load()&bit){if(!g.pending_token_valid||(frame==g.pending_frame&&counter==g.pending_counter)||type!=ww_game_compat::AlphaTypeCurve||dt<=0)return;
         g.pending_token_valid=false;ForcePending(a,a.force_pending.load()&~bit);}
     if(!Feeding(a))return;
     if(alpha!=0){
@@ -202,13 +205,13 @@ inline void ForceGroup(Actor& a,unsigned index,uintptr_t node,uintptr_t context,
         // copy this context's exact delta.
         if(alpha>kNativeRelevantAlpha&&alpha<=1&&dt>0&&sample&&native_dt==dt&&r.gate(r.user,node,proxy,skeleton)==Gate::Allowed)++g.natural_positive_delta_updates;
         return;}
-    if(type!=2||dt<=0)return;
+    if(type!=ww_game_compat::AlphaTypeCurve||dt<=0)return;
     if(external){Fail(a,603);return;}
     if(r.gate(r.user,node,proxy,skeleton)!=Gate::Allowed)return;
     float one=1;g.pending_frame=frame;g.pending_counter=counter;g.pending_token_valid=true;ForcePending(a,a.force_pending.load()|bit);
-    if(!r.write(r.user,node+0x28,&one,4)){Fail(a,604);return;}
-    if(!r.internal(r.user,node,context)){r.write(r.user,node+0x28,&alpha,4);Fail(a,605);return;}
-    float result_alpha=0,result_dt=0;r.Get(node+0x28,result_alpha);r.Get(node+0x280,result_dt);
+    if(!r.write(r.user,node+ww_game_compat::KawaiiAlphaOffset,&one,4)){Fail(a,604);return;}
+    if(!r.internal(r.user,node,context)){r.write(r.user,node+ww_game_compat::KawaiiAlphaOffset,&alpha,4);Fail(a,605);return;}
+    float result_alpha=0,result_dt=0;r.Get(node+ww_game_compat::KawaiiAlphaOffset,result_alpha);r.Get(node+ww_game_compat::KawaiiDeltaOffset,result_dt);
     g.alpha.store(result_alpha);g.delta.store(result_dt);++g.forced;++a.group_forced;
 }
 // Immutable registry while installed.

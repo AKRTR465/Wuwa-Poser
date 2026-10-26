@@ -77,10 +77,10 @@ public sealed partial class NativeGraphService
             ["converter"] = new JsonObject
             {
                 ["offset"] = node - mainAddress,
-                ["vtable_rva"] = "0x83ec178",
-                ["function_rva"] = "0x4e0ba10"
+                ["vtable_rva"] = GameCompat.AddressHex(GameCompat.VtableLocalToComponentRva),
+                ["function_rva"] = GameCompat.AddressHex(GameCompat.FunctionLocalToComponentRva)
             },
-            ["curve_name_offset"] = "0x88",
+            ["curve_name_offset"] = GameCompat.AddressHex(GameCompat.CurveNameOffset),
             ["curve_groups"] = activation.Groups,
             ["discovery_file"] = "native_graph_discovery.json",
             ["proof"] = new JsonObject
@@ -104,7 +104,7 @@ public sealed partial class NativeGraphService
     private static bool Encloses(JsonNode outer, JsonNode inner) => Contract.Equal(outer["thread"], inner["thread"]) && Contract.Number(Contract.N(outer, "entry_sequence")) < Contract.Number(Contract.N(inner, "entry_sequence")) && Contract.Number(Contract.N(inner, "exit_sequence")) < Contract.Number(Contract.N(outer, "exit_sequence"));
     private static (JsonArray Groups, bool Complete) Activation(JsonObject candidate, Dictionary<ulong, JsonObject> groups)
     {
-        var curves = groups.Values.Where(p => Contract.I(Contract.O(p, "node_fields"), "alpha_type") == 2).Select(p => Contract.S(Contract.O(p, "node_fields"), "curve_name")).Order().ToArray();
+        var curves = groups.Values.Where(p => Contract.I(Contract.O(p, "node_fields"), "alpha_type") == GameCompat.AlphaTypeCurve).Select(p => Contract.S(Contract.O(p, "node_fields"), "curve_name")).Order().ToArray();
         var matches = Contract.A(candidate, "candidate_sources").Where(s => (Contract.S(s!, "kind") is "seq_export" or "pc_export" or "ui_export") && Contract.S(s!, "evidence_kind") == "actual_nodes" && Contract.I(Contract.O(s!, "group_signature"), "kawaii_group_count") == groups.Count && Contract.A(Contract.O(s!, "group_signature"), "curve_names").Select(x => x!.GetValue<string>()).Order().SequenceEqual(curves)).Where(s => Contract.A(candidate, "candidate_groups").Where(g => Contract.Equal(g!["source_id"], s!["sha256"]) && Contract.S(g!, "alpha_input_type") == "Curve").All(g => Contract.True(g!, "simulate_default") && Contract.A(g!, "unmatched_root_bones").Count == 0 && Contract.S(g!, "extraction_kind") == "actual_nodes")).ToArray();
         if (groups.Count == 0 || matches.Length == 0 || groups.Values.Any(p => !Contract.True(Contract.O(p, "node_fields"), "root_bones_verified")))
             return (new(), false);
@@ -115,7 +115,7 @@ public sealed partial class NativeGraphService
             return (JsonNode)new JsonObject
             {
                 ["node_type"] = "KawaiiPhysicsGroup",
-                ["alpha_input_type"] = new[] { "Float", "Bool", "Curve" }[Contract.I(f, "alpha_type")],
+                ["alpha_input_type"] = AlphaInputName(Contract.I(f, "alpha_type")),
                 ["alpha_curve"] = f["curve_name"]?.DeepClone(),
                 ["root_bones"] = f["root_bones"]!.DeepClone()
             };
@@ -130,9 +130,17 @@ public sealed partial class NativeGraphService
         {
             var f = Contract.O(p, "node_fields");
             var alphaType = Contract.I(f, "alpha_type");
-            output.Add(new JsonObject { ["offset"] = p["offset_from_main"]!.DeepClone(), ["node_type"] = "KawaiiPhysicsGroup", ["vtable_rva"] = "0x7405e28", ["alpha_type"] = alphaType, ["activation"] = alphaType == 2 ? "force_when_zero" : "observe_natural", ["curve_name"] = f["curve_name"]?.DeepClone() ?? JsonValue.Create("None"), ["curve_name_words"] = f["curve_name_words"]!.DeepClone(), ["root_binding"] = new JsonObject { ["array"] = f["root_array"]!.DeepClone(), ["extended_array"] = f["extended_root_array"]!.DeepClone(), ["name_words"] = f["root_bone_name_words"]!.DeepClone() } });
+            output.Add(new JsonObject { ["offset"] = p["offset_from_main"]!.DeepClone(), ["node_type"] = "KawaiiPhysicsGroup", ["vtable_rva"] = GameCompat.AddressHex(GameCompat.VtableKawaiiPhysicsGroupRva), ["alpha_type"] = alphaType, ["activation"] = alphaType == GameCompat.AlphaTypeCurve ? "force_when_zero" : "observe_natural", ["curve_name"] = f["curve_name"]?.DeepClone() ?? JsonValue.Create("None"), ["curve_name_words"] = f["curve_name_words"]!.DeepClone(), ["root_binding"] = new JsonObject { ["array"] = f["root_array"]!.DeepClone(), ["extended_array"] = f["extended_root_array"]!.DeepClone(), ["name_words"] = f["root_bone_name_words"]!.DeepClone() } });
         }
 
         return (output, true);
+    }
+
+    private static string AlphaInputName(long alphaType)
+    {
+        if (alphaType == GameCompat.AlphaTypeFloat) return "Float";
+        if (alphaType == GameCompat.AlphaTypeBool) return "Bool";
+        if (alphaType == GameCompat.AlphaTypeCurve) return "Curve";
+        throw new InvalidDataException("未知的原生物理 Alpha 输入类型：" + alphaType);
     }
 }

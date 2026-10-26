@@ -1,4 +1,5 @@
 #pragma once
+#include "../runtime/generated/GameCompat.generated.h"
 // Fixed-camera post-UpdateCamera overlay. Caller supplies the exact original
 // callback phase, live identity reader and field writer. No native calls,
 // process APIs, allocations, hooks or clocks in this helper.
@@ -9,11 +10,11 @@ constexpr uint32_t kFields=6;
 struct Prepared {
     snap::Manifest snapshot;
     uint64_t session=0;
-    uint32_t game_thread=0,last_cache=0x38e0;
+    uint32_t game_thread=0,last_cache=ww_game_compat::CameraLastCacheOffset;
     uint64_t expected_update_target=0;
 };
 struct Phase {uint64_t session=0,pcm=0,update_target=0;uint32_t thread=0;bool after_original_update=false,controlled_authority=false;};
-struct Field {uint32_t offset=0,bytes=0;std::array<uint8_t,12> original{},written{};bool pending=false;};
+struct Field {uint32_t offset=0,bytes=0;std::array<uint8_t,ww_game_compat::VectorBytes> original{},written{};bool pending=false;};
 struct Frame {std::array<float,3> location{},rotation{};float fov=60;};
 struct State {
     std::array<Field,kFields> fields{};bool active=false,frame_ready=false;
@@ -40,7 +41,7 @@ template<class Reader>bool Strong(Reader& r,const Prepared& p,const Phase& phase
 // camera replaced a field, release it; never carry previous overlay bytes as a
 // new baseline.
 template<class Reader>bool ObservePrevious(Reader& r,const Prepared& p,State& s){
-    for(uint32_t i=0;i<kFields;++i){auto& field=s.fields[i];if(!field.pending)continue;std::array<uint8_t,12> value{};
+    for(uint32_t i=0;i<kFields;++i){auto& field=s.fields[i];if(!field.pending)continue;std::array<uint8_t,ww_game_compat::VectorBytes> value{};
         if(!snap::Field(r,p.snapshot.pcm.address,field.offset,value.data(),field.bytes))return false;
         if(std::memcmp(value.data(),field.written.data(),field.bytes))field.pending=false;
     }
@@ -52,7 +53,7 @@ template<class Reader>bool Begin(Reader& r,const Prepared& p,const Phase& phase,
     const auto& l=p.snapshot.layout;const uint32_t base[2]={l.pcm_cache+l.pov,p.last_cache+l.pov};
     for(uint32_t cache=0;cache<2;++cache)for(uint32_t property=0;property<3;++property){auto& f=state->fields[cache*3+property];
         if(f.pending)continue;
-        f.offset=base[cache]+(property==0?l.location:property==1?l.rotation:l.fov);f.bytes=property<2?12:4;
+        f.offset=base[cache]+(property==0?l.location:property==1?l.rotation:l.fov);f.bytes=property<2?ww_game_compat::VectorBytes:ww_game_compat::FloatBytes;
         if(!snap::Field(r,p.snapshot.pcm.address,f.offset,f.original.data(),f.bytes))return false;
     }
     state->active=true;state->frame_ready=true;return true;
@@ -61,7 +62,7 @@ template<class Reader,class Writer>bool Apply(Reader& r,Writer& writer,const Pre
     if(!state->active||!state->frame_ready)return false;
     state->frame_ready=false;
     for(uint32_t i=0;i<kFields;++i){auto& field=state->fields[i];const auto property=i%3;const void* value=property==0?(const void*)frame.location.data():property==1?(const void*)frame.rotation.data():(const void*)&frame.fov;
-        std::array<uint8_t,12> desired{},current{};std::memcpy(desired.data(),value,field.bytes);
+        std::array<uint8_t,ww_game_compat::VectorBytes> desired{},current{};std::memcpy(desired.data(),value,field.bytes);
         if(!snap::Field(r,p.snapshot.pcm.address,field.offset,current.data(),field.bytes))return false;
         if(!std::memcmp(current.data(),desired.data(),field.bytes))continue;
         field.written=desired;field.pending=true;

@@ -1,4 +1,5 @@
 #pragma once
+#include "../runtime/generated/GameCompat.generated.h"
 // Read-only Actor root and mesh ComponentToWorld, current native getter-backed
 // FTransform48 offsets. Caller establishes class ancestry and strong tokens.
 #include "ww_restore_policy.h"
@@ -7,19 +8,19 @@ namespace id=ww_restore;
 struct Transform {std::array<float,4> rotation{};std::array<float,3> translation{},scale{};};
 struct Manifest {id::Token actor,root,mesh;std::array<uint8_t,32> source_sha256{},observed_sha256{};
     bool actor_class_verified=false,scene_class_verified=false,mesh_class_verified=false,current_layout_verified=false;};
-struct Sample {id::Token actor,root,mesh;Transform actor_world,mesh_world;std::array<uint8_t,48> actor_bytes{},mesh_bytes{};
+struct Sample {id::Token actor,root,mesh;Transform actor_world,mesh_world;std::array<uint8_t,ww_game_compat::TransformBytes> actor_bytes{},mesh_bytes{};
     uint64_t root_pointer=0,mesh_owner=0;bool accepted=false;};
 enum class Code:uint8_t {None,InvalidManifest,ReadFailed,IdentityChanged,RelationChanged,NonFinite};
 inline bool Valid(const Transform& t){double n=0;for(float x:t.rotation){if(!std::isfinite(x))return false;n+=double(x)*x;}
     if(std::fabs(n-1)>.002)return false;for(float x:t.translation)if(!std::isfinite(x)||std::fabs(x)>1e9f)return false;
     for(float x:t.scale)if(!std::isfinite(x)||std::fabs(x)<1e-8||std::fabs(x)>1e6)return false;return true;}
-inline Transform Decode(const std::array<uint8_t,48>& b){Transform t;std::memcpy(t.rotation.data(),b.data(),16);std::memcpy(t.translation.data(),b.data()+16,12);std::memcpy(t.scale.data(),b.data()+32,12);return t;}
+inline Transform Decode(const std::array<uint8_t,ww_game_compat::TransformBytes>& b){Transform t;std::memcpy(t.rotation.data(),b.data()+ww_game_compat::TransformRotationOffset,ww_game_compat::TransformRotationBytes);std::memcpy(t.translation.data(),b.data()+ww_game_compat::TransformTranslationOffset,ww_game_compat::VectorBytes);std::memcpy(t.scale.data(),b.data()+ww_game_compat::TransformScaleOffset,ww_game_compat::VectorBytes);return t;}
 inline bool Valid(const Manifest& m){return id::Strong(m.actor)&&id::Strong(m.root)&&id::Strong(m.mesh);}
 template<class Reader>Code Pass(Reader& r,const Manifest& m,Sample* out){
     if(!r.Identify(m.actor.address,&out->actor)||!r.Identify(m.root.address,&out->root)||!r.Identify(m.mesh.address,&out->mesh))return Code::ReadFailed;
     if(!id::Same(out->actor,m.actor)||!id::Same(out->root,m.root)||!id::Same(out->mesh,m.mesh))return Code::IdentityChanged;
-    if(!r.Read(m.actor.address+0x1a0,&out->root_pointer,8)||!r.Read(m.mesh.address+0xa8,&out->mesh_owner,8)||
-       !r.Read(m.root.address+0x1e0,out->actor_bytes.data(),48)||!r.Read(m.mesh.address+0x1e0,out->mesh_bytes.data(),48))return Code::ReadFailed;
+    if(!r.Read(m.actor.address+ww_game_compat::ActorRootOffset,&out->root_pointer,8)||!r.Read(m.mesh.address+ww_game_compat::ComponentOwnerOffset,&out->mesh_owner,8)||
+       !r.Read(m.root.address+ww_game_compat::ComponentToWorldOffset,out->actor_bytes.data(),ww_game_compat::TransformBytes)||!r.Read(m.mesh.address+ww_game_compat::ComponentToWorldOffset,out->mesh_bytes.data(),ww_game_compat::TransformBytes))return Code::ReadFailed;
     if(out->root_pointer!=m.root.address||out->mesh_owner!=m.actor.address)return Code::RelationChanged;
     out->actor_world=Decode(out->actor_bytes);out->mesh_world=Decode(out->mesh_bytes);return Valid(out->actor_world)&&Valid(out->mesh_world)?Code::None:Code::NonFinite;}
 template<class Reader>bool Capture(Reader& r,const Manifest& m,Sample* out,Code* error=nullptr)noexcept{
