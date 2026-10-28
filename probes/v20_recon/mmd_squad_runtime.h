@@ -161,6 +161,7 @@ static void SquadInitialize(Reader& reader,const Json& snapshot){
     dance_clock.Apply({dance_epoch,++dance_initial_sequence,play::CommandKind::SetSpeed,dance_speed},true);
     dance_clock.Apply({dance_epoch,++dance_initial_sequence,play::CommandKind::SetLoop,dance_loop?1.:0.},true);
     dance_clock.Apply({dance_epoch,++dance_initial_sequence,play::CommandKind::SetCameraMode,double(dance_config.value("camera_mode",0))},true);
+    dance_clock.Apply({dance_epoch,++dance_initial_sequence,play::CommandKind::SetCameraTrackHeight,dance_config.value("camera_track_height_cm",0.0)},true);
     dance_clock.Apply({dance_epoch,++dance_initial_sequence,play::CommandKind::SetTimeLimit,dance_config.value("duration_ms",uint64_t(0))/1000.},true);
     dance_initialized=true;
 }
@@ -243,7 +244,7 @@ static void SquadReport(Json& j){
         {"duration_seconds",s.player.duration_seconds},{"restore_requested",s.player.restore_requested},{"session_active",publishing.load()},
         {"speed",s.player.speed},{"loop",s.player.loop},{"mode",unsigned(s.player.mode)},{"last_sequence",s.player.last_sequence},
         {"time_limit_seconds",s.player.time_limit_seconds},{"session_elapsed_seconds",s.player.session_elapsed_seconds},{"time_limit_reached",s.player.time_limit_reached},
-        {"body_mode",dance_config.value("physics_mode",std::string("native"))},{"camera_mode",s.player.camera_mode},{"face_enabled",face_enabled},{"native_physics_input",dance_native_installed.load()}};
+        {"body_mode",dance_config.value("physics_mode",std::string("native"))},{"camera_mode",s.player.camera_mode},{"camera_track_height_cm",s.player.camera_track_height_cm},{"face_enabled",face_enabled},{"native_physics_input",dance_native_installed.load()}};
     j["timeline"]=j["mmd_squad"];
     for(const auto& m:dancers){const bool owned=m.native_prepared&&!v20_shared_native_physics::Restored(m.native);
         j["mmd_squad_members"].push_back({{"role_id",m.role},{"enabled",m.enabled},{"frames",m.frames},{"writes",m.frames},

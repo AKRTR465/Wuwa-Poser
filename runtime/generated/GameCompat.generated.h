@@ -3,7 +3,7 @@
 #include <cstdint>
 namespace ww_game_compat {
 inline constexpr const char* ProfileId = "wuwa-current-layout-v1";
-inline constexpr const char* SourceSha256 = "4ebdd321d3f5152f9527ca57fcd13e376bbb7493ee21328512ef5a4817be3a7e";
+inline constexpr const char* SourceSha256 = "44668b9210086a485c32715fd099e5e4c7a2d242abd5ff2b6d7afa508d88ccd8";
 inline constexpr uint32_t ActorRootOffset = 0x1a0u;
 inline constexpr uint32_t AlphaTypeBool = 0x1u;
 inline constexpr uint32_t AlphaTypeCurve = 0x2u;
@@ -217,6 +217,8 @@ inline constexpr const char* ManagedFieldPlayerGroup = "CurrentGroupType";
 inline constexpr const char* ManagedFieldPlayerGroups = "GroupMap";
 inline constexpr const char* ManagedFieldPlayerId = "Id";
 inline constexpr const char* ManagedFieldPlayerInstance = "_Instance";
+inline constexpr const char* ManagedFieldSimpleNpcElements = "SimpleNpcElements";
+inline constexpr const char* ManagedFieldSimpleNpcInstanceId = "InstanceId";
 inline constexpr const char* ManagedFieldSkinId = "SkinId";
 inline constexpr const char* ManagedFieldTeamInstance = "_Instance";
 inline constexpr const char* ManagedFieldTeamItems = "TeamItems";
@@ -232,5 +234,6 @@ inline constexpr const char* MonoExportRuntimeInvoke = "mono_runtime_invoke";
 inline constexpr const wchar_t* MonoRuntimeModuleWide = L"coreclr.dll";
 inline constexpr int32_t MovementModeNavWalking = 2;
 inline constexpr int32_t MovementModeWalking = 1;
+inline constexpr int32_t SceneVisibilityRadiusCm = 100000;
 inline constexpr int32_t UiModelLoadedState = 2;
 } // namespace ww_game_compat

@@ -20,7 +20,7 @@ public sealed partial class MainWindow
         panel.Children.Add(Action("保存预设", SavePresetAsync, "\uE74E", "SoftButton"));
         loadPresetButton = Action("加载预设", LoadPresetAsync, "\uE8E5", "SoftButton"); panel.Children.Add(loadPresetButton);
         panel.Children.Add(Action("另存为", SavePresetAsAsync, "\uE792", "LinkButton"));
-        var hint = Text("演员、动作、表情、镜头、音乐和设置一起保存。", 11, "Muted"); hint.Margin = new(0, 7, 0, 0); panel.Children.Add(hint);
+        var hint = Text("演员、动作、表情、目线、镜头、音乐和设置一起保存。", 11, "Muted"); hint.Margin = new(0, 7, 0, 0); panel.Children.Add(hint);
         return panel;
     }
     private ShowPreset CapturePreset() => new(

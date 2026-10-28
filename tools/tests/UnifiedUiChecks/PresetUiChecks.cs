@@ -27,14 +27,15 @@ internal static class PresetUiChecks
         string Material(string name, string bytes) { var path = Path.Combine(folder, name); File.WriteAllText(path, bytes); return path; }
         var body = Material("舞蹈.vmd", "body-a"); var second = Material("其他动作.vmd", "body-b");
         var face = Material("表情.vmd", "face"); var camera = Material("镜头.vmd", "camera"); var music = Material("音乐.flac", "audio");
+        var gaze = Material("目线.vmd", "gaze");
         var catalog = OwnedCharacterCatalog.Load(root);
         var dark = catalog.Characters.Single(c => c.RoleId == 1211 && c.Form is not null);
         var normal = catalog.Characters.First(c => c.RoleId == dark.RoleId && c.SkinId == dark.SkinId && c.Form is null);
         var request = new PlaybackSessionRequest(PlaybackSource.MixedActors, [
-            new(body, face, .8, new(12, 23, 4, -90, false), normal.RoleId, true, normal.CharacterId, 1, new(123, 456, 7, 45)),
+            new(body, face, .8, new(12, 23, 4, -90, false), normal.RoleId, true, normal.CharacterId, 1, new(123, 456, 7, 45), gaze, .65),
             new(second, Scale: 1.2, Placement: new(-21, -31, 5, 90), RoleId: normal.RoleId, Enabled: false, CharacterId: normal.CharacterId, Slot: 2, Stage: new(-15, -31, 2, -45)),
             new(body, RoleId: dark.RoleId, CharacterId: dark.CharacterId, Slot: 3)
-        ], camera, 1, 1.333, true, 123.5, true, false, SpacingCm: 234, FormationNative: true, HideSceneCharacters: true);
+        ], camera, 1, 1.333, true, 123.5, true, false, SpacingCm: 234, FormationNative: true, HideSceneCharacters: true, CameraTrackHeightCm: 145.5);
         Call("SetRequest", request);
         Field<TextBox>("audio").Text = music; Field<TextBox>("offset").Text = "-1.25"; Field<TextBox>("volume").Text = "0.67";
         Field<CheckBox>("autoRecord").IsChecked = true; Field<ComboBox>("recordingFps").SelectedIndex = 1; Field<ComboBox>("recordingSize").SelectedIndex = 1;
@@ -43,7 +44,7 @@ internal static class PresetUiChecks
             Check(Field<List<Button>>("actions").Any(b => Equals(b.Content, label) && b.IsEnabled), "preset sidebar control missing: " + label);
         var path = Path.Combine(folder, "完整表演.wwpreset"); Run("SavePresetFileAsync", path);
         Check(!(bool)Call("HasPresetChanges")!, "saved snapshot is clean");
-        foreach (var source in new[] { body, second, face, camera, music }) File.Move(source, source + ".moved", true);
+        foreach (var source in new[] { body, second, face, gaze, camera, music }) File.Move(source, source + ".moved", true);
         Call("SetRequest", new PlaybackSessionRequest(PlaybackSource.MixedActors, [])); Field<TextBox>("audio").Text = "";
         Field<CheckBox>("autoRecord").IsChecked = false; Field<ComboBox>("recordingFps").SelectedIndex = 0; Field<ComboBox>("recordingSize").SelectedIndex = 0;
         Field<ComboBox>("recordingFormat").SelectedIndex = 0;
@@ -53,6 +54,8 @@ internal static class PresetUiChecks
             "duplicate actors and Daniya base/dark forms retain separate slots");
         Check(!restored.Playback.Actors[1].Enabled && restored.Playback.Actors[0].BodySource != restored.Playback.Actors[1].BodySource && restored.Playback.Actors[1].FaceSource is null,
             "each actor retains its own enabled, motion and expression state");
+        Check(File.ReadAllText(restored.Playback.Actors[0].GazeSource!) == "gaze" && restored.Playback.Actors[0].GazeStrength == .65 && restored.Playback.Actors[1].GazeSource is null,
+            "gaze editor preserves each actor's own track and strength through preset loading");
         Check(restored.Playback with { Actors = request.Actors, CameraSource = request.CameraSource } == request && restored.Playback.Actors[0].Placement == request.Actors[0].Placement && restored.Playback.Actors[1].Stage == request.Actors[1].Stage,
             "all playback settings, camera choice, formation and positions restore");
         Check(File.ReadAllText(restored.Playback.Actors[0].BodySource) == "body-a" && File.ReadAllText(restored.Playback.Actors[1].BodySource) == "body-b" && File.ReadAllText(restored.Playback.CameraSource!) == "camera" && File.ReadAllText(restored.Music!.AudioFile) == "audio",

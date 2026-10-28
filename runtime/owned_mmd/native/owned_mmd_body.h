@@ -247,6 +247,7 @@ inline void Initialize(const std::filesystem::path& directory,const Json& graph,
         const auto setting=[&](play::CommandKind kind,double value){Require(r.transport.Apply({r.epoch,++r.initialSequence,kind,value},0)==play::ControlCode::Ok,"scene playback setting invalid");};
         setting(play::CommandKind::SetSpeed,config.value("speed",1.0));setting(play::CommandKind::SetLoop,config.value("loop",false)?1:0);
         setting(play::CommandKind::SetTimeLimit,double(r.durationMs)/1000.0);setting(play::CommandKind::SetCameraMode,config.value("camera_mode",0));r.original=reinterpret_cast<Runtime::Publish>(host+r.publishRva);
+        setting(play::CommandKind::SetCameraTrackHeight,config.value("camera_track_height_cm",0.0));
         r.startPaused=config.value("start_paused",false);
         if(r.startPaused)Require(r.transport.PreparePausedStart(),"scene paused startup configuration failed");
         if(r.multiActor)ww_report::Save(directory/L"native_targets.json",{{"session_epoch",r.epoch},{"actors",targets}});
@@ -310,7 +311,7 @@ inline Json Status(){auto& r=runtime;WorkerLock lock;if(r.payloadReleased)return
         {"seconds",state.seconds},{"duration_seconds",state.duration_seconds},{"speed",state.speed},{"loop",state.loop},{"mode",r.closed.load()?"closed":ModeName(state.mode)},
         {"last_sequence",state.last_sequence},{"revision",state.revision},{"restore_requested",state.restore_requested||r.closing.load()},{"session_active",r.writing.load()&&!r.closing.load()},
         {"time_limit_seconds",state.time_limit_seconds},{"session_elapsed_seconds",state.session_elapsed_seconds},{"time_limit_reached",state.time_limit_reached||r.deadlineExpired.load()},
-        {"camera_mode",state.camera_mode},{"camera_anchor_slot",r.cameraAnchor?r.cameraAnchor->slot:0},{"camera_available",r.cameraFeatures.available},{"camera_clip_available",r.cameraFeatures.clip_available},{"camera_failed",r.cameraFeatures.failed.load()},
+        {"camera_mode",state.camera_mode},{"camera_track_height_cm",state.camera_track_height_cm},{"camera_anchor_slot",r.cameraAnchor?r.cameraAnchor->slot:0},{"camera_available",r.cameraFeatures.available},{"camera_clip_available",r.cameraFeatures.clip_available},{"camera_failed",r.cameraFeatures.failed.load()},
         {"camera_stage_reference_used",r.cameraFeatures.stage.present},{"camera_stage_floor_used",r.cameraFeatures.stage.present},
         {"formation_height_correction_cm",r.formationHeightCorrection.load()},{"ground_height_cm",r.formationHeightCorrection.load()},
         {"camera_anchor_coordinate_frame","world_local"},

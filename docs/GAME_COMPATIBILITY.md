@@ -69,3 +69,7 @@
 这些合成测试和编译不启动或注入游戏。`run_offline_checks.ps1` 可通过 `-DotNetExecutable` 指定有 SDK 的 dotnet 路径。现有便携运行时仍部署四个必需文件及其 manifest，兼容来源随 manifest 记录。
 
 旧的单人/编队/采样开发工具仍有部分独立版本常量。默认链路使用的共享实现已迁移；不能据此把所有历史工具都认定为完成动态适配。
+
+## XXMI 晚附加预调研
+
+场景内启用 WWMI 衣服还需要处理既存 DX11 对象、GPU 资源身份、Shader 和资源扩容。实验范围、步骤和验收要求见 [XXMI 晚附加衣服加载预调研方案](XXMI_LATE_ATTACH_RESEARCH_PLAN.md)。

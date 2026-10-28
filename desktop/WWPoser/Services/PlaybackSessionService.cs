@@ -4,8 +4,8 @@ public enum PlaybackSource { CurrentCharacter, CurrentSquad, CreatedCharacter, M
 // Stage coordinates are relative to the controlled character when playback starts:
 // X to its right, Y ahead, Z above its floor (cm), Yaw relative to its facing.
 public sealed record StagePosition(double X, double Y, double Z = 0, double Yaw = 0);
-public sealed record PlaybackActorRequest(string BodySource, string? FaceSource = null, double? Scale = null, SquadPlacement? Placement = null, long RoleId = 0, bool Enabled = true, string? CharacterId = null, uint Slot = 0, StagePosition? Stage = null);
-public sealed record PlaybackSessionRequest(PlaybackSource Source, IReadOnlyList<PlaybackActorRequest> Actors, string? CameraSource = null, int CameraMode = 0, double Speed = 1, bool Loop = false, double DurationSeconds = 0, bool NativePhysics = true, bool Physics = false, string? StageSession = null, double SpacingCm = 180, bool FormationNative = false, bool HideSceneCharacters = false, double GroundHeightCm = -2);
+public sealed record PlaybackActorRequest(string BodySource, string? FaceSource = null, double? Scale = null, SquadPlacement? Placement = null, long RoleId = 0, bool Enabled = true, string? CharacterId = null, uint Slot = 0, StagePosition? Stage = null, string? GazeSource = null, double GazeStrength = 1);
+public sealed record PlaybackSessionRequest(PlaybackSource Source, IReadOnlyList<PlaybackActorRequest> Actors, string? CameraSource = null, int CameraMode = 0, double Speed = 1, bool Loop = false, double DurationSeconds = 0, bool NativePhysics = true, bool Physics = false, string? StageSession = null, double SpacingCm = 180, bool FormationNative = false, bool HideSceneCharacters = false, double GroundHeightCm = -2, double CameraTrackHeightCm = 0);
 
 // New requests use one dynamic actor host. The old source formats remain
 // readable so saved requests can be converted to the mixed actor preparation.
@@ -48,6 +48,8 @@ public sealed class PlaybackSessionService
             var slot = next; slots.Add(slot); return actor with { Slot = slot };
         }).ToArray();
         if (!double.IsFinite(request.Speed) || request.Speed < .1 || request.Speed > 4) throw new InvalidDataException("速度须在 0.1–4 倍之间。");
+        if (!double.IsFinite(request.CameraTrackHeightCm) || request.CameraTrackHeightCm < -10000 || request.CameraTrackHeightCm > 10000) throw new InvalidDataException("镜头轨道高度偏移须在 -10000–10000 厘米之间。");
+        if (actors.Any(actor => !double.IsFinite(actor.GazeStrength) || actor.GazeStrength < 0 || actor.GazeStrength > 3)) throw new InvalidDataException("目线幅度须在 0–3 倍之间。");
         if (!double.IsFinite(request.DurationSeconds) || request.DurationSeconds < 0 || request.DurationSeconds * 1000 > int.MaxValue) throw new InvalidDataException("播放时限无效。");
         if (!double.IsFinite(request.SpacingCm) || request.SpacingCm < 0) throw new InvalidDataException("演员间距无效。");
         if (request.CameraMode < 0 || request.CameraMode > 2 || (request.CameraMode == 2 && string.IsNullOrWhiteSpace(request.CameraSource))) throw new InvalidDataException("VMD 镜头模式需要镜头文件。");
@@ -69,7 +71,9 @@ public sealed class PlaybackSessionService
                 if (!actor.Enabled || !bySlot.TryGetValue(actor.Slot, out var row)) return actor;
                 var actorDirectory = Path.Combine(directory, row["actor_directory"]?.GetValue<string>() ?? "");
                 var body = Path.Combine(actorDirectory, "source.vmd"); var face = Path.Combine(actorDirectory, "face_source.vmd");
+                var gaze = Path.Combine(actorDirectory, "gaze_source.vmd");
                 return actor with { BodySource = File.Exists(body) ? body : actor.BodySource, FaceSource = File.Exists(face) ? face : actor.FaceSource,
+                    GazeSource = File.Exists(gaze) ? gaze : actor.GazeSource,
                     CharacterId = actor.CharacterId ?? row["character_id"]?.GetValue<string>() };
             }).ToArray();
             var camera = Path.Combine(directory, "camera_source.vmd");
@@ -85,15 +89,18 @@ public sealed class PlaybackSessionService
                 return new PlaybackActorRequest(Path.Combine(actorDirectory, "source.vmd"),
                     File.Exists(Path.Combine(actorDirectory, "face_source.vmd")) ? Path.Combine(actorDirectory, "face_source.vmd") : null,
                     Placement: new(Contract.D(p, "offset_x_cm"), Contract.D(p, "offset_y_cm"), Contract.D(p, "height_cm"), Contract.D(p, "yaw_degrees"), Contract.True(p, "in_place")),
-                    RoleId: Contract.I(row, "role_id"), CharacterId: Contract.S(row, "character_id"), Slot: row["slot"]!.GetValue<uint>(), Stage: OwnedMmdPlaybackService.ReadStage(row));
+                    RoleId: Contract.I(row, "role_id"), CharacterId: Contract.S(row, "character_id"), Slot: row["slot"]!.GetValue<uint>(), Stage: OwnedMmdPlaybackService.ReadStage(row),
+                    GazeSource: File.Exists(Path.Combine(actorDirectory, "gaze_source.vmd")) ? Path.Combine(actorDirectory, "gaze_source.vmd") : null,
+                    GazeStrength: row["gaze_strength"]?.GetValue<double>() ?? 1);
             }).ToArray();
             return new(PlaybackSource.MixedActors, actors, File.Exists(Path.Combine(directory, "camera_source.vmd")) ? Path.Combine(directory, "camera_source.vmd") : null,
                 config["camera_mode"]?.GetValue<int>() ?? 0, Contract.D(config, "speed"), Contract.True(config, "loop"), Contract.D(config, "duration_ms") / 1000d,
                 config["native_physics"]?.GetValue<bool>() ?? true, Contract.True(config, "physics_enabled"), SpacingCm: config["spacing_cm"]?.GetValue<double>() ?? 180,
-                FormationNative: config["formation_native"]?.GetValue<bool>() ?? false, HideSceneCharacters: Contract.True(config, "hide_scene_characters"), GroundHeightCm: config["ground_height_cm"]?.GetValue<double>() ?? -2);
+                FormationNative: config["formation_native"]?.GetValue<bool>() ?? false, HideSceneCharacters: Contract.True(config, "hide_scene_characters"), GroundHeightCm: config["ground_height_cm"]?.GetValue<double>() ?? -2, CameraTrackHeightCm: config["camera_track_height_cm"]?.GetValue<double>() ?? 0);
         }
-        var actor = new PlaybackActorRequest(Path.Combine(directory, "source.vmd"), CharacterId: config["character_id"]?.GetValue<string>());
-        return new(PlaybackSource.CreatedCharacter, [actor], CameraMode: config["camera_mode"]?.GetValue<int>() ?? 0, Speed: Contract.D(config, "speed"), Loop: Contract.True(config, "loop"), DurationSeconds: Contract.D(config, "duration_ms") / 1000d, NativePhysics: config["native_physics"]?.GetValue<bool>() ?? true, Physics: Contract.True(config, "physics_enabled"), GroundHeightCm: config["ground_height_cm"]?.GetValue<double>() ?? -2);
+        var actor = new PlaybackActorRequest(Path.Combine(directory, "source.vmd"), CharacterId: config["character_id"]?.GetValue<string>(),
+            GazeSource: File.Exists(Path.Combine(directory, "gaze_source.vmd")) ? Path.Combine(directory, "gaze_source.vmd") : null, GazeStrength: config["gaze_strength"]?.GetValue<double>() ?? 1);
+        return new(PlaybackSource.CreatedCharacter, [actor], CameraMode: config["camera_mode"]?.GetValue<int>() ?? 0, Speed: Contract.D(config, "speed"), Loop: Contract.True(config, "loop"), DurationSeconds: Contract.D(config, "duration_ms") / 1000d, NativePhysics: config["native_physics"]?.GetValue<bool>() ?? true, Physics: Contract.True(config, "physics_enabled"), GroundHeightCm: config["ground_height_cm"]?.GetValue<double>() ?? -2, CameraTrackHeightCm: config["camera_track_height_cm"]?.GetValue<double>() ?? 0);
     }
 
     private static int Milliseconds(double seconds) => checked((int)Math.Round(seconds * 1000));
@@ -106,7 +113,8 @@ public sealed class PlaybackSessionService
         {
             ["slot"] = actor.Slot, ["role"] = actor.RoleId, ["character"] = actor.CharacterId, ["enabled"] = actor.Enabled,
             ["body"] = actor.Enabled ? Digest(actor.BodySource) : null,
-            ["face"] = actor.Enabled ? Digest(actor.FaceSource) : null, ["scale"] = actor.Scale
+            ["face"] = actor.Enabled ? Digest(actor.FaceSource) : null, ["scale"] = actor.Scale,
+            ["gaze"] = actor.Enabled ? Digest(actor.GazeSource) : null, ["gaze_strength"] = actor.GazeStrength
         }).ToArray());
         var forms = Path.Combine(root, "data", "characters", "character_forms.json");
         return JsonData.CanonicalDigest(new JsonObject { ["character_loading_version"] = 2,
@@ -145,6 +153,7 @@ public sealed class PlaybackSessionService
             var mixed = OwnedMmdPlaybackService.Config(directory);
             mixed["speed"] = request.Speed; mixed["loop"] = request.Loop; mixed["duration_ms"] = Milliseconds(request.DurationSeconds); mixed["camera_mode"] = request.CameraMode;
             mixed["hide_scene_characters"] = request.HideSceneCharacters;
+            mixed["camera_track_height_cm"] = request.CameraTrackHeightCm;
             mixed["camera_enabled"] = true; mixed["native_physics"] = request.NativePhysics; mixed["physics_enabled"] = request.Physics && !request.NativePhysics;
             mixed["physics_mode"] = request.NativePhysics ? "native" : request.Physics ? "secondary_inertia" : "direct";
             var bySlot = request.Actors.Where(actor => actor.Enabled).ToDictionary(actor => actor.Slot);

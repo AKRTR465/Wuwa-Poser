@@ -25,6 +25,7 @@ public sealed partial class MainWindow
     private readonly TextBox speed = new() { Text = "1", Tag = "倍" }, duration = new() { Text = "0", Tag = "秒" }, spacing = new() { Text = "180", Tag = "厘米" };
     private readonly TextBox offset = new() { Text = "0", Tag = "秒" }, volume = new() { Text = "1", Tag = "0–1" };
     private readonly TextBox groundHeight = new() { Text = "-2", Tag = "厘米" };
+    private readonly TextBox cameraTrackHeight = new() { Text = "0", Tag = "厘米" };
     private readonly CheckBox loop = new() { Content = "放完后从头再来，一直循环" };
     private readonly CheckBox native = new() { Content = "使用游戏自带的头发与衣物摆动（推荐）", IsChecked = true }, secondary = new() { Content = "额外增强衣物惯性" };
     private readonly ComboBox cameraMode = new() { ItemsSource = new[] { "游戏跟随镜头", "固定镜头", "VMD 镜头轨道" }, SelectedIndex = 0, Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
@@ -33,7 +34,7 @@ public sealed partial class MainWindow
     private readonly ComboBox recordingSize = new() { ItemsSource = new[] { "1080p", "2K（2560×1440）", "原始尺寸" }, SelectedIndex = 0, Width = 190, Margin = new(0, 0, 8, 0) };
     private readonly ComboBox recordingFormat = new() { ItemsSource = new[] { "省空间（HEVC）", "兼容（H.264）" }, SelectedIndex = 0, Width = 175, Margin = new(0, 0, 8, 0) };
     private readonly CheckBox autoRecord = new() { Content = "开始播放时自动录屏", IsChecked = false };
-    private readonly CheckBox hideSceneCharacters = new() { Content = "播放时隐藏附近 NPC 和怪物模型", IsChecked = false };
+    private readonly CheckBox hideSceneCharacters = new() { Content = "播放时隐藏 1 公里内的场景人物与怪物", IsChecked = false };
     private readonly Slider progress = new() { Minimum = 0, Maximum = 1, IsMoveToPointEnabled = true, Margin = new(0, 14, 0, 10) };
     private readonly ComboBox placementTarget = new() { DisplayMemberPath = nameof(ActorTarget.Name), Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly TextBox liveX = new() { Text = "0", Tag = "厘米" }, liveY = new() { Text = "0", Tag = "厘米" }, liveHeight = new() { Text = "0", Tag = "厘米" }, liveYaw = new() { Text = "0", Tag = "度" };
@@ -138,7 +139,7 @@ public sealed partial class MainWindow
         var tools = new WrapPanel { Margin = new(0, 8, 0, 0) };
         tools.Children.Add(Action("共用第一人的动作", () =>
         {
-            if (actors.Count > 0) foreach (var card in actors.Skip(1)) { card.Body.Text = actors[0].Body.Text; card.Face.Text = actors[0].Face.Text; }
+            if (actors.Count > 0) foreach (var card in actors.Skip(1)) { card.Body.Text = actors[0].Body.Text; card.Face.Text = actors[0].Face.Text; card.Gaze.Text = actors[0].Gaze.Text; card.GazeStrength.Text = actors[0].GazeStrength.Text; }
             status.Text = actors.Count > 1 ? "好啦，所有演员都会跳第一位演员的动作。" : "再添加几位演员，就能让大家一起跳同一段动作。"; return Task.CompletedTask;
         }, "\uE8C8", "LinkButton"));
         tools.Children.Add(Action("移除所选演员", RemoveActorAsync, "\uE74D", "LinkButton"));
@@ -164,6 +165,14 @@ public sealed partial class MainWindow
         cameraBody.Children.Add(Hint("拖入或选择镜头 VMD 后会自动切换到「VMD 镜头轨道」，也可以手动选择跟随或固定镜头。"));
         cameraFileDrop = FileDrop(camera, "镜头 VMD（可选）", "把镜头 .vmd 拖到这里，或点击选择", "VMD 动作|*.vmd", "\uE722", fileSelected: CameraFileSelected);
         cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(cameraFileDrop);
+        var trackHeightRow = new WrapPanel { Margin = new(0, 14, 0, 0), VerticalAlignment = VerticalAlignment.Bottom };
+        trackHeightRow.Children.Add(Field("轨道高度偏移", cameraTrackHeight, 160));
+        trackHeightRow.Children.Add(Action("下移 10 厘米", () => ShiftCameraTrackHeightAsync(-10), "\uE74B", "SoftButton"));
+        trackHeightRow.Children.Add(Action("上移 10 厘米", () => ShiftCameraTrackHeightAsync(10), "\uE74A", "SoftButton"));
+        trackHeightRow.Children.Add(Action("归零", () => ShiftCameraTrackHeightAsync(null), "\uE777", "SoftButton"));
+        trackHeightRow.Children.Add(Action("应用轨道高度", ApplyCameraTrackHeightAsync, "\uE73E", needsSession: true));
+        cameraBody.Children.Add(trackHeightRow);
+        cameraBody.Children.Add(Hint("仅作用于 VMD 镜头轨道：正数整体上移，负数整体下移，100 厘米 = 1 米。保留原有运镜和镜头角度；播放中可用上下按钮直接调整，输入数值后点「应用轨道高度」。"));
         cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(Label("队伍怎么站")); cameraBody.Children.Add(placementMode);
         cameraBody.Children.Add(Hint("默认使用「原作队形」：全员从舞台原点出发，保留动作自带的队形。需要手动摆放时，选择「站位舞台」展开下方站位图。"));
         var heightRow = new WrapPanel { Margin = new(0, 14, 0, 0), VerticalAlignment = VerticalAlignment.Bottom };
@@ -172,7 +181,7 @@ public sealed partial class MainWindow
         heightRow.Children.Add(applyHeight); cameraBody.Children.Add(heightRow);
         cameraBody.Children.Add(Hint("默认下移 2 厘米，负数向下。原作队形和站位舞台都适用；表演中修改后点「应用整体高度」。"));
         cameraBody.Children.Add(Spacer(14)); cameraBody.Children.Add(hideSceneCharacters);
-        cameraBody.Children.Add(Hint("隐藏起点周围 100 米内的 NPC 和怪物，结束或失败时恢复；保留演员、队员和动物。仅隐藏模型，AI、碰撞和头顶 UI 仍按游戏规则运行。"));
+        cameraBody.Children.Add(Hint("隐藏起点周围 1 公里内已加载的 NPC、怪物和场景人物（含环境路人、守卫），播放期间持续补充新加载的目标，结束或失败时恢复；保留演员、队员、其他玩家和动物。仅隐藏模型，AI、碰撞和头顶 UI 仍按游戏规则运行。"));
         content.Children.Add(Card("镜头", "跟着角色拍，或者使用作品自带的运镜。", "\uE722", cameraBody));
         stageMapPanel = BuildStageMapCard(); UpdateStageMapVisibility(); content.Children.Add(stageMapPanel);
 
@@ -307,7 +316,7 @@ public sealed partial class MainWindow
         CheckRow(!cameraMissing, cameraMissing ? "选了「VMD 镜头轨道」，但还没有选镜头文件" : "镜头：" + cameraMode.SelectedItem);
         var nativeFormation = placementMode.SelectedIndex == 1;
         CheckRow(null, nativeFormation ? "摆放：原作队形（忽略站位图，全员从舞台原点出发）" : "摆放：站位舞台（按站位图各自站位）");
-        if (hideSceneCharacters.IsChecked == true) CheckRow(null, "播放时隐藏起点周围 100 米内的 NPC 和怪物模型，停止后恢复");
+        if (hideSceneCharacters.IsChecked == true) CheckRow(null, "播放时隐藏起点周围 1 公里内已加载的场景人物与怪物模型，停止后恢复");
         var crowded = nativeFormation ? 0 : CrowdedCount(MapActors());
         if (playing.Count > 0) CheckRow(crowded == 0, crowded == 0 ? "站位没有挤在一起" : $"有 {crowded} 位演员站得太近，可以去第二步的站位地图调整");
         CheckRow(null, string.IsNullOrWhiteSpace(audio.Text) ? "背景音乐：没有选择（可以不选）" : "背景音乐：" + System.IO.Path.GetFileName(audio.Text));
@@ -556,7 +565,7 @@ public sealed partial class MainWindow
             missingCharacter.Text = "缺少角色 / 皮肤 / 形态：" + (name ?? id) + "，请重新选择。";
             missingCharacter.Visibility = Visibility.Visible; Notify(nameof(CharacterName)); Notify(nameof(IsReady));
         }
-        public string MotionSummary => string.IsNullOrWhiteSpace(Body.Text) ? "还没有身体动作" : System.IO.Path.GetFileNameWithoutExtension(Body.Text.Trim()) + (string.IsNullOrWhiteSpace(Face.Text) ? "" : " · 含表情");
+        public string MotionSummary => string.IsNullOrWhiteSpace(Body.Text) ? "还没有身体动作" : System.IO.Path.GetFileNameWithoutExtension(Body.Text.Trim()) + (string.IsNullOrWhiteSpace(Face.Text) ? "" : " · 含表情") + (string.IsNullOrWhiteSpace(Gaze.Text) ? "" : " · 含目线");
         public bool IsReady => !string.IsNullOrWhiteSpace(Body.Text) && Character.SelectedItem is not null;
         public bool IsParticipating => Enabled.IsChecked == true;
         public StagePosition? Stage { get; set; }
@@ -565,7 +574,7 @@ public sealed partial class MainWindow
         public TextBlock Name { get; } = Text("", 22, "Ink", FontWeights.SemiBold);
         public CheckBox Enabled { get; } = new() { Content = "参与表演", IsChecked = true, Margin = new(0) };
         public CharacterPicker Character { get; } = new();
-        public readonly TextBox Body = new(), Face = new(), Scale = new() { Tag = "倍" };
+        public readonly TextBox Body = new(), Face = new(), Gaze = new(), GazeStrength = new() { Text = "1", Tag = "倍" }, Scale = new() { Tag = "倍" };
         public readonly TextBox X = new() { Text = "0", Tag = "厘米" }, Y = new() { Text = "0", Tag = "厘米" }, Height = new() { Text = "0", Tag = "厘米" }, Yaw = new() { Text = "0", Tag = "度" };
         public CheckBox InPlace { get; } = new() { Content = "原地跳（不随动作走动）" };
 
@@ -578,6 +587,8 @@ public sealed partial class MainWindow
             Enabled.Checked += (_, _) => { Notify(nameof(IsParticipating)); Changed?.Invoke(); }; Enabled.Unchecked += (_, _) => { Notify(nameof(IsParticipating)); Changed?.Invoke(); };
             Body.TextChanged += (_, _) => { Notify(nameof(MotionSummary)); Notify(nameof(IsReady)); Changed?.Invoke(); };
             Face.TextChanged += (_, _) => Notify(nameof(MotionSummary));
+            Gaze.TextChanged += (_, _) => { Notify(nameof(MotionSummary)); Changed?.Invoke(); };
+            GazeStrength.TextChanged += (_, _) => Changed?.Invoke();
 
             var panel = new StackPanel();
             var head = new DockPanel { Margin = new(0, 0, 0, 20) }; DockPanel.SetDock(Enabled, Dock.Right); Enabled.VerticalAlignment = VerticalAlignment.Center; head.Children.Add(Enabled);
@@ -588,11 +599,13 @@ public sealed partial class MainWindow
             panel.Children.Add(Label("TA 跳什么"));
             panel.Children.Add(FileDrop(Body, "身体动作 VMD", "把 .vmd 舞蹈动作拖到这里，或点击选择", "VMD 动作|*.vmd", "\uE805", required: true));
             panel.Children.Add(FileDrop(Face, "表情 VMD（可选）", "有表情会更生动，没有也没关系", "VMD 动作|*.vmd", "\uE76E"));
+            panel.Children.Add(FileDrop(Gaze, "目线 VMD（可选）", "控制眼神方向；留空时自动读取", "VMD 目线|*.vmd", "\uE890"));
             var placement = new StackPanel();
             placement.Children.Add(Text("想决定 TA 站在哪里？到第二步的「站位地图」里拖一拖就好。这里是在动作本身的坐标里再做的额外偏移，一般保持 0；位移倍率空着时会按角色身高自动适配。", 12, "Muted"));
             var fields = new WrapPanel { Margin = new(0, 12, 0, 0) };
             foreach (var (label, box) in new[] { ("向左 / 向右", X), ("向前 / 向后", Y), ("高度", Height), ("面朝方向", Yaw) }) fields.Children.Add(Field(label, box, 120));
             fields.Children.Add(Field("位移倍率（空着 = 自动）", Scale, 170));
+            fields.Children.Add(Field("目线幅度（0–3 倍）", GazeStrength, 170));
             placement.Children.Add(fields); placement.Children.Add(InPlace);
             panel.Children.Add(Spacer(4)); panel.Children.Add(new Expander { Header = "动作幅度与额外偏移（一般不用改）", Content = placement });
             Panel = new Border { Child = panel, CornerRadius = new(16), Padding = new(26, 22, 26, 22), BorderThickness = new(1), Margin = new(0, 0, 0, 12) };

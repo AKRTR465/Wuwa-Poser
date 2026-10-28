@@ -10,6 +10,7 @@ struct Settings {
     float source_unit_scale=1;
     bool input_fov_vertical=false; // Explicit source lens convention.
     float aspect_ratio=1; // Verified POV/viewport aspect, never screen dimensions.
+    float track_height_cm=0; // World +Z translation, independent of source basis/scale.
 };
 struct Frame {
     Vec3 location_ue;
@@ -33,6 +34,7 @@ inline bool Place(const mmd::CameraKey& key,double,const Settings& settings,Fram
     const Vec3 focus=settings.anchor+settings.source_to_ue*(key.target*scale);
     const Quat optical=NormQ(settings.source_to_ue*mmd::CameraOrbit(key.rotation));
     Frame result;result.location_ue=focus+optical*Vec3{0,0,key.distance*scale};result.perspective=key.perspective;
+    result.location_ue.z+=settings.track_height_cm;
     const float fov=std::clamp(key.fov,1.f,179.f);
     result.fov_degrees=settings.input_fov_vertical?2*std::atan(std::tan(fov*.00872664625997f)*settings.aspect_ratio)*57.2957795131f:fov;
     result.ue_rotator_degrees=Rotator(optical);

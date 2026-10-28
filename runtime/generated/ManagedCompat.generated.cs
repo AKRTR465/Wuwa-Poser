@@ -4,7 +4,7 @@ namespace WwPoser.ColdLoad
 internal static class GameCompat
 {
     internal const string ProfileId = "wuwa-current-layout-v1";
-    internal const string SourceSha256 = "4ebdd321d3f5152f9527ca57fcd13e376bbb7493ee21328512ef5a4817be3a7e";
+    internal const string SourceSha256 = "44668b9210086a485c32715fd099e5e4c7a2d242abd5ff2b6d7afa508d88ccd8";
     internal const uint ActorRootOffset = 0x1a0U;
     internal const uint AlphaTypeBool = 0x1U;
     internal const uint AlphaTypeCurve = 0x2U;
@@ -218,6 +218,8 @@ internal static class GameCompat
     internal const string ManagedFieldPlayerGroups = "GroupMap";
     internal const string ManagedFieldPlayerId = "Id";
     internal const string ManagedFieldPlayerInstance = "_Instance";
+    internal const string ManagedFieldSimpleNpcElements = "SimpleNpcElements";
+    internal const string ManagedFieldSimpleNpcInstanceId = "InstanceId";
     internal const string ManagedFieldSkinId = "SkinId";
     internal const string ManagedFieldTeamInstance = "_Instance";
     internal const string ManagedFieldTeamItems = "TeamItems";
@@ -233,6 +235,7 @@ internal static class GameCompat
     internal const string MonoRuntimeModuleWide = "coreclr.dll";
     internal const int MovementModeNavWalking = 2;
     internal const int MovementModeWalking = 1;
+    internal const int SceneVisibilityRadiusCm = 100000;
     internal const int UiModelLoadedState = 2;
     internal static string AddressHex(ulong value) => "0x" + value.ToString("x", System.Globalization.CultureInfo.InvariantCulture);
 }

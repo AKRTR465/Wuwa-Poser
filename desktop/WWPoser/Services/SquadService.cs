@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace WWPoser.Services;
 public sealed record SquadPlacement(double OffsetX = 0, double OffsetY = 0, double Height = 0, double Yaw = 0, bool InPlace = true);
-public sealed record SquadMemberSource(long RoleId, bool Enabled, string? Source, string? FaceSource = null, double? Scale = null, SquadPlacement? Placement = null);
+public sealed record SquadMemberSource(long RoleId, bool Enabled, string? Source, string? FaceSource = null, double? Scale = null, SquadPlacement? Placement = null, string? GazeSource = null, double GazeStrength = 1);
 public sealed record SquadPrepareRequest(string StageSession, IReadOnlyList<SquadMemberSource> Members, uint DurationMs = 0, double SpacingCm = 180, double Speed = 1, bool Loop = false, bool Autoplay = true, string? CameraSource = null, int CameraMode = 0, bool NativePhysics = true, bool Physics = false);
 public sealed class SquadService(string repoRoot)
 {
@@ -77,7 +77,7 @@ public sealed class SquadService(string repoRoot)
         {
             var member = sources[Contract.I(logical[i]!, "role_id")];
             if (member.Enabled)
-                jobs[member.RoleId] = import.ImportAsync(new MotionImportRequest(member.Source!, registry.SkeletonPath(profiles[i]), Path.Combine(output, "members", member.RoleId.ToString()), member.Scale, member.FaceSource, Contract.S(profiles[i], "model_id"), registry.ProfilePath(profiles[i]), Contract.S(natives[i]!["mesh_asset"]!, "name"), Path.Combine(repo, "playback/character_cache")), cancellation);
+                jobs[member.RoleId] = import.ImportAsync(new MotionImportRequest(member.Source!, registry.SkeletonPath(profiles[i]), Path.Combine(output, "members", member.RoleId.ToString()), member.Scale, member.FaceSource, Contract.S(profiles[i], "model_id"), registry.ProfilePath(profiles[i]), Contract.S(natives[i]!["mesh_asset"]!, "name"), Path.Combine(repo, "playback/character_cache"), member.GazeSource, member.GazeStrength), cancellation);
         }
 
         await Task.WhenAll(jobs.Values);

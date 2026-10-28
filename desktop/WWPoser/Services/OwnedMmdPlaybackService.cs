@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 
 namespace WWPoser.Services;
 
-public sealed record OwnedMmdPrepareRequest(string BodySource, string OutputDirectory, double? Scale = null, int DurationMs = 0, double Speed = 1, bool Loop = false, string? CharacterId = null, string? FaceSource = null, string? CameraSource = null, int CameraMode = 0, SquadPlacement? Placement = null, bool NativePhysics = true, bool Physics = false);
+public sealed record OwnedMmdPrepareRequest(string BodySource, string OutputDirectory, double? Scale = null, int DurationMs = 0, double Speed = 1, bool Loop = false, string? CharacterId = null, string? FaceSource = null, string? CameraSource = null, int CameraMode = 0, SquadPlacement? Placement = null, bool NativePhysics = true, bool Physics = false, string? GazeSource = null, double GazeStrength = 1);
 
 // Preparation contains clip data only. The carrier obtains its own live mesh.
 public sealed partial class OwnedMmdPlaybackService(string repoRoot)
@@ -39,10 +39,12 @@ public sealed partial class OwnedMmdPlaybackService(string repoRoot)
         var bodySource = Path.Combine(output, "source.vmd"); File.Copy(request.BodySource, bodySource);
         var faceSource = request.FaceSource is null ? null : Path.Combine(output, "face_source.vmd");
         if (faceSource is not null) File.Copy(request.FaceSource!, faceSource);
+        var gazeSource = request.GazeSource is null ? null : Path.Combine(output, "gaze_source.vmd");
+        if (gazeSource is not null) File.Copy(request.GazeSource!, gazeSource);
         File.Copy(registry.ProfilePath(profile), Path.Combine(output, "character_profile.json"));
         File.Copy(registry.SkeletonPath(profile), Path.Combine(output, "character_skeleton.json"));
         var reportPath = Path.Combine(output, "compiled_report.json"); var clipPath = Path.Combine(output, "motion.wwlocal");
-        var imported = await new MotionImportService(root).ImportAsync(new(bodySource, registry.SkeletonPath(profile), output, request.Scale, faceSource, character.ModelId, registry.ProfilePath(profile), character.ModelAssetName, Path.Combine(root, "playback", "character_cache_csharp")), cancellation);
+        var imported = await new MotionImportService(root).ImportAsync(new(bodySource, registry.SkeletonPath(profile), output, request.Scale, faceSource, character.ModelId, registry.ProfilePath(profile), character.ModelAssetName, Path.Combine(root, "playback", "character_cache_csharp"), gazeSource, request.GazeStrength), cancellation);
         File.Copy(Contract.S(imported, "report"), reportPath);
         var clip = Contract.O(JsonData.ReadObject(reportPath), "compiled_target_clip");
         var epoch = NewEpoch();
@@ -60,6 +62,7 @@ public sealed partial class OwnedMmdPlaybackService(string repoRoot)
             ["fps"] = 60, ["frame_count"] = clip["frame_count"]!.DeepClone(), ["clip_duration_seconds"] = clip["duration_seconds"]!.DeepClone(),
             ["duration_ms"] = request.DurationMs, ["speed"] = request.Speed, ["loop"] = request.Loop, ["session_epoch"] = epoch,
             ["expression_enabled"] = false, ["camera_enabled"] = false, ["native_physics"] = request.NativePhysics, ["body_backend"] = "game_native", ["ground_height_cm"] = -2,
+            ["gaze_strength"] = request.GazeStrength,
             ["placement"] = PlaybackAssets.Placement(request.Placement), ["target_slot"] = 1,
             ["physics_model_id"] = profile["physics_model_id"]?.DeepClone(), ["bone_chains_file"] = "bone_chains.json"
         };

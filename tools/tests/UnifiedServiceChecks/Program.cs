@@ -234,7 +234,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     OwnedMmdPlaybackService.ConfigureStage(previewConfig,180,true); OwnedMmdPlaybackService.WriteActorsFile(previewDirectory,previewConfig);
     Check(File.ReadAllText(Path.Combine(previewDirectory,"stage_floor.tsv")) == "walkable_floor\t2.5\n" && OwnedMmdPlaybackService.ActorConfigs(previewConfig).All(actor => actor["stage_z_cm"]!.GetValue<double>() == 0), "original formation requests floor correction in the motion layer without shifting actors");
     previewConfig["hide_scene_characters"] = true; OwnedMmdPlaybackService.WriteActorsFile(previewDirectory, previewConfig);
-    Check(File.ReadAllText(Path.Combine(previewDirectory, "scene_visibility.tsv")) == "none\t10000\n", "standing previews never hide scene NPCs even when playback hiding is selected");
+    Check(File.ReadAllText(Path.Combine(previewDirectory, "scene_visibility.tsv")) == "none\t100000\n", "standing previews never hide scene people even when playback hiding is selected");
     var nativeHeightPreview = new OwnedMmdPlaybackService(args[1]).PreviewConfig(new PlaybackSessionRequest(PlaybackSource.MixedActors,
         [new PlaybackActorRequest("", CharacterId: selectedCharacter)], FormationNative:true, GroundHeightCm:-3));
     Check(OwnedMmdPlaybackService.ActorConfigs(nativeHeightPreview)[0]["stage_z_cm"]!.GetValue<double>() == -3, "native formation preview uses the selected shared height");
@@ -247,7 +247,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     {
         var actorRequests = Enumerable.Range(0, count).Select(index => new PlaybackActorRequest(bodyPath, facePath, Scale: index == 0 ? .75 : null, Placement: new(OffsetX: index * 2),
             CharacterId: selectedCharacter, Slot: count == 17 ? (uint)(index * 4 + 1) : 0)).ToArray();
-        var request = new PlaybackSessionRequest(PlaybackSource.MixedActors, actorRequests, cameraPath, 2, Speed: 3, NativePhysics: false, Physics: true);
+        var request = new PlaybackSessionRequest(PlaybackSource.MixedActors, actorRequests, cameraPath, 2, Speed: 3, NativePhysics: false, Physics: true, CameraTrackHeightCm: 125);
         var preparation = await service.PrepareAsync(request); var output = preparation["session_dir"]!.GetValue<string>();
         lastPreparation = output;
         firstPreparation ??= output;
@@ -257,12 +257,15 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
         Check(preparedActors.All(actor => actor["native_physics"]!.GetValue<bool>() == false && actor["physics_enabled"]!.GetValue<bool>()), "per-actor physics options survive preparation");
         Check(preparedActors.All(actor => actor["expression_enabled"]!.GetValue<bool>() && actor["expression_duration_seconds"]!.GetValue<double>() == 5 && File.Exists(Path.Combine(output, actor["actor_directory"]!.GetValue<string>(), "expression.wwexpr"))), "every actor binds its independently addressable expression track");
         Check(cfg["camera_clip_enabled"]!.GetValue<bool>() && cfg["camera_clip_duration_seconds"]!.GetValue<double>() == 3 && cfg["duration_seconds"]!.GetValue<double>() == 5, "one camera and a longest-track shared timeline");
+        Check(cfg["camera_track_height_cm"]!.GetValue<double>() == 125, "prepared VMD camera retains the selected whole-track height");
         var actorLines = File.ReadAllLines(Path.Combine(output, "actors.tsv")); var actorBytes = File.ReadAllBytes(Path.Combine(output, "actors.tsv"));
         Check(actorLines.Length == count && actorLines.All(line => line.Split('\t').Length == 16) && !actorBytes.AsSpan().StartsWith(new byte[] { 0xef, 0xbb, 0xbf }), "managed actor list is complete and UTF8 without BOM");
         Check(actorLines.Select(line => uint.Parse(line.Split('\t')[0])).SequenceEqual(preparedActors.Select(actor => actor["slot"]!.GetValue<uint>())), "managed and native slot mapping agrees");
-        var adjusted = request with { Speed = 3.5, Loop = true, DurationSeconds = 120, SpacingCm = 220, Actors = actorRequests.Select(actor => actor with { Placement = new(OffsetX: 100) }).ToArray() };
+        var adjusted = request with { Speed = 3.5, Loop = true, DurationSeconds = 120, SpacingCm = 220, CameraTrackHeightCm = -75, Actors = actorRequests.Select(actor => actor with { Placement = new(OffsetX: 100) }).ToArray() };
         Check(!service.RequiresPreparation(output, adjusted), "changing runtime settings and placement reuses immutable clips");
         service.UpdatePreparation(output, adjusted);
+        Check(OwnedMmdPlaybackService.Config(output)["camera_track_height_cm"]!.GetValue<double>() == -75 && service.ReadPreparation(output).CameraTrackHeightCm == -75,
+            "track height updates without reimporting camera assets and survives reload");
         Check(service.ReadPreparation(output).Speed == 3.5 && OwnedMmdPlaybackService.ActorConfigs(OwnedMmdPlaybackService.Config(output)).All(actor => actor["placement"]!["offset_x_cm"]!.GetValue<double>() == 100), "updated settings cover all actors rather than just slot one");
         Check(service.RequiresPreparation(output, request with { Actors = actorRequests.Select((actor, index) => index == count - 1 ? actor with { Scale = .5 } : actor).ToArray() }), "changing any actor scale requires a new compilation");
         var nativeConfig = OwnedMmdPlaybackService.Config(output); foreach (var nativeActor in OwnedMmdPlaybackService.ActorConfigs(nativeConfig)) nativeActor["native_physics"] = true;
@@ -270,6 +273,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
         Console.WriteLine($"PASS: actual cached compilation/preparation for {count} repeated-character actors: {output}");
     }
     assertions += await CharacterFormChecks.RunAsync(args[1], bodyPath, facePath);
+    assertions += await GazeChecks.RunAsync(args[1], fixture, bodyPath, facePath, cameraPath);
     var disabledRequest = new PlaybackSessionRequest(PlaybackSource.MixedActors, [new(bodyPath, CharacterId: selectedCharacter, Slot: 7), new("missing-disabled-input.vmd", Enabled: false, Slot: 9), new(bodyPath, CharacterId: selectedCharacter, Slot: 41)], NativePhysics: false);
     var disabledPrep = await service.PrepareAsync(disabledRequest); var disabledDirectory = disabledPrep["session_dir"]!.GetValue<string>();
     Check(OwnedMmdPlaybackService.ActorConfigs(OwnedMmdPlaybackService.Config(disabledDirectory)).Select(actor => actor["slot"]!.GetValue<uint>()).SequenceEqual(new uint[] { 7, 41 }), "disabled cards are not loaded and later actors retain non-contiguous slots");
@@ -278,9 +282,9 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     Check(!service.RequiresPreparation(disabledDirectory, hideRequest), "NPC visibility is a runtime setting and never recompiles motion");
     service.UpdatePreparation(disabledDirectory, hideRequest);
     Check(service.ReadPreparation(disabledDirectory).HideSceneCharacters && Contract.True(OwnedMmdPlaybackService.Config(disabledDirectory), "hide_scene_characters") &&
-        File.ReadAllText(Path.Combine(disabledDirectory, "scene_visibility.tsv")) == "npc_monsters\t10000\n", "saved requests and the attached-thread sidecar preserve NPC and monster hiding");
+        File.ReadAllText(Path.Combine(disabledDirectory, "scene_visibility.tsv")) == "scene_characters\t100000\n", "saved requests and the attached-thread sidecar include scene people within 1km");
     service.UpdatePreparation(disabledDirectory, disabledRequest);
-    Check(!service.ReadPreparation(disabledDirectory).HideSceneCharacters && File.ReadAllText(Path.Combine(disabledDirectory, "scene_visibility.tsv")) == "none\t10000\n", "reusing a preparation can disable NPC hiding without a stale sidecar");
+    Check(!service.ReadPreparation(disabledDirectory).HideSceneCharacters && File.ReadAllText(Path.Combine(disabledDirectory, "scene_visibility.tsv")) == "none\t100000\n", "reusing a preparation can disable scene hiding without a stale sidecar");
     using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
     try { await service.PrepareAsync(disabledRequest, cancelled.Token); throw new Exception("cancelled preparation completed"); } catch (OperationCanceledException) { assertions++; }
     Check(service.ActiveSession is null, "cancelled offline preparation does not acquire runtime ownership");

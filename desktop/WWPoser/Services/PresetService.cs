@@ -136,13 +136,13 @@ public sealed class PresetService(string? cacheDirectory = null)
         await using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 131072, true);
         return file.Length == asset.Bytes && Convert.ToHexStringLower(await SHA256.HashDataAsync(file, token)) == asset.Sha256;
     }
-    private static IEnumerable<string> Sources(ShowPreset preset) => preset.Playback.Actors.SelectMany(a => new[] { a.BodySource, a.FaceSource })
+    private static IEnumerable<string> Sources(ShowPreset preset) => preset.Playback.Actors.SelectMany(a => new[] { a.BodySource, a.FaceSource, a.GazeSource })
         .Concat([preset.Playback.CameraSource, preset.Music?.AudioFile]).Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p!);
     private static ShowPreset Map(ShowPreset preset, Func<string, string> map)
     {
         string? AssetPath(string? path) => string.IsNullOrWhiteSpace(path) ? null : map(path);
         return preset with { Playback = preset.Playback with { Source = PlaybackSource.MixedActors, StageSession = null,
-            Actors = preset.Playback.Actors.Select((a, i) => a with { BodySource = AssetPath(a.BodySource) ?? "", FaceSource = AssetPath(a.FaceSource), Slot = (uint)i + 1 }).ToArray(),
+            Actors = preset.Playback.Actors.Select((a, i) => a with { BodySource = AssetPath(a.BodySource) ?? "", FaceSource = AssetPath(a.FaceSource), GazeSource = AssetPath(a.GazeSource), Slot = (uint)i + 1 }).ToArray(),
             CameraSource = AssetPath(preset.Playback.CameraSource) },
             Music = preset.Music is { } music ? music with { AudioFile = AssetPath(music.AudioFile) ?? "" } : null };
     }
@@ -159,11 +159,13 @@ public sealed class PresetService(string? cacheDirectory = null)
         if (preset is null || preset.Playback is not { } p || p.Actors is null || p.Actors.Count > 10000 || preset.Name is null ||
             (preset.ActorNames is { } names && names.Length != p.Actors.Count)) throw new InvalidDataException("预设演员配置无效。");
         Range(p.Speed, .1, 4); Range(p.DurationSeconds, 0, 2147483); Range(p.SpacingCm, 0, 1000); Range(p.GroundHeightCm, -1000, 1000);
+        Range(p.CameraTrackHeightCm, -10000, 10000);
         if (p.CameraMode is < 0 or > 2 || (p.NativePhysics && p.Physics)) throw new InvalidDataException("预设镜头或物理设置无效。");
         foreach (var actor in p.Actors)
         {
             if (actor is null) throw new InvalidDataException("预设演员为空。");
             if (actor.Scale is { } scale) Range(scale, .000001, 100);
+            Range(actor.GazeStrength, 0, 3);
             if (actor.Placement is { } place) { Range(place.OffsetX, -1000, 1000); Range(place.OffsetY, -1000, 1000); Range(place.Height, -1000, 1000); Range(place.Yaw, -180, 180); }
             if (actor.Stage is { } stage) { Range(stage.X, -5000, 5000); Range(stage.Y, -5000, 5000); Range(stage.Z, -1000, 1000); Range(stage.Yaw, -180, 180); }
         }

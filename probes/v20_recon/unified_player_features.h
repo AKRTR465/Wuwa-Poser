@@ -200,7 +200,7 @@ struct CameraFeatures {
     std::atomic<bool> pending{false},failed{false},observing{false},feed{false};
     std::atomic<unsigned> callbacks{0},work{0};std::atomic_flag busy=ATOMIC_FLAG_INIT;
     std::atomic<uint64_t> applied_frames{0};
-    std::atomic<uint64_t> version{0};std::atomic<double> seconds{0},x{0},y{0},height{0},yaw{0};
+    std::atomic<uint64_t> version{0};std::atomic<double> seconds{0},x{0},y{0},height{0},yaw{0},track_height{0};
     std::atomic<unsigned> mode{0},player_mode{0};std::atomic<bool> restore{false};
     play::PlayerState last_published;v20_vmt_slot_patch::State hook;void(*original)(void*,float)=nullptr;
     play::camera_diagnostics::Mailbox diagnostics;
@@ -292,7 +292,7 @@ inline bool CameraFrame(CameraFeatures& c,::Reader& native,const play::PlayerSta
             // Resolve on each frame so a rebased mesh and POV stay in the same
             // local coordinate space without moving the stage in global space.
             if(c.stage.present)c.settings.anchor=first_mesh_position+c.stage.offset_from_first_mesh;
-            auto settings=c.settings;settings.anchor=settings.anchor+offset;play::ww_camera::Frame sampled;
+            auto settings=c.settings;settings.anchor=settings.anchor+offset;settings.track_height_cm=float(player.camera_track_height_cm);play::ww_camera::Frame sampled;
             if(!play::camera_clip::Sample(c.clip,player.seconds,settings,&sampled))return false;
             frame.location={sampled.location_ue.x,sampled.location_ue.y,sampled.location_ue.z};frame.rotation={sampled.ue_rotator_degrees.x,sampled.ue_rotator_degrees.y,sampled.ue_rotator_degrees.z};frame.fov=sampled.fov_degrees;
         }else return false;
@@ -303,6 +303,7 @@ inline bool CameraFrame(CameraFeatures& c,::Reader& native,const play::PlayerSta
 inline void PublishCamera(CameraFeatures& c,const play::PlayerState& state,bool feed){
     c.version.fetch_add(1,std::memory_order_acq_rel);c.seconds.store(state.seconds);c.mode.store(state.camera_mode);c.player_mode.store(unsigned(state.mode));
     c.restore.store(state.restore_requested);c.feed.store(feed);c.x.store(state.placement_x);c.y.store(state.placement_y);c.height.store(state.placement_height);c.yaw.store(state.placement_yaw_degrees);
+    c.track_height.store(state.camera_track_height_cm);
     c.version.fetch_add(1,std::memory_order_release);
 }
 inline CameraFeatures* owned_camera=nullptr;
@@ -315,6 +316,7 @@ inline void CameraDetour(void* object,float delta){auto* camera=owned_camera;if(
     for(unsigned attempt=0;attempt<3;++attempt){const auto version=c.version.load(std::memory_order_acquire);if(version&1)continue;
         state.seconds=c.seconds.load();state.camera_mode=c.mode.load();state.mode=play::PlayerMode(c.player_mode.load());state.restore_requested=c.restore.load();
         state.placement_x=c.x.load();state.placement_y=c.y.load();state.placement_height=c.height.load();state.placement_yaw_degrees=c.yaw.load();feed=c.feed.load();
+        state.camera_track_height_cm=c.track_height.load();
         if(version==c.version.load(std::memory_order_acquire)){c.last_published=state;break;}state=c.last_published;feed=false;}
     ::Reader r{GetCurrentProcess()};if(!CameraFrame(c,r,state,feed&&!c.failed.load(),uint64_t(object)))c.failed.store(true);
 }

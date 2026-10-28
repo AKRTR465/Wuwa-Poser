@@ -1,5 +1,6 @@
 // Synthetic in-process memory only: no game process, windows, hooks or engine calls.
 #include "../../probes/v20_recon/unified_player_features.h"
+#include "../../playback/ww_gaze_profile.h"
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -203,5 +204,55 @@ static void FormationCameraTest(Fixture& f){
     Check(feature::UninstallCamera(*staged),"stage-referenced camera can close cleanly after preparation");
     Transform(f.Object(3)+0x1e0,100.f);Transform(f.Object(4)+0x1e0);
 }
-int main(){auto fixture=std::make_unique<Fixture>();DirectTest(*fixture);FaceTest(*fixture);CameraTest(*fixture);FormationCameraTest(*fixture);CameraCallbackTest(*fixture);
+static void CameraTrackHeightTest(Fixture& f){
+    auto c=std::make_unique<feature::CameraFeatures>();Json cfg={{"camera_clip_enabled",false},{"camera_mode",0}};
+    feature::PrepareCamera(*c,f.reader,f.go,cfg,{},f.Object(0),f.Object(1),{f.Object(3)},{},{true,{20,30,-40}},42,GetCurrentThreadId(),0);
+    c->clip_available=true;c->clip.duration=2;c->source_basis=Quat::AxisAngle({1,0,0},.4f);c->unit_scale=3;
+    for(unsigned i=0;i<3;++i){mmd::CameraKey key;key.frame=i*30;key.target={float(i*2),float(i*3),float(i)};key.rotation={.1f*i,.2f*i,.3f*i};key.distance=-10.f-float(i*2);key.fov=35.f+float(i*10);c->clip.source_keys.push_back(key);}
+    play::PlayerState state;state.mode=play::PlayerMode::Paused;state.camera_mode=2;
+    for(double seconds:{0.,.25,.8,1.4,2.,.25}){
+        state.seconds=seconds;state.camera_track_height_cm=0;f.NativeCamera({0,10,20});
+        Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2)),"baseline VMD track samples at any paused cursor");
+        const auto base=f.CameraPosition();const auto rotation=Get<std::array<float,3>>(f.Object(2)+0x2e5c);const auto fov=Get<float>(f.Object(2)+0x2e68);
+        state.camera_track_height_cm=125;f.NativeCamera({0,10,20});
+        Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2))&&Near(f.CameraPosition()[0],base[0])&&Near(f.CameraPosition()[1],base[1])&&Near(f.CameraPosition()[2],base[2]+125),"whole-track offset adds the same world Z at every cursor, independent of source rotation and scale");
+        Check(Get<std::array<float,3>>(f.Object(2)+0x2e5c)==rotation&&Get<float>(f.Object(2)+0x2e68)==fov,"track translation preserves authored angles and FOV");
+        Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2))&&Near(f.CameraPosition()[2],base[2]+125),"paused repeated sampling never accumulates track height");
+        state.camera_track_height_cm=-75;f.NativeCamera({0,10,20});
+        Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2))&&Near(f.CameraPosition()[2],base[2]-75),"negative height translates the complete track downward");
+        Check(Get<std::array<float,3>>(f.Object(2)+0x38f0)==f.CameraPosition(),"both camera caches receive the translated track");
+    }
+    state.camera_track_height_cm=0;f.NativeCamera({0,10,20});feature::CameraFrame(*c,f.reader,state,true,f.Object(2));const auto callbackBase=f.CameraPosition();
+    CallbackFixture events{&f};callback_fixture=&events;c->original=&SyntheticCameraOriginal;c->observing=true;auto* previous=feature::owned_camera;feature::owned_camera=c.get();
+    state.camera_track_height_cm=80;feature::PublishCamera(*c,state,true);feature::CameraDetour((void*)f.Object(2),.016f);
+    Check(Near(f.CameraPosition()[2],callbackBase[2]+80),"track height crosses the worker mailbox and actual camera callback");
+    c->observing=false;feature::owned_camera=previous;callback_fixture=nullptr;
+    state.camera_mode=0;state.camera_track_height_cm=0;f.NativeCamera({0,10,20});feature::CameraFrame(*c,f.reader,state,true,f.Object(2));const auto follow=f.CameraPosition();
+    state.camera_track_height_cm=300;f.NativeCamera({0,10,20});
+    Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2))&&f.CameraPosition()==follow,"track-only offset leaves the game-follow view unchanged");
+    state.camera_mode=1;Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2))&&f.CameraPosition()==follow,"track-only offset leaves the fixed view unchanged");
+    f.NativeCamera({11,22,33});Check(feature::CameraFrame(*c,f.reader,state,false,f.Object(2))&&!feature::CameraPending(*c)&&f.CameraPosition()==std::array<float,3>{11,22,33},"stopping restores the current native camera without retaining a track shift");
+    Check(feature::UninstallCamera(*c),"track-height camera closes cleanly");
+}
+static void GazeTest(){
+    namespace gaze=play::gaze;
+    const std::vector<std::string> targets={"A","Pupil_Up","Pupil_Down","Pupil_R","Pupil_L"};
+    const auto profile=gaze::Build(targets);mmd::MotionClip motion;
+    auto key=[&](const char* name,Quat q){mmd::BoneKey k;k.rotation=q;motion.bones[name]={k};};
+    auto sample=[&](float strength=1){std::vector<float> weights(targets.size(),.7f);gaze::Apply(motion,profile,targets,0,strength,weights);return weights;};
+    key(u8"両目",{});auto w=sample();Check(Near(w[0],.7)&&Near(w[1]+w[2]+w[3]+w[4],0),"neutral gaze clears owned directions and preserves mouth morph");
+    constexpr float range=.2617993878f;
+    key(u8"両目",Quat::AxisAngle({0,1,0},range/2));w=sample();Check(Near(w[3],.5)&&Near(w[4],0),"MMD positive yaw drives right pupil morph");
+    auto q=motion.bones[u8"両目"][0].rotation;key(u8"両目",{-q.x,-q.y,-q.z,-q.w});Check(Near(sample()[3],.5),"quaternion sign does not flip gaze");
+    key(u8"両目",Quat::AxisAngle({1,0,0},-range));w=sample();Check(Near(w[2],1)&&Near(w[1],0),"negative pitch drives down only");
+    key(u8"両目",Quat::AxisAngle({0,0,1},range));w=sample();Check(Near(w[1]+w[2]+w[3]+w[4],0),"eye roll does not invent pupil translation");
+    key(u8"両目",Quat::AxisAngle({0,1,0},range/4));key(u8"左目",Quat::AxisAngle({0,1,0},range/4));key(u8"右目",Quat::AxisAngle({0,1,0},range/4));
+    Check(Near(sample()[3],.5)&&Near(sample(3)[3],1),"common and per-eye rotations compose before bounded strength");
+    const std::vector<std::string> independent={"Pupil_Up","Pupil_Down","Pupil_L","Pupil_R","Pupil_Up_L","Pupil_Down_L","Pupil_Up_R","Pupil_Down_R","Pupil_In_L","Pupil_Out_L","Pupil_In_R","Pupil_Out_R"};
+    const auto split=gaze::Build(independent);motion.bones.clear();key(u8"左目",Quat::AxisAngle({0,1,0},range));key(u8"右目",Quat::AxisAngle({0,1,0},-range));
+    std::vector<float> weights(independent.size(),.8f);gaze::Apply(motion,split,independent,0,1,weights);
+    Check(split.independent&&Near(weights[8],1)&&Near(weights[10],1)&&Near(weights[9]+weights[11]+weights[2]+weights[3],0),"independent gaze preserves convergence without double-driving common shapes");
+    Check(gaze::Build({"A"}).channels.empty(),"missing pupil targets are unsupported, not guessed");
+}
+int main(){auto fixture=std::make_unique<Fixture>();DirectTest(*fixture);FaceTest(*fixture);GazeTest();CameraTest(*fixture);FormationCameraTest(*fixture);CameraCallbackTest(*fixture);CameraTrackHeightTest(*fixture);
     std::cout<<assertions<<" synthetic feature assertions passed; game_accessed=false; hooks_installed=false\n";}

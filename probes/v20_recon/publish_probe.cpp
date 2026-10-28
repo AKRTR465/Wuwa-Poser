@@ -90,6 +90,7 @@ static auto& mmdCameraWorkActive=mmdSceneCamera.work;
 static auto& mmdCameraBusy=mmdSceneCamera.busy;
 static auto& originalCameraUpdate=mmdSceneCamera.original;
 static std::atomic<unsigned> mmdCameraMode{0};
+static std::atomic<double> mmdCameraTrackHeight{0};
 static bool mmdPhysicsAvailable=false;
 static std::string mmdPhysicsUnavailableReason;
 namespace props=playback::ww_prop_visibility;
@@ -125,6 +126,7 @@ static void ExportMmdState() {
     mmdStateTimeLimit.store(s.time_limit_seconds);mmdStateElapsed.store(s.session_elapsed_seconds);mmdStateLimitReached.store(s.time_limit_reached);
     mmdStatePhysics.store(s.physics_enabled);
     mmdCameraMode.store(s.camera_mode);
+    mmdCameraTrackHeight.store(s.camera_track_height_cm);
     mmdStatePlacementX.store(s.placement_x);mmdStatePlacementY.store(s.placement_y);
     mmdStatePlacementHeight.store(s.placement_height);mmdStatePlacementYaw.store(s.placement_yaw_degrees);
     mmdStatePlacementInPlace.store(s.placement_in_place);
@@ -145,6 +147,7 @@ static bool ReadMmdState(playback::PlayerState* output) noexcept {
         state.restore_requested=mmdStateRestore.load();state.physics_enabled=mmdStatePhysics.load();
         state.time_limit_seconds=mmdStateTimeLimit.load();state.session_elapsed_seconds=mmdStateElapsed.load();state.time_limit_reached=mmdStateLimitReached.load();
         state.camera_mode=mmdCameraMode.load();
+        state.camera_track_height_cm=mmdCameraTrackHeight.load();
         state.placement_x=mmdStatePlacementX.load();state.placement_y=mmdStatePlacementY.load();
         state.placement_height=mmdStatePlacementHeight.load();state.placement_yaw_degrees=mmdStatePlacementYaw.load();
         state.placement_in_place=mmdStatePlacementInPlace.load();
@@ -364,7 +367,8 @@ static void WorkerBody() {
         const uint64_t epoch=cfg.at("clip_epoch");mmdClipEpoch=epoch;mmdTransport.SetClip(epoch,mmdTimelineDuration);
         if(mmdCameraAvailable)mmdTransport.SetInitialCameraMode(cfg.at("camera_mode"));
         mmdTransport.Apply({epoch,1,playback::CommandKind::SetTimeLimit,cfg.value("duration_ms",uint64_t(0))/1000.},GetTickCount64()/1000.);
-        if(cfg.at("autoplay").get<bool>())mmdCommands.Push({epoch,2,playback::CommandKind::Play,0});
+        mmdTransport.Apply({epoch,2,playback::CommandKind::SetCameraTrackHeight,cfg.value("camera_track_height_cm",0.0)},GetTickCount64()/1000.);
+        if(cfg.at("autoplay").get<bool>())mmdCommands.Push({epoch,3,playback::CommandKind::Play,0});
         ExportMmdState();
         if(cfg.contains("weapon_targets")&&!cfg.at("weapon_targets").empty()){
             setHiddenNative=(void(*)(void*,bool,uint8_t))(image+0x5009450);
@@ -404,6 +408,7 @@ static void WorkerBody() {
                 {"seconds",snapshot.seconds},{"duration_seconds",mmdTimelineDuration},{"speed",snapshot.speed},{"loop",snapshot.loop},
                 {"time_limit_seconds",snapshot.time_limit_seconds},{"session_elapsed_seconds",snapshot.session_elapsed_seconds},{"time_limit_reached",snapshot.time_limit_reached},
                 {"camera_mode",snapshot.camera_mode},
+                {"camera_track_height_cm",snapshot.camera_track_height_cm},
                 {"mode",modes[unsigned(snapshot.mode)]},{"restore_requested",snapshot.restore_requested},{"frames",mmdFrames.load()},
                 {"session_active",true},{"physics_available",mmdPhysicsAvailable},{"physics_enabled",snapshot.physics_enabled}});
         }
@@ -433,6 +438,7 @@ static void WorkerBody() {
         {"seconds",snapshot.seconds},{"duration_seconds",mmdTimelineDuration},{"speed",snapshot.speed},{"loop",snapshot.loop},
         {"time_limit_seconds",snapshot.time_limit_seconds},{"session_elapsed_seconds",snapshot.session_elapsed_seconds},{"time_limit_reached",snapshot.time_limit_reached},
         {"camera_mode",snapshot.camera_mode},
+        {"camera_track_height_cm",snapshot.camera_track_height_cm},
         {"mode","closed"},{"restore_requested",false},{"restoration_complete",restored},{"session_active",false},{"result_status",report["status"]},
         {"frames",mmdFrames.load()},{"physics_available",mmdPhysicsAvailable},{"physics_enabled",snapshot.physics_enabled}});
     safeToUnload.store(report["unload_safe"].get<bool>());

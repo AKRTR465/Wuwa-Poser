@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "compatibility_profile": "wuwa-current-layout-v1",
-  "compatibility_source_sha256": "4ebdd321d3f5152f9527ca57fcd13e376bbb7493ee21328512ef5a4817be3a7e",
+  "compatibility_source_sha256": "44668b9210086a485c32715fd099e5e4c7a2d242abd5ff2b6d7afa508d88ccd8",
   "hook_mode": "vmt_slot",
   "publish_rva": "0x4ff3cd0",
   "gobjects_rva": "0x99a3ff0",

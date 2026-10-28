@@ -13,7 +13,7 @@ namespace wwp_playback {
 enum class CommandKind : uint32_t {
     Play=1, Pause, SeekSeconds, StepFrames, SetLoop, SetSpeed, Stop, SetPhysics, SetCameraMode,
     SetPlacementX=10, SetPlacementY=11, SetPlacementHeight=12, SetPlacementYaw=13, SetPlacementInPlace=14, ResetPlacement=15,
-    SetTimeLimit=16, SetGroundHeight=17
+    SetTimeLimit=16, SetGroundHeight=17, SetCameraTrackHeight=18
 };
 enum class PlayerMode : uint32_t {Empty, Stopped, Playing, Paused, Ended};
 enum class ControlCode : uint32_t {Ok, InvalidCommand, StaleEpoch, DuplicateSequence, ClockInvalid, RestorePending};
@@ -23,6 +23,7 @@ struct PlayerState {
     double duration_seconds=0, seconds=0, speed=1;
     double time_limit_seconds=0, session_elapsed_seconds=0;
     double placement_x=0, placement_y=0, placement_height=0, placement_yaw_degrees=0;
+    double camera_track_height_cm=0;
     PlayerMode mode=PlayerMode::Empty;
     uint32_t camera_mode=0;
     bool loop=false, restore_requested=false, physics_enabled=false, placement_in_place=false, time_limit_reached=false;
@@ -45,6 +46,7 @@ inline bool ValidCommand(const Command& command) {
     case CommandKind::SetSpeed:return command.value>=.1&&command.value<=4;
     case CommandKind::SetTimeLimit:return command.value>=0&&command.value<=10000000;
     case CommandKind::SetCameraMode:return command.value==0||command.value==1||command.value==2;
+    case CommandKind::SetCameraTrackHeight:return command.target_slot==0&&command.value>=-10000&&command.value<=10000;
     case CommandKind::SetPlacementX:case CommandKind::SetPlacementY:case CommandKind::SetPlacementHeight:case CommandKind::SetGroundHeight:return command.value>=-1000&&command.value<=1000;
     case CommandKind::SetPlacementYaw:return command.value>=-180&&command.value<=180;
     }
@@ -157,6 +159,7 @@ public:
         case CommandKind::SetTimeLimit:state_.time_limit_seconds=command.value;break;
         case CommandKind::SetPhysics:state_.physics_enabled=command.value!=0;break;
         case CommandKind::SetCameraMode:state_.camera_mode=uint32_t(command.value);break;
+        case CommandKind::SetCameraTrackHeight:state_.camera_track_height_cm=command.value;break;
         // Placement remains a selection while stopped; only Play activates it.
         // Stop preserves this user selection, while SetClip resets it.
         case CommandKind::SetPlacementX:state_.placement_x=command.value;break;

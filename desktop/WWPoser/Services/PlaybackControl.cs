@@ -7,7 +7,7 @@ public static class PlaybackControl
 {
     private static readonly Dictionary<string, uint> Kinds = new() { ["play"] = 1, ["pause"] = 2, ["seek"] = 3, ["step"] = 4, ["loop"] = 5, ["speed"] = 6, ["stop"] = 7, ["physics"] = 8, ["camera"] = 9, ["offset_x"] = 10, ["offset_y"] = 11, ["height"] = 12, ["yaw"] = 13, ["in_place"] = 14, ["reset_placement"] = 15, ["time_limit"] = 16 };
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> SendLocks = new(StringComparer.OrdinalIgnoreCase);
-    static PlaybackControl() { Kinds["ground_height"] = 17; }
+    static PlaybackControl() { Kinds["ground_height"] = 17; Kinds["camera_track_height"] = 18; }
     public static byte[] Encode(ulong epoch, ulong sequence, string kind, double value = 0, uint targetSlot = 0)
     {
         var bytes = new byte[64]; "WWPCTL1\0"u8.CopyTo(bytes);

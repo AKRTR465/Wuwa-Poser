@@ -125,7 +125,7 @@ internal static class Program
             "loading a saved program honors its explicit camera and formation choices");
         Call("SetRequest", initialStageRequest); Call("ShowPage", 0);
         var hideScene = Field<CheckBox>("hideSceneCharacters");
-        Check(hideScene.IsChecked == false && hideScene.IsEnabled, "NPC and monster model hiding is an explicit idle option");
+        Check(hideScene.IsChecked == false && hideScene.IsEnabled && hideScene.Content.ToString()!.Contains("1 公里"), "scene-person hiding is an explicit idle option with the 1km scope visible");
         hideScene.IsChecked = true;
         var hideRequest = (PlaybackSessionRequest)Call("BuildRequest", false)!;
         Check(hideRequest.HideSceneCharacters, "the stage checkbox reaches the playback request");
@@ -192,7 +192,7 @@ internal static class Program
             if (File.Exists(commandPath)) File.Delete(commandPath);
             var state = new JsonObject { ["clip_epoch"] = 813UL, ["last_sequence"] = 0UL, ["session_active"] = true,
                 ["mode"] = initialMode, ["seconds"] = initialMode == "ended" ? 20d : 9d, ["duration_seconds"] = 20d,
-                ["speed"] = 1.5d, ["loop"] = true, ["camera_mode"] = 2, ["placement_height"] = 13d };
+                ["speed"] = 1.5d, ["loop"] = true, ["camera_mode"] = 2, ["placement_height"] = 13d, ["camera_track_height_cm"] = 125d };
             JsonData.Write(statePath, state); Set("session", directory); Set("sessionControllable", true); Call("UpdateActions");
             Check(restartButton.IsEnabled, "restart is available from " + initialMode);
             var acknowledgeRestart = Task.Run(async () =>
@@ -224,12 +224,13 @@ internal static class Program
             Check(Contract.D(restarted, "seconds") == 0 && Contract.S(restarted, "mode") == "playing" && Field<Slider>("progress").Value == 0,
                 "restart rewinds and plays the shared timeline from " + initialMode);
             Check(Field<string?>("session") == directory && restarted["clip_epoch"]!.GetValue<ulong>() == 813 && Contract.D(restarted, "speed") == 1.5 &&
-                Contract.True(restarted, "loop") && Contract.I(restarted, "camera_mode") == 2 && Contract.D(restarted, "placement_height") == 13,
+                Contract.True(restarted, "loop") && Contract.I(restarted, "camera_mode") == 2 && Contract.D(restarted, "placement_height") == 13 && Contract.D(restarted, "camera_track_height_cm") == 125,
                 "restart retains the same actors, camera, placement, speed and loop");
             var audio = MediaService.DesiredAudio(restarted, 0, 30000);
             Check(audio.PositionMilliseconds == 0 && audio.Playing, "music follows the restarted shared timeline");
         }
         Call("ShowPage", 2); Render("restart-playback"); Set("session", null); Call("UpdateActions");
+        checks += CameraTrackHeightUiChecks.Run(window, output, Await);
 
         // Reproduce the screenshot: native/managed cleanup is complete while
         // frontend session ownership and an audio task are still retained.
@@ -286,8 +287,8 @@ internal static class Program
         Action("StopCurrentAsync");
         Action("CompletePlaybackStartAsync", PlaybackStarted(), restored); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5))); Call("UpdateActions");
         var selectedCapture = captures.Last();
-        Check(captures.Count == 1 && selectedCapture.Fps == 60 && selectedCapture.Height == 1440 && selectedCapture.Folder == Path.Combine(root, "playback", "recordings"),
-            "successful playback automatically uses the preselected 2K60 settings without a dialog");
+        Check(captures.Count == 1 && selectedCapture.Fps == 60 && selectedCapture.Height == 1440 && selectedCapture.Folder == recorder.OutputDirectory,
+            "successful playback automatically uses the preselected 2K60 settings and resolved recordings folder without a dialog");
         Check(Field<string?>("automaticRecordingSession") == terminal && recorder.IsBusy, "automatic capture belongs to the started playback session");
         Action("StartAutomaticRecordingAsync"); Check(captures.Count == 1, "start completion cannot launch a duplicate recorder");
         Check(!fps.IsEnabled && !size.IsEnabled && !format.IsEnabled && !automatic.IsEnabled && !Field<Button>("recordButton").IsEnabled && Field<Button>("stopRecordingButton").IsEnabled,

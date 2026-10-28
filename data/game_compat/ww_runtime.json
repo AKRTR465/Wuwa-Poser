@@ -842,6 +842,18 @@
       "type": "string",
       "value": "Handles"
     },
+    "ManagedFieldSimpleNpcElements": {
+      "type": "string",
+      "value": "SimpleNpcElements"
+    },
+    "ManagedFieldSimpleNpcInstanceId": {
+      "type": "string",
+      "value": "InstanceId"
+    },
+    "SceneVisibilityRadiusCm": {
+      "type": "i32",
+      "value": 100000
+    },
     "ManagedFieldObjectInstance": {
       "type": "string",
       "value": "_instance"

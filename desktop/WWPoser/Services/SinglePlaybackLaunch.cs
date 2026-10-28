@@ -102,7 +102,7 @@ public sealed partial class SinglePlaybackService
             var scanLogs = Path.Combine(scan, "logs");
             var(profile, identified) = Identify(scanLogs);
             Progress?.Invoke("按当前角色编译动作与表情");
-            var imported = await importer.ImportAsync(new(request.BodySource, registry.SkeletonPath(profile), Path.Combine(bundle, "adapted_motion"), request.Scale, request.FaceSource, Contract.S(profile, "model_id"), Contract.S(profile, "profile_id"), Contract.S(identified, "mesh_asset_name"), Path.Combine(root, "playback", "character_cache_csharp")), cancellation);
+            var imported = await importer.ImportAsync(new(request.BodySource, registry.SkeletonPath(profile), Path.Combine(bundle, "adapted_motion"), request.Scale, request.FaceSource, Contract.S(profile, "model_id"), Contract.S(profile, "profile_id"), Contract.S(identified, "mesh_asset_name"), Path.Combine(root, "playback", "character_cache_csharp"), request.GazeSource, request.GazeStrength), cancellation);
             var report = Contract.S(imported, "report");
             var expressionProfile = Contract.True(imported, "expression_enabled") ? Contract.S(imported, "expression_profile") : null;
             var expressionClip = Contract.True(imported, "expression_enabled") ? Contract.S(imported, "expression_clip") : null;

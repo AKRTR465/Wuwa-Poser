@@ -299,5 +299,6 @@ foreach (var sample in new[] {
     ManagedBridge.Stop(); ManagedBridge.CheckReleased();
 }
 assertions += SceneVisibilityChecks.Run(root, first.Actor, second.Handle);
+assertions += SimpleSceneVisibilityChecks.Run(root, first.Actor);
 assertions += PendingRemovalChecks.Run(root, first.Actor, first.Handle);
 Console.WriteLine($"PASS: {assertions} synthetic managed actor assertions; borrowing, forms, floor correction, visibility, and restoration retries. No game assemblies loaded.");

@@ -97,6 +97,8 @@ public class WorldEntity : Entity { }
 public class EntityHandle { public WorldEntity Entity; public int Id, Index; public long CreatureDataId; public bool PendingRemoving; public Dictionary<string, int> HoldEntityMap = new(); public bool AddHoldEntity(string key) { HoldEntityMap[key] = 1; return true; } public bool RemoveHoldEntity(string key) => HoldEntityMap.Remove(key); }
 public class BaseActorComponent { public AActor ActorInternal; }
 public class CharacterActorComponent : BaseActorComponent { public USkeletalMeshComponent SkeletalMesh; }
+public class TsSimpleNpc : AActor { public int InstanceId; }
+public class SimpleNpcController { public static SimpleNpcController Instance = new(); public HashSet<TsSimpleNpc> SimpleNpcElements = new(); }
 public class CreatureDataComponent { public int SkinId, RoleId, PlayerId, EntityType; public long CreatureDataId; public bool IsNpc() => EntityType == 1; public bool IsMonster() => EntityType == 2; }
 public class CharacterModel { public static CharacterModel _Instance = new(); public List<EntityHandle> Handles = new(); }
 public class ObjectSystem { public static ObjectSystem _instance = new(); public List<ObjectBase> Objects = new(); public List<int> Versions = new(); }

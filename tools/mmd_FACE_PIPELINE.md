@@ -15,6 +15,17 @@ presence flags. Source eye rotations are not target-rig rotations; they need
 explicit calibration before runtime use. `ww_face_clip.h` loads finite/unit
 values on a worker and samples into fixed outputs without allocating.
 
+Independent gaze import now uses `ww_gaze_profile.h` to convert source eye
+directions into existing named Pupil morph weights in the same WWEXPR01 clip.
+It never treats source eye quaternions as target bone rotations. The compiler
+accepts `--gaze-source`, `--gaze-fallback`, and `--gaze-strength` (0–3, default 1).
+The default full-weight range is 15 source degrees and requires visual fitting.
+Separate gaze overrides eye direction only; automatic extraction preserves
+authored pupil morphs. Independent eye morphs are used when the target has all
+eight directions, otherwise the two source eye directions are averaged.
+`mapped_target_names` includes every owned pupil-direction channel so runtime
+capture, frame updates and restoration use the existing verified morph path.
+
 Static ownership evidence found `USkeletalMesh::MorphTargets` TArray at `+0x368`
 through NameUTF8-first descriptor `0x1487b56a0` and the owning FClassParams table.
 This array contains MorphTarget objects, not live component weights. The current

@@ -20,6 +20,8 @@ int main(){
     Check(DecodeCommand(Wire({42,1,CommandKind::Play,0}),&decoded)&&decoded.target_slot==0,"legacy untargeted wire remains valid");
     Check(DecodeCommand(Wire({42,1,CommandKind::SetGroundHeight,-2}),&decoded)&&decoded.kind==CommandKind::SetGroundHeight&&decoded.value==-2,"shared standing height survives wire decoding");
     Check(!ValidCommand({42,1,CommandKind::SetGroundHeight,1001}),"shared standing height rejects out-of-range values");
+    Check(DecodeCommand(Wire({42,1,CommandKind::SetCameraTrackHeight,-150.5}),&decoded)&&decoded.value==-150.5,"signed camera track height survives wire decoding");
+    Check(!ValidCommand({42,1,CommandKind::SetCameraTrackHeight,10001})&&!ValidCommand({42,1,CommandKind::SetCameraTrackHeight,20,1}),"track height is bounded and global, never actor-routed");
     Check(DecodeCommand(Wire({42,1,CommandKind::Play,0,UINT32_MAX}),&decoded)&&decoded.target_slot==UINT32_MAX,"full positive uint32 actor slot range accepted");
     wire[48]=1;Put32(wire,60,WireChecksum(wire));Check(!DecodeCommand(wire,&decoded),"reserved payload bytes remain reserved");
     wire=Wire({42,1,CommandKind::SetTimeLimit,0});wire[40]^=1;Check(!DecodeCommand(wire,&decoded),"modified payload checksum rejected");
@@ -66,6 +68,13 @@ int main(){
         "capture startup failure can restore a posed but never played scene");
     Transport ordinary;ordinary.SetClip(102,12);ordinary.Apply({102,1,CommandKind::Pause,0},0);
     Check(ordinary.State().mode==PlayerMode::Stopped,"ordinary Pause still cannot activate a stopped clip");
+    Transport camera;camera.SetClip(103,12);camera.PreparePausedStart();
+    Check(camera.Apply({103,1,CommandKind::SetCameraTrackHeight,125},0)==ControlCode::Ok&&camera.State().seconds==0&&camera.State().mode==PlayerMode::Paused,"height can change on a paused pose without advancing playback");
+    camera.Apply({103,2,CommandKind::SeekSeconds,8},0);camera.Apply({103,3,CommandKind::SetCameraTrackHeight,-75},0);
+    Check(camera.State().seconds==8&&camera.State().camera_track_height_cm==-75&&camera.State().placement_height==0,"track height preserves cursor and actor height");
+    camera.Apply({103,4,CommandKind::Stop,0},0);Check(camera.State().camera_track_height_cm==-75,"stop retains the selected track offset for restart");
+    Check(!camera.SetClip(104,12),"a camera offset never bypasses pending restoration");
+    camera.AcknowledgeRestore();Check(camera.SetClip(104,12)&&camera.State().camera_track_height_cm==0,"a new restored clip resets the previous track offset");
 
     ww_mmd_squad::SharedTimeline squad;squad.Configure(55,{10,20,30},7);squad.Advance(1,100);
     Check(squad.Apply({55,1,CommandKind::Play,0},true)==ww_mmd_squad::ClockCode::Ok,"shared play accepted");

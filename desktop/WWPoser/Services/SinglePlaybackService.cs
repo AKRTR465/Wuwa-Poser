@@ -1,6 +1,6 @@
 namespace WWPoser.Services;
 public sealed record SinglePrepareRequest(string ScanDirectory, string ReportPath, string OutputDirectory, bool IdentityContext = false, JsonArray? WeaponTargets = null, string? ExpressionProfile = null, string? ExpressionClip = null, bool FreezeNativeAnimationTime = false, bool NativePhysics = true, string? NativeGraphDirectory = null, string? CameraProfile = null, string? CameraClip = null, string? CameraManifest = null, int DurationMs = 0, bool Autoplay = false);
-public sealed record SingleLaunchRequest(string BodySource, string? FaceSource = null, string? CameraSource = null, bool NativePhysics = true, bool FreezeNativeAnimationTime = false, double Speed = 1, bool Loop = false, bool Physics = false, int CameraMode = 0, double OffsetX = 0, double OffsetY = 0, double Height = 0, double Yaw = 0, bool InPlace = false, double? Scale = null, int DurationMs = 0);
+public sealed record SingleLaunchRequest(string BodySource, string? FaceSource = null, string? CameraSource = null, bool NativePhysics = true, bool FreezeNativeAnimationTime = false, double Speed = 1, bool Loop = false, bool Physics = false, int CameraMode = 0, double OffsetX = 0, double OffsetY = 0, double Height = 0, double Yaw = 0, bool InPlace = false, double? Scale = null, int DurationMs = 0, string? GazeSource = null, double GazeStrength = 1);
 public sealed partial class SinglePlaybackService(string repoRoot)
 {
     private readonly string root = Path.GetFullPath(repoRoot);
@@ -98,7 +98,7 @@ public sealed partial class SinglePlaybackService(string repoRoot)
             cfg["expression_clip_sha256"] = expression["expression_binary_sha256"]!.DeepClone();
             cfg["expression_duration_seconds"] = expression["duration_seconds"]!.DeepClone();
             cfg["expression_target_names"] = expression["target_morph_names"]!.DeepClone();
-            cfg["expression_mapped_names"] = new JsonArray(Contract.A(expression, "bindings").SelectMany(x => Contract.A(x!, "targets")).Select(x => Contract.S(x!, "morph")).Distinct().Order().Select(x => (JsonNode)JsonValue.Create(x)!).ToArray());
+            cfg["expression_mapped_names"] = expression["mapped_target_names"]?.DeepClone() ?? new JsonArray(Contract.A(expression, "bindings").SelectMany(x => Contract.A(x!, "targets")).Select(x => Contract.S(x!, "morph")).Distinct().Order().Select(x => (JsonNode)JsonValue.Create(x)!).ToArray());
             cfg["morph_function_rva"] = morph["rva"]!.DeepClone();
             cfg["morph_function_bytes_hex"] = morph["function_bytes_hex"]!.DeepClone();
             cfg["expression_source_sha256"] = expression["expression_source_sha256"]!.DeepClone();

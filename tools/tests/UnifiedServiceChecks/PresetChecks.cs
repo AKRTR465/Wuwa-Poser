@@ -19,15 +19,16 @@ internal static class PresetChecks
         string Material(string name, string content) { var path = Path.Combine(directory, name); File.WriteAllText(path, content); return path; }
         var body = Material("舞蹈动作.vmd", "body fixture"); var face = Material("表情.vmd", "face fixture");
         var camera = Material("镜头.vmd", "camera fixture"); var music = Material("音乐.flac", "music fixture");
+        var gaze = Material("目线.vmd", "gaze fixture");
         var copy = Material("shared.vmd", "body fixture");
         var request = new PlaybackSessionRequest(PlaybackSource.MixedActors, [
-            new(body, face, .875, new(12, -23, 4.5, -90, false), 1505, true, "role1505-skin81001505", 11, new(123, -456, 7, 45)),
+            new(body, face, .875, new(12, -23, 4.5, -90, false), 1505, true, "role1505-skin81001505", 11, new(123, -456, 7, 45), gaze, .75),
             new(copy, face, 1.2, new(-31, 22, 5, 90, true), 1505, true, "role1505-skin81001505", 23, new(-78, 90, 2, -45)),
             new("", CharacterId: "role1211-skin81001211-form-dark", Enabled: false)
-        ], camera, 2, 1.25, true, 123.5, false, true, "stale/session", 234, false, true);
+        ], camera, 2, 1.25, true, 123.5, false, true, "stale/session", 234, false, true, CameraTrackHeightCm: -123.5);
         var preset = new ShowPreset("测试预设", request, new(music, -1.25, .67), new(true, 60, 1440, RecordingFormat.Compatible), ["角色", "重复演员", "暗形态"]);
         var path = Path.Combine(directory, "full.wwpreset"); await service.SaveAsync(path, preset);
-        using (var zip = ZipFile.OpenRead(path)) Check(zip.Entries.Count == 5, "shared bytes stored once plus manifest");
+        using (var zip = ZipFile.OpenRead(path)) Check(zip.Entries.Count == 6, "shared bytes stored once plus gaze and manifest");
         var loaded = await service.LoadAsync(path); var restored = loaded.Preset; var actors = restored.Playback.Actors;
         Check(loaded.Warnings.Count == 0 && actors.Count == 3, "full preset loads all actors");
         Check(actors.Select(a => a.Slot).SequenceEqual(new uint[] { 1, 2, 3 }) && actors[0].CharacterId == actors[1].CharacterId && actors[2].CharacterId == request.Actors[2].CharacterId, "duplicates and alternate forms remain independent and ordered");
@@ -35,10 +36,11 @@ internal static class PresetChecks
         Check(restored.Playback with { Actors = request.Actors, CameraSource = request.CameraSource, StageSession = request.StageSession } == request, "all playback settings roundtrip");
         Check(restored.Recording == preset.Recording && restored.Music?.OffsetSeconds == -1.25 && restored.Music.Volume == .67 && restored.ActorNames!.SequenceEqual(preset.ActorNames!), "recording, music settings and names roundtrip");
         Check(actors[0].BodySource == actors[1].BodySource && File.ReadAllText(actors[0].BodySource) == "body fixture" && File.ReadAllText(restored.Music!.AudioFile) == "music fixture", "resources restore original bytes");
+        Check(File.ReadAllText(actors[0].GazeSource!) == "gaze fixture" && actors[0].GazeStrength == .75 && actors[1].GazeSource is null, "per-actor gaze resource and strength survive preset export/import");
         Check(restored.Playback.StageSession is null, "runtime session paths are stripped");
         File.WriteAllText(actors[0].BodySource, "bad cached bytes");
         Check(File.ReadAllText((await service.LoadAsync(path)).Preset.Playback.Actors[0].BodySource) == "body fixture", "corrupt cache repaired from archive");
-        foreach (var source in new[] { body, copy, face, camera, music }) File.Move(source, source + ".moved");
+        foreach (var source in new[] { body, copy, face, gaze, camera, music }) File.Move(source, source + ".moved");
         var relocated = Path.Combine(directory, "relocated.wwpreset"); File.Copy(path, relocated);
         Check((await service.LoadAsync(relocated)).Warnings.Count == 0, "moving preset and removing all original sources works");
         var savedBytes = File.ReadAllBytes(path);

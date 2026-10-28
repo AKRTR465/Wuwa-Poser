@@ -72,7 +72,7 @@ public sealed partial class OwnedMmdPlaybackService
         // A sidecar keeps the attached-thread helper independent of JSON libraries.
         // Stage previews deliberately never enable scene hiding.
         File.WriteAllText(Path.Combine(directory, "scene_visibility.tsv"),
-            (Contract.True(config, "hide_scene_characters") && !Contract.True(config, "preview") ? "npc_monsters" : "none") + "\t10000\n", new UTF8Encoding(false));
+            (Contract.True(config, "hide_scene_characters") && !Contract.True(config, "preview") ? "scene_characters" : "none") + "\t" + GameCompat.SceneVisibilityRadiusCm.ToString(CultureInfo.InvariantCulture) + "\n", new UTF8Encoding(false));
     }
 
     public async Task<JsonObject> PrepareActorsAsync(PlaybackSessionRequest request, string outputDirectory, CancellationToken cancellation = default)
@@ -91,11 +91,12 @@ public sealed partial class OwnedMmdPlaybackService
         {
             cancellation.ThrowIfCancellationRequested();
             var actor = selected[index];
-            Progress?.Invoke($"准备演员 {index + 1} / {selected.Length} 的动作与表情");
+            Progress?.Invoke($"准备演员 {index + 1} / {selected.Length} 的动作、表情与目线");
             var relative = "actors/" + actor.Slot.ToString(CultureInfo.InvariantCulture);
             var actorDirectory = Path.Combine(output, relative);
             await PrepareAsync(new(actor.BodySource, actorDirectory, actor.Scale, checked((int)Math.Round(request.DurationSeconds * 1000)), request.Speed,
-                request.Loop, actor.CharacterId, actor.FaceSource, CameraMode: 0, Placement: actor.Placement, NativePhysics: request.NativePhysics, Physics: request.Physics), cancellation);
+                request.Loop, actor.CharacterId, actor.FaceSource, CameraMode: 0, Placement: actor.Placement, NativePhysics: request.NativePhysics, Physics: request.Physics,
+                GazeSource: actor.GazeSource, GazeStrength: actor.GazeStrength), cancellation);
             var config = Config(actorDirectory);
             config["slot"] = actor.Slot; config["target_slot"] = actor.Slot; config["actor_directory"] = relative; SetStage(config, actor.Stage);
             config["session_epoch"] = epoch; config["enabled"] = true; config["ownership_preference"] = "scene_team_then_create";
@@ -112,7 +113,8 @@ public sealed partial class OwnedMmdPlaybackService
             ["actors"] = actors, ["actor_count"] = actors.Count, ["camera_anchor_slot"] = selected[0].Slot,
             ["ownership_preference"] = "scene_team_then_create", ["duration_ms"] = checked((int)Math.Round(request.DurationSeconds * 1000)),
             ["speed"] = request.Speed, ["loop"] = request.Loop, ["clip_duration_seconds"] = bodyDuration,
-            ["hide_scene_characters"] = request.HideSceneCharacters
+            ["hide_scene_characters"] = request.HideSceneCharacters,
+            ["camera_track_height_cm"] = request.CameraTrackHeightCm
         };
         var assets = new PlaybackAssets(root);
         assets.Physics(scene, output, request.NativePhysics, request.Physics);

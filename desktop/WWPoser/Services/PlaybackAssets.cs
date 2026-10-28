@@ -20,9 +20,11 @@ internal sealed class PlaybackAssets(string root)
         config["expression_clip_sha256"] = expression["expression_binary_sha256"]!.DeepClone();
         config["expression_duration_seconds"] = expression["duration_seconds"]!.DeepClone();
         config["expression_source_sha256"] = expression["expression_source_sha256"]!.DeepClone();
+        config["gaze_enabled"] = Contract.True(expression, "gaze_enabled");
+        foreach (var key in new[] { "gaze_source_sha256", "gaze_strength", "gaze_duration_seconds", "gaze_independent_eyes" }) config[key] = expression[key]?.DeepClone();
         config["expression_target_names"] = expression["target_morph_names"]!.DeepClone();
         config["expected_expression_count"] = Contract.A(expression, "target_morph_names").Count;
-        config["expression_mapped_names"] = new JsonArray(Contract.A(expression, "bindings").SelectMany(x => Contract.A(x!, "targets")).Select(x => Contract.S(x!, "morph")).Distinct().Order().Select(x => (JsonNode)JsonValue.Create(x)!).ToArray());
+        config["expression_mapped_names"] = expression["mapped_target_names"]?.DeepClone() ?? new JsonArray(Contract.A(expression, "bindings").SelectMany(x => Contract.A(x!, "targets")).Select(x => Contract.S(x!, "morph")).Distinct().Order().Select(x => (JsonNode)JsonValue.Create(x)!).ToArray());
         config["morph_function_rva"] = morph["rva"]!.DeepClone();
         config["morph_function_bytes_hex"] = morph["function_bytes_hex"]!.DeepClone();
     }

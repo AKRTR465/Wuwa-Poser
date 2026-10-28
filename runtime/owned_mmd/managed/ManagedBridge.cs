@@ -18,6 +18,7 @@ namespace WwPoser.ColdLoad
             public FieldInfo PlayerInstance, PlayerId, TeamInstance, TeamPlayers, TeamItems, PlayerGroup, PlayerGroups, GroupRoles;
             public FieldInfo ItemPlayer, ItemRole, ItemCreature, ItemHandle, ItemLocal, ItemGroup, ActorInternal, SkinId, EntityFlags, DataRole, DataPlayer, DataCreature;
             public FieldInfo CharacterInstance, CharacterHandles, ObjectInstance, ObjectList, ObjectVersions;
+            public FieldInfo SimpleNpcElements, SimpleNpcInstanceId;
             public MethodInfo Create, Destroy;
         }
         private sealed class Snapshot
@@ -91,6 +92,13 @@ namespace WwPoser.ColdLoad
             public int EntityId, EntityIndex;
             public bool Hidden, Released, Expired;
         }
+        private sealed class SimpleSceneVisibility
+        {
+            public TsSimpleNpc Actor;
+            public ulong ActorAddress;
+            public int InstanceId;
+            public bool Hidden, Released, Expired;
+        }
         private sealed class Stage
         {
             public FVectorDouble Origin;
@@ -110,7 +118,9 @@ namespace WwPoser.ColdLoad
         private static Stage s_stage;
         private static PlayerVisibility s_playerVisibility;
         private static readonly Dictionary<int, SceneVisibility> s_sceneVisibility = new Dictionary<int, SceneVisibility>();
+        private static readonly Dictionary<ulong, SimpleSceneVisibility> s_simpleSceneVisibility = new Dictionary<ulong, SimpleSceneVisibility>();
         private static double s_sceneRadius;
+        private static bool s_sceneIncludeSimple;
         private static int s_sceneScanTick;
         private static bool s_sceneScanned, s_sceneLimitReached;
         private const string SessionVariable = "WWPOSER_OWNED_SESSION_DIR";
@@ -145,6 +155,8 @@ namespace WwPoser.ColdLoad
             value.ActorInternal = Field(typeof(BaseActorComponent), GameCompat.ManagedFieldActorInternal); value.SkinId = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldSkinId);
             value.EntityFlags = Field(typeof(Entity), GameCompat.ManagedFieldEntityFlags); value.DataRole = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataRole); value.DataPlayer = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataPlayer); value.DataCreature = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataCreature);
             value.CharacterInstance = Field(typeof(CharacterModel), GameCompat.ManagedFieldCharacterInstance); value.CharacterHandles = Field(typeof(CharacterModel), GameCompat.ManagedFieldCharacterHandles);
+            value.SimpleNpcElements = Field(typeof(SimpleNpcController), GameCompat.ManagedFieldSimpleNpcElements);
+            value.SimpleNpcInstanceId = Field(typeof(TsSimpleNpc), GameCompat.ManagedFieldSimpleNpcInstanceId);
             var objectSystem = typeof(Entity).Assembly.GetType(GameCompat.ManagedTypeObjectSystem, true);
             value.ObjectInstance = Field(objectSystem, GameCompat.ManagedFieldObjectInstance); value.ObjectList = Field(objectSystem, GameCompat.ManagedFieldObjectList); value.ObjectVersions = Field(objectSystem, GameCompat.ManagedFieldObjectVersions);
             s_contract = value; return value;
@@ -152,7 +164,7 @@ namespace WwPoser.ColdLoad
         private static Dictionary<int, TsUiSceneRoleActor> Map(Owner owner) { return (Dictionary<int, TsUiSceneRoleActor>)Bind().Map.GetValue(owner.Manager); }
         private static bool Valid(UnrealObject value) { return !Object.ReferenceEquals(value, null) && value.IsValid(); }
         private static ulong Address(UnrealObject wrapper) { return (ulong)((IntPtr)Bind().NativePointer.GetValue(wrapper)).ToInt64(); }
-        private static bool AllReleased() { foreach (var owner in s_owners) if (!owner.Released) return false; foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) return false; return s_playerVisibility == null || s_playerVisibility.Released; }
+        private static bool AllReleased() { foreach (var owner in s_owners) if (!owner.Released) return false; foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) return false; foreach (var saved in s_simpleSceneVisibility.Values) if (!saved.Released) return false; return s_playerVisibility == null || s_playerVisibility.Released; }
         public static void Probe() { Bind(); }
         public static void VerifyCompatibility()
         {
@@ -171,20 +183,75 @@ namespace WwPoser.ColdLoad
             var next = Path.GetFullPath(Environment.GetEnvironmentVariable(SessionVariable));
             if (String.Equals(next, s_session, StringComparison.OrdinalIgnoreCase)) return;
             if (!AllReleased()) throw new InvalidOperationException("Previous actors still require restoration.");
-            var sceneRadius = ReadSceneVisibility(next);
+            bool sceneSimple; var sceneRadius = ReadSceneVisibility(next, out sceneSimple);
             s_owners.Clear(); s_session = next; s_began = false; s_graphExported = false; s_maintenanceEnabled = false; s_stage = null; s_playerVisibility = null;
             s_sceneVisibility.Clear(); s_sceneRadius = sceneRadius; s_sceneScanned = false; s_sceneLimitReached = false;
+            s_simpleSceneVisibility.Clear(); s_sceneIncludeSimple = sceneSimple;
         }
-        private static double ReadSceneVisibility(string directory)
+        private static double ReadSceneVisibility(string directory, out bool includeSimple)
         {
+            includeSimple = false;
             var path = Path.Combine(directory, "scene_visibility.tsv");
             if (!File.Exists(path)) return 0; // Old preparations retain their behavior.
             var fields = File.ReadAllText(path, Encoding.UTF8).Trim().Split('\t'); double radius;
-            if (fields.Length != 2 || (fields[0] != "none" && fields[0] != "npc_monsters") ||
+            if (fields.Length != 2 || (fields[0] != "none" && fields[0] != "npc_monsters" && fields[0] != "scene_characters") ||
                 !Double.TryParse(fields[1], NumberStyles.Float, CultureInfo.InvariantCulture, out radius) ||
-                Double.IsNaN(radius) || Double.IsInfinity(radius) || radius <= 0 || radius > 10000)
+                Double.IsNaN(radius) || Double.IsInfinity(radius) || radius <= 0 || radius > GameCompat.SceneVisibilityRadiusCm)
                 throw new InvalidDataException("Invalid scene visibility settings.");
-            return fields[0] == "npc_monsters" ? radius : 0;
+            includeSimple = fields[0] == "scene_characters";
+            return fields[0] == "none" ? 0 : radius;
+        }
+
+        // SimpleNpcController owns scenery people separately from CharacterModel.
+        // Its Instance getter only reads the existing singleton; never create one.
+        private static Dictionary<ulong, TsSimpleNpc> SimpleSceneActors()
+        {
+            var result = new Dictionary<ulong, TsSimpleNpc>(); var controller = SimpleNpcController.Instance;
+            if (controller == null) return result;
+            var actors = (HashSet<TsSimpleNpc>)Bind().SimpleNpcElements.GetValue(controller);
+            if (actors != null) foreach (var actor in actors) if (Valid(actor)) result[Address(actor)] = actor;
+            return result;
+        }
+        private static bool SimpleSceneIdentityCurrent(SimpleSceneVisibility saved, Dictionary<ulong, TsSimpleNpc> actors)
+        {
+            TsSimpleNpc current;
+            return Valid(saved.Actor) && Address(saved.Actor) == saved.ActorAddress && actors.TryGetValue(saved.ActorAddress, out current) &&
+                Object.ReferenceEquals(current, saved.Actor) && (int)Bind().SimpleNpcInstanceId.GetValue(current) == saved.InstanceId;
+        }
+        private static void RestoreSimpleSceneVisibility(SimpleSceneVisibility saved, Dictionary<ulong, TsSimpleNpc> actors)
+        {
+            if (saved.Released) return;
+            if (!SimpleSceneIdentityCurrent(saved, actors)) { saved.Expired = true; saved.Released = true; return; }
+            if (saved.Actor.bHidden != saved.Hidden) saved.Actor.SetActorHiddenInGame(saved.Hidden);
+            if (saved.Actor.bHidden != saved.Hidden) throw new InvalidOperationException("Simple scene actor visibility readback differs.");
+            saved.Released = true;
+        }
+        private static void UpdateSimpleSceneVisibility(HashSet<ulong> protectedActors, bool scan, List<string> errors)
+        {
+            if (!s_sceneIncludeSimple) return;
+            var actors = SimpleSceneActors();
+            foreach (var saved in s_simpleSceneVisibility.Values)
+            {
+                if (saved.Released) continue;
+                if (!SimpleSceneIdentityCurrent(saved, actors)) { saved.Expired = true; saved.Released = true; continue; }
+                if (protectedActors.Contains(saved.ActorAddress) || !SceneInRange(saved.Actor))
+                    Attempt(delegate { RestoreSimpleSceneVisibility(saved, actors); }, errors, "simple scene visibility restore");
+                else Attempt(delegate { if (!saved.Actor.bHidden) saved.Actor.SetActorHiddenInGame(true); if (!saved.Actor.bHidden) throw new InvalidOperationException("Simple scene actor hide readback differs."); }, errors, "simple scene visibility hide");
+            }
+            if (!scan) return;
+            var seen = new HashSet<ulong>(protectedActors);
+            foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) seen.Add(saved.ActorAddress);
+            foreach (var pair in actors)
+            {
+                var actor = pair.Value;
+                if (seen.Contains(pair.Key) || !SceneInRange(actor)) continue;
+                SimpleSceneVisibility previous;
+                if (s_simpleSceneVisibility.TryGetValue(pair.Key, out previous) && !previous.Released) continue;
+                if (previous == null && s_sceneVisibility.Count + s_simpleSceneVisibility.Count >= 4096) { s_sceneLimitReached = true; break; }
+                var saved = new SimpleSceneVisibility { Actor = actor, ActorAddress = pair.Key, InstanceId = (int)Bind().SimpleNpcInstanceId.GetValue(actor), Hidden = actor.bHidden };
+                s_simpleSceneVisibility[pair.Key] = saved;
+                Attempt(delegate { if (!actor.bHidden) actor.SetActorHiddenInGame(true); if (!actor.bHidden) throw new InvalidOperationException("Simple scene actor hide readback differs."); }, errors, "simple scene visibility hide");
+            }
         }
 
         // CreatureDataComponent.IsNpc/IsMonster are simple EntityType comparisons
@@ -244,7 +311,8 @@ namespace WwPoser.ColdLoad
                 else Attempt(delegate { if (!saved.Actor.bHidden) saved.Actor.SetActorHiddenInGame(true); if (!saved.Actor.bHidden) throw new InvalidOperationException("Scene actor hide readback differs."); }, errors, "scene visibility hide");
             }
             var tick = Environment.TickCount;
-            if (forceScan || !s_sceneScanned || unchecked(tick - s_sceneScanTick) >= 500)
+            var scan = forceScan || !s_sceneScanned || unchecked(tick - s_sceneScanTick) >= 500;
+            if (scan)
             {
                 s_sceneScanTick = tick; s_sceneScanned = true;
                 var character = Bind().CharacterInstance.GetValue(null);
@@ -253,6 +321,7 @@ namespace WwPoser.ColdLoad
                 {
                     var seen = new HashSet<ulong>(protectedActors);
                     foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) seen.Add(saved.ActorAddress);
+                    foreach (var saved in s_simpleSceneVisibility.Values) if (!saved.Released) seen.Add(saved.ActorAddress);
                     // Character handles are indexed by the bounded entity registry.
                     for (var index = 0; index < handles.Count && index < GameCompat.EntityHandleRegistryLimit; index++)
                     {
@@ -265,7 +334,7 @@ namespace WwPoser.ColdLoad
                         if (!Valid(actor) || !SceneInRange(actor) || seen.Contains(Address(actor))) continue;
                         SceneVisibility previous;
                         if (s_sceneVisibility.TryGetValue(handle.Id, out previous) && !previous.Released) continue;
-                        if (previous == null && s_sceneVisibility.Count >= 4096) { s_sceneLimitReached = true; break; }
+                        if (previous == null && s_sceneVisibility.Count + s_simpleSceneVisibility.Count >= 4096) { s_sceneLimitReached = true; break; }
                         var saved = new SceneVisibility { Handle = handle, Entity = entity, Component = component, Data = data,
                             Actor = actor, ActorAddress = Address(actor), EntityId = handle.Id, EntityIndex = handle.Index, Hidden = actor.bHidden };
                         s_sceneVisibility[handle.Id] = saved; seen.Add(saved.ActorAddress);
@@ -274,6 +343,7 @@ namespace WwPoser.ColdLoad
                     }
                 }
             }
+            UpdateSimpleSceneVisibility(protectedActors, scan, errors);
             if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
         private static List<Owner> Requests()
@@ -647,7 +717,7 @@ namespace WwPoser.ColdLoad
             foreach (var owner in s_owners) if (owner.Borrowed && owner.Shown && !owner.Released) Attempt(delegate { Maintain(owner); }, errors, "slot " + owner.Slot.ToString(CultureInfo.InvariantCulture));
             foreach (var owner in s_owners) if (!owner.Borrowed && owner.IndependentInstance && owner.Shown && !owner.Released) Attempt(delegate { Loaded(owner); }, errors, "form slot " + owner.Slot.ToString(CultureInfo.InvariantCulture));
             if (s_playerVisibility != null && !s_playerVisibility.Released) Attempt(delegate { HidePlayerModel(s_playerVisibility); }, errors, "non-performing player visibility");
-            Attempt(delegate { UpdateSceneVisibility(false); }, errors, "NPC and monster visibility");
+            Attempt(delegate { UpdateSceneVisibility(false); }, errors, "scene character visibility");
             if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
         private static void Pointer(StringBuilder output, string name, UnrealObject value) { output.Append('"').Append(name).Append("\":\"0x").Append(Address(value).ToString("x", CultureInfo.InvariantCulture)).Append('"'); }
@@ -727,6 +797,10 @@ namespace WwPoser.ColdLoad
             foreach (var owner in s_owners) { if (owner.Released) continue; Attempt(delegate { if (owner.Borrowed) RestoreBorrowed(owner); else DestroyCreated(owner); }, errors, "slot " + owner.Slot.ToString(CultureInfo.InvariantCulture)); }
             Attempt(RestorePlayerVisibility, errors, "non-performing player visibility");
             foreach (var saved in s_sceneVisibility.Values) Attempt(delegate { RestoreSceneVisibility(saved); }, errors, "NPC and monster visibility");
+            if (s_simpleSceneVisibility.Count != 0) Attempt(delegate {
+                var simpleActors = SimpleSceneActors();
+                foreach (var saved in s_simpleSceneVisibility.Values) Attempt(delegate { RestoreSimpleSceneVisibility(saved, simpleActors); }, errors, "simple scene visibility");
+            }, errors, "simple scene visibility registry");
             WriteLifecycle(); if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
         public static void CheckReleased()
@@ -734,6 +808,7 @@ namespace WwPoser.ColdLoad
             VerifySession();
             if (s_playerVisibility != null && (!s_playerVisibility.Released || s_playerVisibility.HoldAdded)) throw new InvalidOperationException("Non-performing player visibility still requires restoration.");
             foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) throw new InvalidOperationException("NPC or monster visibility still requires restoration.");
+            foreach (var saved in s_simpleSceneVisibility.Values) if (!saved.Released) throw new InvalidOperationException("Simple scene visibility still requires restoration.");
             foreach (var owner in s_owners)
                 if (!owner.Released || (owner.Borrowed && owner.HoldAdded) || (!owner.Borrowed && owner.HasIndex && Map(owner).ContainsKey(owner.Index))) throw new InvalidOperationException("Actor slot still requires restoration: " + owner.Slot.ToString(CultureInfo.InvariantCulture));
         }
@@ -756,12 +831,20 @@ namespace WwPoser.ColdLoad
             output.Append("],\"all_released\":").Append(AllReleased() ? "true" : "false");
             output.Append(",\"scene_visibility\":{\"enabled\":").Append(s_sceneRadius > 0 ? "true" : "false")
                 .Append(",\"radius_cm\":").Append(s_sceneRadius.ToString("R", CultureInfo.InvariantCulture))
+                .Append(",\"include_simple_scene_people\":").Append(s_sceneIncludeSimple ? "true" : "false")
                 .Append(",\"limit_reached\":").Append(s_sceneLimitReached ? "true" : "false").Append(",\"targets\":[");
             var sceneIndex = 0;
             foreach (var saved in s_sceneVisibility.Values)
             {
                 if (sceneIndex++ != 0) output.Append(',');
                 output.Append("{\"entity_id\":").Append(saved.EntityId).Append(",\"actor\":\"0x").Append(saved.ActorAddress.ToString("x", CultureInfo.InvariantCulture))
+                    .Append("\",\"original_hidden\":").Append(saved.Hidden ? "true" : "false")
+                    .Append(",\"released\":").Append(saved.Released ? "true" : "false").Append(",\"expired\":").Append(saved.Expired ? "true" : "false").Append('}');
+            }
+            foreach (var saved in s_simpleSceneVisibility.Values)
+            {
+                if (sceneIndex++ != 0) output.Append(',');
+                output.Append("{\"category\":\"simple_scene_person\",\"instance_id\":").Append(saved.InstanceId).Append(",\"actor\":\"0x").Append(saved.ActorAddress.ToString("x", CultureInfo.InvariantCulture))
                     .Append("\",\"original_hidden\":").Append(saved.Hidden ? "true" : "false")
                     .Append(",\"released\":").Append(saved.Released ? "true" : "false").Append(",\"expired\":").Append(saved.Expired ? "true" : "false").Append('}');
             }

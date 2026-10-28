@@ -90,10 +90,11 @@ public sealed partial class MainWindow : Window
             BodySource: Optional(card.Body) ?? "", FaceSource: Optional(card.Face), Scale: string.IsNullOrWhiteSpace(card.Scale.Text) ? null : Number(card.Scale, .000001, 100),
             Placement: new SquadPlacement(Number(card.X, -1000, 1000), Number(card.Y, -1000, 1000), Number(card.Height, -1000, 1000), Number(card.Yaw, -180, 180), card.InPlace.IsChecked == true),
             RoleId: (card.Character.SelectedItem as OwnedCharacterSelection)?.RoleId ?? card.MissingRoleId, Enabled: card.Enabled.IsChecked == true,
-            CharacterId: card.Character.SelectedValue?.ToString() ?? card.MissingCharacterId, Slot: checked((uint)index + 1), Stage: card.Stage)).ToArray();
+            CharacterId: card.Character.SelectedValue?.ToString() ?? card.MissingCharacterId, Slot: checked((uint)index + 1), Stage: card.Stage,
+            GazeSource: Optional(card.Gaze), GazeStrength: Number(card.GazeStrength, 0, 3))).ToArray();
         return new(PlaybackSource.MixedActors, selected, CameraSource: Optional(camera), CameraMode: cameraMode.SelectedIndex, Speed: Number(speed, .1, 4), Loop: loop.IsChecked == true,
             DurationSeconds: Number(duration, 0, 2147483), NativePhysics: native.IsChecked == true, Physics: secondary.IsChecked == true,
-            SpacingCm: Number(spacing, 0, 1000), FormationNative: placementMode.SelectedIndex == 1, HideSceneCharacters: hideSceneCharacters.IsChecked == true, GroundHeightCm: Number(groundHeight, -1000, 1000));
+            SpacingCm: Number(spacing, 0, 1000), FormationNative: placementMode.SelectedIndex == 1, HideSceneCharacters: hideSceneCharacters.IsChecked == true, GroundHeightCm: Number(groundHeight, -1000, 1000), CameraTrackHeightCm: Number(cameraTrackHeight, -10000, 10000));
     }
     private async Task PrepareAsync()
     {
@@ -212,6 +213,9 @@ public sealed partial class MainWindow : Window
             throw new InvalidOperationException("摆放方式已改变，站位在开始播放时确定；请先停止并恢复，再重新开始播放。");
         await SendAsync("speed", Number(speed, .1, 4)); await SendAsync("loop", loop.IsChecked == true ? 1 : 0);
         await SendAsync("time_limit", Number(duration, 0, 2147483)); await SendAsync("camera", cameraMode.SelectedIndex);
+        var trackHeight = Number(cameraTrackHeight, -10000, 10000);
+        await SendAsync("camera_track_height", trackHeight);
+        activeRequest = activeRequest with { CameraTrackHeightCm = trackHeight };
         await SendAsync("physics", secondary.IsChecked == true ? 1 : 0); status.Text = "播放设置已应用。";
     }
     private void LoadLivePlacement()
@@ -226,6 +230,21 @@ public sealed partial class MainWindow : Window
         await SendAsync("ground_height", height);
         if (activeRequest is not null) activeRequest = activeRequest with { GroundHeightCm = height };
         status.Text = "整体离地高度已应用。";
+    }
+    private async Task ApplyCameraTrackHeightAsync()
+    {
+        var height = Number(cameraTrackHeight, -10000, 10000);
+        if (activeRequest?.CameraSource is null) throw new InvalidOperationException("本次表演未载入 VMD 镜头轨道，请先选择镜头文件并开始表演。");
+        await SendAsync("camera_track_height", height);
+        activeRequest = activeRequest with { CameraTrackHeightCm = height };
+        status.Text = $"VMD 镜头轨道高度偏移已应用：{F(height)} 厘米。";
+    }
+    private async Task ShiftCameraTrackHeightAsync(double? delta)
+    {
+        var height = delta is null ? 0 : Math.Clamp(Number(cameraTrackHeight, -10000, 10000) + delta.Value, -10000, 10000);
+        cameraTrackHeight.Text = F(height);
+        if (session is not null && sessionControllable) await ApplyCameraTrackHeightAsync();
+        else status.Text = $"轨道高度偏移：{F(height)} 厘米，将在开始表演时生效。";
     }
     private async Task ApplyPlacementAsync()
     {
@@ -385,12 +404,14 @@ public sealed partial class MainWindow : Window
         speed.Text = F(request.Speed); loop.IsChecked = request.Loop; duration.Text = F(request.DurationSeconds);
         native.IsChecked = request.NativePhysics; secondary.IsChecked = request.Physics; spacing.Text = F(request.SpacingCm);
         hideSceneCharacters.IsChecked = request.HideSceneCharacters; groundHeight.Text = F(request.GroundHeightCm);
+        cameraTrackHeight.Text = F(request.CameraTrackHeightCm);
         actorEditor.Child = null; foreach (var previous in actors) previous.Changed -= RefreshActorList; actors.Clear();
         var catalog = characterCatalog;
         for (var i = 0; i < request.Actors.Count; i++)
         {
             var actor = request.Actors[i]; var card = new ActorCard(i, catalog); var p = actor.Placement ?? new SquadPlacement();
             card.Body.Text = actor.BodySource; card.Face.Text = actor.FaceSource ?? ""; card.Scale.Text = actor.Scale is { } scale ? F(scale) : "";
+            card.Gaze.Text = actor.GazeSource ?? ""; card.GazeStrength.Text = F(actor.GazeStrength);
             card.Enabled.IsChecked = actor.Enabled; card.X.Text = F(p.OffsetX); card.Y.Text = F(p.OffsetY); card.Height.Text = F(p.Height); card.Yaw.Text = F(p.Yaw); card.InPlace.IsChecked = p.InPlace;
             card.Character.SelectedValue = actor.CharacterId; card.Stage = actor.Stage;
             if (card.Character.SelectedItem is null && !string.IsNullOrWhiteSpace(actor.CharacterId)) card.MarkMissingCharacter(actor.CharacterId, actor.RoleId);
