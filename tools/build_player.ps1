@@ -3,6 +3,8 @@ param([string]$OutputDirectory,[switch]$Rebuild,[string]$DotNetExecutable='dotne
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$buildInputs=Import-PowerShellDataFile (Join-Path $PSScriptRoot 'player_build_inputs.psd1')
+$nativeTools=@($buildInputs.Observers)+@($buildInputs.Compilers)
 $releaseRevision=$null
 if($PublicRelease){
  if(-not $Rebuild){throw 'Public releases require -Rebuild so every native artifact matches the published source.'}
@@ -17,9 +19,9 @@ if(Test-Path -LiteralPath $destination){throw 'Bundle directory already exists; 
 if(-not $OwnedMmdPackageDirectory){$OwnedMmdPackageDirectory=Join-Path $repo 'build\owned_mmd'}
 if($Rebuild){
  & (Join-Path $PSScriptRoot 'build_owned_mmd.ps1') -PackageDirectory $OwnedMmdPackageDirectory -ReferenceDirectory $ReferenceDirectory
- foreach($script in @('probes\v20_recon\build.bat','probes\v20_recon\build_accessory_recon.bat','probes\v20_recon\build_native_graph_discovery.bat','probes\v20_recon\build_native_identity_bootstrap.bat','probes\v20_recon\build_publish_probe.bat','probes\v20_recon\build_puerts_scene_sampler.bat','probes\v20_recon\build_stage_residency.bat','probes\v20_recon\build_mmd_squad_residency.bat','tools\mmd_build_vmd_cli.bat','tools\mmd_build_face.bat','tools\mmd_build_camera.bat')){
-  & (Join-Path $repo $script)
-  if($LASTEXITCODE -ne 0){throw ('Native build failed: '+$script)}
+ foreach($tool in $nativeTools){
+  & (Join-Path $repo $tool.Build)
+  if($LASTEXITCODE -ne 0){throw ('Native build failed: '+$tool.Build)}
  }
 }
 & (Join-Path $PSScriptRoot 'build_owned_mmd.ps1') -PackageDirectory $OwnedMmdPackageDirectory -Check -ExpectedSourceRevision $releaseRevision
@@ -31,25 +33,8 @@ if(-not $PublishDirectory){$PublishDirectory=Join-Path $repo 'desktop\WWPoser\pu
 $publishDirectory=[IO.Path]::GetFullPath($PublishDirectory)
 & $DotNetExecutable publish (Join-Path $repo 'desktop\WWPoser\WWPoser.csproj') -c Release --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:NuGetAudit=false --source 'https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json' -o $publishDirectory --nologo
 if($LASTEXITCODE -ne 0){throw 'C# desktop publish failed.'}
-$files=@(
- 'probes\v20_recon\mmd_squad_residency.dll','probes\v20_recon\stage_residency.dll','probes\v20_recon\puerts_scene_sampler.dll',
- 'probes\v20_recon\hook_install_v20.exe','probes\v20_recon\recon_carrier_v20.dll','probes\v20_recon\accessory_recon.dll',
- 'probes\v20_recon\publish_probe_v21.dll','probes\v20_recon\native_graph_discovery.dll','probes\v20_recon\native_identity_bootstrap.dll',
- 'tools\mmd_outputs\mmd_vmd_cli.exe','tools\mmd_outputs\mmd_face_compile.exe','tools\mmd_outputs\mmd_camera_compile.exe',
- 'tools\recording_bin\ffmpeg.exe','tools\recording_bin\ffprobe.exe','tools\recording_bin\LICENSE.txt','tools\recording_bin\README.txt','tools\recording_bin\source.json',
- 'data\puerts_sampler_camera_contract.json','data\mono_managed_readonly_contract.json','data\csharp_scene_team_readonly_contract.json',
- 'data\stage_identity_property_contract.json','data\stage_identity_entity_contract.json','data\stage_native_runtime_contract.json',
- 'data\bone_chains.json','data\morph_targets.json','data\camera_runtime_contract.json','data\native_identity_registration_contract.json',
- 'data\native_pose_empty_channel_contract.json',
- 'tools\MMD_PLAYER.md','tools\MMD_SQUAD.md',
- 'README.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md','docs\BUILDING.md','docs\CHARACTER_FORMS.md','docs\GAME_COMPATIBILITY.md',
- 'data\dependencies\ffmpeg.json','data\dependencies\ffmpeg.README.txt'
-)
-foreach($directory in @('licenses')){$files+=@(Get-ChildItem -LiteralPath (Join-Path $repo $directory) -Recurse -File|ForEach-Object {$_.FullName.Substring($repo.Length+1)})}
-foreach($directory in @('data\characters','data\runtime_contracts','data\game_compat')){$files+=@(Get-ChildItem -LiteralPath (Join-Path $repo $directory) -Recurse -File|ForEach-Object {$_.FullName.Substring($repo.Length+1)})}
-$files+='data\native_graphs\index.json'
-$files+='data\native_graphs\owned_ui_source_certificate.json'
-$files+=@(Get-ChildItem -LiteralPath (Join-Path $repo 'data\native_graphs\runtime') -File|ForEach-Object {$_.FullName.Substring($repo.Length+1)})
+$files=@($nativeTools | ForEach-Object Output)+@($buildInputs.Files)
+foreach($directory in $buildInputs.Directories){$files+=@(Get-ChildItem -LiteralPath (Join-Path $repo $directory) -Recurse -File|ForEach-Object {$_.FullName.Substring($repo.Length+1)})}
 foreach($file in $files){if(-not (Test-Path -LiteralPath (Join-Path $repo $file) -PathType Leaf)){throw ('Required artifact missing: '+$file)}}
 New-Item -ItemType Directory -Path $destination|Out-Null
 Copy-Item -LiteralPath (Join-Path $publishDirectory 'WWPoser.exe') -Destination (Join-Path $destination 'WWPoser.exe')

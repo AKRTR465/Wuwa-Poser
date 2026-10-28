@@ -94,11 +94,6 @@ public static class CarrierLoader
         var result = Path.Combine(sessionDirectory, "installer_result.json");
         if (exitCode != 0) throw new InvalidOperationException("加载未完成或临时安装器未撤销：" + (File.Exists(result) ? File.ReadAllText(result) : "exit " + exitCode));
     }
-    public static async Task LoadAsync(string sessionDirectory, CancellationToken cancellation = default)
-    {
-        cancellation.ThrowIfCancellationRequested();
-        EnsureSuccess(sessionDirectory, await StartInstallation(sessionDirectory).WaitAsync(cancellation).ConfigureAwait(false));
-    }
     internal static JsonObject? ReadEvidence(string path)
     {
         try

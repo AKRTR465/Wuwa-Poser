@@ -46,6 +46,7 @@ public sealed class RecordingService
     }
     public RecordingSnapshot Snapshot { get { lock (gate) return snapshot; } }
     public bool IsBusy { get { lock (gate) return worker is { IsCompleted: false }; } }
+    public bool IsStopping { get { lock (gate) return worker is { IsCompleted: false } && stop!.IsCancellationRequested; } }
     public void UpdateAudioContext(string? sessionDirectory, MusicPreset? music)
     {
         lock (gate) { session = sessionDirectory; preset = music; }

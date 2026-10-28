@@ -34,7 +34,9 @@ internal static class GazeChecks
         WriteGaze(gaze, false); WriteGaze(embedded, true);
         var character = OwnedCharacterCatalog.Load(root).Select().CharacterId;
         var service = new PlaybackSessionService(root);
-        var request = new PlaybackSessionRequest(PlaybackSource.MixedActors, [new(body, face, CharacterId: character, GazeSource: gaze)]);
+        var request = new PlaybackSessionRequest([new(body, face, CharacterId: character, GazeSource: gaze)]);
+        var preview = new OwnedMmdPlaybackService(root).PreviewConfig(new([new("", CharacterId: character)], CameraMode: 2));
+        Check(Contract.True(preview, "preview"), "stage preview does not require a body or VMD camera source");
         async Task<(string Directory, JsonObject Actor)> Prepare(PlaybackSessionRequest input)
         {
             var prepared = await service.PrepareAsync(input); var directory = prepared["session_dir"]!.GetValue<string>();

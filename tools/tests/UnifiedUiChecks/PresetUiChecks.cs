@@ -11,7 +11,7 @@ internal static class PresetUiChecks
     public static int Run(MainWindow window, string root, string output, Action<Task> wait)
     {
         const BindingFlags Private = BindingFlags.NonPublic | BindingFlags.Instance;
-        T Field<T>(string name) => (T)typeof(MainWindow).GetField(name, Private)!.GetValue(window)!;
+        T Field<T>(string name) => UiSessionFixture.Read<T>(window, name);
         void Set(string name, object? value) => typeof(MainWindow).GetField(name, Private)!.SetValue(window, value);
         object? Call(string name, params object?[] values) => typeof(MainWindow).GetMethod(name, Private)!.Invoke(window, values);
         void Run(string name, params object?[] values) => wait((Task)Call(name, values)!);
@@ -31,7 +31,7 @@ internal static class PresetUiChecks
         var catalog = OwnedCharacterCatalog.Load(root);
         var dark = catalog.Characters.Single(c => c.RoleId == 1211 && c.Form is not null);
         var normal = catalog.Characters.First(c => c.RoleId == dark.RoleId && c.SkinId == dark.SkinId && c.Form is null);
-        var request = new PlaybackSessionRequest(PlaybackSource.MixedActors, [
+        var request = new PlaybackSessionRequest([
             new(body, face, .8, new(12, 23, 4, -90, false), normal.RoleId, true, normal.CharacterId, 1, new(123, 456, 7, 45), gaze, .65),
             new(second, Scale: 1.2, Placement: new(-21, -31, 5, 90), RoleId: normal.RoleId, Enabled: false, CharacterId: normal.CharacterId, Slot: 2, Stage: new(-15, -31, 2, -45)),
             new(body, RoleId: dark.RoleId, CharacterId: dark.CharacterId, Slot: 3)
@@ -45,7 +45,7 @@ internal static class PresetUiChecks
         var path = Path.Combine(folder, "完整表演.wwpreset"); Run("SavePresetFileAsync", path);
         Check(!(bool)Call("HasPresetChanges")!, "saved snapshot is clean");
         foreach (var source in new[] { body, second, face, gaze, camera, music }) File.Move(source, source + ".moved", true);
-        Call("SetRequest", new PlaybackSessionRequest(PlaybackSource.MixedActors, [])); Field<TextBox>("audio").Text = "";
+        Call("SetRequest", new PlaybackSessionRequest([])); Field<TextBox>("audio").Text = "";
         Field<CheckBox>("autoRecord").IsChecked = false; Field<ComboBox>("recordingFps").SelectedIndex = 0; Field<ComboBox>("recordingSize").SelectedIndex = 0;
         Field<ComboBox>("recordingFormat").SelectedIndex = 0;
         Set("preparedDirectory", "old-compiled-session"); Run("LoadPresetFileAsync", path);
@@ -69,11 +69,11 @@ internal static class PresetUiChecks
         Check(!(bool)Call("HasPresetChanges")!, "loading establishes clean authoring state");
         Field<ComboBox>("recordingFormat").SelectedIndex = 0; Check((bool)Call("HasPresetChanges")!, "recording format edits count as unsaved"); Field<ComboBox>("recordingFormat").SelectedIndex = 1;
         Field<TextBox>("volume").Text = "0.5"; Check((bool)Call("HasPresetChanges")!, "music edits count as unsaved"); Field<TextBox>("volume").Text = "0.67";
-        foreach (var field in new[] { "session", "previewSession" })
+        foreach (var preview in new[] { false, true })
         {
-            Set(field, "synthetic-owned-session"); Call("UpdateActions");
-            Check(!Field<Button>("loadPresetButton").IsEnabled, "loading disabled while " + field + " is owned");
-            Rejected(() => Run("LoadPresetFileAsync", path), "active session did not block preset loading"); Set(field, null);
+            UiSessionFixture.Own(window, "synthetic-owned-session", restored.Playback, preview: preview); Call("UpdateActions");
+            Check(!Field<Button>("loadPresetButton").IsEnabled, "loading disabled while " + (preview ? "preview" : "playback") + " is owned");
+            Rejected(() => Run("LoadPresetFileAsync", path), "active session did not block preset loading"); UiSessionFixture.Own(window, null);
         }
         var recorder = Field<RecordingService>("recorder"); wait(recorder.StartAsync(folder, 30, 1080)); Call("UpdateRecordingControls");
         Check(!Field<ComboBox>("recordingFormat").IsEnabled, "recording locks format alongside captured settings");

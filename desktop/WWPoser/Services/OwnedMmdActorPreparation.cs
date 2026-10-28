@@ -77,12 +77,12 @@ public sealed partial class OwnedMmdPlaybackService
 
     public async Task<JsonObject> PrepareActorsAsync(PlaybackSessionRequest request, string outputDirectory, CancellationToken cancellation = default)
     {
+        PlaybackSessionService.ValidateRequest(request);
         request = PlaybackSessionService.AssignSlots(request);
         var selected = request.Actors.Where(actor => actor.Enabled).ToArray();
         var catalog = CharacterCatalog();
         foreach (var actor in selected)
         {
-            if (string.IsNullOrWhiteSpace(actor.CharacterId)) throw new InvalidDataException($"请为演员 {actor.Slot} 选择角色。");
             catalog.Select(actor.CharacterId);
         }
         var output = Path.GetFullPath(outputDirectory); Directory.CreateDirectory(output);
@@ -118,9 +118,7 @@ public sealed partial class OwnedMmdPlaybackService
         };
         var assets = new PlaybackAssets(root);
         assets.Physics(scene, output, request.NativePhysics, request.Physics);
-        var cameraSource = request.CameraSource is null ? null : Path.Combine(output, "camera_source.vmd");
-        if (cameraSource is not null) File.Copy(request.CameraSource!, cameraSource);
-        await assets.CameraAsync(scene, output, cameraSource, request.CameraMode, anchorClip!, cancellation);
+        await assets.CameraAsync(scene, output, request.CameraSource, request.CameraMode, anchorClip!, cancellation);
         scene["camera_enabled"] = true;
         scene["duration_seconds"] = Math.Max(duration, scene["camera_clip_duration_seconds"]?.GetValue<double>() ?? 0);
         ConfigureStage(scene, request.SpacingCm, request.FormationNative, request.GroundHeightCm); WriteActorsFile(output, scene);

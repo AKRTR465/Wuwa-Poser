@@ -22,7 +22,7 @@ public sealed partial class OwnedMmdPlaybackService
         {
             var actor = (JsonObject)config.DeepClone(); actor["slot"] = 1; actor["target_slot"] = 1; actor["actor_directory"] = "actors/1";
             config["actors"] = new JsonArray(actor); config["schema"] = 3; config["scope"] = "mixed_actor_mmd"; config["actor_count"] = 1; config["camera_anchor_slot"] = 1;
-            ConfigureStage(config, 180);
+            ConfigureStage(config, config["spacing_cm"]?.GetValue<double>() ?? 180, Contract.True(config, "formation_native"), config["ground_height_cm"]?.GetValue<double>() ?? -2);
         }
         config["session_epoch"] = NewEpoch();
         config["start_paused"] = startPaused;
@@ -45,14 +45,11 @@ public sealed partial class OwnedMmdPlaybackService
             var destination = Path.Combine(directory, relative); Directory.CreateDirectory(destination);
             actor["actor_directory"] = relative; actor["session_epoch"] = config["session_epoch"]!.DeepClone();
             foreach (var key in new[] { "camera_observation", "controller_address", "camera_controller_address", "camera_pawn_address", "native_graph_binding", "animation_target" }) actor.Remove(key);
-            foreach (var filename in new[] { "character_profile.json", "motion.wwlocal" }) File.Copy(Path.Combine(source, filename), Path.Combine(destination, filename));
-            foreach (var filename in new[] { "source.vmd", "face_source.vmd", "character_skeleton.json", "compiled_report.json", "expression.wwexpr", "expression_profile.json", "bone_chains.json" })
-                if (File.Exists(Path.Combine(source, filename))) File.Copy(Path.Combine(source, filename), Path.Combine(destination, filename));
+            PlaybackAssets.CopyFiles(source, destination, PlaybackAssets.ActorFiles);
             CompiledMotionValidation.Validate(destination, actor);
             JsonData.Write(Path.Combine(destination, "owned_mmd_config.json"), actor);
         }
-        foreach (var filename in new[] { "camera.wwcam", "camera_source.vmd", "camera_profile.json", "camera_runtime_contract.json", "bone_chains.json", "unified_session_request.json" })
-            if (File.Exists(Path.Combine(prepared, filename))) File.Copy(Path.Combine(prepared, filename), Path.Combine(directory, filename));
+        PlaybackAssets.CopyFiles(prepared, directory, PlaybackAssets.SceneFiles);
         JsonData.Write(Path.Combine(directory, "owned_mmd_config.json"), config);
         WriteActorsFile(directory, config);
         JsonData.Write(Path.Combine(directory, "session_config.json"), new JsonObject

@@ -368,33 +368,45 @@ public sealed partial class MainWindow
         if (needsSession) sessionActions.Add(button);
         button.Click += async (_, _) =>
         {
-            if (busy) { if (stop) { operationCancellation?.Cancel(); status.Text = "正在取消操作，并等待恢复完成…"; } return; }
+            if (busy)
+            {
+                if (stop)
+                {
+                    operationCancellation?.Cancel(); UpdateActions(); status.Text = "正在取消操作，并等待恢复完成…";
+                    try { await StopCurrentAsync(); status.Text = "停止与恢复流程已结束。"; }
+                    catch (Exception error) { status.Text = error.Message; }
+                }
+                return;
+            }
             busy = true; using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token); operationCancellation = cancellation; UpdateActions();
             try { await operation(); }
-            catch (OperationCanceledException) { AdoptActiveSession(); status.Text = "操作已取消。可以到「开始表演」页查看状态，或点「停止并恢复」。"; }
-            catch (Exception error) { AdoptActiveSession(); status.Text = error.Message; }
+            catch (OperationCanceledException) { status.Text = "操作已取消。可以到「开始表演」页查看状态，或点「停止并恢复」。"; }
+            catch (Exception error) { status.Text = error.Message; }
             finally { operationCancellation = null; busy = false; UpdateActions(); }
         }; return button;
     }
 
     private void UpdateActions()
     {
-        hideSceneCharacters.IsEnabled = !busy && session is null && previewSession is null && player.ActiveSession is null;
-        foreach (var button in actions) button.IsEnabled = !busy;
-        foreach (var button in sessionActions) button.IsEnabled = !busy && session is not null && sessionControllable;
-        if (loadPresetButton is not null) loadPresetButton.IsEnabled = !busy && session is null && previewSession is null && player.ActiveSession is null && !recorder.IsBusy;
-        if (stopButton is not null) stopButton.IsEnabled = (!busy && (session is not null || previewSession is not null || player.ActiveSession is not null)) || (busy && operationCancellation is { IsCancellationRequested: false });
+        UpdateLiveActors();
+        var unavailable = busy || player.IsBusy;
+        hideSceneCharacters.IsEnabled = !unavailable && player.ActiveSession is null;
+        foreach (var button in actions) button.IsEnabled = !unavailable;
+        foreach (var button in sessionActions) button.IsEnabled = !unavailable && session is not null && sessionControllable;
+        if (loadPresetButton is not null) loadPresetButton.IsEnabled = !unavailable && player.ActiveSession is null && !recorder.IsBusy;
+        if (stopButton is not null) stopButton.IsEnabled = (!unavailable && player.ActiveSession is not null) || (busy && operationCancellation is { IsCancellationRequested: false });
         UpdateRecordingControls(); busyBar.Visibility = busy ? Visibility.Visible : Visibility.Hidden; UpdateSessionView();
     }
 
     private void UpdateRecordingControls()
     {
+        var unavailable = busy || player.IsBusy;
         var recording = recorder.IsBusy;
-        if (loadPresetButton is not null) loadPresetButton.IsEnabled = !busy && session is null && previewSession is null && player.ActiveSession is null && !recording;
-        autoRecord.IsEnabled = !busy && session is null && player.ActiveSession is null;
-        recordingFps.IsEnabled = recordingSize.IsEnabled = recordingFormat.IsEnabled = !busy && !recording;
-        if (recordButton is not null) recordButton.IsEnabled = !busy && !recording;
-        if (stopRecordingButton is not null) stopRecordingButton.IsEnabled = !busy && recording;
+        if (loadPresetButton is not null) loadPresetButton.IsEnabled = !unavailable && player.ActiveSession is null && !recording;
+        autoRecord.IsEnabled = !unavailable && player.ActiveSession is null;
+        recordingFps.IsEnabled = recordingSize.IsEnabled = recordingFormat.IsEnabled = !unavailable && !recording;
+        if (recordButton is not null) recordButton.IsEnabled = !unavailable && !recording;
+        if (stopRecordingButton is not null) stopRecordingButton.IsEnabled = !unavailable && recording;
     }
 
     private Button NavButton(string label, int target, bool primary)

@@ -2,6 +2,28 @@ namespace WWPoser.Services;
 
 internal sealed class PlaybackAssets(string root)
 {
+    internal const string BodySourceFile = "source.vmd", FaceSourceFile = "face_source.vmd", GazeSourceFile = "gaze_source.vmd", CameraSourceFile = "camera_source.vmd";
+    internal static readonly string[] ActorFiles = [BodySourceFile, FaceSourceFile, GazeSourceFile, "character_profile.json", "character_skeleton.json", "motion.wwlocal", "compiled_report.json", "expression.wwexpr", "expression_profile.json", "bone_chains.json"];
+    internal static readonly string[] SceneFiles = [CameraSourceFile, "camera.wwcam", "camera_profile.json", "camera_runtime_contract.json", "bone_chains.json", PlaybackSessionService.RequestFilename];
+
+    internal static string? ReadSource(string directory, string filename, string? fallback = null)
+    {
+        var path = Path.Combine(directory, filename);
+        return File.Exists(path) ? path : fallback;
+    }
+    internal static string? SnapshotSource(string directory, string filename, string? source)
+    {
+        if (source is null) return null;
+        var path = Path.Combine(directory, filename);
+        if (!string.Equals(Path.GetFullPath(source), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase)) File.Copy(source, path);
+        return path;
+    }
+    internal static void CopyFiles(string source, string destination, IEnumerable<string> files)
+    {
+        foreach (var filename in files)
+            if (File.Exists(Path.Combine(source, filename))) File.Copy(Path.Combine(source, filename), Path.Combine(destination, filename));
+    }
+
     internal static JsonObject Placement(SquadPlacement? value)
     {
         value ??= new();
@@ -37,6 +59,7 @@ internal sealed class PlaybackAssets(string root)
         config["camera_runtime_contract_file"] = "camera_runtime_contract.json";
         File.Copy(Path.Combine(root, "data", "camera_runtime_contract.json"), Path.Combine(directory, "camera_runtime_contract.json"), true);
         if (source is null) return;
+        source = SnapshotSource(directory, CameraSourceFile, source)!;
         var profilePath = Path.Combine(directory, "camera_profile.json");
         var clipPath = Path.Combine(directory, "camera.wwcam");
         (await ProcessRunner.RunAsync(Path.Combine(root, "tools", "mmd_outputs", "mmd_camera_compile.exe"), [source, profilePath, clipPath], root, cancellation)).EnsureSuccess("镜头编译失败");
@@ -51,11 +74,16 @@ internal sealed class PlaybackAssets(string root)
         config["camera_units_per_mmd_unit"] = anchorClip["source_to_target_scale"]!.DeepClone();
     }
 
+    internal static string PhysicsMode(bool native, bool secondary)
+    {
+        if (native && secondary) throw new InvalidDataException("原生物理与衣物增强不能同时启用。");
+        return native ? "native" : secondary ? "secondary_inertia" : "direct";
+    }
     internal void Physics(JsonObject config, string directory, bool native, bool secondary)
     {
+        config["physics_mode"] = PhysicsMode(native, secondary);
         config["native_physics"] = native;
-        config["physics_enabled"] = !native && secondary;
-        config["physics_mode"] = native ? "native" : secondary ? "secondary_inertia" : "direct";
+        config["physics_enabled"] = secondary;
         config["physics_profile_file"] = "bone_chains.json";
         File.Copy(Path.Combine(root, "data", "bone_chains.json"), Path.Combine(directory, "bone_chains.json"), true);
     }

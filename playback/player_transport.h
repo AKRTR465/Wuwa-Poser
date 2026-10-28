@@ -8,13 +8,9 @@
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
+#include "PlaybackCommands.generated.h"
 
 namespace wwp_playback {
-enum class CommandKind : uint32_t {
-    Play=1, Pause, SeekSeconds, StepFrames, SetLoop, SetSpeed, Stop, SetPhysics, SetCameraMode,
-    SetPlacementX=10, SetPlacementY=11, SetPlacementHeight=12, SetPlacementYaw=13, SetPlacementInPlace=14, ResetPlacement=15,
-    SetTimeLimit=16, SetGroundHeight=17, SetCameraTrackHeight=18
-};
 enum class PlayerMode : uint32_t {Empty, Stopped, Playing, Paused, Ended};
 enum class ControlCode : uint32_t {Ok, InvalidCommand, StaleEpoch, DuplicateSequence, ClockInvalid, RestorePending};
 struct Command {uint64_t clip_epoch=0, sequence=0; CommandKind kind=CommandKind::Play; double value=0; uint32_t target_slot=0;};
@@ -37,29 +33,22 @@ inline uint32_t WireChecksum(const CommandWire& bytes) {
     uint32_t hash=2166136261u;for(unsigned i=0;i<60;++i){hash^=bytes[i];hash*=16777619u;}return hash;
 }
 inline bool ValidCommand(const Command& command) {
-    if(!command.clip_epoch||!command.sequence||!std::isfinite(command.value))return false;
-    switch(command.kind) {
-    case CommandKind::Play:case CommandKind::Pause:case CommandKind::Stop:case CommandKind::ResetPlacement:return command.value==0;
-    case CommandKind::SeekSeconds:return command.value>=0;
-    case CommandKind::StepFrames:return command.value>=-1000000&&command.value<=1000000&&std::trunc(command.value)==command.value;
-    case CommandKind::SetLoop:case CommandKind::SetPhysics:case CommandKind::SetPlacementInPlace:return command.value==0||command.value==1;
-    case CommandKind::SetSpeed:return command.value>=.1&&command.value<=4;
-    case CommandKind::SetTimeLimit:return command.value>=0&&command.value<=10000000;
-    case CommandKind::SetCameraMode:return command.value==0||command.value==1||command.value==2;
-    case CommandKind::SetCameraTrackHeight:return command.target_slot==0&&command.value>=-10000&&command.value<=10000;
-    case CommandKind::SetPlacementX:case CommandKind::SetPlacementY:case CommandKind::SetPlacementHeight:case CommandKind::SetGroundHeight:return command.value>=-1000&&command.value<=1000;
-    case CommandKind::SetPlacementYaw:return command.value>=-180&&command.value<=180;
-    }
-    return false;
+    return command.clip_epoch&&command.sequence&&ValidCommandArguments(command.kind,command.value,command.target_slot);
 }
-inline bool DecodeCommand(const CommandWire& wire,Command* output) {
+// A well-formed frame retains its identity even when its arguments are invalid,
+// so the scene host can publish a rejection for that sequence.
+inline bool DecodeCommandFrame(const CommandWire& wire,Command* output) {
     const char magic[8]={'W','W','P','C','T','L','1','\0'};
     if(!output||std::memcmp(wire.data(),magic,8)||LoadU32(wire.data()+8)!=1||LoadU32(wire.data()+12)!=64||
         LoadU64(wire.data()+48)||LoadU32(wire.data()+56)||
         LoadU32(wire.data()+60)!=WireChecksum(wire))return false;
     Command command{};command.clip_epoch=LoadU64(wire.data()+16);command.sequence=LoadU64(wire.data()+24);
     command.kind=CommandKind(LoadU32(wire.data()+32));command.target_slot=LoadU32(wire.data()+36);const uint64_t bits=LoadU64(wire.data()+40);
-    std::memcpy(&command.value,&bits,8);if(!ValidCommand(command))return false;*output=command;return true;
+    std::memcpy(&command.value,&bits,8);*output=command;return true;
+}
+inline bool DecodeCommand(const CommandWire& wire,Command* output) {
+    Command command;if(!DecodeCommandFrame(wire,&command)||!ValidCommand(command)||!output)return false;
+    *output=command;return true;
 }
 template<unsigned Capacity=64> class SpscCommandQueue {
     static_assert(Capacity>=2&&Capacity<=1024,"bounded control queue");
@@ -181,9 +170,7 @@ public:
     // setting under their callback lock after this validates/accepts its order.
     ControlCode AcceptRoutedCommand(const Command& command,double now) noexcept {
         const auto kind=command.kind;
-        if(kind!=CommandKind::SetPhysics&&kind!=CommandKind::SetPlacementX&&kind!=CommandKind::SetPlacementY&&
-           kind!=CommandKind::SetPlacementHeight&&kind!=CommandKind::SetPlacementYaw&&
-           kind!=CommandKind::SetPlacementInPlace&&kind!=CommandKind::ResetPlacement&&kind!=CommandKind::SetGroundHeight)return ControlCode::InvalidCommand;
+        if(!IsActorCommand(kind)&&kind!=CommandKind::SetGroundHeight)return ControlCode::InvalidCommand;
         const auto ready=BeforeCommand(command,now);if(ready!=ControlCode::Ok)return ready;
         state_.last_sequence=command.sequence;++state_.revision;return ControlCode::Ok;
     }

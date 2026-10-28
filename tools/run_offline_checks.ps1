@@ -4,8 +4,10 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if (-not $IsWindows) { throw 'The full offline suite requires Windows; use PortableServiceChecks and the pure C++ tests on other systems.' }
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$buildInputs = Import-PowerShellDataFile (Join-Path $PSScriptRoot 'player_build_inputs.psd1')
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repo 'test_outputs/offline' }
 & (Join-Path $PSScriptRoot 'generate_game_compat.ps1') -Check
+& (Join-Path $PSScriptRoot 'generate_playback_control.ps1') -Check
 & (Join-Path $PSScriptRoot 'tests/game_compat_generation_checks.ps1')
 [IO.Directory]::CreateDirectory($OutputDirectory) | Out-Null
 function Run-Native([string]$Relative) {
@@ -21,15 +23,11 @@ function Run-Managed([string]$Project, [string[]]$CheckArguments = @()) {
 
 # These compilers only process synthetic motion data; they do not load the game.
 if (-not $SkipCompilerBuild) {
-    foreach ($script in @('tools/mmd_build_vmd_cli.bat', 'tools/mmd_build_face.bat', 'tools/mmd_build_camera.bat')) { Run-Native $script }
+    foreach ($tool in $buildInputs.Compilers) { Run-Native $tool.Build }
 }
 # Compile the installer and both observer DLLs whose cancellation protocol is
 # exercised by the service checks. Building them does not load a game process.
-foreach ($script in @(
-    'probes/v20_recon/build.bat',
-    'probes/v20_recon/build_native_identity_bootstrap.bat',
-    'probes/v20_recon/build_native_graph_discovery.bat'
-)) { Run-Native $script }
+foreach ($tool in $buildInputs.Observers) { Run-Native $tool.Build }
 foreach ($script in @(
     'tools/tests/run_unified_transport_tests.bat',
     'tools/tests/run_owned_recovery_tests.bat',

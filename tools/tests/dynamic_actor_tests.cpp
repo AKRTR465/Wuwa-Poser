@@ -59,6 +59,10 @@ int main(){
     Check(scene::ApplyCommand({77,3,play::CommandKind::SetPlacementHeight,20,0},101)==play::ControlCode::Ok,"broadcast placement accepted");
     bool allPlaced=true;for(const auto& actor:runtime.actors)allPlaced=allPlaced&&actor->placement.height==20;
     Check(allPlaced,"broadcast reaches the dynamic collection");
+    runtime.actors.front()->nativePhysics=false;runtime.actors.front()->features.physics_available=true;
+    Check(scene::ApplyCommand({77,4,play::CommandKind::SetPhysics,1},101)==play::ControlCode::InvalidCommand&&!runtime.actors.front()->physicsEnabled&&runtime.transport.State().last_sequence==3,
+        "secondary physics broadcast rejects a native actor before changing any actor or accepting its sequence");
+    runtime.actors.front()->nativePhysics=true;runtime.actors.front()->features.physics_available=false;
     const Json originalFormation={{"formation_native",true},{"formation_floor_fallback_cm",2.5}};
     Check(Near(scene::FormationHeightCorrection(originalFormation,{{"stage_height_correction_cm",-2.15}}),-2),"native formation defaults to -2cm without doubling the capsule gap");
     Check(Near(scene::FormationHeightCorrection(originalFormation,Json::object()),-2),"missing legacy floor metadata keeps the same default height");
@@ -86,6 +90,14 @@ int main(){
     Check(Near(scene::EffectivePlacement(*runtime.cameraAnchor).height,18)&&Near(scene::CameraState(runtime.transport.State()).placement_height,18),"shared adjustment reaches body and camera once while preserving per-actor height");
     Check(scene::ApplyCommand({77,8,play::CommandKind::SetGroundHeight,-2,1},503)==play::ControlCode::InvalidCommand,"shared height cannot silently act as a per-actor command");
 
+    runtime.commands.Push({77,8,play::CommandKind::SetPlacementX,1,41});scene::Advance(5,503);
+    auto rejected=scene::Status();
+    Check(rejected.at("last_control_sequence")==8&&rejected.at("last_control_code")==uint32_t(play::ControlCode::InvalidCommand)&&rejected.at("last_sequence")==7,
+        "rejection identifies the processed sequence without acknowledging it as accepted");
+    runtime.commands.Push({77,9,play::CommandKind::SetCameraTrackHeight,20});scene::Advance(6,503);
+    auto accepted=scene::Status();
+    Check(accepted.at("last_control_sequence")==9&&accepted.at("last_control_code")==uint32_t(play::ControlCode::Ok)&&accepted.at("last_sequence")==9&&accepted.at("rejected_commands")==1,
+        "a later accepted command publishes its own result instead of inheriting the preceding rejection");
     auto report=scene::Status();Check(report.at("actor_count")==40&&report.at("actors").size()==40,"status reports the actual dynamic actor set");
     Check(report.at("borrowed_count")==3&&report.at("created_count")==37,"status reports actual mixed ownership rather than request assumptions");
     auto authority=std::make_unique<scene::ActorRuntime>();std::vector<uint8_t> mesh(0x920),asset(0xe0);

@@ -22,28 +22,19 @@ public sealed partial class OwnedMmdPlaybackService(string repoRoot)
 
     public OwnedCharacterCatalog CharacterCatalog() => OwnedCharacterCatalog.Load(root);
     public static JsonObject Config(string directory) => JsonData.ReadObject(Path.Combine(directory, "owned_mmd_config.json"));
-    public static JsonObject ApplySettings(string directory, int durationMs, double speed, bool loop)
-    {
-        var config = Config(directory);
-        config["duration_ms"] = durationMs; config["speed"] = speed; config["loop"] = loop;
-        JsonData.Write(Path.Combine(directory, "owned_mmd_config.json"), config);
-        return config;
-    }
-
     public async Task<JsonObject> PrepareAsync(OwnedMmdPrepareRequest request, CancellationToken cancellation = default)
     {
+        PlaybackAssets.PhysicsMode(request.NativePhysics, request.Physics);
         var character = CharacterCatalog().Select(request.CharacterId);
         var registry = new CharacterRegistry(root); var profile = registry.GetProfile(character.ProfileId);
         var output = Path.GetFullPath(request.OutputDirectory);
         Directory.CreateDirectory(output);
-        var bodySource = Path.Combine(output, "source.vmd"); File.Copy(request.BodySource, bodySource);
-        var faceSource = request.FaceSource is null ? null : Path.Combine(output, "face_source.vmd");
-        if (faceSource is not null) File.Copy(request.FaceSource!, faceSource);
-        var gazeSource = request.GazeSource is null ? null : Path.Combine(output, "gaze_source.vmd");
-        if (gazeSource is not null) File.Copy(request.GazeSource!, gazeSource);
+        var bodySource = PlaybackAssets.SnapshotSource(output, PlaybackAssets.BodySourceFile, request.BodySource)!;
+        var faceSource = PlaybackAssets.SnapshotSource(output, PlaybackAssets.FaceSourceFile, request.FaceSource);
+        var gazeSource = PlaybackAssets.SnapshotSource(output, PlaybackAssets.GazeSourceFile, request.GazeSource);
         File.Copy(registry.ProfilePath(profile), Path.Combine(output, "character_profile.json"));
         File.Copy(registry.SkeletonPath(profile), Path.Combine(output, "character_skeleton.json"));
-        var reportPath = Path.Combine(output, "compiled_report.json"); var clipPath = Path.Combine(output, "motion.wwlocal");
+        var reportPath = Path.Combine(output, "compiled_report.json");
         var imported = await new MotionImportService(root).ImportAsync(new(bodySource, registry.SkeletonPath(profile), output, request.Scale, faceSource, character.ModelId, registry.ProfilePath(profile), character.ModelAssetName, Path.Combine(root, "playback", "character_cache_csharp"), gazeSource, request.GazeStrength), cancellation);
         File.Copy(Contract.S(imported, "report"), reportPath);
         var clip = Contract.O(JsonData.ReadObject(reportPath), "compiled_target_clip");
@@ -62,7 +53,7 @@ public sealed partial class OwnedMmdPlaybackService(string repoRoot)
             ["fps"] = 60, ["frame_count"] = clip["frame_count"]!.DeepClone(), ["clip_duration_seconds"] = clip["duration_seconds"]!.DeepClone(),
             ["duration_ms"] = request.DurationMs, ["speed"] = request.Speed, ["loop"] = request.Loop, ["session_epoch"] = epoch,
             ["expression_enabled"] = false, ["camera_enabled"] = false, ["native_physics"] = request.NativePhysics, ["body_backend"] = "game_native", ["ground_height_cm"] = -2,
-            ["gaze_strength"] = request.GazeStrength,
+            ["gaze_strength"] = request.GazeStrength, ["requested_scale"] = request.Scale,
             ["placement"] = PlaybackAssets.Placement(request.Placement), ["target_slot"] = 1,
             ["physics_model_id"] = profile["physics_model_id"]?.DeepClone(), ["bone_chains_file"] = "bone_chains.json"
         };

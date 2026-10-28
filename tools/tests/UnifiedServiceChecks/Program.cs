@@ -28,7 +28,7 @@ var motionForFingerprint = Path.Combine(compilerWorkspace, "source.vmd"); File.W
 var compilers = new[] { "mmd_vmd_cli.exe", "mmd_face_compile.exe", "mmd_camera_compile.exe" };
 foreach (var compiler in compilers) File.WriteAllText(Path.Combine(compilerWorkspace, "tools", "mmd_outputs", compiler), "original compiler");
 var compilerService = new PlaybackSessionService(compilerWorkspace);
-var compilerRequest = new PlaybackSessionRequest(PlaybackSource.MixedActors, [new PlaybackActorRequest(motionForFingerprint)]);
+var compilerRequest = new PlaybackSessionRequest([new PlaybackActorRequest(motionForFingerprint)]);
 var fingerprintMethod = typeof(PlaybackSessionService).GetMethod("CompilationFingerprint", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
 var fingerprint = (string)fingerprintMethod.Invoke(compilerService, [compilerRequest])!;
 Save(Path.Combine(compilerWorkspace, "preparation_inputs.json"), new JsonObject { ["compilation_sha256"] = fingerprint });
@@ -51,7 +51,7 @@ var heightPresets = new PresetService(Path.Combine(fixture, "height-preset-cache
 foreach (var nativeFormation in new[] { false, true })
 {
     var path = Path.Combine(fixture, "height-" + nativeFormation + ".wwpreset");
-    var heightPreset = new ShowPreset("height", new PlaybackSessionRequest(PlaybackSource.MixedActors, [], FormationNative: nativeFormation, GroundHeightCm: nativeFormation ? 0 : -3.5));
+    var heightPreset = new ShowPreset("height", new PlaybackSessionRequest([], FormationNative: nativeFormation, GroundHeightCm: nativeFormation ? 0 : -3.5));
     await heightPresets.SaveAsync(path, heightPreset);
     var restoredHeight = (await heightPresets.LoadAsync(path)).Preset.Playback;
     Check(restoredHeight.GroundHeightCm == heightPreset.Playback.GroundHeightCm && restoredHeight.FormationNative == nativeFormation,
@@ -78,6 +78,11 @@ Check(wire.Length == 64 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(3
 uint checksum = 2166136261; foreach (var b in wire.AsSpan(0, 60)) checksum = unchecked((checksum ^ b) * 16777619);
 Check(BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(60)) == checksum, "wire checksum");
 foreach (var slot in new uint[] { 4, 17, 40, 4096, uint.MaxValue }) Check(BinaryPrimitives.ReadUInt32LittleEndian(PlaybackControl.Encode(123, 46, "offset_x", 12, slot).AsSpan(36)) == slot, "dynamic actor slot roundtrip");
+foreach (var invalid in new (string Kind, double Value, uint Slot)[] { ("speed", double.NaN, 0), ("step", .5, 0), ("camera", 3, 0), ("camera_track_height", 0, 1) })
+{
+    try { PlaybackControl.Encode(123, 46, invalid.Kind, invalid.Value, invalid.Slot); throw new Exception("invalid control arguments accepted"); }
+    catch (ArgumentException) { assertions++; }
+}
 var single = Path.Combine(fixture, "single"); Directory.CreateDirectory(single); Save(Path.Combine(single, "player_status.json"), Timeline());
 Check(PlaybackSessionStatus.Read(single).State["seconds"]!.GetValue<double>() == 2, "single timeline");
 var squad = Path.Combine(fixture, "squad"); Directory.CreateDirectory(squad); Save(Path.Combine(squad, "stage_config.json"), new());
@@ -140,9 +145,35 @@ foreach (var missingDeviceCode in new[] { 257, 263 })
     await audio.StopAsync(); Check(true, "a reported audio fault does not poison later stop or window close attempts");
 }
 var commandPath = Path.Combine(single, "control.dat"); var commands = new List<uint>();
-var emulator = Task.Run(async () => { ulong previous = 0; while (commands.Count < 2) { if (File.Exists(commandPath)) { var bytes = File.ReadAllBytes(commandPath); var sequence = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(24)); if (sequence != previous) { previous = sequence; commands.Add(BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(32))); var state = Timeline(); state["last_sequence"] = sequence; Save(Path.Combine(single, "player_status.json"), state); } } await Task.Delay(5); } });
-await Task.WhenAll(PlaybackControl.SendAsync(single, "speed", 2), PlaybackControl.SendAsync(single, "loop", 1), emulator).WaitAsync(TimeSpan.FromSeconds(10));
+Save(Path.Combine(single, "player_status.json"), Timeline());
+var emulator = Task.Run(async () =>
+{
+    ulong previous = 0, accepted = 0;
+    while (commands.Count < 4)
+    {
+        if (File.Exists(commandPath))
+        {
+            var bytes = File.ReadAllBytes(commandPath); var sequence = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(24));
+            if (sequence != previous)
+            {
+                previous = sequence; commands.Add(BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(32)));
+                var rejected = commands.Count == 3; if (!rejected) accepted = sequence;
+                var state = Timeline(); state["last_sequence"] = accepted;
+                if (commands.Count > 2) { state["last_control_sequence"] = sequence; state["last_control_code"] = rejected ? 1u : 0u; }
+                Save(Path.Combine(single, "player_status.json"), state);
+            }
+        }
+        await Task.Delay(5);
+    }
+});
+await Task.WhenAll(PlaybackControl.SendAsync(single, "speed", 2), PlaybackControl.SendAsync(single, "loop", 1)).WaitAsync(TimeSpan.FromSeconds(10));
 Check(commands.SequenceEqual(new uint[] { 6, 5 }), "serialized command acknowledgement");
+try { await PlaybackControl.SendAsync(single, "offset_x", 1, targetSlot: uint.MaxValue); throw new Exception("rejected control command was acknowledged"); }
+catch (InvalidOperationException error) { Check(error.Message.Contains("拒绝"), "a sequenced rejection is reported directly instead of timing out"); }
+var rejectedSequence = PlaybackControl.Status(single)["last_control_sequence"]!.GetValue<ulong>();
+var acceptedState = await PlaybackControl.SendAsync(single, "pause"); await emulator.WaitAsync(TimeSpan.FromSeconds(10));
+Check(acceptedState["last_control_sequence"]!.GetValue<ulong>() > rejectedSequence && acceptedState["last_sequence"]!.GetValue<ulong>() == acceptedState["last_control_sequence"]!.GetValue<ulong>(),
+    "the next accepted command has its own increasing sequence and does not inherit a previous rejection");
 var actor = new JsonObject { ["target_slot"] = 1, ["enabled"] = true, ["profile_id"] = "test", ["local_clip_sha256"] = "body-a" };
 Save(Path.Combine(squad, "stage_config.json"), new JsonObject { ["mmd_squad"] = new JsonObject { ["members"] = new JsonArray(actor), ["camera_clip_sha256"] = "camera-a" } });
 var bookmark = Path.Combine(fixture, "pose.wwpose"); BookmarkService.Snapshot(squad, 3.25, bookmark);
@@ -152,13 +183,13 @@ try { BookmarkService.SeekTime(bookmark, squad); throw new Exception("bookmark a
 var vmd = Path.Combine(fixture, "input.vmd"); File.WriteAllText(vmd, "offline input snapshot");
 foreach (var count in new[] { 4, 17, 40 })
 {
-    var slotted = PlaybackSessionService.AssignSlots(new(PlaybackSource.MixedActors, Enumerable.Range(0, count).Select(index => new PlaybackActorRequest(vmd, CharacterId: "same-character", Enabled: index != 1)).ToArray()));
+    var slotted = PlaybackSessionService.AssignSlots(new(Enumerable.Range(0, count).Select(index => new PlaybackActorRequest(vmd, CharacterId: "same-character", Enabled: index != 1)).ToArray()));
     Check(slotted.Actors.Count == count && slotted.Actors.Select(actor => actor.Slot).Distinct().Count() == count, "dynamic preparation assigns a unique slot to every card");
     Check(!slotted.Actors[1].Enabled && slotted.Actors[1].Slot == 2 && slotted.Actors[2].Slot == 3, "disabled actor retains its slot without renumbering later actors");
 }
-var sparse = PlaybackSessionService.AssignSlots(new(PlaybackSource.MixedActors, [new(vmd, CharacterId: "same", Slot: 4096), new(vmd, CharacterId: "same"), new(vmd, CharacterId: "same", Slot: 17)]));
+var sparse = PlaybackSessionService.AssignSlots(new([new(vmd, CharacterId: "same", Slot: 4096), new(vmd, CharacterId: "same"), new(vmd, CharacterId: "same", Slot: 17)]));
 Check(sparse.Actors.Select(actor => actor.Slot).SequenceEqual(new uint[] { 4096, 1, 17 }), "non-contiguous supplied slots are preserved");
-try { PlaybackSessionService.AssignSlots(new(PlaybackSource.MixedActors, [new(vmd, Slot: 17), new(vmd, Slot: 17)])); throw new Exception("duplicate actor slot accepted"); } catch (InvalidDataException) { assertions++; }
+try { PlaybackSessionService.AssignSlots(new([new(vmd, Slot: 17), new(vmd, Slot: 17)])); throw new Exception("duplicate actor slot accepted"); } catch (InvalidDataException) { assertions++; }
 var mixed = Path.Combine(fixture, "mixed"); Directory.CreateDirectory(mixed);
 var mixedConfig = new JsonObject { ["schema"] = 3, ["native_physics"] = true, ["actors"] = new JsonArray(sparse.Actors.Select(actor => (JsonNode)new JsonObject { ["slot"] = actor.Slot, ["target_slot"] = actor.Slot, ["character_id"] = actor.CharacterId, ["profile_id"] = "profile", ["local_clip_sha256"] = "body-a", ["expression_clip_sha256"] = "face-a", ["native_physics"] = actor.Slot != 1 }).ToArray()) };
 var mixedTimeline = Timeline(); mixedTimeline["actors"] = mixedConfig["actors"]!.DeepClone();
@@ -221,7 +252,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     }
     var selectedCharacter = OwnedCharacterCatalog.Load(args[1]).Select().CharacterId;
     var service = new PlaybackSessionService(args[1]);
-    var previewConfig = new OwnedMmdPlaybackService(args[1]).PreviewConfig(new PlaybackSessionRequest(PlaybackSource.MixedActors,
+    var previewConfig = new OwnedMmdPlaybackService(args[1]).PreviewConfig(new PlaybackSessionRequest(
         [new PlaybackActorRequest("", CharacterId: selectedCharacter, Stage: new(-120, 340, 25, 90)), new PlaybackActorRequest("", CharacterId: selectedCharacter), new PlaybackActorRequest("", CharacterId: selectedCharacter, Enabled: false)]));
     var previewDirectory = Path.Combine(AppContext.BaseDirectory, "preview-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(previewDirectory);
     OwnedMmdPlaybackService.WriteActorsFile(previewDirectory, previewConfig);
@@ -235,7 +266,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     Check(File.ReadAllText(Path.Combine(previewDirectory,"stage_floor.tsv")) == "walkable_floor\t2.5\n" && OwnedMmdPlaybackService.ActorConfigs(previewConfig).All(actor => actor["stage_z_cm"]!.GetValue<double>() == 0), "original formation requests floor correction in the motion layer without shifting actors");
     previewConfig["hide_scene_characters"] = true; OwnedMmdPlaybackService.WriteActorsFile(previewDirectory, previewConfig);
     Check(File.ReadAllText(Path.Combine(previewDirectory, "scene_visibility.tsv")) == "none\t100000\n", "standing previews never hide scene people even when playback hiding is selected");
-    var nativeHeightPreview = new OwnedMmdPlaybackService(args[1]).PreviewConfig(new PlaybackSessionRequest(PlaybackSource.MixedActors,
+    var nativeHeightPreview = new OwnedMmdPlaybackService(args[1]).PreviewConfig(new PlaybackSessionRequest(
         [new PlaybackActorRequest("", CharacterId: selectedCharacter)], FormationNative:true, GroundHeightCm:-3));
     Check(OwnedMmdPlaybackService.ActorConfigs(nativeHeightPreview)[0]["stage_z_cm"]!.GetValue<double>() == -3, "native formation preview uses the selected shared height");
     var legacyHeightRequest = System.Text.Json.JsonSerializer.Deserialize<PlaybackSessionRequest>("{\"Source\":3,\"Actors\":[]}")!;
@@ -247,7 +278,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     {
         var actorRequests = Enumerable.Range(0, count).Select(index => new PlaybackActorRequest(bodyPath, facePath, Scale: index == 0 ? .75 : null, Placement: new(OffsetX: index * 2),
             CharacterId: selectedCharacter, Slot: count == 17 ? (uint)(index * 4 + 1) : 0)).ToArray();
-        var request = new PlaybackSessionRequest(PlaybackSource.MixedActors, actorRequests, cameraPath, 2, Speed: 3, NativePhysics: false, Physics: true, CameraTrackHeightCm: 125);
+        var request = new PlaybackSessionRequest(actorRequests, cameraPath, 2, Speed: 3, NativePhysics: false, Physics: true, CameraTrackHeightCm: 125);
         var preparation = await service.PrepareAsync(request); var output = preparation["session_dir"]!.GetValue<string>();
         lastPreparation = output;
         firstPreparation ??= output;
@@ -274,7 +305,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     }
     assertions += await CharacterFormChecks.RunAsync(args[1], bodyPath, facePath);
     assertions += await GazeChecks.RunAsync(args[1], fixture, bodyPath, facePath, cameraPath);
-    var disabledRequest = new PlaybackSessionRequest(PlaybackSource.MixedActors, [new(bodyPath, CharacterId: selectedCharacter, Slot: 7), new("missing-disabled-input.vmd", Enabled: false, Slot: 9), new(bodyPath, CharacterId: selectedCharacter, Slot: 41)], NativePhysics: false);
+    var disabledRequest = new PlaybackSessionRequest([new(bodyPath, CharacterId: selectedCharacter, Slot: 7), new("missing-disabled-input.vmd", Enabled: false, Slot: 9), new(bodyPath, CharacterId: selectedCharacter, Slot: 41)], NativePhysics: false);
     var disabledPrep = await service.PrepareAsync(disabledRequest); var disabledDirectory = disabledPrep["session_dir"]!.GetValue<string>();
     Check(OwnedMmdPlaybackService.ActorConfigs(OwnedMmdPlaybackService.Config(disabledDirectory)).Select(actor => actor["slot"]!.GetValue<uint>()).SequenceEqual(new uint[] { 7, 41 }), "disabled cards are not loaded and later actors retain non-contiguous slots");
     Check(service.ReadPreparation(disabledDirectory).Actors.Count == 3, "saved requests retain disabled cards for later editing");
@@ -295,6 +326,9 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     Check(!service.RequiresPreparation(lastPreparation!, restoredRequest), "identical snapshotted bytes reuse compiled clips without the old source paths");
     // Exercise runtime file isolation without launching anything: fake package
     // files and a synthetic GameIdentity are used only by the file-copy method.
+    var gazeRequest = service.ReadPreparation(firstPreparation!);
+    firstPreparation = (await service.PrepareAsync(gazeRequest with { Actors = gazeRequest.Actors.Select((actor, index) =>
+        index == 0 ? actor with { GazeSource = Path.Combine(fixture, "gaze-7s.vmd.moved") } : actor).ToArray() }))["session_dir"]!.GetValue<string>();
     var fakePackage = Path.Combine(fixture, "build", "owned_mmd"); Directory.CreateDirectory(fakePackage);
     foreach (var file in new[] { "ownedmmd_lite_observer.dll", "ownedmmd_lite_installer.exe", OwnedMmdPlaybackService.HelperFilename, "owned_mmd_layout.json" }) File.WriteAllText(Path.Combine(fakePackage, file), "offline package fixture");
     var isolation = new OwnedMmdPlaybackService(fixture);
@@ -305,6 +339,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     }
     var prepareRuntime = typeof(OwnedMmdPlaybackService).GetMethod("PrepareRuntime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
     var sourceConfig = OwnedMmdPlaybackService.Config(firstPreparation!); sourceConfig["camera_controller_address"] = "0xdead"; sourceConfig["native_graph_binding"] = new JsonObject { ["stale"] = true }; sourceConfig["start_paused"] = true;
+    var gazeRelative = Path.Combine(OwnedMmdPlaybackService.ActorConfigs(sourceConfig)[0]["actor_directory"]!.GetValue<string>(), "gaze_source.vmd");
     Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig); File.WriteAllText(Path.Combine(firstPreparation!, "owned_mmd_graph.json"), "stale identity fixture");
     var fakeGame = new GameIdentity(42, 123456, "0x1234", 567);
     var snapshotA = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, false])!;
@@ -315,6 +350,10 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     Check(snapshotA != snapshotB && snapshotConfigA["session_epoch"]!.GetValue<ulong>() != snapshotConfigB["session_epoch"]!.GetValue<ulong>() && snapshotConfigA["session_epoch"]!.GetValue<ulong>() != sourceConfig["session_epoch"]!.GetValue<ulong>(), "every runtime snapshot has a fresh directory and session epoch");
     Check(snapshotConfigA["camera_controller_address"] is null && snapshotConfigA["native_graph_binding"] is null && !File.Exists(Path.Combine(snapshotA, "owned_mmd_graph.json")), "runtime snapshots never import prepared controller or actor graph identities");
     Check(OwnedMmdPlaybackService.ActorConfigs(snapshotConfigA).Count == 4 && OwnedMmdPlaybackService.ActorConfigs(snapshotConfigA).All(actor => File.Exists(Path.Combine(snapshotA, actor["actor_directory"]!.GetValue<string>(), "motion.wwlocal"))), "one runtime snapshot retains all actor assets");
+    File.Move(Path.Combine(firstPreparation!, gazeRelative), Path.Combine(firstPreparation!, gazeRelative) + ".moved");
+    var runtimeGaze = service.ReadPreparation(snapshotA).Actors[0].GazeSource;
+    Check(runtimeGaze == Path.Combine(snapshotA, gazeRelative) && JsonData.Digest(runtimeGaze) == JsonData.Digest(Path.Combine(fixture, "gaze-7s.vmd.moved")),
+        "runtime snapshots copy and reload gaze bytes after the prepared source moves");
     Check(File.ReadAllLines(Path.Combine(snapshotA, "actors.tsv")).Length == 4 && isolation.ActiveSession is null, "runtime file preparation alone does not launch or claim actors");
 }
 if (args.Length >= 2 && args[0] == "--audio") assertions += await RecordingAudioChecks.RunAsync(args[1], fixture);
