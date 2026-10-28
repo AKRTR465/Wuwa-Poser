@@ -14,7 +14,7 @@ static class CharacterFormChecks
         var selected = forms.SelectMany(form => new[] { catalog.Select(form.CharacterId[..form.CharacterId.LastIndexOf("-form-", StringComparison.Ordinal)]), form }).ToArray();
         Check(selected.All(character => character.IndependentInstance), "both defaults and alternates of each form family require independent instances");
         var service = new PlaybackSessionService(root);
-        var request = new PlaybackSessionRequest(PlaybackSource.MixedActors, selected.Select((character, index) => new PlaybackActorRequest(body, face,
+        var request = new PlaybackSessionRequest(selected.Select((character, index) => new PlaybackActorRequest(body, face,
             CharacterId: character.CharacterId, Stage: new(index * 100, index * 10), Placement: new(OffsetX: index))).ToArray());
         var preparation = await service.PrepareAsync(request);
         var directory = preparation["session_dir"]!.GetValue<string>();

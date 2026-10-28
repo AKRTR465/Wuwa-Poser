@@ -9,7 +9,7 @@
     <!-- Run the same production services and synthetic checks without WPF.
          Windows/game APIs are not invoked by the default offline checks. -->
     <Compile Include="../../../desktop/WWPoser/GlobalUsings.cs" Link="GlobalUsings.cs" />
-    <Compile Include="../../../desktop/WWPoser/Generated/GameCompat.generated.cs" Link="Generated/GameCompat.generated.cs" />
+    <Compile Include="../../../desktop/WWPoser/Generated/*.cs" Link="Generated/%(Filename)%(Extension)" />
     <Compile Include="../../../desktop/WWPoser/Services/*.cs" Link="Services/%(Filename)%(Extension)" />
     <Compile Include="../UnifiedServiceChecks/*.cs" Link="Checks/%(Filename)%(Extension)" />
   </ItemGroup>

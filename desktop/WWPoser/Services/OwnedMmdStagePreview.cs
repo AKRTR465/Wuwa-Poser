@@ -8,11 +8,11 @@ public sealed partial class OwnedMmdPlaybackService
 {
     public JsonObject PreviewConfig(PlaybackSessionRequest request)
     {
+        PlaybackSessionService.ValidateRequest(request, preview: true);
         request = PlaybackSessionService.AssignSlots(request);
         var catalog = CharacterCatalog(); var actors = new JsonArray();
         foreach (var actor in request.Actors.Where(actor => actor.Enabled))
         {
-            if (string.IsNullOrWhiteSpace(actor.CharacterId)) throw new InvalidDataException($"请为演员 {actor.Slot} 选择角色。");
             var character = catalog.Select(actor.CharacterId);
             var row = new JsonObject { ["slot"] = actor.Slot, ["enabled"] = true, ["character_id"] = character.CharacterId, ["character_display_name"] = character.DisplayName,
                 ["role_id"] = (long)character.RoleId, ["skin_id"] = (long)character.SkinId, ["model_id"] = character.ModelId,

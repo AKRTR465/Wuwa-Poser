@@ -67,7 +67,7 @@ public sealed partial class MainWindow
     }
     private void RequirePresetLoadIdle()
     {
-        if (session is not null || previewSession is not null || player.ActiveSession is not null || recorder.IsBusy)
+        if (player.ActiveSession is not null || recorder.IsBusy)
             throw new InvalidOperationException("请先停止并恢复表演、结束站位预览和录屏，再加载预设。");
     }
     private async Task LoadPresetAsync()

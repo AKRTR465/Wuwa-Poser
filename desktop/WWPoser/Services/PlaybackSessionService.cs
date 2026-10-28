@@ -1,223 +1,191 @@
 namespace WWPoser.Services;
 
-public enum PlaybackSource { CurrentCharacter, CurrentSquad, CreatedCharacter, MixedActors }
-// Stage coordinates are relative to the controlled character when playback starts:
-// X to its right, Y ahead, Z above its floor (cm), Yaw relative to its facing.
-public sealed record StagePosition(double X, double Y, double Z = 0, double Yaw = 0);
-public sealed record PlaybackActorRequest(string BodySource, string? FaceSource = null, double? Scale = null, SquadPlacement? Placement = null, long RoleId = 0, bool Enabled = true, string? CharacterId = null, uint Slot = 0, StagePosition? Stage = null, string? GazeSource = null, double GazeStrength = 1);
-public sealed record PlaybackSessionRequest(PlaybackSource Source, IReadOnlyList<PlaybackActorRequest> Actors, string? CameraSource = null, int CameraMode = 0, double Speed = 1, bool Loop = false, double DurationSeconds = 0, bool NativePhysics = true, bool Physics = false, string? StageSession = null, double SpacingCm = 180, bool FormationNative = false, bool HideSceneCharacters = false, double GroundHeightCm = -2, double CameraTrackHeightCm = 0);
+public enum PlaybackSessionPhase { Idle, Preparing, Loading, Active, Restoring, RecoveryPending }
 
-// New requests use one dynamic actor host. The old source formats remain
-// readable so saved requests can be converted to the mixed actor preparation.
-public sealed class PlaybackSessionService
+// One desktop lifecycle; the native service owns the runtime directory and
+// confirms restoration. Playing/paused/ended remain native timeline states.
+public sealed partial class PlaybackSessionService
 {
     public const string RequestFilename = "unified_session_request.json";
     private readonly string root;
-    private readonly SquadService squad;
     private readonly OwnedMmdPlaybackService owned;
-    public string? ActiveSession { get; private set; }
+    private readonly SemaphoreSlim operationGate = new(1, 1);
+    private CancellationTokenSource? operationCancellation;
+    public string? ActiveSession => owned.ActiveSession;
+    public string LaunchStage => owned.LaunchStage;
+    public PlaybackSessionRequest? ActiveRequest { get; private set; }
+    public PlaybackSessionPhase Phase { get; private set; }
+    public bool IsPreview { get; private set; }
+    public bool IsBusy => operationGate.CurrentCount == 0;
+    public (JsonObject State, bool Fresh)? Snapshot { get; private set; }
+    public bool Controllable => Phase == PlaybackSessionPhase.Active && !IsPreview && Snapshot is { } snapshot
+        && snapshot.Fresh && Contract.True(snapshot.State, "session_active") && !Contract.True(snapshot.State, "restore_requested");
     public event Action<string>? Progress;
 
-    public PlaybackSessionService(string repoRoot)
+    public PlaybackSessionService(string repoRoot, RecordingService? recording = null)
     {
-        root = Path.GetFullPath(repoRoot);
-        squad = new(root); owned = new(root);
+        root = Path.GetFullPath(repoRoot); owned = new(root); Music = new(root); Recorder = recording ?? new(root);
         owned.Progress += message => Progress?.Invoke(message);
     }
 
-    public JsonObject ReadRoster(string directory) { squad.Configure(directory); return squad.ReadRoster(); }
-    public Task<JsonObject> RefreshRosterAsync(string directory, CancellationToken cancellation = default) { squad.Configure(directory); return squad.RefreshRosterAsync(cancellation); }
-    public Task StopSamplerAsync(CancellationToken cancellation = default) => squad.StopSamplerAsync(cancellation);
-    public async Task StopPendingAsync(CancellationToken cancellation = default)
+    private async Task<T> RunAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellation)
     {
-        await squad.StopSamplerAsync(cancellation);
-        if (owned.ActiveSession is not null) await owned.FinishCurrentAsync(cancellation);
-        ActiveSession = owned.ActiveSession;
-    }
-
-    public static PlaybackSessionRequest AssignSlots(PlaybackSessionRequest request)
-    {
-        if (!request.Actors.Any(actor => actor.Enabled)) throw new InvalidDataException("请至少添加一名演员。");
-        var slots = new HashSet<uint>(request.Actors.Where(actor => actor.Slot != 0).Select(actor => actor.Slot));
-        if (slots.Count != request.Actors.Count(actor => actor.Slot != 0)) throw new InvalidDataException("演员槽位重复。");
-        uint next = 1;
-        var actors = request.Actors.Select(actor =>
+        using var pending = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+        lock (operationGate)
         {
-            if (actor.Slot != 0) return actor;
-            while (slots.Contains(next)) next = checked(next + 1);
-            var slot = next; slots.Add(slot); return actor with { Slot = slot };
-        }).ToArray();
-        if (!double.IsFinite(request.Speed) || request.Speed < .1 || request.Speed > 4) throw new InvalidDataException("速度须在 0.1–4 倍之间。");
-        if (!double.IsFinite(request.CameraTrackHeightCm) || request.CameraTrackHeightCm < -10000 || request.CameraTrackHeightCm > 10000) throw new InvalidDataException("镜头轨道高度偏移须在 -10000–10000 厘米之间。");
-        if (actors.Any(actor => !double.IsFinite(actor.GazeStrength) || actor.GazeStrength < 0 || actor.GazeStrength > 3)) throw new InvalidDataException("目线幅度须在 0–3 倍之间。");
-        if (!double.IsFinite(request.DurationSeconds) || request.DurationSeconds < 0 || request.DurationSeconds * 1000 > int.MaxValue) throw new InvalidDataException("播放时限无效。");
-        if (!double.IsFinite(request.SpacingCm) || request.SpacingCm < 0) throw new InvalidDataException("演员间距无效。");
-        if (request.CameraMode < 0 || request.CameraMode > 2 || (request.CameraMode == 2 && string.IsNullOrWhiteSpace(request.CameraSource))) throw new InvalidDataException("VMD 镜头模式需要镜头文件。");
-        return request with { Source = PlaybackSource.MixedActors, Actors = actors, StageSession = null };
-    }
-
-    public PlaybackSessionRequest ReadPreparation(string directory)
-    {
-        var path = Path.Combine(directory, RequestFilename);
-        if (File.Exists(path))
-        {
-            var saved = AssignSlots(JsonSerializer.Deserialize<PlaybackSessionRequest>(File.ReadAllText(path))!);
-            var configPath = Path.Combine(directory, "owned_mmd_config.json");
-            if (!File.Exists(configPath)) return saved;
-            var frozen = OwnedMmdPlaybackService.Config(directory);
-            var bySlot = OwnedMmdPlaybackService.ActorConfigs(frozen).ToDictionary(row => row["slot"]?.GetValue<uint>() ?? 1);
-            var actors = saved.Actors.Select(actor =>
-            {
-                if (!actor.Enabled || !bySlot.TryGetValue(actor.Slot, out var row)) return actor;
-                var actorDirectory = Path.Combine(directory, row["actor_directory"]?.GetValue<string>() ?? "");
-                var body = Path.Combine(actorDirectory, "source.vmd"); var face = Path.Combine(actorDirectory, "face_source.vmd");
-                var gaze = Path.Combine(actorDirectory, "gaze_source.vmd");
-                return actor with { BodySource = File.Exists(body) ? body : actor.BodySource, FaceSource = File.Exists(face) ? face : actor.FaceSource,
-                    GazeSource = File.Exists(gaze) ? gaze : actor.GazeSource,
-                    CharacterId = actor.CharacterId ?? row["character_id"]?.GetValue<string>() };
-            }).ToArray();
-            var camera = Path.Combine(directory, "camera_source.vmd");
-            return saved with { Actors = actors, CameraSource = File.Exists(camera) ? camera : saved.CameraSource };
+            cancellation.ThrowIfCancellationRequested();
+            if (!operationGate.Wait(0)) throw new InvalidOperationException("另一个会话操作尚未结束。");
+            operationCancellation = pending;
         }
-        var config = OwnedMmdPlaybackService.Config(directory);
-        if (config["actors"] is JsonArray)
+        try { return await operation(pending.Token); }
+        catch (OperationCanceledException)
         {
-            var actors = OwnedMmdPlaybackService.ActorConfigs(config).Select(row =>
-            {
-                var actorDirectory = Path.Combine(directory, Contract.S(row, "actor_directory"));
-                var p = Contract.O(row, "placement");
-                return new PlaybackActorRequest(Path.Combine(actorDirectory, "source.vmd"),
-                    File.Exists(Path.Combine(actorDirectory, "face_source.vmd")) ? Path.Combine(actorDirectory, "face_source.vmd") : null,
-                    Placement: new(Contract.D(p, "offset_x_cm"), Contract.D(p, "offset_y_cm"), Contract.D(p, "height_cm"), Contract.D(p, "yaw_degrees"), Contract.True(p, "in_place")),
-                    RoleId: Contract.I(row, "role_id"), CharacterId: Contract.S(row, "character_id"), Slot: row["slot"]!.GetValue<uint>(), Stage: OwnedMmdPlaybackService.ReadStage(row),
-                    GazeSource: File.Exists(Path.Combine(actorDirectory, "gaze_source.vmd")) ? Path.Combine(actorDirectory, "gaze_source.vmd") : null,
-                    GazeStrength: row["gaze_strength"]?.GetValue<double>() ?? 1);
-            }).ToArray();
-            return new(PlaybackSource.MixedActors, actors, File.Exists(Path.Combine(directory, "camera_source.vmd")) ? Path.Combine(directory, "camera_source.vmd") : null,
-                config["camera_mode"]?.GetValue<int>() ?? 0, Contract.D(config, "speed"), Contract.True(config, "loop"), Contract.D(config, "duration_ms") / 1000d,
-                config["native_physics"]?.GetValue<bool>() ?? true, Contract.True(config, "physics_enabled"), SpacingCm: config["spacing_cm"]?.GetValue<double>() ?? 180,
-                FormationNative: config["formation_native"]?.GetValue<bool>() ?? false, HideSceneCharacters: Contract.True(config, "hide_scene_characters"), GroundHeightCm: config["ground_height_cm"]?.GetValue<double>() ?? -2, CameraTrackHeightCm: config["camera_track_height_cm"]?.GetValue<double>() ?? 0);
+            await StopCoreAsync(null, CancellationToken.None);
+            throw;
         }
-        var actor = new PlaybackActorRequest(Path.Combine(directory, "source.vmd"), CharacterId: config["character_id"]?.GetValue<string>(),
-            GazeSource: File.Exists(Path.Combine(directory, "gaze_source.vmd")) ? Path.Combine(directory, "gaze_source.vmd") : null, GazeStrength: config["gaze_strength"]?.GetValue<double>() ?? 1);
-        return new(PlaybackSource.CreatedCharacter, [actor], CameraMode: config["camera_mode"]?.GetValue<int>() ?? 0, Speed: Contract.D(config, "speed"), Loop: Contract.True(config, "loop"), DurationSeconds: Contract.D(config, "duration_ms") / 1000d, NativePhysics: config["native_physics"]?.GetValue<bool>() ?? true, Physics: Contract.True(config, "physics_enabled"), GroundHeightCm: config["ground_height_cm"]?.GetValue<double>() ?? -2, CameraTrackHeightCm: config["camera_track_height_cm"]?.GetValue<double>() ?? 0);
-    }
-
-    private static int Milliseconds(double seconds) => checked((int)Math.Round(seconds * 1000));
-    private static void WriteRequest(string directory, PlaybackSessionRequest request) => JsonData.Write(Path.Combine(directory, RequestFilename), JsonSerializer.SerializeToNode(request)!.AsObject());
-    private string CompilationFingerprint(PlaybackSessionRequest request)
-    {
-        request = AssignSlots(request);
-        string? Digest(string? file) => string.IsNullOrWhiteSpace(file) ? null : JsonData.Digest(file);
-        var actors = new JsonArray(request.Actors.Select(actor => (JsonNode)new JsonObject
+        finally
         {
-            ["slot"] = actor.Slot, ["role"] = actor.RoleId, ["character"] = actor.CharacterId, ["enabled"] = actor.Enabled,
-            ["body"] = actor.Enabled ? Digest(actor.BodySource) : null,
-            ["face"] = actor.Enabled ? Digest(actor.FaceSource) : null, ["scale"] = actor.Scale,
-            ["gaze"] = actor.Enabled ? Digest(actor.GazeSource) : null, ["gaze_strength"] = actor.GazeStrength
-        }).ToArray());
-        var forms = Path.Combine(root, "data", "characters", "character_forms.json");
-        return JsonData.CanonicalDigest(new JsonObject { ["character_loading_version"] = 2,
-            ["body_compiler_sha256"] = Digest(Path.Combine(root, "tools", "mmd_outputs", "mmd_vmd_cli.exe")),
-            ["face_compiler_sha256"] = Digest(Path.Combine(root, "tools", "mmd_outputs", "mmd_face_compile.exe")),
-            ["camera_compiler_sha256"] = Digest(Path.Combine(root, "tools", "mmd_outputs", "mmd_camera_compile.exe")),
-            ["catalog"] = Digest(Path.Combine(root, OwnedCharacterCatalog.RelativePath)), ["character_index"] = Digest(Path.Combine(root, "data", "characters", "index.json")),
-            ["forms"] = File.Exists(forms) ? Digest(forms) : null,
-            ["source"] = (int)request.Source, ["actors"] = actors, ["camera"] = Digest(request.CameraSource), ["stage"] = request.Source == PlaybackSource.CurrentSquad ? Digest(Path.Combine(request.StageSession!, "stage_config.json")) : null });
-    }
-    public bool RequiresPreparation(string directory, PlaybackSessionRequest request)
-    {
-        var path = Path.Combine(directory, "preparation_inputs.json");
-        var recorded = File.Exists(path) ? JsonData.ReadObject(path)["compilation_sha256"]?.GetValue<string>() : null;
-        return recorded != CompilationFingerprint(request);
-    }
-
-    public async Task<JsonObject> PrepareAsync(PlaybackSessionRequest request, CancellationToken cancellation = default)
-    {
-        request = AssignSlots(request);
-        string directory;
-        JsonObject result;
-        directory = Path.Combine(root, "playback", "actor_preparations", "actors_" + Guid.NewGuid().ToString("N"));
-        result = await owned.PrepareActorsAsync(request, directory, cancellation);
-        WriteRequest(directory, request);
-        JsonData.Write(Path.Combine(directory, "preparation_inputs.json"), new JsonObject { ["compilation_sha256"] = CompilationFingerprint(request) });
-        return result;
-    }
-
-    public void UpdatePreparation(string directory, PlaybackSessionRequest request)
-    {
-        request = AssignSlots(request);
-        WriteRequest(directory, request);
-        if (request.Source == PlaybackSource.MixedActors)
-        {
-            var mixed = OwnedMmdPlaybackService.Config(directory);
-            mixed["speed"] = request.Speed; mixed["loop"] = request.Loop; mixed["duration_ms"] = Milliseconds(request.DurationSeconds); mixed["camera_mode"] = request.CameraMode;
-            mixed["hide_scene_characters"] = request.HideSceneCharacters;
-            mixed["camera_track_height_cm"] = request.CameraTrackHeightCm;
-            mixed["camera_enabled"] = true; mixed["native_physics"] = request.NativePhysics; mixed["physics_enabled"] = request.Physics && !request.NativePhysics;
-            mixed["physics_mode"] = request.NativePhysics ? "native" : request.Physics ? "secondary_inertia" : "direct";
-            var bySlot = request.Actors.Where(actor => actor.Enabled).ToDictionary(actor => actor.Slot);
-            foreach (var actor in OwnedMmdPlaybackService.ActorConfigs(mixed))
-            {
-                if (!bySlot.TryGetValue(actor["slot"]?.GetValue<uint>() ?? 1, out var selected)) throw new InvalidDataException("演员集合已更改，需要重新准备。");
-                actor["placement"] = PlaybackAssets.Placement(selected.Placement); OwnedMmdPlaybackService.SetStage(actor, selected.Stage);
-                foreach (var key in new[] { "native_physics", "physics_enabled", "physics_mode" }) actor[key] = mixed[key]!.DeepClone();
-            }
-            OwnedMmdPlaybackService.ConfigureStage(mixed, request.SpacingCm, request.FormationNative, request.GroundHeightCm);
-            OwnedMmdPlaybackService.WriteActorsFile(directory, mixed);
-            JsonData.Write(Path.Combine(directory, "owned_mmd_config.json"), mixed);
-            return;
+            if (ActiveSession is null) ClearSession();
+            else if (Phase is PlaybackSessionPhase.Loading or PlaybackSessionPhase.Restoring) Phase = PlaybackSessionPhase.RecoveryPending;
+            lock (operationGate) operationCancellation = null;
+            operationGate.Release();
         }
     }
+    private void RequireIdle()
+    {
+        if (ActiveSession is not null) throw new InvalidOperationException("请先停止当前演员会话并等待恢复。");
+    }
+    private void ClearSession()
+    {
+        ActiveRequest = null; Snapshot = null; IsPreview = false; Phase = PlaybackSessionPhase.Idle;
+    }
+    public Task<JsonObject> PrepareAsync(PlaybackSessionRequest request, CancellationToken cancellation = default) => RunAsync(async token =>
+    {
+        RequireIdle(); Phase = PlaybackSessionPhase.Preparing;
+        return await PrepareCoreAsync(request, token);
+    }, cancellation);
 
     public Task<JsonObject> LaunchAsync(string preparedDirectory, CancellationToken cancellation = default) => LaunchAsync(preparedDirectory, null, cancellation);
-    public async Task<JsonObject> LaunchAsync(string preparedDirectory, PlaybackSessionRequest? settings, CancellationToken cancellation = default, bool startPaused = false)
+    public Task<JsonObject> LaunchAsync(string preparedDirectory, PlaybackSessionRequest? settings, CancellationToken cancellation = default, bool startPaused = false) => RunAsync(async token =>
     {
-        if (ActiveSession is not null) throw new InvalidOperationException("请先停止当前演员会话并等待恢复。");
-        var request = AssignSlots(settings ?? ReadPreparation(preparedDirectory));
-        if (RequiresPreparation(preparedDirectory, request))
+        RequireIdle();
+        return await LaunchCoreAsync(preparedDirectory, settings, token, startPaused);
+    }, cancellation);
+    private async Task<JsonObject> LaunchCoreAsync(string preparedDirectory, PlaybackSessionRequest? settings, CancellationToken cancellation, bool startPaused)
+    {
+        ActiveRequest = settings is null ? null : AssignSlots(settings); IsPreview = false;
+        // A frozen preparation can run without its original editable sources.
+        // Only explicit authoring settings request comparison/recompilation.
+        if (ActiveRequest is { } request)
         {
-            Progress?.Invoke("素材或角色已更改，正在重新准备");
-            var replacement = await PrepareAsync(request, cancellation);
-            preparedDirectory = Contract.S(replacement, "session_dir");
+            ValidateRequest(request); Phase = PlaybackSessionPhase.Preparing;
+            if (RequiresPreparation(preparedDirectory, request))
+            {
+                Progress?.Invoke("素材或角色已更改，正在重新准备");
+                var replacement = await PrepareCoreAsync(request, cancellation);
+                preparedDirectory = Contract.S(replacement, "session_dir");
+            }
+            UpdatePreparation(preparedDirectory, request);
         }
-        UpdatePreparation(preparedDirectory, request);
+        Phase = PlaybackSessionPhase.Loading;
+        var result = await owned.LaunchAsync(preparedDirectory, cancellation, startPaused);
+        if (ActiveSession is { } directory)
+        {
+            if (ActiveRequest is not null) WriteRequest(directory, ActiveRequest);
+            Phase = Contract.True(result, "loaded") ? PlaybackSessionPhase.Active : PlaybackSessionPhase.RecoveryPending;
+            if (Phase == PlaybackSessionPhase.Active) Snapshot = ReadStatus(directory);
+        }
+        return result;
+    }
+    public Task<JsonObject> StartAsync(PlaybackSessionRequest request, CancellationToken cancellation = default, bool startPaused = false) => RunAsync(async token =>
+    {
+        RequireIdle(); Phase = PlaybackSessionPhase.Preparing;
+        var prepared = await PrepareCoreAsync(request, token);
+        return await LaunchCoreAsync(Contract.S(prepared, "session_dir"), request, token, startPaused);
+    }, cancellation);
+
+    public Task<JsonObject> PreviewAsync(PlaybackSessionRequest request, CancellationToken cancellation = default) => RunAsync(async token =>
+    {
+        if (ActiveSession is not null && !IsPreview) throw new InvalidOperationException("正在表演中；先点「停止并恢复」，再预览站位。");
+        await StopCoreAsync(null, CancellationToken.None);
+        ValidateRequest(request, preview: true); ActiveRequest = AssignSlots(request); IsPreview = true; Phase = PlaybackSessionPhase.Loading;
+        var result = await owned.PreviewAsync(ActiveRequest, token);
+        Phase = Contract.True(result, "loaded") ? PlaybackSessionPhase.Active : PlaybackSessionPhase.RecoveryPending;
+        return result;
+    }, cancellation);
+
+    public (JsonObject State, bool Fresh) ReadStatus(string directory) => PlaybackSessionStatus.Read(directory);
+    public async Task<JsonObject> SendAsync(string directory, string kind, double value = 0, uint targetSlot = 0, CancellationToken cancellation = default)
+    {
+        var result = await PlaybackControl.SendAsync(directory, kind, value, cancellation, targetSlot);
+        if (directory == ActiveSession && ActiveRequest is { } request)
+            ActiveRequest = kind switch
+            {
+                "speed" => request with { Speed = value }, "loop" => request with { Loop = value != 0 },
+                "time_limit" => request with { DurationSeconds = value }, "camera" => request with { CameraMode = (int)value },
+                "physics" => request with { Physics = value != 0 }, "ground_height" => request with { GroundHeightCm = value },
+                "camera_track_height" => request with { CameraTrackHeightCm = value }, _ => request
+            };
+        return result;
+    }
+    public async Task StopAsync(string? directory = null, CancellationToken cancellation = default)
+    {
+        lock (operationGate) operationCancellation?.Cancel();
+        await operationGate.WaitAsync(cancellation);
+        try { await StopCoreAsync(directory, cancellation); }
+        finally { operationGate.Release(); }
+    }
+    private async Task StopCoreAsync(string? directory, CancellationToken cancellation)
+    {
+        var recordingStop = AutomaticRecordingSession is not null ? StopRecordingAsync() : Task.CompletedTask;
         try
         {
-            var result = await owned.LaunchAsync(preparedDirectory, cancellation, startPaused);
-            var directory = Contract.S(result, "session_dir");
-            WriteRequest(directory, request);
-            ActiveSession = Contract.True(result, "cleanup_restored") ? null : directory;
-            return result;
+            if ((directory ?? ActiveSession) is { } current)
+            {
+                Phase = PlaybackSessionPhase.Restoring; Snapshot = null;
+                try { await owned.FinishSessionAsync(current, cancellation); }
+                catch { Phase = PlaybackSessionPhase.RecoveryPending; throw; }
+            }
+            // Audio/encoding failure cannot resurrect confirmed game ownership.
+            ClearSession(); await Music.StopAsync();
         }
-        catch { ActiveSession = owned.ActiveSession; throw; }
+        finally { await recordingStop; }
     }
-
-    public async Task<JsonObject> StartAsync(PlaybackSessionRequest request, CancellationToken cancellation = default, bool startPaused = false)
+    public async Task PollAsync(CancellationToken cancellation = default)
     {
-        var prepared = await PrepareAsync(request, cancellation);
-        return await LaunchAsync(Contract.S(prepared, "session_dir"), null, cancellation, startPaused);
-    }
-
-    // Preview needs characters and stage positions only, never motion files.
-    public async Task<JsonObject> PreviewAsync(PlaybackSessionRequest request, CancellationToken cancellation = default)
-    {
-        if (ActiveSession is not null) throw new InvalidOperationException("请先停止当前演员会话并等待恢复。");
+        if (!await operationGate.WaitAsync(0, cancellation)) return;
+        Task? saving = null; var current = ActiveSession;
         try
         {
-            var result = await owned.PreviewAsync(request, cancellation);
-            ActiveSession = Contract.True(result, "loaded") ? Contract.S(result, "session_dir") : owned.ActiveSession;
-            return result;
+            if (current is null) return;
+            // Restoration evidence is independent of timeline availability.
+            if (OwnedMmdPlaybackService.RestorationConfirmed(current))
+            {
+                await StopCoreAsync(current, cancellation);
+                Progress?.Invoke("表演已结束，演员与镜头已恢复，可以再次开始。");
+                return;
+            }
+            if (!IsPreview)
+            {
+                Snapshot = null; Snapshot = ReadStatus(current);
+                var (state, fresh) = Snapshot.Value;
+                if (Contract.True(state, "restore_requested")) Phase = PlaybackSessionPhase.Restoring;
+                if (fresh && Contract.S(state, "mode") == "ended" && !Contract.True(state, "loop") && AutomaticRecordingSession == current)
+                    saving = StopRecordingAsync();
+            }
+            // Preview has no timeline heartbeat. Its terminal restoration uses
+            // the same native and managed evidence as a playback session.
+            if (OwnedMmdPlaybackService.Finished(current)) Phase = PlaybackSessionPhase.RecoveryPending;
         }
-        catch { ActiveSession = owned.ActiveSession; throw; }
-    }
-
-    public JsonObject ReadStatus(string directory) => PlaybackSessionStatus.Read(directory).State;
-    public Task<JsonObject> SendAsync(string directory, string kind, double value = 0, uint targetSlot = 0, CancellationToken cancellation = default) => PlaybackControl.SendAsync(directory, kind, value, cancellation, targetSlot);
-    public async Task<JsonObject> StopAsync(string directory, CancellationToken cancellation = default)
-    {
-        await owned.FinishSessionAsync(directory, cancellation);
-        ActiveSession = owned.ActiveSession;
-        return new JsonObject { ["session_dir"] = directory, ["state"] = "restored", ["restoration_complete"] = true };
+        finally { operationGate.Release(); }
+        // Saving a completed clip must not hold the lifecycle gate: Stop/Close
+        // can restore actors while the encoder finishes.
+        if (saving is not null)
+        {
+            await saving;
+            if (ActiveSession == current)
+                Progress?.Invoke(Recorder.Snapshot.State == "error" ? "动作已播完，录屏保存失败：" + Recorder.Snapshot.Message
+                    : "动作已播完，录屏" + (Recorder.Snapshot.State == "saved" ? Recorder.Snapshot.Message : "已停止。"));
+        }
     }
 }

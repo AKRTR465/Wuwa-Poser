@@ -10,12 +10,13 @@ $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 & (Join-Path $PSScriptRoot 'generate_game_compat.ps1') -Check:$Check
+& (Join-Path $PSScriptRoot 'generate_playback_control.ps1') -Check:$Check
 $compatibilitySource=Get-Content -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $compatibilityDigest=(Get-FileHash -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Algorithm SHA256).Hash.ToLowerInvariant()
 if(-not $PackageDirectory){$PackageDirectory=Join-Path $repo 'build\owned_mmd'}
 $packageRoot=[IO.Path]::GetFullPath($PackageDirectory)
 $purpose='single_owned_character_native_mmd'
-$files=@('ownedmmd_lite_observer.dll','ownedmmd_lite_installer.exe','owned_mmd_layout.json','WwPoser.ColdLoad.ManagedBridge.OwnedMmdLite.dll')
+$files=(Import-PowerShellDataFile (Join-Path $PSScriptRoot 'player_build_inputs.psd1')).OwnedRuntimeFiles
 $manifestPath=Join-Path $packageRoot 'runtime_package.json'
 
 function Assert-RuntimeFiles {

@@ -49,8 +49,7 @@ internal static class Program
         });
         var window = new MainWindow(root, startPolling: false, recordingService: recorder); int checks = 0;
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
-        T Field<T>(string name) => (T)typeof(MainWindow).GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(window)!;
-        void Set(string name, object? value) => typeof(MainWindow).GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(window, value);
+        T Field<T>(string name) => UiSessionFixture.Read<T>(window, name);
         object? Call(string name, params object?[] values) => typeof(MainWindow).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, values);
         void Await(Task task)
         {
@@ -153,7 +152,7 @@ internal static class Program
             Check(ReferenceEquals(editor.Child, selected.GetType().GetProperty("Panel")!.GetValue(selected)), "selected actor editor is wrong");
             foreach (var card in actors) ((TextBox)card!.GetType().GetField("Body")!.GetValue(card)!).Text = Path.Combine(output, "unused.vmd");
             var request = (PlaybackSessionRequest)Call("Request")!;
-            Check(request.Source == PlaybackSource.MixedActors && request.Actors.Count == count, "request split into old source route");
+            Check(request.Actors.Count == count, "request lost actors from the unified list");
             Check(request.Actors.Select(actor => actor.Slot).Distinct().Count() == count && request.Actors[^1].Slot == count, "actor slots collided or capped");
             Check(request.Actors.Select(actor => actor.CharacterId).Distinct().Count() == 1, "duplicate role requests were dropped");
             if (count is 17 or 65) Render("actors-" + count);
@@ -162,11 +161,11 @@ internal static class Program
         Check(actors.Count == 64 && ReferenceEquals(actors[5], before), "remove damaged later actors");
         var afterRemove = (PlaybackSessionRequest)Call("Request")!;
         Check(afterRemove.Actors.Select(a => a.Slot).SequenceEqual(Enumerable.Range(1, 64).Select(i => (uint)i)), "removed actor left duplicate slots");
-        var restored = new PlaybackSessionRequest(PlaybackSource.MixedActors, Enumerable.Range(1, 17).Select(i => new PlaybackActorRequest("unused.vmd", CharacterId: afterRemove.Actors[0].CharacterId, Slot: (uint)i)).ToArray());
+        var restored = new PlaybackSessionRequest(Enumerable.Range(1, 17).Select(i => new PlaybackActorRequest("unused.vmd", CharacterId: afterRemove.Actors[0].CharacterId, Slot: (uint)i)).ToArray());
         Call("SetRequest", restored); Check(actors.Count == 17, "loading preparation truncated actors");
         Check(Field<TextBox>("duration").Text == "0", "duration should default to unlimited");
         Check(Field<string?>("session") is null, "offline rendering started a session");
-        Set("session", Path.Combine(output, "nonexistent-offline-session")); Set("activeRequest", restored);
+        UiSessionFixture.Own(window, Path.Combine(output, "nonexistent-offline-session"), restored);
         Call("UpdateActions"); Check(!hideScene.IsEnabled, "scene hiding cannot be toggled while a playback session is owned");
         void Rejected(string expected)
         {
@@ -183,7 +182,7 @@ internal static class Program
         target.SelectedIndex = 1; Check(Field<TextBox>("liveX").Text == "303", "actor 33 placement lost");
         target.SelectedIndex = 0; Check(Field<TextBox>("liveX").Text == "101", "switching actor restored stale placement");
         var restartButton = Field<List<Button>>("actions").Single(button => Equals(button.Content, "从头播放"));
-        Set("session", null); Call("UpdateActions");
+        UiSessionFixture.Own(window, null); Call("UpdateActions");
         Check(!restartButton.IsEnabled, "restart requires an active playback session");
         foreach (var initialMode in new[] { "playing", "paused", "ended" })
         {
@@ -193,7 +192,7 @@ internal static class Program
             var state = new JsonObject { ["clip_epoch"] = 813UL, ["last_sequence"] = 0UL, ["session_active"] = true,
                 ["mode"] = initialMode, ["seconds"] = initialMode == "ended" ? 20d : 9d, ["duration_seconds"] = 20d,
                 ["speed"] = 1.5d, ["loop"] = true, ["camera_mode"] = 2, ["placement_height"] = 13d, ["camera_track_height_cm"] = 125d };
-            JsonData.Write(statePath, state); Set("session", directory); Set("sessionControllable", true); Call("UpdateActions");
+            JsonData.Write(statePath, state); UiSessionFixture.Own(window, directory, restored, state); Call("UpdateActions");
             Check(restartButton.IsEnabled, "restart is available from " + initialMode);
             var acknowledgeRestart = Task.Run(async () =>
             {
@@ -229,8 +228,18 @@ internal static class Program
             var audio = MediaService.DesiredAudio(restarted, 0, 30000);
             Check(audio.PositionMilliseconds == 0 && audio.Playing, "music follows the restarted shared timeline");
         }
-        Call("ShowPage", 2); Render("restart-playback"); Set("session", null); Call("UpdateActions");
+        Call("ShowPage", 2); Render("restart-playback"); UiSessionFixture.Own(window, null); Call("UpdateActions");
         checks += CameraTrackHeightUiChecks.Run(window, output, Await);
+
+        var staleDirectory = Path.Combine(output, "stale-session"); Directory.CreateDirectory(staleDirectory);
+        var stalePath = Path.Combine(staleDirectory, "player_status.json");
+        var staleState = new JsonObject { ["mode"] = "playing", ["session_active"] = true, ["seconds"] = 1d, ["duration_seconds"] = 20d };
+        JsonData.Write(stalePath, staleState); File.SetLastWriteTimeUtc(stalePath, DateTime.UtcNow.AddMinutes(-1));
+        UiSessionFixture.Own(window, staleDirectory, restored, staleState); Call("UpdateActions"); Action("PollAsync");
+        Check(Field<string?>("session") == staleDirectory && !Field<bool>("sessionControllable") && Field<Button>("stopButton").IsEnabled &&
+            Field<List<Button>>("sessionActions").All(button => !button.IsEnabled) && Field<TextBlock>("modeLabel").Text.Contains("状态已过期"),
+            "an expired observer disables transport while preserving the visible recovery action");
+        UiSessionFixture.Own(window, null); Call("UpdateActions");
 
         // Reproduce the screenshot: native/managed cleanup is complete while
         // frontend session ownership and an audio task are still retained.
@@ -245,8 +254,7 @@ internal static class Program
         var service = Field<PlaybackSessionService>("player");
         void RetainSession()
         {
-            Set("session", terminal); Set("activeRequest", restored); Set("sessionControllable", true);
-            typeof(PlaybackSessionService).GetProperty("ActiveSession")!.SetValue(service, terminal);
+            UiSessionFixture.Own(window, terminal, restored);
             Call("UpdateActions");
         }
         ReleaseProof(false); RetainSession(); Action("PollAsync");
@@ -258,6 +266,9 @@ internal static class Program
             "confirmed terminal cleanup automatically retires frontend and service session ownership");
         Check(Field<FrameworkElement>("idlePanel").Visibility == Visibility.Visible && Field<FrameworkElement>("livePanel").Visibility == Visibility.Collapsed && !Field<TextBlock>("sessionLabel").Text.Contains("正在表演"),
             "confirmed cleanup returns the visible UI to idle");
+        UiSessionFixture.Own(window, terminal, restored, preview: true); Call("UpdateActions"); Action("PollAsync");
+        Check(Field<string?>("previewSession") is null && service.ActiveSession is null && service.Phase == PlaybackSessionPhase.Idle,
+            "preview restoration retires ownership from native and managed evidence without a playback heartbeat");
         RetainSession(); cache[1] = new(OffsetX: 99); target.ItemsSource = targets;
         var media = Field<MediaService>("music");
         void FaultAudio() => typeof(MediaService).GetField("worker", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(media,
@@ -273,39 +284,47 @@ internal static class Program
             "automatic terminal reconciliation releases frontend state even when audio fails");
         Check(Field<TextBlock>("status").Text.Contains("synthetic audio shutdown failure"), "automatic reconciliation reports unexpected audio errors");
         Render("session-restored");
-        Set("session", null); Set("activeRequest", null);
+        UiSessionFixture.Own(window, null);
         // Exercise the same successful/failed launch completion path without
         // launching a game or capturing any real window.
         JsonObject PlaybackStarted() => new() { ["loaded"] = true, ["session_dir"] = terminal };
-        Action("CompletePlaybackStartAsync", PlaybackStarted(), restored); Call("UpdateActions");
+        async Task CompleteStart(JsonObject result)
+        {
+            UiSessionFixture.Own(window, result["session_dir"]?.GetValue<string>(), restored,
+                phase: Contract.True(result, "loaded") ? PlaybackSessionPhase.Active : PlaybackSessionPhase.RecoveryPending);
+            try { await service.CompletePlaybackStartAsync(result, (MusicPreset?)Call("CaptureMusic"), (PresetRecordingSettings)Call("CaptureRecording")!); }
+            finally { Call("UpdateActions"); }
+        }
+        Await(CompleteStart(PlaybackStarted()));
         Check(captures.Count == 0 && !recorder.IsBusy, "disabled automatic recording leaves playback unrecorded");
         Action("StopCurrentAsync"); automatic.IsChecked = true; fps.SelectedIndex = 1; size.SelectedIndex = 1;
-        Action("CompletePlaybackStartAsync", new JsonObject { ["cleanup_restored"] = true }, restored);
+        Await(CompleteStart(new JsonObject { ["cleanup_restored"] = true }));
         Check(captures.Count == 0 && Field<string?>("session") is null, "a restored failed launch never starts recording");
-        Action("CompletePlaybackStartAsync", new JsonObject { ["loaded"] = false, ["session_dir"] = terminal }, restored);
+        Await(CompleteStart(new JsonObject { ["loaded"] = false, ["session_dir"] = terminal }));
         Check(captures.Count == 0 && !Field<bool>("sessionControllable"), "a failed launch awaiting restoration never starts recording");
         Action("StopCurrentAsync");
-        Action("CompletePlaybackStartAsync", PlaybackStarted(), restored); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5))); Call("UpdateActions");
+        Await(CompleteStart(PlaybackStarted())); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5))); Call("UpdateActions");
         var selectedCapture = captures.Last();
         Check(captures.Count == 1 && selectedCapture.Fps == 60 && selectedCapture.Height == 1440 && selectedCapture.Folder == recorder.OutputDirectory,
             "successful playback automatically uses the preselected 2K60 settings and resolved recordings folder without a dialog");
-        Check(Field<string?>("automaticRecordingSession") == terminal && recorder.IsBusy, "automatic capture belongs to the started playback session");
-        Action("StartAutomaticRecordingAsync"); Check(captures.Count == 1, "start completion cannot launch a duplicate recorder");
+        Check(service.AutomaticRecordingSession == terminal && recorder.IsBusy, "automatic capture belongs to the started playback session");
+        Await(service.CompletePlaybackStartAsync(PlaybackStarted(), null, (PresetRecordingSettings)Call("CaptureRecording")!));
+        Check(captures.Count == 1, "start completion cannot launch a duplicate recorder");
         Check(!fps.IsEnabled && !size.IsEnabled && !format.IsEnabled && !automatic.IsEnabled && !Field<Button>("recordButton").IsEnabled && Field<Button>("stopRecordingButton").IsEnabled,
             "active recording locks captured settings and exposes stop and save");
         Render("recording-playing"); Action("StopCurrentAsync");
-        Check(captureStops == 1 && !recorder.IsBusy && Field<string?>("automaticRecordingSession") is null && Field<string?>("session") is null,
+        Check(captureStops == 1 && !recorder.IsBusy && service.AutomaticRecordingSession is null && Field<string?>("session") is null,
             "stopping playback stops and saves its automatic recording");
         Check(fps.IsEnabled && size.IsEnabled && format.IsEnabled && automatic.IsEnabled && automatic.IsChecked == true && fps.SelectedIndex == 1 && size.SelectedIndex == 1,
             "recording preferences remain selected and become editable after stop");
         fps.SelectedIndex = 0; size.SelectedIndex = 0; Action("RecordAsync"); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
-        Check(captures.Last().Fps == 30 && captures.Last().Height == 1080 && Field<string?>("automaticRecordingSession") is null,
+        Check(captures.Last().Fps == 30 && captures.Last().Height == 1080 && service.AutomaticRecordingSession is null,
             "manual recording before playback uses the same visible options");
-        Action("CompletePlaybackStartAsync", PlaybackStarted(), restored);
+        Await(CompleteStart(PlaybackStarted()));
         Check(captures.Count == 2 && recorder.IsBusy, "automatic playback reuses a running manual capture instead of starting another");
         Action("StopCurrentAsync"); Check(recorder.IsBusy && captureStops == 1, "playback stop does not take ownership of a manually started recording");
         Action("StopRecordingAsync"); Check(!recorder.IsBusy && captureStops == 2, "manual stop still saves the manual recording");
-        Action("CompletePlaybackStartAsync", PlaybackStarted(), restored); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
+        Await(CompleteStart(PlaybackStarted())); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
         Await(media.StopAsync()); FaultAudio();
         try { Action("StopCurrentAsync"); throw new Exception("audio shutdown failure should remain visible"); }
         catch (Win32Exception) { Check(captureStops == 3 && !recorder.IsBusy && Field<string?>("session") is null, "audio shutdown failure cannot strand an automatic recording"); }
@@ -324,7 +343,7 @@ internal static class Program
             File.WriteAllText(Path.Combine(directory, "mmd_result.json"), terminalState.ToJsonString());
         }
         var naturalEnd = NewTimelineSession(); LiveTimeline(naturalEnd, "playing");
-        Action("CompletePlaybackStartAsync", new JsonObject { ["loaded"] = true, ["session_dir"] = naturalEnd }, restored);
+        Await(CompleteStart(new JsonObject { ["loaded"] = true, ["session_dir"] = naturalEnd }));
         Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5))); var stopsBeforeEnd = captureStops;
         LiveTimeline(naturalEnd, "paused"); Action("PollAsync");
         Check(recorder.IsBusy && captureStops == stopsBeforeEnd && Field<TextBlock>("modeLabel").Text == "已暂停", "pause does not automatically stop recording even when the cursor reaches clip duration");
@@ -335,8 +354,8 @@ internal static class Program
         finalization = new(TaskCreationOptions.RunContinuationsAsynchronously); captureStopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
         captureCompletion = new RecordingSnapshot("saved", "已保存：automatic-natural-end.mp4", OutputPath: Path.Combine(output, "automatic-natural-end.mp4"));
         LiveTimeline(naturalEnd, "ended"); var saveAtEnd = (Task)Call("PollAsync")!; Await(captureStopped.Task.WaitAsync(TimeSpan.FromSeconds(5)));
-        Check(!saveAtEnd.IsCompleted && recorder.IsBusy && Field<bool>("busy") && Field<string?>("automaticRecordingSession") is null &&
-            Field<TextBlock>("status").Text.Contains("正在自动保存"), "natural end cancels capture once and awaits encoding and saving without reporting success early");
+        Check(!saveAtEnd.IsCompleted && recorder.IsBusy && !service.IsBusy && service.AutomaticRecordingSession is null && Field<Button>("stopButton").IsEnabled,
+            "natural end awaits saving while leaving restoration available and taking capture ownership only once");
         finalization.SetResult(); Await(saveAtEnd);
         Check(!recorder.IsBusy && !Field<bool>("busy") && captureStops == stopsBeforeEnd + 1 && Field<TextBlock>("status").Text.Contains("已保存：automatic-natural-end.mp4"),
             "natural end completes automatic saving and reports the saved filename");
@@ -349,12 +368,12 @@ internal static class Program
         RestoredTimeline(naturalEnd); Action("StopCurrentAsync");
         var manualEnd = NewTimelineSession(); LiveTimeline(manualEnd, "playing");
         Action("RecordAsync"); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
-        Action("CompletePlaybackStartAsync", new JsonObject { ["loaded"] = true, ["session_dir"] = manualEnd }, restored);
+        Await(CompleteStart(new JsonObject { ["loaded"] = true, ["session_dir"] = manualEnd }));
         var manualStops = captureStops; LiveTimeline(manualEnd, "ended"); Action("PollAsync");
         Check(recorder.IsBusy && captureStops == manualStops, "natural playback end does not terminate a manually started recording");
         Action("StopRecordingAsync"); RestoredTimeline(manualEnd); Action("StopCurrentAsync");
         var errorEnd = NewTimelineSession(); LiveTimeline(errorEnd, "playing");
-        Action("CompletePlaybackStartAsync", new JsonObject { ["loaded"] = true, ["session_dir"] = errorEnd }, restored); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
+        Await(CompleteStart(new JsonObject { ["loaded"] = true, ["session_dir"] = errorEnd })); Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
         captureCompletion = new RecordingSnapshot("error", "synthetic disk full"); LiveTimeline(errorEnd, "ended"); Action("PollAsync");
         Check(Field<TextBlock>("status").Text.Contains("保存失败：synthetic disk full") && !Field<bool>("busy") && Field<string?>("session") == errorEnd,
             "automatic save errors remain visible and do not discard actor restoration ownership");
@@ -374,7 +393,7 @@ internal static class Program
         }
         var pausedStart = NewTimelineSession(); ReadyTimeline(pausedStart, "paused");
         firstFrame = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        var startWhenReady = (Task)Call("CompletePlaybackStartAsync", new JsonObject { ["loaded"] = true, ["session_dir"] = pausedStart, ["start_paused"] = true }, restored)!;
+        var startWhenReady = CompleteStart(new JsonObject { ["loaded"] = true, ["session_dir"] = pausedStart, ["start_paused"] = true });
         Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
         var control = Path.Combine(pausedStart, "control.dat");
         Check(!startWhenReady.IsCompleted && !File.Exists(control), "automatic playback cannot advance before capture supplies its first frame");
@@ -390,14 +409,14 @@ internal static class Program
         firstFrame = null; RestoredTimeline(pausedStart); Action("StopCurrentAsync");
 
         var failedStart = NewTimelineSession(); ReadyTimeline(failedStart, "paused"); startupFailure = "synthetic no capture frames";
-        try { Action("CompletePlaybackStartAsync", new JsonObject { ["loaded"] = true, ["session_dir"] = failedStart, ["start_paused"] = true }, restored); throw new Exception("capture startup failure was hidden"); }
+        try { Await(CompleteStart(new JsonObject { ["loaded"] = true, ["session_dir"] = failedStart, ["start_paused"] = true })); throw new Exception("capture startup failure was hidden"); }
         catch (InvalidOperationException error) { Check(error.Message.Contains("动作起点暂停") && error.Message.Contains(startupFailure), "failed capture explicitly leaves playback paused at its origin"); }
         Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
         Check(!File.Exists(Path.Combine(failedStart, "control.dat")) && Field<string?>("session") == failedStart, "capture failure sends no Play and retains recovery ownership");
         startupFailure = null; RestoredTimeline(failedStart); Action("StopCurrentAsync");
 
         var closing = NewTimelineSession(); LiveTimeline(closing, "playing");
-        Action("CompletePlaybackStartAsync", new JsonObject { ["loaded"] = true, ["session_dir"] = closing }, restored);
+        Await(CompleteStart(new JsonObject { ["loaded"] = true, ["session_dir"] = closing }));
         Await(captureStarted.WaitAsync(TimeSpan.FromSeconds(5)));
         finalization = new(TaskCreationOptions.RunContinuationsAsynchronously); captureStopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
         var closePlayback = (Task)Call("ClosePlaybackAsync")!; Await(captureStopped.Task.WaitAsync(TimeSpan.FromSeconds(5)));

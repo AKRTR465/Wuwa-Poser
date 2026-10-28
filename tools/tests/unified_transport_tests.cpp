@@ -20,11 +20,14 @@ int main(){
     Check(DecodeCommand(Wire({42,1,CommandKind::Play,0}),&decoded)&&decoded.target_slot==0,"legacy untargeted wire remains valid");
     Check(DecodeCommand(Wire({42,1,CommandKind::SetGroundHeight,-2}),&decoded)&&decoded.kind==CommandKind::SetGroundHeight&&decoded.value==-2,"shared standing height survives wire decoding");
     Check(!ValidCommand({42,1,CommandKind::SetGroundHeight,1001}),"shared standing height rejects out-of-range values");
+    Check(!ValidCommand({42,1,CommandKind::SetGroundHeight,0,1}),"shared standing height rejects actor targets at the protocol boundary");
     Check(DecodeCommand(Wire({42,1,CommandKind::SetCameraTrackHeight,-150.5}),&decoded)&&decoded.value==-150.5,"signed camera track height survives wire decoding");
     Check(!ValidCommand({42,1,CommandKind::SetCameraTrackHeight,10001})&&!ValidCommand({42,1,CommandKind::SetCameraTrackHeight,20,1}),"track height is bounded and global, never actor-routed");
     Check(DecodeCommand(Wire({42,1,CommandKind::Play,0,UINT32_MAX}),&decoded)&&decoded.target_slot==UINT32_MAX,"full positive uint32 actor slot range accepted");
     wire[48]=1;Put32(wire,60,WireChecksum(wire));Check(!DecodeCommand(wire,&decoded),"reserved payload bytes remain reserved");
     wire=Wire({42,1,CommandKind::SetTimeLimit,0});wire[40]^=1;Check(!DecodeCommand(wire,&decoded),"modified payload checksum rejected");
+    wire=Wire({42,2,CommandKind::SetSpeed,5});
+    Check(DecodeCommandFrame(wire,&decoded)&&decoded.sequence==2&&!DecodeCommand(wire,&decoded),"a valid frame preserves rejected command identity without weakening strict decoding");
     Check(ValidCommand({42,1,CommandKind::SetSpeed,.1})&&ValidCommand({42,1,CommandKind::SetSpeed,4}),"unified speed endpoints accepted");
     Check(!ValidCommand({42,1,CommandKind::SetSpeed,.09})&&!ValidCommand({42,1,CommandKind::SetSpeed,4.01}),"out-of-range speed rejected");
 

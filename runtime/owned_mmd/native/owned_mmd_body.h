@@ -52,7 +52,7 @@ struct Runtime {
     std::filesystem::path directory;
     uint64_t host=0,publishRva=0,slotRva=0,epoch=0,durationMs=0,frameRva=ww_game_compat::EngineFrameRva,lastEngineFrame=0;
     play::Transport transport;play::SpscCommandQueue<64> commands;
-    uint64_t initialSequence=0,lastWireSequence=0;DWORD gameThread=0;
+    uint64_t initialSequence=0,lastWireSequence=0,lastControlSequence=0;DWORD gameThread=0;
     Go go{};Pool pool{};
     std::vector<std::unique_ptr<ActorRuntime>> actors;
     std::vector<ActorRuntime*> bySlot,byMesh;ActorRuntime* cameraAnchor=nullptr;
@@ -91,7 +91,7 @@ inline void FreezeActorIndices(){auto& r=runtime;
     for(size_t i=1;i<r.bySlot.size();++i)Require(r.bySlot[i-1]->slot!=r.bySlot[i]->slot,"duplicate actor slot");
     for(size_t i=1;i<r.byMesh.size();++i)Require(r.byMesh[i-1]->tokens[Mesh].object!=r.byMesh[i]->tokens[Mesh].object,"one game actor cannot occupy multiple slots");
 }
-inline bool Routed(play::CommandKind kind){return kind==play::CommandKind::SetPhysics||kind==play::CommandKind::SetGroundHeight||(kind>=play::CommandKind::SetPlacementX&&kind<=play::CommandKind::ResetPlacement);}
+inline bool Routed(play::CommandKind kind){return play::IsActorCommand(kind)||kind==play::CommandKind::SetGroundHeight;}
 inline void ApplyActorCommand(ActorRuntime& actor,const play::Command& command){switch(command.kind){
     case play::CommandKind::SetPhysics:actor.physicsEnabled=command.value!=0;break;
     case play::CommandKind::SetPlacementX:actor.placement.x=command.value;break;
@@ -103,9 +103,10 @@ inline void ApplyActorCommand(ActorRuntime& actor,const play::Command& command){
     default:break;
 }}
 inline play::ControlCode ApplyCommand(const play::Command& command,double now){auto& r=runtime;
-    if(command.kind==play::CommandKind::SetGroundHeight&&command.target_slot)return play::ControlCode::InvalidCommand;
     if(command.target_slot&&!FindSlot(command.target_slot))return play::ControlCode::InvalidCommand;
     if(command.kind==play::CommandKind::SetCameraMode&&command.value==2&&!r.cameraFeatures.clip_available)return play::ControlCode::InvalidCommand;
+    if(command.kind==play::CommandKind::SetPhysics&&command.value==1)
+        for(const auto& actor:r.actors)if((!command.target_slot||actor->slot==command.target_slot)&&(actor->nativePhysics||!actor->features.physics_available))return play::ControlCode::InvalidCommand;
     if(Routed(command.kind)){
         const auto code=r.transport.AcceptRoutedCommand(command,now);if(code!=play::ControlCode::Ok)return code;
         if(command.kind==play::CommandKind::SetGroundHeight){r.formationHeightCorrection=command.value;return code;}
@@ -117,7 +118,7 @@ inline play::ControlCode ApplyCommand(const play::Command& command,double now){a
 }
 inline bool Advance(uint64_t engineFrame,double now){auto& r=runtime;if(engineFrame==r.lastEngineFrame)return true;
     r.lastEngineFrame=engineFrame;play::Command command;
-    while(r.commands.Pop(&command)){const auto code=ApplyCommand(command,now);r.lastControlCode.store(uint32_t(code));
+    while(r.commands.Pop(&command)){const auto code=ApplyCommand(command,now);r.lastControlCode.store(uint32_t(code));r.lastControlSequence=command.sequence;
         if(code!=play::ControlCode::Ok)r.rejectedCommands.fetch_add(1);
         else if(command.kind==play::CommandKind::Play&&!r.actualPlayStart.load())r.actualPlayStart.store(GetTickCount64());}
     if(r.transport.Tick(now)!=play::ControlCode::Ok){Fail(Error::Plan);return false;}
@@ -276,7 +277,7 @@ inline bool Ready() noexcept {const auto& r=runtime;if(!r.observing.load()||r.cl
 inline void Start(uint64_t now) noexcept {auto& r=runtime;r.lastWireSequence=++r.initialSequence;
     if(!r.startPaused&&!r.commands.Push({r.epoch,r.initialSequence,play::CommandKind::Play,0})){Fail(Error::Plan);return;}r.playStart.store(now);r.writing.store(true);}
 inline void PollCommands(){auto& r=runtime;std::ifstream stream(r.directory/L"control.dat",std::ios::binary);play::CommandWire wire{};play::Command command;
-    if(stream&&stream.read(reinterpret_cast<char*>(wire.data()),wire.size())&&play::DecodeCommand(wire,&command)&&command.sequence>r.lastWireSequence&&r.commands.Push(command))r.lastWireSequence=command.sequence;}
+    if(stream&&stream.read(reinterpret_cast<char*>(wire.data()),wire.size())&&play::DecodeCommandFrame(wire,&command)&&command.sequence>r.lastWireSequence&&r.commands.Push(command))r.lastWireSequence=command.sequence;}
 struct WorkerLock {WorkerLock(){while(runtime.busy.test_and_set(std::memory_order_acquire))Sleep(0);}~WorkerLock(){runtime.busy.clear(std::memory_order_release);}};
 inline play::PlayerState Snapshot(){WorkerLock lock;return runtime.transport.State();}
 inline bool FeaturePending(){WorkerLock lock;for(const auto& actor:runtime.actors)if(features::ActorPending(actor->features))return true;return features::CameraPending(runtime.cameraFeatures);}
@@ -317,7 +318,7 @@ inline Json Status(){auto& r=runtime;WorkerLock lock;if(r.payloadReleased)return
         {"camera_anchor_coordinate_frame","world_local"},
         {"borrowed_stage_maintenance",r.maintenanceEnabled.load()&&borrowed!=0},{"scene_maintenance",r.maintenanceEnabled.load()},
         {"native_physics",anyNative},{"body_backend","per_actor"},{"native_input_frames",nativeFrames},{"native_input_error",nativeError},{"physics_available",allPhysics},{"expression_enabled",face},
-        {"last_control_code",r.lastControlCode.load()},{"rejected_commands",r.rejectedCommands.load()},{"play_started_tick_ms",r.playStart.load()},{"actual_play_started_tick_ms",r.actualPlayStart.load()},{"body_elapsed_ms",r.playStart.load()?GetTickCount64()-r.playStart.load():0}};
+        {"last_control_sequence",r.lastControlSequence},{"last_control_code",r.lastControlCode.load()},{"rejected_commands",r.rejectedCommands.load()},{"play_started_tick_ms",r.playStart.load()},{"actual_play_started_tick_ms",r.actualPlayStart.load()},{"body_elapsed_ms",r.playStart.load()?GetTickCount64()-r.playStart.load():0}};
     if(!members.empty()){value["placement"]=members[0]["placement"];value["physics_enabled"]=members[0]["physics_enabled"];}
     play::camera_diagnostics::Snapshot camera;
     if(r.cameraFeatures.diagnostics.TryRead(camera)&&camera.anchor_captured){

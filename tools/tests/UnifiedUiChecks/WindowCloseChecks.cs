@@ -9,7 +9,7 @@ using WWPoser.Services;
 internal static class WindowCloseChecks
 {
     private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
-    private static T Field<T>(MainWindow window, string name) => (T)typeof(MainWindow).GetField(name, Private)!.GetValue(window)!;
+    private static T Field<T>(MainWindow window, string name) => UiSessionFixture.Read<T>(window, name);
     private static void Set(MainWindow window, string name, object? value) => typeof(MainWindow).GetField(name, Private)!.SetValue(window, value);
     private static MainWindow Window(string root, RecordingService? recording = null)
     {

@@ -1,0 +1,20 @@
+[
+  {"id":1,"name":"play","native":"Play","type":"none","unit":"—","min":0,"max":0,"scope":"session","description":"开始或继续播放"},
+  {"id":2,"name":"pause","native":"Pause","type":"none","unit":"—","min":0,"max":0,"scope":"session","description":"暂停并保持当前姿态"},
+  {"id":3,"name":"seek","native":"SeekSeconds","type":"number","unit":"秒","min":0,"max":null,"scope":"session","description":"选择时间，超出片长时截到末帧"},
+  {"id":4,"name":"step","native":"StepFrames","type":"integer","unit":"帧（30 fps）","min":-1000000,"max":1000000,"scope":"session","description":"相对逐帧移动"},
+  {"id":5,"name":"loop","native":"SetLoop","type":"boolean","unit":"—","min":0,"max":1,"scope":"session","description":"0 关闭，1 开启循环"},
+  {"id":6,"name":"speed","native":"SetSpeed","type":"number","unit":"倍速","min":0.1,"max":4,"scope":"session","description":"播放速度"},
+  {"id":7,"name":"stop","native":"Stop","type":"none","unit":"—","min":0,"max":0,"scope":"session","description":"停止并请求恢复"},
+  {"id":8,"name":"physics","native":"SetPhysics","type":"boolean","unit":"—","min":0,"max":1,"scope":"actor","description":"0 关闭，1 开启物理增强"},
+  {"id":9,"name":"camera","native":"SetCameraMode","type":"integer","unit":"—","min":0,"max":2,"scope":"session","description":"0 跟随，1 固定，2 VMD（需要镜头轨道）"},
+  {"id":10,"name":"offset_x","native":"SetPlacementX","type":"number","unit":"cm","min":-1000,"max":1000,"scope":"actor","description":"演员 X 偏移"},
+  {"id":11,"name":"offset_y","native":"SetPlacementY","type":"number","unit":"cm","min":-1000,"max":1000,"scope":"actor","description":"演员 Y 偏移"},
+  {"id":12,"name":"height","native":"SetPlacementHeight","type":"number","unit":"cm","min":-1000,"max":1000,"scope":"actor","description":"演员高度偏移"},
+  {"id":13,"name":"yaw","native":"SetPlacementYaw","type":"number","unit":"度","min":-180,"max":180,"scope":"actor","description":"演员水平朝向"},
+  {"id":14,"name":"in_place","native":"SetPlacementInPlace","type":"boolean","unit":"—","min":0,"max":1,"scope":"actor","description":"0 保留，1 移除根位移"},
+  {"id":15,"name":"reset_placement","native":"ResetPlacement","type":"none","unit":"—","min":0,"max":0,"scope":"actor","description":"重置演员手动位置与原地模式"},
+  {"id":16,"name":"time_limit","native":"SetTimeLimit","type":"number","unit":"秒","min":0,"max":10000000,"scope":"session","description":"驻留时限，0 表示不限时"},
+  {"id":17,"name":"ground_height","native":"SetGroundHeight","type":"number","unit":"cm","min":-1000,"max":1000,"scope":"scene","description":"全体演员共用地面高度修正"},
+  {"id":18,"name":"camera_track_height","native":"SetCameraTrackHeight","type":"number","unit":"cm","min":-10000,"max":10000,"scope":"scene","description":"VMD 镜头轨道的世界高度偏移"}
+]

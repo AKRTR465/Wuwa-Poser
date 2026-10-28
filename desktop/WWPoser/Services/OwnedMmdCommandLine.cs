@@ -23,7 +23,7 @@ public static class OwnedMmdCommandLine
             ["speed"] = config["speed"]!.DeepClone(), ["loop"] = config["loop"]!.DeepClone()
         };
         var clock = Stopwatch.StartNew();
-        var service = new OwnedMmdPlaybackService(repo);
+        var service = new PlaybackSessionService(repo);
         using var budget = Contract.I(config, "duration_ms") == 0 ? new CancellationTokenSource() : new CancellationTokenSource(TimeSpan.FromMilliseconds(Contract.I(config, "duration_ms")) + TimeSpan.FromMinutes(15));
         void Save(string state)
         {
@@ -43,7 +43,7 @@ public static class OwnedMmdCommandLine
             while (true)
             {
                 var finished = OwnedMmdPlaybackService.Finished(session);
-                if (finished) { Save("finishing"); await service.FinishCurrentAsync(budget.Token); }
+                if (finished) { Save("finishing"); await service.StopAsync(cancellation: budget.Token); }
                 var state = OwnedMmdPlaybackService.Status(session);
                 report["body_frames"] = (state["body_frames"] ?? state["frames"])?.DeepClone();
                 foreach (var key in new[] { "failed", "native_input_frames", "native_input_error", "native_graph_binding_kind", "native_physics_group_count", "native_curve_group_count", "native_physics_activation_complete", "native_activation_observed_group_count", "native_secondary_motion_activation_runtime_observed", "native_secondary_motion_activation_status", "native_physics_groups", "native_curve_groups", "native_group_force_updates" })
@@ -70,7 +70,7 @@ public static class OwnedMmdCommandLine
             var recovered = false;
             if (service.ActiveSession is not null)
             {
-                try { await service.FinishCurrentAsync(); recovered = true; }
+                try { await service.StopAsync(); recovered = true; }
                 catch (Exception cleanupError) { report["recovery_error"] = cleanupError.Message; }
             }
             Save(recovered ? "recovered" : "failed");

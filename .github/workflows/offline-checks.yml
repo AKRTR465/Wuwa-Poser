@@ -66,4 +66,5 @@ jobs:
           ./tools/validate_character_forms.ps1
           ./tools/tests/runtime_manifest_checks.ps1
           ./tools/generate_game_compat.ps1 -Check
+          ./tools/generate_playback_control.ps1 -Check
           ./tools/tests/game_compat_generation_checks.ps1

@@ -42,7 +42,7 @@ pwsh -NoProfile -File tools/prepare_player_dependencies.ps1 -Download
 pwsh -NoProfile -File tools/build_player.ps1 -Rebuild -PublicRelease -ReferenceDirectory 'D:\WuwaReferences'
 ```
 
-`-Rebuild` 编译托管桥、原生运行时、探测工具和 VMD 编译器，随后发布自带 .NET 运行库的 WPF 程序。`-PublicRelease` 要求干净且已提交的源码及 `-Rebuild`，执行离线回归，排除本地会话占用记录，并在包内记录公开源码地址。构建期间源码发生变化会拒绝完成公开包。输出位于 `dist/ww-mmd-player-csharp_<时间>/`。
+`-Rebuild` 编译托管桥、原生运行时、原生物理必需的身份登记和图观察模块，以及三个 VMD 编译器，随后发布自带 .NET 运行库的 WPF 程序。`-PublicRelease` 要求干净且已提交的源码及 `-Rebuild`，执行离线回归，排除本地会话占用记录，并在包内记录公开源码地址。构建期间源码发生变化会拒绝完成公开包。输出位于 `dist/ww-mmd-player-csharp_<时间>/`。
 
 可用 `-OutputDirectory` 指定新的便携包目录；`-PublishDirectory` 可单独指定 WPF 中间发布目录。本地开发包在原生输出已准备好时可省略 `-Rebuild`；已有运行时包还可通过 `-OwnedMmdPackageDirectory` 指定。公开发布会重新构建该目录，并核对运行时 manifest 的源码提交、干净状态和逐文件 SHA-256。
 
@@ -59,6 +59,14 @@ pwsh -NoProfile -File tools/build_player.ps1 -Rebuild -PublicRelease -ReferenceD
 此命令只校验包与角色目录，不启动或操作游戏。新包的 schema 4 manifest 为每个文件记录字节数与 SHA-256，校验会拒绝缺失、长度不符、内容损坏和不合法的相对路径。旧 schema 3 清单仍检查文件长度，但没有散列的旧清单不能证明文件内容一致。
 
 `data/` 中的证书和契约使用原始文件字节散列。仓库通过 `.gitattributes` 保留它们既有的字节与换行，避免 `core.autocrlf` 改变校验结果。编辑这些文件后仍需更新相关证书，不能仅转换换行而沿用旧散列。
+
+## 构建输入清单
+
+`tools/player_build_inputs.psd1` 统一列出正式播放使用的原生构建脚本及其产物、运行包文件、便携包数据和文档。`build_player.ps1` 从这份清单构建和打包，`run_offline_checks.ps1` 复用其中的编译器与观察器分组，`build_owned_mmd.ps1` 复用运行包文件列表。运行包与最终便携包继续使用各自的既有 manifest 校验摘要和源码出处。
+
+默认包保留 `hook_install_v20.exe`、`native_identity_bootstrap.dll` 和 `native_graph_discovery.dll`，它们是当前原生物理播放依赖。旧单人扫描、小队驻留和 roster 采样入口已退出桌面主流程；对应的 `recon_carrier_v20.dll`、`accessory_recon.dll`、`publish_probe_v21.dll`、`puerts_scene_sampler.dll`、`stage_residency.dll`、`mmd_squad_residency.dll` 不再默认构建或打包。它们的源码和单项构建脚本仍保留在 `probes/v20_recon/`，需要诊断时可直接运行对应脚本；该目录内被正式运行时包含的共享头文件也继续保留。
+
+播放控制命令定义在 `playback/control_commands.json`。修改后运行 `tools/generate_playback_control.ps1`，同步生成 C#、C++ 绑定和 [命令文档](../playback/CONTROL_COMMANDS.md)。完整构建生成绑定，离线检查与 CI 使用 `-Check` 拒绝未同步的生成物。
 
 ## 离线回归检查
 
