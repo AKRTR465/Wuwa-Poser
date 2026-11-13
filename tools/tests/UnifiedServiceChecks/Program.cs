@@ -342,6 +342,11 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     var gazeRelative = Path.Combine(OwnedMmdPlaybackService.ActorConfigs(sourceConfig)[0]["actor_directory"]!.GetValue<string>(), "gaze_source.vmd");
     Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig); File.WriteAllText(Path.Combine(firstPreparation!, "owned_mmd_graph.json"), "stale identity fixture");
     var fakeGame = new GameIdentity(42, 123456, "0x1234", 567);
+    var legacyPreparation = Path.Combine(fixture, "legacy-cli-preparation");
+    await new OwnedMmdPlaybackService(args[1]).PrepareAsync(new(bodyPath + ".moved", legacyPreparation, CharacterId: selectedCharacter));
+    var legacyRuntime = (string)prepareRuntime.Invoke(isolation, [legacyPreparation, fakeGame, false])!;
+    Check(OwnedMmdPlaybackService.ActorConfigs(OwnedMmdPlaybackService.Config(legacyRuntime)).Single()["slot"]!.GetValue<uint>() == 1,
+        "single-actor CLI preparation converts to a runtime slot");
     var snapshotA = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, false])!;
     sourceConfig["start_paused"] = false; Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig);
     var snapshotB = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, true])!;

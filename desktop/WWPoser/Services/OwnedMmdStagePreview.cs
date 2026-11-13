@@ -57,7 +57,7 @@ public sealed partial class OwnedMmdPlaybackService
                     installer.Dispose(); installer = null;
                     var restored = RestorationConfirmed(directory); if (restored) ActiveSession = null;
                     var terminalPath = Path.Combine(directory, "session_result.json");
-                    var reason = File.Exists(terminalPath) ? JsonData.ReadObject(terminalPath)["reason"]?.GetValue<string>() : null;
+                    var reason = StartupFailure(File.Exists(terminalPath) ? JsonData.ReadObject(terminalPath) : null);
                     return new JsonObject { ["session_dir"] = directory, ["loaded"] = false, ["cleanup_restored"] = restored,
                         ["message"] = "预览没有开始：" + (reason ?? "安装器已退出") + (restored ? "；恢复已完成。" : "；请点「停止并恢复」。") };
                 }

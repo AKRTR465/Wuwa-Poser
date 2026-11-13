@@ -4,38 +4,43 @@
   "default_character_id": "role1505-skin81001505",
   "mapping_scope": "Complete RoleType=1 and IsTrial=false role configuration and every associated RoleSkin in this offline installed pak snapshot. Includes attribute/sex variants, future configured content and skins; does not establish release availability or runtime/visual acceptance.",
   "counts": {
-    "role_info_rows": 157,
-    "character_configurations": 64,
-    "character_skin_selections": 80,
-    "default_skins": 64,
-    "additional_skins": 16,
-    "profile_assets": 68
+    "role_info_rows": 161,
+    "character_configurations": 65,
+    "character_skin_selections": 82,
+    "default_skins": 65,
+    "additional_skins": 17,
+    "profile_assets": 70
   },
   "sources": [
     {
       "path": "raw/Client/Content/Aki/ConfigDB/db_role.db",
-      "sha256": "960d9f493479a0732aca9c5212a76c3fc5d755fda32bfaf41ce49b72ded6bda2",
-      "bytes": 1028096
+      "sha256": "5fa3c23ace3270e847b87ba7b5ffb69d0b1e98eae27bd4c3a3b43374cdeee455",
+      "bytes": 1052672
     },
     {
       "path": "raw/Client/Content/Aki/Data/Entity/Sub_DT_ModelConfig/DT_ModelConfig_Player.uasset",
-      "sha256": "145e91e13b984c41bdc4948a752e74478299b614d54189e8e38ab0bcc9161ffd",
-      "bytes": 1230645
+      "sha256": "eaa7e71ee9de5f6e0767380eed2034659f626c7eb0257dcf87854d439369a1e2",
+      "bytes": 153471
+    },
+    {
+      "path": "raw/Client/Content/Aki/Data/Entity/Sub_DT_ModelConfig/DT_ModelConfig_Player.uexp",
+      "sha256": "fb09fa3437dcddaf95af489938ea9b64898fb162c917dc7b27038b15eae45090",
+      "bytes": 546505
     },
     {
       "path": "raw/Client/Content/Aki/ConfigDB/zh-Hans/lang_multi_text.db",
-      "sha256": "72797893b8dd37d54dffa03406bd0a59bd8fee0ea12d980e5c6f4c5fbe37ee1c",
-      "bytes": 43782144
+      "sha256": "822ef545e9d158635c17f3f6fa6fd1168aaa539c9bee3c35c5a2e549c11f1e58",
+      "bytes": 46153728
     },
     {
       "path": "raw/Client/Content/Aki/JavaScript/Core/Define/Config/RoleInfo.js",
-      "sha256": "516d400422659b3654f6b8d240c968385d3ae8efb0f106f7185f1ab8f5b3b759",
-      "bytes": 16434
+      "sha256": "737468aaf7d4bdaf73d5c470a9007296a821bf83f38ee671d4105accf0fdb2eb",
+      "bytes": 16998
     },
     {
       "path": "raw/Client/Content/Aki/JavaScript/Core/Define/Config/RoleSkin.js",
-      "sha256": "067dddedcf959d20570b053e46a7247ac3ebbe81f0548463e88190d40863405f",
-      "bytes": 15607
+      "sha256": "65c4b696bb22e54bebe38c6489dd58e409364a4996ccc9ccd0c2e15e45a4dcaf",
+      "bytes": 16243
     }
   ],
   "characters": [
@@ -244,6 +249,29 @@
         "model": "100066",
         "role_name": "RoleInfo_1108_Name",
         "skin_name": "RoleSkin_81001108_TitleName"
+      }
+    },
+    {
+      "character_id": "role1108-skin81011108",
+      "display_name": "绯雪 · 月沉霜",
+      "role_name": "绯雪",
+      "skin_name": "月沉霜",
+      "role_id": 1108,
+      "skin_id": 81011108,
+      "default_skin": false,
+      "model_id": "1000661",
+      "model_asset_name": "R2T1TaidaonvMd20011",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleXL/TaiDaoNv/R2T1TaidaonvMd20011/Model/R2T1TaidaonvMd20011.R2T1TaidaonvMd20011",
+      "profile_id": "femalexl--taidaonv--r2t1taidaonvmd20011",
+      "mapping_verified": true,
+      "runtime_verified": false,
+      "evidence": "3.8.0 RoleInfo.Id=1108 RoleType=1 IsTrial=false; RoleSkin.Id=81011108 RoleId=1108 UiMeshId=1000661; DT_ModelConfig_Player[1000661].Mesh=/Game/Aki/Character/Role/FemaleXL/TaiDaoNv/R2T1TaidaonvMd20011/Model/R2T1TaidaonvMd20011.R2T1TaidaonvMd20011; exact registered mesh asset / skeleton association.",
+      "source_keys": {
+        "role": 1108,
+        "skin": 81011108,
+        "model": "1000661",
+        "role_name": "RoleInfo_1108_Name",
+        "skin_name": "RoleSkin_81011108_TitleName"
       }
     },
     {
@@ -1878,8 +1906,31 @@
         "role_name": "RoleInfo_1610_Name",
         "skin_name": "RoleSkin_81001610_TitleName"
       }
+    },
+    {
+      "character_id": "role1512-skin81001512",
+      "display_name": "莉莉 · 默认",
+      "role_name": "莉莉",
+      "skin_name": "梦摇篮的祷歌",
+      "role_id": 1512,
+      "skin_id": 81001512,
+      "default_skin": true,
+      "model_id": "100146",
+      "model_asset_name": "R2T1LiliMd10011",
+      "model_asset_path": "/Game/Aki/Character/Role/FemaleMS/Lili/R2T1LiliMd10011/Model/R2T1LiliMd10011.R2T1LiliMd10011",
+      "profile_id": "femalems--lili--r2t1lilimd10011",
+      "mapping_verified": true,
+      "runtime_verified": false,
+      "evidence": "3.8.0 RoleInfo.Id=1512 RoleType=1 IsTrial=false; RoleSkin.Id=81001512 RoleId=1512 UiMeshId=100146; DT_ModelConfig_Player[100146].Mesh=/Game/Aki/Character/Role/FemaleMS/Lili/R2T1LiliMd10011/Model/R2T1LiliMd10011.R2T1LiliMd10011; exact registered mesh asset / skeleton association.",
+      "source_keys": {
+        "role": 1512,
+        "skin": 81001512,
+        "model": "100146",
+        "role_name": "RoleInfo_1512_Name",
+        "skin_name": "RoleSkin_81001512_TitleName"
+      }
     }
   ],
   "source_certificate_file": "owned_character_source_certificate.json",
-  "source_certificate_sha256": "7157aba27935f00f35c823aeabe18dd89cedf6e0e91b6f7f6701a148069d7f97"
+  "source_certificate_sha256": "a909b8e4eb77afe262d68834cb8d872097bf1477ad2c851d36f1ddd2d3ad3b03"
 }

@@ -1,5 +1,6 @@
 // Synthetic mapped images only. No game access, injection, hooks or game calls.
 #include "../../probes/v20_recon/game_compat_witness.h"
+#include "../../probes/v20_recon/game_thread_diagnostics.h"
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -102,5 +103,41 @@ static void PEAndWitnesses(){
     memory.PE();memory.Put16(0x86,97);Check(!r::ExecutableRanges(read,memory.base,memory.bytes.size(),ranges,error),"unbounded section count rejects");
     memory.PE();memory.Put32(0x98+56,0x2000);Check(!r::ExecutableRanges(read,memory.base,memory.bytes.size(),ranges,error),"PE and actual image extent mismatch rejects");
 }
-int main(){try{Parsing();Verification();Scanning();PEAndWitnesses();std::cout<<"game compatibility resolution: "<<assertions<<" assertions passed\n";return 0;}
+static void GameThreadDiagnostics() {
+    namespace thread = ww_game_thread_diagnostics;
+    Memory memory(0x1000);
+    memory.PE();
+    size_t messageRva = 0x900, codeRva = 0x420;
+    for (const auto& signature : thread::signatures) {
+        const auto code = Pattern(signature.bytes).bytes;
+        std::copy(code.begin(),code.end(),memory.bytes.begin()+codeRva);
+        const auto rip = [&](size_t offset,size_t target,size_t suffix = 0) {
+            memory.Put32(codeRva+offset,uint32_t(target-(codeRva+offset+4+suffix)));
+        };
+        rip(signature.flag,0x800,1);
+        rip(signature.idProvider,0x810);
+        rip(signature.threadId,0x820);
+        rip(signature.message,messageRva);
+        const std::u16string message(signature.diagnostic);
+        std::memcpy(memory.bytes.data()+messageRva,message.c_str(),(message.size()+1)*sizeof(char16_t));
+        messageRva+=0x80;
+        codeRva+=0x80;
+    }
+    memory.Put(0x800,{1});memory.Put32(0x820,77);
+    auto report = thread::Collect(memory.Reader(),memory.base,memory.bytes.size(),77);
+    Check(report["status"]=="candidate_requires_review" && report["registered_game_thread_id_rva"]=="0x820" &&
+          report["registered_game_thread_initialized_rva"]=="0x800" && report["window_thread_matches"]==true &&
+          report["execution_authorized"]==false,"independent diagnostics agree on a read-only candidate");
+    report = thread::Collect(memory.Reader(),memory.base,memory.bytes.size(),99);
+    Check(report["window_thread_matches"]==false,"candidate is kept separate from observed window identity");
+    const size_t offset = thread::signatures[2].threadId;
+    memory.Put32(0x520+offset,uint32_t(0x824-(0x520+offset+4)));
+    report = thread::Collect(memory.Reader(),memory.base,memory.bytes.size(),77);
+    Check(report["status"]=="unresolved" && !report.contains("registered_game_thread_id_rva"),
+          "a conflicting independent reference rejects the candidate");
+    memory.Put(0x980,{0});memory.Put(0xa00,{0});
+    report = thread::Collect(memory.Reader(),memory.base,memory.bytes.size(),77);
+    Check(report["status"]=="unresolved","a single verified diagnostic reference is insufficient");
+}
+int main(){try{Parsing();Verification();Scanning();PEAndWitnesses();GameThreadDiagnostics();std::cout<<"game compatibility resolution: "<<assertions<<" assertions passed\n";return 0;}
     catch(const std::exception& error){std::cerr<<"unexpected exception: "<<error.what()<<'\n';return 1;}}

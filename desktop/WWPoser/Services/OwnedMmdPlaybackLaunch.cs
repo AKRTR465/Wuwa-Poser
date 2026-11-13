@@ -20,7 +20,7 @@ public sealed partial class OwnedMmdPlaybackService
         var legacy = config["actors"] is not JsonArray;
         if (legacy)
         {
-            var actor = (JsonObject)config.DeepClone(); actor["slot"] = 1; actor["target_slot"] = 1; actor["actor_directory"] = "actors/1";
+            var actor = (JsonObject)config.DeepClone(); actor["slot"] = 1u; actor["target_slot"] = 1u; actor["actor_directory"] = "actors/1";
             config["actors"] = new JsonArray(actor); config["schema"] = 3; config["scope"] = "mixed_actor_mmd"; config["actor_count"] = 1; config["camera_anchor_slot"] = 1;
             ConfigureStage(config, config["spacing_cm"]?.GetValue<double>() ?? 180, Contract.True(config, "formation_native"), config["ground_height_cm"]?.GetValue<double>() ?? -2);
         }
@@ -71,6 +71,19 @@ public sealed partial class OwnedMmdPlaybackService
 
     public static bool Finished(string directory) => File.Exists(Path.Combine(directory, "session_result.json"));
 
+    internal static string? StartupFailure(JsonObject? terminal)
+    {
+        var reason = terminal?["reason"]?.GetValue<string>();
+        if (reason != "selected window thread is not registered GameThread") return reason;
+        return terminal?["worker_result"]?["game_thread_check"]?["status"]?.GetValue<string>() switch
+        {
+            "read_failed" => "无法读取当前兼容配置的游戏线程登记字段",
+            "registration_flag_mismatch" => "当前兼容配置读取到的游戏线程登记标记不符合预期",
+            "thread_id_mismatch" => "当前兼容配置读取到的游戏线程 ID 与窗口线程 ID 不一致",
+            _ => "无法确认当前鸣潮窗口线程是游戏线程"
+        };
+    }
+
     public async Task<JsonObject> LaunchAsync(string prepared, CancellationToken cancellation = default, bool startPaused = false)
     {
         if (ActiveSession is not null) throw new InvalidOperationException("请先停止当前演员会话并等待恢复。");
@@ -99,9 +112,10 @@ public sealed partial class OwnedMmdPlaybackService
                     var restored = RestorationConfirmed(directory);
                     if (restored) ActiveSession = null;
                     var terminalPath = Path.Combine(directory, "session_result.json");
-                    var reason = File.Exists(terminalPath) ? JsonData.ReadObject(terminalPath)["reason"]?.GetValue<string>() : null;
+                    var terminal = File.Exists(terminalPath) ? JsonData.ReadObject(terminalPath) : null;
+                    var reason = terminal?["reason"]?.GetValue<string>();
                     var message = restored ? "角色与动作已停止，恢复结果已确认" : "安装器已退出，尚未确认角色与动作恢复";
-                    if (!string.IsNullOrWhiteSpace(reason)) message = "本次启动未完成：" + reason + (restored ? "；恢复已完成。" : "；请继续停止恢复。");
+                    if (!string.IsNullOrWhiteSpace(reason)) message = "本次启动未完成：" + StartupFailure(terminal) + (restored ? "；恢复已完成。" : "；请继续停止恢复。");
                     return new JsonObject { ["session_dir"] = directory, ["loaded"] = false, ["state"] = "terminal_record_available", ["cleanup_restored"] = restored, ["reason"] = reason, ["message"] = message };
                 }
                 if (routes.Count > 0 && !nativePrepared && File.Exists(Path.Combine(directory, "native_targets.json")))

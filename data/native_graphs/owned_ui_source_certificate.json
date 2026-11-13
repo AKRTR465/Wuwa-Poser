@@ -5,18 +5,18 @@
   "runtime_verified": false,
   "requires_live_discovery": true,
   "game_accessed": false,
-  "catalog_sha256": "1706e76e83885f9c5e20b57ff9a305d065913c1e9f70b3c0f2e5afa07bc6e651",
-  "character_index_sha256": "0b18501e63db294f23dbc5ae84ba9c8c8257442cfc3506c07c8c61e0ebc9a4e1",
+  "catalog_sha256": "2a19720e668d7a167907f134e8f277993141bae6124561765bf51ca45cfcee54",
+  "character_index_sha256": "aed761cb8902dadb939182f8ff5f45a08e6b4dda8e676d9eb50258552f12c4cc",
   "sources": [
     {
       "path": "raw/Client/Content/Aki/ConfigDB/db_role.db",
-      "sha256": "960d9f493479a0732aca9c5212a76c3fc5d755fda32bfaf41ce49b72ded6bda2",
-      "bytes": 1028096
+      "sha256": "5fa3c23ace3270e847b87ba7b5ffb69d0b1e98eae27bd4c3a3b43374cdeee455",
+      "bytes": 1052672
     },
     {
       "path": "raw/Client/Content/Aki/JavaScript/Core/Define/Config/RoleSkin.js",
-      "sha256": "067dddedcf959d20570b053e46a7247ac3ebbe81f0548463e88190d40863405f",
-      "bytes": 15607
+      "sha256": "65c4b696bb22e54bebe38c6489dd58e409364a4996ccc9ccd0c2e15e45a4dcaf",
+      "bytes": 16243
     },
     {
       "path": "raw/Client/Content/Aki/JavaScript/Game/Module/UiModel/UiModelComponent/Role/UiRoleLoadComponent.js",
@@ -31,9 +31,9 @@
     "model_config_pc_selects_owned_class": false
   },
   "counts": {
-    "selections": 80,
-    "profile_assets": 68,
-    "ui_classes": 74,
+    "selections": 82,
+    "profile_assets": 70,
+    "ui_classes": 76,
     "remaining": 0
   },
   "bindings": [
@@ -187,6 +187,23 @@
       "skeleton_sha256": "cb7746ced9ca46d69f1ebc547097d26ee9a70787a1cdf0aac69c0e9bbad7d21b",
       "kawaii_group_count": 14,
       "curve_group_count": 7,
+      "own_groups_and_converters_exported": true,
+      "runtime_verified": false
+    },
+    {
+      "character_id": "role1108-skin81011108",
+      "role_id": 1108,
+      "skin_id": 81011108,
+      "ui_model_id": "1000661",
+      "model_asset_name": "R2T1TaidaonvMd20011",
+      "profile_id": "femalexl--taidaonv--r2t1taidaonvmd20011",
+      "source_model_id": "R2T1TaidaonvMd20011",
+      "ui_class_asset": "/Game/Aki/Character/Role/FemaleXL/TaiDaoNv/R2T1TaidaonvMd20011/ABP_Performance_Feixue_PC.ABP_Performance_Feixue_PC_C",
+      "variant": "ABP_Performance_Feixue_PC",
+      "source_sha256": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "skeleton_sha256": "6b374a417ceae75a80c029f327242698a8eb1f385839428f3d4b5ae05bbb3d49",
+      "kawaii_group_count": 11,
+      "curve_group_count": 8,
       "own_groups_and_converters_exported": true,
       "runtime_verified": false
     },
@@ -1394,6 +1411,23 @@
       "skeleton_sha256": "5f663eef29f5832092498b0a37b7aecbef9e1179598131ac4035a33a67607890",
       "kawaii_group_count": 15,
       "curve_group_count": 14,
+      "own_groups_and_converters_exported": true,
+      "runtime_verified": false
+    },
+    {
+      "character_id": "role1512-skin81001512",
+      "role_id": 1512,
+      "skin_id": 81001512,
+      "ui_model_id": "100146",
+      "model_asset_name": "R2T1LiliMd10011",
+      "profile_id": "femalems--lili--r2t1lilimd10011",
+      "source_model_id": "R2T1LiliMd10011",
+      "ui_class_asset": "/Game/Aki/Character/Role/FemaleMS/Lili/R2T1LiliMd10011/ABP_Performance_Lili_PC.ABP_Performance_Lili_PC_C",
+      "variant": "ABP_Performance_Lili_PC",
+      "source_sha256": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "skeleton_sha256": "93a172b27c977df41a6df409c89d7f905f94c8d9c5416282da80a5414610e510",
+      "kawaii_group_count": 13,
+      "curve_group_count": 12,
       "own_groups_and_converters_exported": true,
       "runtime_verified": false
     }

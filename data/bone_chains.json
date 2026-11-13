@@ -1,6 +1,6 @@
 {
  "generated": "2026-10-05T10:56:24",
- "source": "Skeleton ReferenceSkeleton + ABP_*_Phy KawaiiPhysicsGroups",
+ "source": "Skeleton ReferenceSkeleton + ABP_*_Phy KawaiiPhysicsGroups; 3.8 additions use the exact UI performance animation classes",
  "characters": [
   {
    "gender": "FemaleM",
@@ -54946,6 +54946,2199 @@
     "chains_source": "ABP",
     "offline_added": "2026-10-23"
    }
+  },
+  {
+   "gender": "FemaleMS",
+   "character": "Lili",
+   "model_id": "R2T1LiliMd10011",
+   "status": {},
+   "chains": [],
+   "kawaii_groups": [
+    {
+     "abp": "Client/Content/Aki/Character/Role/FemaleMS/Lili/R2T1LiliMd10011/ABP_Performance_Lili_PC",
+     "variant": "ABP_Performance_Lili_PC",
+     "groups": [
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_12",
+       "root_bones": [
+        "Bone_Skirt001_L",
+        "Bone_Skirt001_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 1.2,
+        "LimitAngle": 50.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Planar"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 3,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S03",
+       "chains": [
+        {
+         "root": "Bone_Skirt001_L",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt001_L",
+          "Bone_Skirt002_L",
+          "Bone_Skirt003_L",
+          "Bone_Skirt004_L"
+         ]
+        },
+        {
+         "root": "Bone_Skirt001_R",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt001_R",
+          "Bone_Skirt002_R",
+          "Bone_Skirt003_R",
+          "Bone_Skirt004_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_11",
+       "root_bones": [
+        "Bone_Skirt012_L",
+        "Bone_Skirt012_R",
+        "Bone_Skirt022_L",
+        "Bone_Skirt022_R",
+        "Bone_Piao112_L",
+        "Bone_Piao112_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 2.0,
+        "LimitAngle": 30.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 3,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S04",
+       "chains": [
+        {
+         "root": "Bone_Skirt012_L",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt012_L",
+          "Bone_Skirt013_L",
+          "Bone_Skirt014_L"
+         ]
+        },
+        {
+         "root": "Bone_Skirt012_R",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt012_R",
+          "Bone_Skirt013_R",
+          "Bone_Skirt014_R"
+         ]
+        },
+        {
+         "root": "Bone_Skirt022_L",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt022_L",
+          "Bone_Skirt023_L",
+          "Bone_Skirt024_L"
+         ]
+        },
+        {
+         "root": "Bone_Skirt022_R",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt022_R",
+          "Bone_Skirt023_R",
+          "Bone_Skirt024_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao112_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao112_L",
+          "Bone_Piao113_L",
+          "Bone_Piao114_L",
+          "Bone_Piao115_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao112_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao112_R",
+          "Bone_Piao113_R",
+          "Bone_Piao114_R",
+          "Bone_Piao115_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_10",
+       "root_bones": [
+        "Bone_Hair073_R",
+        "Bone_Piao018_L",
+        "Bone_Piao018_R",
+        "Bone_Piao013_L",
+        "Bone_Piao013_R",
+        "Bone_Piao052_L",
+        "Bone_Piao052_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.15,
+        "Radius": 2.5,
+        "LimitAngle": 50.0,
+        "HalfWidth": 3.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 1,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S05",
+       "chains": [
+        {
+         "root": "Bone_Hair073_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair073_R",
+          "Bone_Hair074_R",
+          "Bone_Hair075_R",
+          "Bone_Hair076_R",
+          "Bone_Hair077_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao018_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao018_L",
+          "Bone_Piao019_L",
+          "Bone_Piao020_L",
+          "Bone_Piao021_L",
+          "Bone_Piao022_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao018_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao018_R",
+          "Bone_Piao019_R",
+          "Bone_Piao020_R",
+          "Bone_Piao021_R",
+          "Bone_Piao022_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao013_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao013_L",
+          "Bone_Piao014_L",
+          "Bone_Piao015_L",
+          "Bone_Piao016_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao013_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao013_R",
+          "Bone_Piao014_R",
+          "Bone_Piao015_R",
+          "Bone_Piao016_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao052_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao052_L",
+          "Bone_Piao053_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao052_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao052_R",
+          "Bone_Piao053_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_9",
+       "root_bones": [
+        "Bone_Piao072_L",
+        "Bone_Piao072_R",
+        "Bone_Piao082_M",
+        "Bone_Piao085_M",
+        "Bone_Piao061_L",
+        "Bone_Piao061_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.05,
+        "Radius": 1.0,
+        "LimitAngle": 30.0,
+        "HalfWidth": 2.0,
+        "Shape": "EPhyCollisionShape::Planar"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 5,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S07",
+       "chains": [
+        {
+         "root": "Bone_Piao072_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao072_L",
+          "Bone_Piao073_L",
+          "Bone_Piao074_L",
+          "Bone_Piao075_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao072_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao072_R",
+          "Bone_Piao073_R",
+          "Bone_Piao074_R",
+          "Bone_Piao075_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao082_M",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao082_M",
+          "Bone_Piao083_M"
+         ]
+        },
+        {
+         "root": "Bone_Piao085_M",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao085_M"
+         ]
+        },
+        {
+         "root": "Bone_Piao061_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao061_L",
+          "Bone_Piao062_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao061_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao061_R",
+          "Bone_Piao062_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_8",
+       "root_bones": [
+        "Bone_Piao201_L",
+        "Bone_Piao201_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 0.8,
+        "LimitAngle": 20.0,
+        "HalfWidth": 1.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 2,
+       "planar_limits_n": 0,
+       "exclude_bones": [
+        {
+         "BoneName": "Bone_Piao214_L"
+        },
+        {
+         "BoneName": "Bone_Piao214_R"
+        },
+        {
+         "BoneName": "Bone_Piao216_L"
+        },
+        {
+         "BoneName": "Bone_Piao216_R"
+        },
+        {
+         "BoneName": "Bone_Piao212_L"
+        },
+        {
+         "BoneName": "Bone_Piao212_R"
+        },
+        {
+         "BoneName": "Bone_Piao209_L"
+        },
+        {
+         "BoneName": "Bone_Piao209_R"
+        }
+       ],
+       "alpha_curve": "Kawaii_alpha_S08",
+       "chains": [
+        {
+         "root": "Bone_Piao201_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_L",
+          "Bone_Piao202_L",
+          "Bone_Piao203_L",
+          "Bone_Piao205_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao201_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_L",
+          "Bone_Piao202_L",
+          "Bone_Piao203_L",
+          "Bone_Piao207_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao201_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_L",
+          "Bone_Piao202_L",
+          "Bone_Piao209_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao201_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_L",
+          "Bone_Piao202_L",
+          "Bone_Piao212_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao201_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_L",
+          "Bone_Piao214_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao201_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_L",
+          "Bone_Piao216_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao201_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_R",
+          "Bone_Piao202_R",
+          "Bone_Piao203_R",
+          "Bone_Piao205_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao201_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_R",
+          "Bone_Piao202_R",
+          "Bone_Piao203_R",
+          "Bone_Piao207_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao201_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_R",
+          "Bone_Piao202_R",
+          "Bone_Piao212_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao201_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_R",
+          "Bone_Piao202_R",
+          "Bone_Piao209_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao201_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_R",
+          "Bone_Piao214_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao201_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao201_R",
+          "Bone_Piao216_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_7",
+       "root_bones": [
+        "Bone_Chest001_L",
+        "Bone_Chest001_R"
+       ],
+       "physics": {
+        "Damping": 0.3,
+        "WorldDampingLocation": 0.8,
+        "WorldDampingRotation": 0.8,
+        "Stiffness": 0.65,
+        "Radius": 1.0,
+        "LimitAngle": 10.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 0,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "None",
+       "chains": [
+        {
+         "root": "Bone_Chest001_L",
+         "type": "chest",
+         "bones": [
+          "Bone_Chest001_L",
+          "Bone_Chest002_L"
+         ]
+        },
+        {
+         "root": "Bone_Chest001_R",
+         "type": "chest",
+         "bones": [
+          "Bone_Chest001_R",
+          "Bone_Chest002_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_6",
+       "root_bones": [
+        "Bone_Hair062_L"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.04,
+        "Radius": 1.5,
+        "LimitAngle": 20.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 5,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S06",
+       "chains": [
+        {
+         "root": "Bone_Hair062_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair062_L",
+          "Bone_Hair063_L",
+          "Bone_Hair064_L",
+          "Bone_Hair065_L",
+          "Bone_Hair066_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair062_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair062_L",
+          "Bone_Hair063_L",
+          "Bone_Hair064_L",
+          "Bone_Hair065_L",
+          "Bone_Piao163_L",
+          "Bone_Piao165_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair062_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair062_L",
+          "Bone_Hair063_L",
+          "Bone_Hair064_L",
+          "Bone_Hair065_L",
+          "Bone_Piao163_L",
+          "Bone_Piao167_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair062_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair062_L",
+          "Bone_Hair063_L",
+          "Bone_Hair064_L",
+          "Bone_Hair065_L",
+          "Bone_Piao163_L",
+          "Bone_Piao169_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair062_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair062_L",
+          "Bone_Hair063_L",
+          "Bone_Hair064_L",
+          "Bone_Piao161_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair062_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair062_L",
+          "Bone_Piao171_L"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_5",
+       "root_bones": [
+        "Bone_Hair001_M",
+        "Bone_Hair005_L",
+        "Bone_Hair005_R",
+        "Bone_Hair012_L",
+        "Bone_Hair012_R",
+        "Bone_Hair022_L",
+        "Bone_Hair032_L"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 1.0,
+        "LimitAngle": 20.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [
+        {
+         "driving_bone": "Bip001Head",
+         "radius": 6.598047,
+         "limit_type": "ESphericalLimitType::Outer",
+         "offset": {
+          "X": 8.590646,
+          "Y": 0.086471,
+          "Z": 0.143459
+         }
+        }
+       ],
+       "capsule_limits_n": 1,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S01",
+       "chains": [
+        {
+         "root": "Bone_Hair001_M",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair001_M",
+          "Bone_Hair002_M"
+         ]
+        },
+        {
+         "root": "Bone_Hair005_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair005_L",
+          "Bone_Hair006_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair005_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair005_R",
+          "Bone_Hair006_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair012_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair012_L",
+          "Bone_Hair013_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair012_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair012_R",
+          "Bone_Hair013_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair022_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair022_L",
+          "Bone_Hair023_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair032_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair032_L",
+          "Bone_Hair033_L"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_4",
+       "root_bones": [
+        "Bone_Piao214_L",
+        "Bone_Piao216_R",
+        "Bone_Piao212_R",
+        "Bone_Piao209_L"
+       ],
+       "physics": {
+        "Damping": 0.15,
+        "WorldDampingLocation": 0.9,
+        "WorldDampingRotation": 0.8,
+        "Stiffness": 0.05,
+        "Radius": 1.0,
+        "LimitAngle": 20.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 2,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S09",
+       "chains": [
+        {
+         "root": "Bone_Piao214_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao214_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao216_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao216_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao212_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao212_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao209_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao209_L"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_3",
+       "root_bones": [
+        "Bone_Piao214_R",
+        "Bone_Piao216_L",
+        "Bone_Piao212_L",
+        "Bone_Piao209_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.8,
+        "WorldDampingRotation": 0.8,
+        "Stiffness": 0.05,
+        "Radius": 1.0,
+        "LimitAngle": 15.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 2,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S9",
+       "chains": [
+        {
+         "root": "Bone_Piao214_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao214_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao216_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao216_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao212_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao212_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao209_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao209_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_2",
+       "root_bones": [
+        "Bone_Piao121_L",
+        "Bone_Piao121_R",
+        "Bone_Piao131_L",
+        "Bone_Piao131_R",
+        "Bone_Piao151_L",
+        "Bone_Piao151_R",
+        "Bone_Piao141_L",
+        "Bone_Piao141_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 0.8,
+        "LimitAngle": 20.0,
+        "HalfWidth": 1.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 2,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S10",
+       "chains": [
+        {
+         "root": "Bone_Piao121_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao121_L",
+          "Bone_Piao122_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao121_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao121_R",
+          "Bone_Piao122_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao131_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao131_L",
+          "Bone_Piao132_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao131_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao131_R",
+          "Bone_Piao132_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao151_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao151_L",
+          "Bone_Piao152_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao151_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao151_R",
+          "Bone_Piao152_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao141_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao141_L",
+          "Bone_Piao142_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao141_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao141_R",
+          "Bone_Piao142_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_1",
+       "root_bones": [
+        "Bone_Piao003_L",
+        "Bone_Piao003_R",
+        "Bone_Piao006_L",
+        "Bone_Piao006_R",
+        "Bone_Piao230_R",
+        "Bone_Piao225_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.95,
+        "WorldDampingRotation": 0.9,
+        "Stiffness": 0.1,
+        "Radius": 1.0,
+        "LimitAngle": 50.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 3,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S02",
+       "chains": [
+        {
+         "root": "Bone_Piao003_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao003_L",
+          "Bone_Piao004_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao003_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao003_R",
+          "Bone_Piao004_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao006_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao006_L",
+          "Bone_Piao007_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao006_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao006_R",
+          "Bone_Piao007_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao230_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao230_R",
+          "Bone_Piao231_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao225_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao225_R",
+          "Bone_Piao226_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup",
+       "root_bones": [
+        "Bone_Hair022_L",
+        "Bone_Hair022_R",
+        "Bone_Hair032_L",
+        "Bone_Hair042_R",
+        "Bone_Hair043_L",
+        "Bone_Hair043_R",
+        "Bone_Hair051_R",
+        "Bone_Piao163_R",
+        "Bone_Piao165_R",
+        "Bone_Piao167_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 1.0,
+        "LimitAngle": 20.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [
+        {
+         "driving_bone": "Bip001Head",
+         "radius": 7.2368474,
+         "limit_type": "ESphericalLimitType::Outer",
+         "offset": {
+          "X": 8.590646,
+          "Y": 0.086471,
+          "Z": 0.143459
+         }
+        }
+       ],
+       "capsule_limits_n": 2,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S01",
+       "chains": [
+        {
+         "root": "Bone_Hair022_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair022_L",
+          "Bone_Hair023_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair022_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair022_R",
+          "Bone_Hair023_R",
+          "Bone_Hair024_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair032_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair032_L",
+          "Bone_Hair033_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair042_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair042_R",
+          "Bone_Hair043_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair043_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair043_L",
+          "Bone_Hair044_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair043_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair043_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair051_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair051_R",
+          "Bone_Hair052_R",
+          "Bone_Hair053_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao163_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao163_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao165_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao165_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao167_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao167_R"
+         ]
+        }
+       ]
+      }
+     ],
+     "source_sha256": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f"
+    }
+   ],
+   "curves": [],
+   "unassigned_secondary_bones": [
+    "Bone_Piao011_R",
+    "Bone_Piao011_L",
+    "Bone_Hair011_L",
+    "Bone_Hair011_R",
+    "Bone_Hair041_R",
+    "Bone_Hair021_R",
+    "Bone_Hair021_L",
+    "Bone_Hair031_L",
+    "Bone_Hair061_L",
+    "Bone_Hair071_R",
+    "Bone_Hair072_R",
+    "Bone_Hair041_L",
+    "Bone_Hair042_L",
+    "Bone_Piao161_R",
+    "Bone_Piao051_M",
+    "Bone_Piao051_R",
+    "Bone_Piao051_L",
+    "Bone_Piao185_R",
+    "Bone_Piao186_R",
+    "Bone_Piao185_L",
+    "Bone_Piao186_L",
+    "Bone_Hair078_L",
+    "Bone_Hair079_L",
+    "Bone_Piao176_L",
+    "Bone_Piao176_R",
+    "Bone_Piao176_M",
+    "Bone_Piao235_L",
+    "Bone_Piao236_L",
+    "Bone_Piao219_L",
+    "Bone_Piao221_L",
+    "Bone_Piao200_L",
+    "Bone_Piao173_R",
+    "Bone_Piao169_R",
+    "Bone_Piao171_R",
+    "Bone_Piao175_R",
+    "Bone_Piao221_R",
+    "Bone_Piao219_R",
+    "Bone_Piao200_R",
+    "Bone_Piao081_M",
+    "Bone_Piao061_M",
+    "Bone_Piao071_L",
+    "Bone_Piao071_R",
+    "Bone_Piao084_M",
+    "Bone_Piao091_M",
+    "Bone_Piao111_L",
+    "Bone_Piao111_R",
+    "Bone_Piao100_L",
+    "Bone_Piao101_L",
+    "Bone_Piao100_R",
+    "Bone_Piao101_R",
+    "Bone_Piao190_M",
+    "Bone_Piao196_M",
+    "Bone_Skirt011_L",
+    "Bone_Skirt011_R",
+    "Bone_Skirt021_L",
+    "Bone_Skirt021_R",
+    "Bone_Piao001_L",
+    "Bone_Piao001_R"
+   ],
+   "skeleton_asset": "Client/Content/Aki/Character/Role/FemaleMS/Lili/R2T1LiliMd10011/Model/R2T1LiliMd10011_Skeleton.json",
+   "bone_count": 367,
+   "bone_families": {
+    "other:Root": 1,
+    "bip001": 105,
+    "weapon_prop": 7,
+    "ribbon": 141,
+    "hair": 47,
+    "facial": 29,
+    "other:Other": 4,
+    "other:UpArmTwist": 2,
+    "chest": 4,
+    "prop": 1,
+    "skirt": 24,
+    "other:ThighTwist": 2
+   },
+   "has_kawaii_groups": true,
+   "chains_total": 80,
+   "chains_valid": 80
+  },
+  {
+   "gender": "FemaleXL",
+   "character": "TaiDaoNv",
+   "model_id": "R2T1TaidaonvMd20011",
+   "status": {},
+   "chains": [],
+   "kawaii_groups": [
+    {
+     "abp": "Client/Content/Aki/Character/Role/FemaleXL/TaiDaoNv/R2T1TaidaonvMd20011/ABP_Performance_Feixue_PC",
+     "variant": "ABP_Performance_Feixue_PC",
+     "groups": [
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_10",
+       "root_bones": [
+        "Bone_Piao142_L",
+        "Bone_Piao142_R",
+        "Bone_Piao132_L",
+        "Bone_Piao132_R",
+        "Bone_Piao121_L",
+        "Bone_Piao121_R",
+        "Bone_Piao124_M"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 2.0,
+        "LimitAngle": 50.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 3,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S03",
+       "chains": [
+        {
+         "root": "Bone_Piao142_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao142_L",
+          "Bone_Piao143_L",
+          "Bone_Piao144_L",
+          "Bone_Piao145_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao142_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao142_R",
+          "Bone_Piao143_R",
+          "Bone_Piao144_R",
+          "Bone_Piao145_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao132_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao132_L",
+          "Bone_Piao133_L",
+          "Bone_Piao134_L",
+          "Bone_Piao135_L",
+          "Bone_Piao136_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao132_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao132_R",
+          "Bone_Piao133_R",
+          "Bone_Piao134_R",
+          "Bone_Piao135_R",
+          "Bone_Piao136_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao121_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao121_L",
+          "Bone_Piao122_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao121_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao121_R",
+          "Bone_Piao122_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao124_M",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao124_M",
+          "Bone_Piao125_M"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_9",
+       "root_bones": [
+        "Bone_Skirt003_L",
+        "Bone_Skirt003_R",
+        "Bone_Piao173_R",
+        "Bone_Piao176_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 1.2,
+        "LimitAngle": 50.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Planar"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 3,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S01",
+       "chains": [
+        {
+         "root": "Bone_Skirt003_L",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt003_L",
+          "Bone_Skirt004_L",
+          "Bone_Skirt005_L",
+          "Bone_Skirt006_L",
+          "Bone_Skirt007_L",
+          "Bone_Skirt008_L",
+          "Bone_Skirt009_L"
+         ]
+        },
+        {
+         "root": "Bone_Skirt003_R",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt003_R",
+          "Bone_Skirt004_R",
+          "Bone_Skirt005_R",
+          "Bone_Skirt006_R",
+          "Bone_Skirt007_R",
+          "Bone_Skirt008_R",
+          "Bone_Skirt009_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao173_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao173_R",
+          "Bone_Piao174_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao176_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao176_R",
+          "Bone_Piao177_R",
+          "Bone_Piao178_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_8",
+       "root_bones": [
+        "Bone_Skirt013_R",
+        "Bone_Skirt013_L",
+        "Bone_Skirt023_R",
+        "Bone_Skirt023_L",
+        "Bone_Skirt033_R",
+        "Bone_Skirt033_L"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 2.0,
+        "LimitAngle": 30.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 3,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S02",
+       "chains": [
+        {
+         "root": "Bone_Skirt013_R",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt013_R",
+          "Bone_Skirt014_R",
+          "Bone_Skirt015_R",
+          "Bone_Skirt016_R",
+          "Bone_Skirt017_R",
+          "Bone_Skirt018_R"
+         ]
+        },
+        {
+         "root": "Bone_Skirt013_L",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt013_L",
+          "Bone_Skirt014_L",
+          "Bone_Skirt015_L",
+          "Bone_Skirt016_L",
+          "Bone_Skirt017_L",
+          "Bone_Skirt018_L"
+         ]
+        },
+        {
+         "root": "Bone_Skirt023_R",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt023_R",
+          "Bone_Skirt024_R",
+          "Bone_Skirt025_R",
+          "Bone_Skirt026_R",
+          "Bone_Skirt027_R",
+          "Bone_Skirt028_R"
+         ]
+        },
+        {
+         "root": "Bone_Skirt023_L",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt023_L",
+          "Bone_Skirt024_L",
+          "Bone_Skirt025_L",
+          "Bone_Skirt026_L",
+          "Bone_Skirt027_L",
+          "Bone_Skirt028_L"
+         ]
+        },
+        {
+         "root": "Bone_Skirt033_R",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt033_R",
+          "Bone_Skirt034_R",
+          "Bone_Skirt035_R",
+          "Bone_Skirt036_R",
+          "Bone_Skirt037_R",
+          "Bone_Skirt038_R"
+         ]
+        },
+        {
+         "root": "Bone_Skirt033_L",
+         "type": "skirt",
+         "bones": [
+          "Bone_Skirt033_L",
+          "Bone_Skirt034_L",
+          "Bone_Skirt035_L",
+          "Bone_Skirt036_L",
+          "Bone_Skirt037_L",
+          "Bone_Skirt038_L"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_7",
+       "root_bones": [
+        "Bone_Hair102_L",
+        "Bone_Hair102_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.15,
+        "Radius": 2.5,
+        "LimitAngle": 50.0,
+        "HalfWidth": 3.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 1,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S04",
+       "chains": [
+        {
+         "root": "Bone_Hair102_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair102_L",
+          "Bone_Hair103_L",
+          "Bone_Hair084_L",
+          "Bone_Hair085_L",
+          "Bone_Hair086_L",
+          "Bone_Hair087_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair102_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair102_L",
+          "Bone_Hair103_L",
+          "Bone_Hair094_L",
+          "Bone_Hair095_L",
+          "Bone_Hair096_L",
+          "Bone_Hair097_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair102_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair102_L",
+          "Bone_Hair103_L",
+          "Bone_Hair104_L",
+          "Bone_Hair105_L",
+          "Bone_Hair106_L",
+          "Bone_Hair107_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair102_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair102_L",
+          "Bone_Hair103_L",
+          "Bone_Hair114_L",
+          "Bone_Hair115_L",
+          "Bone_Hair116_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair102_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair102_R",
+          "Bone_Hair103_R",
+          "Bone_Hair084_R",
+          "Bone_Hair085_R",
+          "Bone_Hair086_R",
+          "Bone_Hair087_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair102_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair102_R",
+          "Bone_Hair103_R",
+          "Bone_Hair094_R",
+          "Bone_Hair095_R",
+          "Bone_Hair096_R",
+          "Bone_Hair097_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair102_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair102_R",
+          "Bone_Hair103_R",
+          "Bone_Hair104_R",
+          "Bone_Hair105_R",
+          "Bone_Hair106_R",
+          "Bone_Hair107_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair102_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair102_R",
+          "Bone_Hair103_R",
+          "Bone_Hair114_R",
+          "Bone_Hair115_R",
+          "Bone_Hair116_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_6",
+       "root_bones": [
+        "Bone_Piao031_M",
+        "Bone_Piao022_L",
+        "Bone_Piao022_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.05,
+        "Radius": 1.0,
+        "LimitAngle": 30.0,
+        "HalfWidth": 2.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 5,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S08",
+       "chains": [
+        {
+         "root": "Bone_Piao031_M",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao031_M",
+          "Bone_Piao032_M"
+         ]
+        },
+        {
+         "root": "Bone_Piao022_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao022_L",
+          "Bone_Piao023_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao022_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao022_R",
+          "Bone_Piao023_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_5",
+       "root_bones": [
+        "Bone_Piao041_R",
+        "Bone_Piao044_R",
+        "Bone_Piao109_R",
+        "Bone_Piao111_R",
+        "Bone_Piao113_R",
+        "Bone_Piao115_R",
+        "Bone_Piao103_R",
+        "Bone_Piao101_R",
+        "Bone_Piao105_R",
+        "Bone_Piao107_R",
+        "Bone_Piao153_R",
+        "Bone_Piao156_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 0.8,
+        "LimitAngle": 20.0,
+        "HalfWidth": 1.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [
+        {
+         "driving_bone": "Bip001RHand",
+         "radius": 3.2429707,
+         "limit_type": "ESphericalLimitType::Outer",
+         "offset": {
+          "X": 3.2279027,
+          "Y": -0.8523922,
+          "Z": 0.40537226
+         }
+        }
+       ],
+       "capsule_limits_n": 3,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S07",
+       "chains": [
+        {
+         "root": "Bone_Piao041_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao041_R",
+          "Bone_Piao042_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao044_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao044_R",
+          "Bone_Piao045_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao109_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao109_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao111_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao111_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao113_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao113_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao115_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao115_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao103_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao103_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao101_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao101_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao105_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao105_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao107_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao107_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao153_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao153_R",
+          "Bone_Piao154_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao156_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao156_R",
+          "Bone_Piao157_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_4",
+       "root_bones": [
+        "Bone_Chest001_L",
+        "Bone_Chest001_R"
+       ],
+       "physics": {
+        "Damping": 0.3,
+        "WorldDampingLocation": 0.8,
+        "WorldDampingRotation": 0.8,
+        "Stiffness": 0.65,
+        "Radius": 1.0,
+        "LimitAngle": 10.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 0,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "None",
+       "chains": [
+        {
+         "root": "Bone_Chest001_L",
+         "type": "chest",
+         "bones": [
+          "Bone_Chest001_L",
+          "Bone_Chest002_L"
+         ]
+        },
+        {
+         "root": "Bone_Chest001_L",
+         "type": "chest",
+         "bones": [
+          "Bone_Chest001_L",
+          "Bone_Piao161_L",
+          "Bone_Piao163_L",
+          "Bone_Piao164_L"
+         ]
+        },
+        {
+         "root": "Bone_Chest001_R",
+         "type": "chest",
+         "bones": [
+          "Bone_Chest001_R",
+          "Bone_Chest002_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_3",
+       "root_bones": [
+        "Bone_Hair073_L",
+        "Bone_Hair073_R"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.04,
+        "Radius": 1.5,
+        "LimitAngle": 20.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 5,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S05",
+       "chains": [
+        {
+         "root": "Bone_Hair073_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair073_L",
+          "Bone_Hair074_L",
+          "Bone_Hair075_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair073_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair073_R",
+          "Bone_Hair074_R",
+          "Bone_Hair075_R"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_2",
+       "root_bones": [
+        "Bone_Hair002_M",
+        "Bone_Hair002_L",
+        "Bone_Hair005_R",
+        "Bone_Hair012_L",
+        "Bone_Hair022_R",
+        "Bone_Hair032_L",
+        "Bone_Hair032_R",
+        "Bone_Hair052_L",
+        "Bone_Hair042_L",
+        "Bone_Hair042_R",
+        "Bone_Hair062_L"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 1.0,
+        "LimitAngle": 20.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [
+        {
+         "driving_bone": "Bip001Head",
+         "radius": 7.537685,
+         "limit_type": "ESphericalLimitType::Outer",
+         "offset": {
+          "X": 4.3050413,
+          "Y": 0.7694276,
+          "Z": 0.10412226
+         }
+        }
+       ],
+       "capsule_limits_n": 0,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S06",
+       "chains": [
+        {
+         "root": "Bone_Hair002_M",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair002_M"
+         ]
+        },
+        {
+         "root": "Bone_Hair002_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair002_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair005_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair005_R",
+          "Bone_Hair006_R",
+          "Bone_Hair007_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair012_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair012_L",
+          "Bone_Hair013_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair022_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair022_R",
+          "Bone_Hair023_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair032_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair032_L",
+          "Bone_Hair033_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair032_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair032_R",
+          "Bone_Hair033_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair052_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair052_L",
+          "Bone_Hair053_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair042_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair042_L",
+          "Bone_Hair043_L"
+         ]
+        },
+        {
+         "root": "Bone_Hair042_R",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair042_R",
+          "Bone_Hair043_R"
+         ]
+        },
+        {
+         "root": "Bone_Hair062_L",
+         "type": "hair",
+         "bones": [
+          "Bone_Hair062_L",
+          "Bone_Hair063_L",
+          "Bone_Hair064_L"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup_1",
+       "root_bones": [
+        "Bone_Piao011_R",
+        "Bone_Piao015_R",
+        "Bone_Piao001_M",
+        "Bone_Piao001_R",
+        "Bone_Piao001_L"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 1.0,
+        "LimitAngle": 20.0,
+        "HalfWidth": 5.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [
+        {
+         "driving_bone": "Bip001Head",
+         "radius": 9.856546,
+         "limit_type": "ESphericalLimitType::Outer",
+         "offset": {
+          "X": 5.937494,
+          "Y": -0.12814212,
+          "Z": 1.6678733
+         }
+        }
+       ],
+       "capsule_limits_n": 0,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "None",
+       "chains": [
+        {
+         "root": "Bone_Piao011_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao011_R",
+          "Bone_Piao012_R",
+          "Bone_Piao013_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao015_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao015_R",
+          "Bone_Piao016_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao001_M",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao001_M"
+         ]
+        },
+        {
+         "root": "Bone_Piao001_R",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao001_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao001_L",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao001_L"
+         ]
+        }
+       ]
+      },
+      {
+       "node": "AnimGraphNode_KawaiiPhysicsGroup",
+       "root_bones": [
+        "Bone_Piao063_M"
+       ],
+       "physics": {
+        "Damping": 0.2,
+        "WorldDampingLocation": 0.98,
+        "WorldDampingRotation": 0.95,
+        "Stiffness": 0.2,
+        "Radius": 0.8,
+        "LimitAngle": 20.0,
+        "HalfWidth": 1.0,
+        "Shape": "EPhyCollisionShape::Spherical"
+       },
+       "spherical_limits": [],
+       "capsule_limits_n": 1,
+       "planar_limits_n": 0,
+       "exclude_bones": [],
+       "alpha_curve": "Kawaii_alpha_S08",
+       "chains": [
+        {
+         "root": "Bone_Piao063_M",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao063_M",
+          "Bone_Piao064_M",
+          "Bone_Piao064_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao063_M",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao063_M",
+          "Bone_Piao064_M",
+          "Bone_Piao064_R"
+         ]
+        },
+        {
+         "root": "Bone_Piao063_M",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao063_M",
+          "Bone_Piao062_L"
+         ]
+        },
+        {
+         "root": "Bone_Piao063_M",
+         "type": "ribbon",
+         "bones": [
+          "Bone_Piao063_M",
+          "Bone_Piao062_R"
+         ]
+        }
+       ]
+      }
+     ],
+     "source_sha256": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02"
+    }
+   ],
+   "curves": [],
+   "unassigned_secondary_bones": [
+    "Bone_Hair001_L",
+    "Bone_Hair001_M",
+    "Bone_Hair001_R",
+    "Bone_Hair003_R",
+    "Bone_Hair011_L",
+    "Bone_Hair021_L",
+    "Bone_Hair022_L",
+    "Bone_Hair023_L",
+    "Bone_Hair021_R",
+    "Bone_Hair031_L",
+    "Bone_Hair031_R",
+    "Bone_Hair041_L",
+    "Bone_Hair041_R",
+    "Bone_Hair051_L",
+    "Bone_Hair061_L",
+    "Bone_Hair071_L",
+    "Bone_Hair072_L",
+    "Bone_Hair101_L",
+    "Bone_Hair101_R",
+    "Bone_Piao021_R",
+    "Bone_Piao021_L",
+    "Bone_Hair071_R",
+    "Bone_Hair072_R",
+    "Bone_Piao061_M",
+    "Bone_Piao082_L",
+    "Bone_Piao062_M",
+    "Bone_Piao083_L",
+    "Bone_Piao091_L",
+    "Bone_Piao092_L",
+    "Bone_Piao100_R",
+    "Bone_Piao040_R",
+    "Bone_Piao151_R",
+    "Bone_Piao121_M",
+    "Bone_Piao123_M",
+    "Bone_Piao131_L",
+    "Bone_Piao131_R",
+    "Bone_Piao141_L",
+    "Bone_Piao141_R",
+    "Bone_Piao171_L",
+    "Bone_Piao171_R",
+    "Bone_Skirt001_L",
+    "Bone_Skirt001_R",
+    "Bone_Skirt011_L",
+    "Bone_Skirt012_L",
+    "Bone_Skirt011_R",
+    "Bone_Skirt012_R",
+    "Bone_Skirt021_L",
+    "Bone_Skirt022_L",
+    "Bone_Skirt021_R",
+    "Bone_Skirt022_R",
+    "Bone_Skirt031_L",
+    "Bone_Skirt032_L",
+    "Bone_Skirt031_R",
+    "Bone_Skirt032_R"
+   ],
+   "skeleton_asset": "Client/Content/Aki/Character/Role/FemaleXL/TaiDaoNv/R2T1TaidaonvMd20011/Model/R2T1TaidaonvMd20011_Skeleton.json",
+   "bone_count": 367,
+   "bone_families": {
+    "other:Root": 1,
+    "bip001": 91,
+    "weapon_prop": 10,
+    "hair": 83,
+    "facial": 20,
+    "ribbon": 87,
+    "hand_twist": 2,
+    "chest": 4,
+    "prop": 1,
+    "skirt": 64,
+    "other:Other": 4
+   },
+   "has_kawaii_groups": true,
+   "chains_total": 65,
+   "chains_valid": 65
   }
  ]
 }

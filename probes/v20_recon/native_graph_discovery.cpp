@@ -5,6 +5,7 @@
 #include "vmt_slot_patch.h"
 #include "native_graph_discovery.h"
 #include "native_animation_target_config.h"
+#include "object_identity.h"
 #include "game_compat_witness.h"
 #include "../../runtime/generated/GameCompat.generated.h"
 #include <atomic>
@@ -16,10 +17,10 @@ namespace graph_carrier {
 namespace ng=native_graph_discovery;
 namespace compat=ww_game_compat;namespace witness=ww_game_compat_witness;
 using Fn2=void(*)(void*,void*);using Fn3=void(*)(void*,void*,void*);
-static const char kBuild[]="c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18";
 static HMODULE selfModule=nullptr;static volatile LONG started=0;
 static ng::Binding binding;static ng::Recorder recorder;
 static std::atomic<bool> observing{false};static std::atomic<unsigned> active{0};
+static std::atomic<uint64_t> observedMainProxy{0};
 static std::array<std::atomic<uint64_t>,ng::kHooks> calls{},targetCalls{};
 static std::array<Fn2,ng::kHooks> originals2{};static std::array<Fn3,ng::kHooks> originals3{};
 static std::atomic<uint64_t> unreadableTarget{0};
@@ -33,19 +34,23 @@ static bool Read(uint64_t address,void* out,size_t bytes) noexcept {
     return ReadProcessMemory(GetCurrentProcess(),reinterpret_cast<void*>(address),out,bytes,&got)&&got==bytes;
 }
 struct Entry {uint64_t sequence=0;int32_t slot=-1;bool read=false,target=false;};
+static void CaptureObservation(unsigned hook,void* node,void* context,ng::Phase& phase,ng::Mapping& mapping,ng::RootSnapshot* roots){
+    ng::CapturePhase(Read,binding,ng::Kind(hook),reinterpret_cast<uint64_t>(node),reinterpret_cast<uint64_t>(context),phase,mapping,roots,observedMainProxy.load(std::memory_order_acquire));
+    if(phase.type_verified&&phase.owner_role_verified&&phase.owner_is_main)observedMainProxy.store(phase.proxy,std::memory_order_release);
+}
 // These helper frames are gone before forwarding the recursive graph call.
 // Keeping 1024-bone scratch arrays in Detour would multiply stack use by the
 // number of nested skeletal-control nodes in the authored graph.
 __declspec(noinline) static Entry BeginObservation(unsigned hook,void* node,void* context){
     Entry entry;entry.sequence=recorder.sequence.fetch_add(1)+1;ng::Phase before;ng::Mapping mapping;ng::RootSnapshot roots;
-    ng::CapturePhase(Read,binding,ng::Kind(hook),reinterpret_cast<uint64_t>(node),reinterpret_cast<uint64_t>(context),before,mapping,rootLayoutVerified?&roots:nullptr);
+    CaptureObservation(hook,node,context,before,mapping,rootLayoutVerified?&roots:nullptr);
     entry.read=before.read;entry.target=before.mesh==binding.mesh.address;
     if(entry.target&&entry.read){++targetCalls[hook];entry.slot=recorder.Begin(hook,GetCurrentThreadId(),entry.sequence,before,mapping,false,rootLayoutVerified?&roots:nullptr);}
     return entry;
 }
 __declspec(noinline) static void EndObservation(unsigned hook,void* node,void* context,Entry entry){
     const uint64_t exit=recorder.sequence.fetch_add(1)+1;ng::Phase after;ng::Mapping mapping;ng::RootSnapshot roots;
-    ng::CapturePhase(Read,binding,ng::Kind(hook),reinterpret_cast<uint64_t>(node),reinterpret_cast<uint64_t>(context),after,mapping,rootLayoutVerified?&roots:nullptr);
+    CaptureObservation(hook,node,context,after,mapping,rootLayoutVerified?&roots:nullptr);
     // A L2C/base output context may only be populated by its original. Preserve
     // that distinction: the entry context is null, never fabricated.
     const bool outputContext=hook==unsigned(ng::Kind::LocalToComponent)||hook==unsigned(ng::Kind::GroupBaseCS)||hook==unsigned(ng::Kind::SingleBaseCS);
@@ -127,7 +132,7 @@ static ng::Binding Bind(Reader& r,const Pool& pool,const Go& go,const Config& c,
     ng::ArrayHead h;std::vector<uint8_t> rows(size_t(c.bone_count)*compat::ReferenceBoneInfoBytes);
     if(!Read(asset+compat::AssetRefBoneInfoOffset,&h,sizeof(h))||h.num!=int32_t(c.bone_count)||!Read(h.data,rows.data(),rows.size()))throw std::runtime_error("reference table unavailable");
     for(unsigned i=0;i<c.bone_count;++i){const uint8_t* p=rows.data()+i*compat::ReferenceBoneInfoBytes;std::array<uint32_t,3> words{{ng::Get<uint32_t>(p,0),ng::Get<uint32_t>(p,compat::NameWordBytes),ng::Get<uint32_t>(p,compat::NameNumberOffset)}};std::string bone;
-        if(!FullName(r,pool,words,bone)||bone!=c.bone_names[i]||ng::Get<int32_t>(p,compat::ReferenceBoneParentOffset)!=c.parents[i])throw std::runtime_error("full reference topology differs");}
+        if(!FullName(r,pool,words,bone)||!ww_object::SameName(bone,c.bone_names[i])||ng::Get<int32_t>(p,compat::ReferenceBoneParentOffset)!=c.parents[i])throw std::runtime_error("full reference topology differs");}
     return b;
 }
 static Json HeadJson(const ng::ArrayHead& h){return {{"data",Hex(h.data)},{"num",h.num},{"capacity",h.capacity}};}
@@ -222,7 +227,7 @@ static DWORD WINAPI Worker(LPVOID){
         std::ifstream input(configPath,std::ios::binary);input>>cfg;
         std::string verificationError;
         if(!witness::CompatibleSource(cfg,compat::ProfileId,compat::SourceSha256,report["checks_performed"],verificationError))throw std::runtime_error(verificationError);
-        config=ParseConfig(cfg);report["host_sha256"]=kBuild;
+        config=ParseConfig(cfg);report["host_sha256"]=compat::SourceBuildSha256;
         MODULEINFO module{};if(!GetModuleInformation(GetCurrentProcess(),GetModuleHandleW(nullptr),&module,sizeof(module)))throw std::runtime_error("main module unavailable");
         const uint64_t image=reinterpret_cast<uint64_t>(module.lpBaseOfDll);report["image_base"]=Hex(image);
         std::vector<witness::Function> hookFunctions;

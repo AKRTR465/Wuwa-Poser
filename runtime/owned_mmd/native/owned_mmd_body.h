@@ -181,19 +181,192 @@ inline void ValidateCanonicalPose(const ActorRuntime& a){
         Require(!a.rotationMask[i]||std::fabs(norm-1)<=.001,"actor canonical rotation is not normalized");
     }
 }
-inline void InitializeActor(ActorRuntime& a,const Json& graph,const Json& profile,uint64_t window){auto& r=runtime;const auto& config=a.config;Reader reader;
+inline Json ReferenceLayoutCandidates(Reader& reader,const ActorRuntime& actor,const Pool& pool,const Go& objects,uint64_t controller){
+    const auto asset=actor.tokens[Asset].object;
+    const auto count=actor.boneNames.size();
+    Json result={{"slot",actor.slot},{"expected_count",count},{"execution_authorized",false},
+        {"reference_candidates",Json::array()},{"skeleton_pointer_offsets",Json::array()},
+        {"component_asset_offsets",Json::array()},{"component_anim_offsets",Json::array()},
+        {"morph_catalog_offsets",Json::array()}};
+    if(!count||count>fb::kLimit||actor.parents.size()!=count)return result;
+    for(uint64_t offset=ww_game_compat::ObjectHeaderBytes;offset<0x1200;offset+=8){
+        uint64_t pointer=0;
+        if(!reader.Get(actor.tokens[Mesh].object+offset,pointer))continue;
+        if(pointer==asset)result["component_asset_offsets"].push_back(Hex(offset));
+        if(pointer==actor.tokens[MainAnim].object)result["component_anim_offsets"].push_back(Hex(offset));
+    }
+    const auto expressions=actor.config.value("expression_target_names",std::vector<std::string>{});
+    for(uint64_t offset=ww_game_compat::ObjectHeaderBytes;offset<0x700;offset+=8){
+        uint64_t pointer=0;
+        if(reader.Get(asset+offset,pointer)&&pointer==actor.tokens[Skeleton].object)
+            result["skeleton_pointer_offsets"].push_back(Hex(offset));
+        ob::ArrayHead head;
+        if(!reader.Get(asset+offset,head)||!Pointer(head.data)||head.num<=0||head.max<head.num||head.max>int32_t(fb::kLimit)*2)continue;
+        if(size_t(head.num)==expressions.size()){
+            std::vector<uint64_t> pointers(expressions.size());
+            if(reader.Read(head.data,pointers.data(),pointers.size()*sizeof(uint64_t))){
+                std::vector<std::string> names;
+                for(const auto value:pointers){
+                    id::Identity morph;
+                    if(!id::ReadStable(reader,objects,value,&morph)||id::ClassName(reader,objects,pool,morph.cls)!="MorphTarget")break;
+                    names.push_back(id::Name(reader,pool,morph));
+                }
+                if(names.size()==expressions.size()&&std::is_permutation(names.begin(),names.end(),expressions.begin()))
+                    result["morph_catalog_offsets"].push_back(Hex(offset));
+            }
+        }
+        if(size_t(head.num)!=count)continue;
+        for(const size_t stride:{12u,16u,24u}){
+            std::vector<uint8_t> rows(count*stride);
+            if(!reader.Read(head.data,rows.data(),rows.size()))continue;
+            size_t matched=0;
+            for(;matched<count;++matched){
+                const auto* row=rows.data()+matched*stride;
+                if(At<int32_t>(row,stride==12?8:12)!=actor.parents[matched])break;
+                std::string name;
+                if(!id::DecodeName(reader,pool,At<uint32_t>(row,0),name))break;
+                const auto number=At<uint32_t>(row,stride==12?4:ww_game_compat::NameNumberOffset);
+                if(number)name+="_"+std::to_string(number-1);
+                if(!id::SameName(name,actor.boneNames[matched]))break;
+            }
+            ob::ArrayHead checked;
+            if(matched==count&&reader.Get(asset+offset,checked)&&checked.data==head.data&&checked.num==head.num&&checked.max==head.max)
+                result["reference_candidates"].push_back({{"offset",Hex(offset)},{"stride",stride},{"bone_count",count}});
+        }
+    }
+    namespace res=ww_game_compat_resolution;
+    MODULEINFO image{};
+    const auto module=GetModuleHandleW(nullptr);
+    if(!GetModuleInformation(GetCurrentProcess(),module,&image,sizeof(image)))return result;
+    const auto base=uint64_t(module);
+    const auto read=[&](uint64_t address,void* bytes,size_t size){return reader.Read(address,bytes,size);};
+    std::vector<res::Range> code;
+    std::string error;
+    if(!res::ExecutableRanges(read,base,image.SizeOfImage,code,error))return result;
+    // The archived GetBoneName loads the mesh pointer, bounds-checks
+    // the reference array, then reads a 16-byte bone entry.
+    const auto locate=[&](const char* hex,std::initializer_list<size_t> offsets,uint64_t& address){
+        res::Pattern pattern;
+        if(!res::ParsePattern(hex,"",pattern,error))throw std::logic_error(error);
+        for(const auto i:offsets)pattern.mask.at(i)=0;
+        const auto hit=res::FindUnique(read,code,pattern);
+        std::vector<uint8_t> actual(pattern.bytes.size());
+        address=0;
+        if(hit.status!=res::ScanStatus::Unique||!read(hit.address,actual.data(),actual.size())||!res::Matches(actual.data(),pattern))return std::vector<uint8_t>{};
+        address=hit.address;
+        return actual;
+    };
+    uint64_t address=0;
+    const auto boneName=locate("488b81d00500004885c0742b4585c07826443b80000000007d1d488b80000000004963c84803c9f20f1004c88b44c808",
+        {20,21,22,23,29,30,31,32},address);
+    if(!boneName.empty()){
+        const auto info=res::U32(boneName.data()+29);
+        const auto nameCount=res::U32(boneName.data()+20);
+        result["accessor_reference_offset"]=Hex(info);
+        result["accessor_count_matches"]=uint64_t(info)+8==nameCount;
+    }
+    const auto publication=locate("48895c2418555657488bec4883ec60488bf1e800000000488bcee800000000488d8e600f000033d2e800000000803d0000000000488b3d000000007415ff150000000033db3b05000000008bcb0f95c1",
+        {19,20,21,22,27,28,29,30,41,42,43,44,47,48,49,50,55,56,57,58,63,64,65,66,71,72,73,74},address);
+    if(!publication.empty()){
+        result["publication_candidate_rva"]=Hex(address-base);
+        result["mesh_vtable_rva"]=actor.tokens[Mesh].vtable>=base?Json(Hex(actor.tokens[Mesh].vtable-base)):Json(nullptr);
+        result["matching_publication_slots"]=Json::array();
+        for(uint64_t slot=0;slot<0x1000;slot+=8){
+            uint64_t target=0;
+            if(reader.Get(actor.tokens[Mesh].vtable+slot,target)&&target==address)
+                result["matching_publication_slots"].push_back(Hex(slot));
+        }
+    }
+    const auto morph=locate("48895c24084889742410f30f11542418574883ec20488d99f00e0000488bfa4c8bc2488bcb488d542448410fb6f1e82d43a3fb48634424484533c083",
+        {24,25,26,27,47,48,49,50},address);
+    if(!morph.empty()){
+        result["morph_candidate_rva"]=Hex(address-base);
+        result["morph_map_offset"]=Hex(res::U32(morph.data()+24));
+    }
+    const auto camera=locate("48895c242055488dac2420ebffffb8e0150000e8a8b7e201482be00f29b424d0150000488b057e1f25044833c448898570140000488bd90f28f1488b89b00200004883b938030000007416f6812c03000002740d488b01ff90c807000084c0",
+        {9,10,11,12,15,16,17,18,20,21,22,23,31,32,33,34,38,39,40,41,48,49,50,51,61,62,63,64,68,69,70,71,74,77,78,79,80,83,89,90,91,92},address);
+    if(!camera.empty())result["camera_candidate_rva"]=Hex(address-base);
+    uint64_t manager=0,cameraTarget=0;
+    id::Identity cameraIdentity;
+    if(controller&&reader.Get(controller+ww_game_compat::ControllerCameraManagerOffset,manager)&&id::ReadStable(reader,objects,manager,&cameraIdentity)&&
+        reader.Get(cameraIdentity.vtable+ww_game_compat::SlotUpdateCamera,cameraTarget)&&cameraTarget>=base&&cameraTarget-base<image.SizeOfImage){
+        result["camera_manager_class"]=id::ClassName(reader,objects,pool,cameraIdentity.cls);
+        result["camera_slot_target_rva"]=Hex(cameraTarget-base);
+    }
+    const auto frameTarget=[&](const std::vector<uint8_t>& bytes,uint64_t codeAddress,size_t offset){
+        if(bytes.empty())return uint64_t(0);
+        const auto displacement=At<int32_t>(bytes.data(),offset);
+        const auto target=int64_t(codeAddress-base)+int64_t(offset+4)+displacement;
+        if(target<0||uint64_t(target)>=image.SizeOfImage)return uint64_t(0);
+        return uint64_t(target);
+    };
+    const auto frameIncrement=locate("488b1dd6f1f20848ffc348891dccf1f208e8dfb86e0284c00f857e0000004038355dba1209751c40",
+        {3,4,5,6,13,14,15,16,18,19,20,21,26,27,28,29,33,34,35,36,38},address);
+    const auto loadFrame=frameTarget(frameIncrement,address,3);
+    const auto storeFrame=frameTarget(frameIncrement,address,13);
+    const auto frameTick=locate("488b038bd7488bcbff5008eb06488b01ff503048ff05ccea23050f28742420488b7c24484883c4305bc3",
+        {22,23,24,25},address);
+    const auto tickFrame=frameTarget(frameTick,address,22);
+    const auto frameLoop=locate("440f29842410010000f2440f1005a55f2c0348ff051e0f2605e851359dfeba03000000488bc84c8b0041ff5030",
+        {14,15,16,17,21,22,23,24,26,27,28,29},address);
+    const auto loopFrame=frameTarget(frameLoop,address,21);
+    result["frame_reference_rvas"]={Hex(loadFrame),Hex(storeFrame),Hex(tickFrame),Hex(loopFrame)};
+    const auto frame=loadFrame&&loadFrame==storeFrame?loadFrame:tickFrame;
+    if(frame&&(tickFrame==frame||loopFrame==frame)&&((loadFrame==frame&&storeFrame==frame)||(tickFrame==frame&&loopFrame==frame))){
+        uint64_t first=0,last=0;
+        if(reader.Get(base+frame,first)){
+            Sleep(100);
+            if(reader.Get(base+frame,last))result["frame_samples"]={first,last};
+        }
+        result["frame_candidate_rva"]=Hex(frame);
+    }
+    return result;
+}
+inline void InitializeActor(ActorRuntime& a,const Json& graph,const Json& profile,uint64_t window,uint64_t controller){auto& r=runtime;const auto& config=a.config;Reader reader;
     for(uint32_t i=0;i<Objects;++i)Require(id::ReadStable(reader,r.go,id::Rva(graph.at(kObjectKeys[i])),&a.tokens[i]),"actor graph unreadable");
     const auto ownership=graph.value("ownership",config.value("ownership",std::string("created")));
     Require(ownership=="borrowed"||ownership=="created","unknown actor ownership");
     a.ownership=ownership=="borrowed"?native_animation_target::OwnerPolicy::SceneTeamMember:native_animation_target::OwnerPolicy::OwnedUiActor;
     a.boneNames=config.at("bone_names").get<std::vector<std::string>>();a.parents=config.at("bone_parents").get<std::vector<int32_t>>();
     ob::ArrayHead ref;std::array<unsigned char,fb::kLimit*ww_game_compat::ReferenceBoneInfoBytes> reference{};
-    Require(reader.Get(a.tokens[Asset].object+ww_game_compat::AssetRefBoneInfoOffset,ref)&&ref.num==int32_t(a.boneNames.size())&&ref.num<=int32_t(fb::kLimit)&&reader.Read(ref.data,reference.data(),size_t(ref.num)*ww_game_compat::ReferenceBoneInfoBytes),"actor reference skeleton unreadable");
+    const bool refRead=reader.Get(a.tokens[Asset].object+ww_game_compat::AssetRefBoneInfoOffset,ref);
+    const auto reportReference=[&](const std::vector<std::string>* names=nullptr,const std::vector<int32_t>* parents=nullptr){
+        try{
+            auto diagnostic=ReferenceLayoutCandidates(reader,a,r.pool,r.go,controller);
+            diagnostic["configured_offset"]=Hex(ww_game_compat::AssetRefBoneInfoOffset);
+            diagnostic["configured_count"]=refRead?Json(ref.num):Json(nullptr);
+            if(names&&parents&&names->size()==a.boneNames.size()&&parents->size()==a.parents.size()){
+                diagnostic["bone_differences"]=Json::array();
+                for(size_t i=0;i<names->size();++i){
+                    if((*names)[i]==a.boneNames[i]&&(*parents)[i]==a.parents[i])continue;
+                    diagnostic["bone_differences"].push_back({{"index",i},{"expected_name",a.boneNames[i]},{"actual_name",(*names)[i]},
+                        {"expected_parent",a.parents[i]},{"actual_parent",(*parents)[i]}});
+                }
+            }
+            ww_report::Save(r.directory/L"reference_skeleton_diagnostic.json",diagnostic);
+        }catch(const std::exception&){/* Keep the original playback failure. */}
+    };
+    if(!refRead||ref.num<=0||ref.num!=int32_t(a.boneNames.size())||ref.num>int32_t(fb::kLimit)||
+        !reader.Read(ref.data,reference.data(),size_t(ref.num)*ww_game_compat::ReferenceBoneInfoBytes)){
+        reportReference();
+        throw std::runtime_error("actor reference skeleton unreadable");
+    }
     std::vector<std::string> names;std::vector<int32_t> parents;
-    for(int32_t i=0;i<ref.num;++i){const auto* row=reference.data()+size_t(i)*ww_game_compat::ReferenceBoneInfoBytes;std::string name;Require(id::DecodeName(reader,r.pool,At<uint32_t>(row,0),name),"actor bone name unavailable");
-        const auto number=At<uint32_t>(row,ww_game_compat::NameNumberOffset);if(number)name+="_"+std::to_string(number-1);names.push_back(name);parents.push_back(At<int32_t>(row,ww_game_compat::ReferenceBoneParentOffset));}
+    for(int32_t i=0;i<ref.num;++i){const auto* row=reference.data()+size_t(i)*ww_game_compat::ReferenceBoneInfoBytes;std::string name;
+        if(!id::DecodeName(reader,r.pool,At<uint32_t>(row,0),name)){
+            reportReference();
+            throw std::runtime_error("actor bone name unavailable");
+        }
+        const auto number=At<uint32_t>(row,ww_game_compat::NameNumberOffset);if(number)name+="_"+std::to_string(number-1);
+        const auto& expected=a.boneNames[size_t(i)];
+        names.push_back(id::SameName(name,expected)?expected:std::move(name));
+        parents.push_back(At<int32_t>(row,ww_game_compat::ReferenceBoneParentOffset));}
     sub::Manifest manifest;manifest.expected_count=uint32_t(a.boneNames.size());manifest.expected_names=a.boneNames;manifest.expected_parents=a.parents;
-    Require(fb::PrepareTopology(manifest,names,parents,&a.topology),"actor reference skeleton differs");a.motion=ReadClip(a.directory/config.at("local_clip_file").get<std::string>());
+    if(!fb::PrepareTopology(manifest,names,parents,&a.topology)){
+        reportReference(&names,&parents);
+        throw std::runtime_error("actor reference skeleton differs");
+    }
+    a.motion=ReadClip(a.directory/config.at("local_clip_file").get<std::string>());
     a.positions=config.at("canonical_local_positions").get<std::vector<std::array<float,3>>>();a.rotations=config.at("canonical_local_rotations").get<std::vector<std::array<float,4>>>();
     a.positionMask=config.at("canonical_position_mask").get<std::vector<uint8_t>>();a.rotationMask=config.at("canonical_rotation_mask").get<std::vector<uint8_t>>();
     ValidateCanonicalPose(a);
@@ -219,17 +392,18 @@ inline void Initialize(const std::filesystem::path& directory,const Json& graph,
         ww_report::Save(directory/L"game_compatibility.json",anchors);
         Require(anchors.value("status",std::string())=="anchors_cross_validated","current object/name anchors unresolved; see game_compatibility.json");
         const auto configs=r.multiActor?config.at("actors"):Json::array({config});Require(configs.is_array()&&!configs.empty(),"scene has no actors");
+        const auto controller=id::Rva(graph.contains("player_controller")?graph.at("player_controller"):config.at("camera_controller_address"));
         double duration=0;r.actors.reserve(configs.size());Json targets=Json::array();
         for(const auto& actorConfig:configs){if(!actorConfig.value("enabled",true))continue;auto actor=std::make_unique<ActorRuntime>();auto& a=*actor;a.config=actorConfig;a.slot=actorConfig.value("slot",actorConfig.value("target_slot",uint32_t(1)));
             a.directory=r.multiActor?directory/std::filesystem::u8path(actorConfig.value("actor_directory",std::string("actors/")+std::to_string(a.slot))):directory;
             const Json* actorGraph=&graph;if(r.multiActor){actorGraph=nullptr;for(const auto& row:graph.at("actors"))if(row.at("slot").get<uint32_t>()==a.slot){Require(!actorGraph,"duplicate graph actor slot");actorGraph=&row;}Require(actorGraph,"actor graph slot missing");}
             Json profile=legacyProfile;if(r.multiActor){std::ifstream file(a.directory/std::filesystem::u8path(actorConfig.value("character_profile_file",std::string("character_profile.json"))));Require(bool(file),"actor profile missing");profile=Json::parse(file);}
-            r.actors.push_back(std::move(actor));InitializeActor(a,*actorGraph,profile,window);duration=(std::max)(duration,a.motion.duration);
+            r.actors.push_back(std::move(actor));InitializeActor(a,*actorGraph,profile,window,controller);duration=(std::max)(duration,a.motion.duration);
             if(a.features.face_enabled)duration=(std::max)(duration,a.features.face_clip.duration);
             if(a.nativePhysics)targets.push_back({{"slot",a.slot},{"native_target_file",std::string("native_targets/")+std::to_string(a.slot)+"/native_target.json"},{"native_input_directory",std::string("native_inputs/")+std::to_string(a.slot)}});
         }
         Require(!r.actors.empty(),"scene has no enabled actors");FreezeActorIndices();r.cameraAnchor=FindSlot(config.value("camera_anchor_slot",r.actors.front()->slot));Require(r.cameraAnchor,"camera anchor slot missing");
-        ::Reader featureReader{GetCurrentProcess()};const auto controller=id::Rva(graph.contains("player_controller")?graph.at("player_controller"):config.at("camera_controller_address"));
+        ::Reader featureReader{GetCurrentProcess()};
         const auto pawn=id::Rva(graph.contains("player_pawn")?graph.at("player_pawn"):config.at("camera_pawn_address"));
         // Every actor anchors the camera so the follow target tracks the live
         // formation centroid. The VMD orbit prefers the managed stage origin
@@ -312,7 +486,7 @@ inline Json Status(){auto& r=runtime;WorkerLock lock;if(r.payloadReleased)return
         {"seconds",state.seconds},{"duration_seconds",state.duration_seconds},{"speed",state.speed},{"loop",state.loop},{"mode",r.closed.load()?"closed":ModeName(state.mode)},
         {"last_sequence",state.last_sequence},{"revision",state.revision},{"restore_requested",state.restore_requested||r.closing.load()},{"session_active",r.writing.load()&&!r.closing.load()},
         {"time_limit_seconds",state.time_limit_seconds},{"session_elapsed_seconds",state.session_elapsed_seconds},{"time_limit_reached",state.time_limit_reached||r.deadlineExpired.load()},
-        {"camera_mode",state.camera_mode},{"camera_track_height_cm",state.camera_track_height_cm},{"camera_anchor_slot",r.cameraAnchor?r.cameraAnchor->slot:0},{"camera_available",r.cameraFeatures.available},{"camera_clip_available",r.cameraFeatures.clip_available},{"camera_failed",r.cameraFeatures.failed.load()},
+        {"camera_mode",state.camera_mode},{"camera_track_height_cm",state.camera_track_height_cm},{"camera_anchor_slot",r.cameraAnchor?r.cameraAnchor->slot:0},{"camera_available",r.cameraFeatures.available},{"camera_clip_available",r.cameraFeatures.clip_available},{"camera_applied_frames",r.cameraFeatures.applied_frames.load()},{"camera_failed",r.cameraFeatures.failed.load()},
         {"camera_stage_reference_used",r.cameraFeatures.stage.present},{"camera_stage_floor_used",r.cameraFeatures.stage.present},
         {"formation_height_correction_cm",r.formationHeightCorrection.load()},{"ground_height_cm",r.formationHeightCorrection.load()},
         {"camera_anchor_coordinate_frame","world_local"},

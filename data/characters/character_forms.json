@@ -4,10 +4,10 @@
   "runtime_verified": false,
   "game_accessed": false,
   "counts": {
-    "base_selections": 80,
+    "base_selections": 82,
     "additional_forms": 4,
     "form_families": 4,
-    "combined_selections": 84
+    "combined_selections": 86
   },
   "sources": [
     {

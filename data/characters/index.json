@@ -1788,13 +1788,61 @@
       },
       "profile_path": "profiles/femalems--daniya-dark--r2t1daniyamd10011-up2.json",
       "profile_sha256": "00c9d6848347eab048aae0ed8adaefc47d4a4c32f807c2e087c4a96321c8887f"
+    },
+    {
+      "profile_id": "femalexl--taidaonv--r2t1taidaonvmd20011",
+      "model_id": "R2T1TaidaonvMd20011",
+      "character": "TaiDaoNv",
+      "body_type": "FemaleXL",
+      "mesh_asset_names": [
+        "R2T1TaidaonvMd20011"
+      ],
+      "skeleton_asset_name": "R2T1TaidaonvMd20011_Skeleton",
+      "skeleton_sha256": "6b374a417ceae75a80c029f327242698a8eb1f385839428f3d4b5ae05bbb3d49",
+      "bone_count": 367,
+      "alias_of": null,
+      "morph_count": 161,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalexl--taidaonv--r2t1taidaonvmd20011.json",
+      "profile_sha256": "26f71229b00c23c2e24b09d110b27830071c6197f22aad1a653673bf37134349"
+    },
+    {
+      "profile_id": "femalems--lili--r2t1lilimd10011",
+      "model_id": "R2T1LiliMd10011",
+      "character": "Lili",
+      "body_type": "FemaleMS",
+      "mesh_asset_names": [
+        "R2T1LiliMd10011"
+      ],
+      "skeleton_asset_name": "R2T1LiliMd10011_Skeleton",
+      "skeleton_sha256": "93a172b27c977df41a6df409c89d7f905f94c8d9c5416282da80a5414610e510",
+      "bone_count": 367,
+      "alias_of": null,
+      "morph_count": 176,
+      "capabilities": {
+        "body": true,
+        "expression": true,
+        "physics": true,
+        "camera": true,
+        "runtime_verified": false,
+        "extra_neck": false
+      },
+      "profile_path": "profiles/femalems--lili--r2t1lilimd10011.json",
+      "profile_sha256": "c9940fbd0fff78c11a450f9cc322062882addb76639d902f89a9cdf99120fde0"
     }
   ],
   "counts": {
-    "profiles": 74,
-    "primary_skeletons": 64,
+    "profiles": 76,
+    "primary_skeletons": 66,
     "aliases": 9,
-    "character_directories": 63
+    "character_directories": 64
   },
   "sources": {
     "roster_triples.json": {
@@ -1811,7 +1859,7 @@
     },
     "bone_chains.json": {
       "path": "bone_chains.json",
-      "sha256": "6c12da511156d5ffcd515d0ec547b7eadc7b7a26ee367246a8fb915d9a6ccc40"
+      "sha256": "55619b18a26070a21bfd6200aa1a7b774d0fdebe830000f9f466473531fbef94"
     },
     "runtime_character_meshes.json": {
       "path": "runtime_character_meshes.json",

@@ -15,7 +15,6 @@ namespace identity_carrier {
 namespace nb=native_identity_bootstrap;namespace ng=native_graph_discovery;
 namespace compat=ww_game_compat;namespace witness=ww_game_compat_witness;
 using Fn2=void(*)(void*,void*);using Fn3=void(*)(void*,void*,void*);using Allocator=int32_t(*)(void*,int32_t);
-constexpr const char* kBuild="c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18";
 static HMODULE selfModule=nullptr;static volatile LONG started=0;
 static nb::State bootstrapState;static Pool namePool;static std::atomic<bool> enabled{false};static std::atomic<unsigned> active{0};
 static std::array<std::atomic<uint64_t>,ng::kHooks> calls{};
@@ -86,7 +85,7 @@ static DWORD WINAPI Worker(LPVOID){
     wchar_t modulePath[32768]{};GetModuleFileNameW(selfModule,modulePath,32768);const auto directory=std::filesystem::path(modulePath).parent_path();
     const auto configPath=directory/L"observe_target.json",resultPath=directory/L"native_identity_bootstrap.json",statusPath=directory/L"logs"/L"carrier_status.json";
     Json report={{"schema",1},{"kind","native_identity_bootstrap"},{"phase","identity_registration"},{"status","error"},{"pid",GetCurrentProcessId()},
-        {"host_sha256",kBuild},{"archive_evidence_sha256",native_identity_witness::kSha},{"readonly",false},{"readonly_animation",true},
+        {"host_sha256",compat::SourceBuildSha256},{"archive_evidence_sha256",native_identity_witness::kSha},{"readonly",false},{"readonly_animation",true},
         {"pose_writes",0},{"alpha_writes",0},{"manual_serial_writes",0},{"native_update_calls",0},{"engine_getter_calls",0},
         {"vtable_writes_only",false},{"serial_metadata_registration",true},{"registry_metadata_mutation_only",true},
         {"serial_rollback_attempted",false},{"serial_restore_policy","engine_managed_no_rollback"},{"dll_retained_until_process_exit",true},
@@ -170,6 +169,27 @@ static DWORD WINAPI Worker(LPVOID){
     try{Reader reader{GetCurrentProcess()};report["busy_callbacks"]=bootstrapState.busy_callbacks.load();report["target_callbacks"]=bootstrapState.target_callbacks.load();report["rejected_callbacks"]=bootstrapState.rejected_callbacks.load();
         report["truncated"]=true;report["engine_serial_allocator_calls"]=nullptr;
         if(quiet){report["truncated"]=bootstrapState.truncated;report["engine_serial_allocator_calls"]=bootstrapState.native_calls;
+            const auto& context=bootstrapState.context_witness;
+            if(context.readable){
+                const auto& basis=bootstrapState.basis;
+                Json evidence={{"hook",ng::kSpecs[context.hook].name},{"expected_vtable_rva",Hex(ng::kSpecs[context.hook].vtable_rva)},
+                    {"actual_vtable_rva",context.vtable>=basis.image?Json(Hex(context.vtable-basis.image)):Json(nullptr)},
+                    {"matches",Json::array()},{"owner",TokenJson(reader,context.owner)},{"alternate_owner",TokenJson(reader,context.alternate_owner)},
+                    {"proxy",Hex(context.proxy)},{"candidate_pointers",Json::array()}};
+                for(unsigned i=0;i<context.proxy_words.size();++i){
+                    const auto ptr=context.proxy_words[i];const auto offset=Hex(i*sizeof(uint64_t));
+                    const char* role=ptr==basis.mesh.address?"mesh":ptr==basis.skeleton_asset.address?"skeleton":ptr==basis.main_candidate.address?"main_owner":nullptr;
+                    if(role)evidence["matches"].push_back({{"offset",offset},{"role",role}});
+                    if(i<0x90/sizeof(uint64_t)||!ng::Range(ptr,compat::AnimProxyMeshOffset+sizeof(uint64_t)))continue;
+                    uint64_t mesh=0,owner=0;
+                    if(reader.Get(ptr+compat::AnimProxyMeshOffset,mesh)&&mesh==basis.mesh.address&&reader.Get(ptr+compat::AnimProxyOwnerOffset,owner)&&owner==basis.main_candidate.address)
+                        evidence["matches"].push_back({{"offset",offset},{"role","main_proxy"}});
+                    ng::Token object;
+                    if(ng::CaptureToken(Read,basis.go,ptr,object,false))
+                        evidence["candidate_pointers"].push_back({{"offset",offset},{"object",TokenJson(reader,object)}});
+                }
+                report["callback_context_diagnostic"]=std::move(evidence);
+            }
             for(unsigned i=0;i<bootstrapState.support_count;++i){const auto& owner=bootstrapState.supports[i];report["support_registrations"].push_back({
                 {"role",i==0?"mesh_asset":"skeleton_asset"},{"before",TokenJson(reader,owner.before)},{"after",TokenJson(reader,owner.after)},
                 {"status",owner.accepted?(owner.allocator_called?"registered":"already_assigned"):"rejected"},{"allocator_called",owner.allocator_called},

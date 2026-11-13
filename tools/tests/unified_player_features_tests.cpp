@@ -8,6 +8,8 @@
 namespace feature=unified_player_features;
 namespace play=wwp_playback;
 namespace sub=wwp_ue::subtree_rotation;
+constexpr auto kCurrentPov=ww_game_compat::CameraCacheOffset+ww_game_compat::CameraPovOffset;
+constexpr auto kPreviousPov=ww_game_compat::CameraLastCacheOffset+ww_game_compat::CameraPovOffset;
 static unsigned assertions=0,morph_calls=0;
 static void Check(bool condition,const char* message){++assertions;if(!condition){std::cerr<<message<<'\n';std::exit(1);}}
 static bool Near(double x,double y){return std::fabs(x-y)<.001;}
@@ -32,7 +34,7 @@ struct Fixture {
             Put(uint64_t(items[i].data()),a);Put(uint64_t(items[i].data())+16,100+i);}
         Put(Object(0)+0x2e8,Object(1));Put(Object(0)+0x340,Object(1));Put(Object(0)+0x360,Object(2));Put(Object(1)+0x310,Object(4));
         for(unsigned mesh:{3u,4u}){Put(Object(mesh)+0x5d0,Object(5));Transform(Object(mesh)+0x1e0,mesh==3?100.f:0.f);}
-        morph_targets[0]=Object(6);Put(Object(5)+0x368,play::face_snapshot::ArrayHead{uint64_t(morph_targets.data()),1,1});
+        morph_targets[0]=Object(6);Put(Object(5)+ww_game_compat::AssetMorphArrayOffset,play::face_snapshot::ArrayHead{uint64_t(morph_targets.data()),1,1});
         Put(Object(3)+0xef0,uint64_t(weight_row.data()));Put(Object(3)+0xef8,uint32_t(1));Put(Object(3)+0xf00,uint8_t(1));
         Put(uint64_t(weight_row.data())+12,.2f);
         Transform(uint64_t(first_pose.data()),20);Transform(uint64_t(second_pose.data()),200);
@@ -41,8 +43,8 @@ struct Fixture {
             Put(Object(mesh)+0x6c0,int32_t(0));Put(Object(mesh)+0x6c4,int32_t(0));}
         NativeCamera({0,10,20});
     }
-    void NativeCamera(std::array<float,3> position){for(unsigned base:{0x2e50u,0x38f0u}){Put(Object(2)+base,position);Put(Object(2)+base+12,std::array<float,3>{0,0,0});Put(Object(2)+base+24,60.f);}}
-    std::array<float,3> CameraPosition(){return Get<std::array<float,3>>(Object(2)+0x2e50);}
+    void NativeCamera(std::array<float,3> position){for(unsigned base:{kCurrentPov,kPreviousPov}){Put(Object(2)+base,position);Put(Object(2)+base+12,std::array<float,3>{0,0,0});Put(Object(2)+base+24,60.f);}}
+    std::array<float,3> CameraPosition(){return Get<std::array<float,3>>(Object(2)+kCurrentPov);}
 };
 // A fixture setter implements the one-key map touched by the real FaceFrame.
 // The shared callback invokes this local function instead of a game RVA.
@@ -51,6 +53,8 @@ static void FixtureMorph(void* mesh,const uint32_t* name,float weight,bool remov
     std::memcpy((void*)row,name,12);Put(row+12,weight);Put(address+0xf00,uint8_t(remove&&weight<=1e-8f?0:1));
 }
 static void DirectTest(Fixture& f){
+    Check(ww_object::SameName("Facial_FaceLine_a_01_M","Facial_FaceLine_A_01_M")&&
+        !ww_object::SameName("Facial_FaceLine_a_01_M","Facial_FaceLine_A_02_M"),"reference names ignore display case and retain numeric suffixes");
     play::local_clip::Clip clip;clip.bone_count=1;clip.frame_count=1;clip.fps=60;clip.duration=1;clip.frames.resize(1);
     clip.frames[0].mask=3;clip.frames[0].translation_delta[0]=5;clip.frames[0].translation_delta[2]=2;
     wwp_ue::full_body::Topology topology;topology.count=1;topology.parents[0]=-1;wwp_ue::full_body::Request request;
@@ -123,8 +127,8 @@ static void CameraTest(Fixture& f){
     c->clip_available=true;c->clip.duration=1;c->clip.source_keys.resize(1);c->clip.source_keys[0].distance=-10;c->clip.source_keys[0].fov=45;
     state.camera_mode=2;state.placement_x=0;f.NativeCamera({0,10,20});
     Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2)),"VMD mode samples a camera source key");
-    Check(Near(f.CameraPosition()[0],100)&&Near(f.CameraPosition()[2],-10)&&Near(Get<float>(f.Object(2)+0x2e68),45),"VMD sample uses the selected actor anchor and lens");
-    Put(f.Object(2)+0x2e50,std::array<float,3>{888,77,66});
+    Check(Near(f.CameraPosition()[0],100)&&Near(f.CameraPosition()[2],-10)&&Near(Get<float>(f.Object(2)+(kCurrentPov+ww_game_compat::CameraFovOffset)),45),"VMD sample uses the selected actor anchor and lens");
+    Put(f.Object(2)+kCurrentPov,std::array<float,3>{888,77,66});
     Check(feature::CameraFrame(*c,f.reader,state,false,f.Object(2))&&Near(f.CameraPosition()[0],888),"camera restore preserves a newer native camera field");
     state.camera_mode=0;Put(uint64_t(f.items[3].data())+16,uint32_t(999));
     Check(!feature::CameraFrame(*c,f.reader,state,true,f.Object(2)),"camera anchor identity replacement is rejected");
@@ -168,7 +172,7 @@ static void FormationCameraTest(Fixture& f){
     f.NativeCamera({0,10,20});state.mode=play::PlayerMode::Paused;state.camera_mode=2;state.placement_x=0;
     c->clip_available=true;c->clip.duration=1;c->clip.source_keys.resize(1);c->clip.source_keys[0].distance=-10;c->clip.source_keys[0].fov=45;
     Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2)),"VMD mode samples a formation camera key");
-    Check(Near(f.CameraPosition()[0],100)&&Near(f.CameraPosition()[2],-10)&&Near(Get<float>(f.Object(2)+0x2e68),45),
+    Check(Near(f.CameraPosition()[0],100)&&Near(f.CameraPosition()[2],-10)&&Near(Get<float>(f.Object(2)+(kCurrentPov+ww_game_compat::CameraFovOffset)),45),
         "without a stage reference the VMD orbit falls back to the first actor's stage spot");
     state.camera_mode=0;Put(uint64_t(f.items[4].data())+16,uint32_t(999));
     Check(!feature::CameraFrame(*c,f.reader,state,true,f.Object(2)),"any formation anchor identity replacement is rejected");
@@ -197,7 +201,7 @@ static void FormationCameraTest(Fixture& f){
     Check(feature::CameraFrame(*staged,f.reader,state,true,f.Object(2))&&
         Near(f.CameraPosition()[0],-1989)&&Near(f.CameraPosition()[1],3000)&&Near(f.CameraPosition()[2],-4005),
         "an already-captured VMD orbit follows a three-axis world-origin rebase without global stage drift");
-    Check(Get<std::array<float,3>>(f.Object(2)+0x38f0)==f.CameraPosition(),"both camera caches receive the same rebased local position");
+    Check(Get<std::array<float,3>>(f.Object(2)+kPreviousPov)==f.CameraPosition(),"both camera caches receive the same rebased local position");
     Check(feature::CameraFrame(*staged,f.reader,state,false,f.Object(2))&&!feature::CameraPending(*staged),"stage-referenced camera stop drains owned POV fields");
     Check(Near(f.CameraPosition()[0],-2000)&&Near(f.CameraPosition()[1],3010)&&Near(f.CameraPosition()[2],-3980),
         "camera stop restores the rebased native baseline");
@@ -213,14 +217,14 @@ static void CameraTrackHeightTest(Fixture& f){
     for(double seconds:{0.,.25,.8,1.4,2.,.25}){
         state.seconds=seconds;state.camera_track_height_cm=0;f.NativeCamera({0,10,20});
         Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2)),"baseline VMD track samples at any paused cursor");
-        const auto base=f.CameraPosition();const auto rotation=Get<std::array<float,3>>(f.Object(2)+0x2e5c);const auto fov=Get<float>(f.Object(2)+0x2e68);
+        const auto base=f.CameraPosition();const auto rotation=Get<std::array<float,3>>(f.Object(2)+(kCurrentPov+ww_game_compat::CameraRotationOffset));const auto fov=Get<float>(f.Object(2)+(kCurrentPov+ww_game_compat::CameraFovOffset));
         state.camera_track_height_cm=125;f.NativeCamera({0,10,20});
         Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2))&&Near(f.CameraPosition()[0],base[0])&&Near(f.CameraPosition()[1],base[1])&&Near(f.CameraPosition()[2],base[2]+125),"whole-track offset adds the same world Z at every cursor, independent of source rotation and scale");
-        Check(Get<std::array<float,3>>(f.Object(2)+0x2e5c)==rotation&&Get<float>(f.Object(2)+0x2e68)==fov,"track translation preserves authored angles and FOV");
+        Check(Get<std::array<float,3>>(f.Object(2)+(kCurrentPov+ww_game_compat::CameraRotationOffset))==rotation&&Get<float>(f.Object(2)+(kCurrentPov+ww_game_compat::CameraFovOffset))==fov,"track translation preserves authored angles and FOV");
         Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2))&&Near(f.CameraPosition()[2],base[2]+125),"paused repeated sampling never accumulates track height");
         state.camera_track_height_cm=-75;f.NativeCamera({0,10,20});
         Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2))&&Near(f.CameraPosition()[2],base[2]-75),"negative height translates the complete track downward");
-        Check(Get<std::array<float,3>>(f.Object(2)+0x38f0)==f.CameraPosition(),"both camera caches receive the translated track");
+        Check(Get<std::array<float,3>>(f.Object(2)+kPreviousPov)==f.CameraPosition(),"both camera caches receive the translated track");
     }
     state.camera_track_height_cm=0;f.NativeCamera({0,10,20});feature::CameraFrame(*c,f.reader,state,true,f.Object(2));const auto callbackBase=f.CameraPosition();
     CallbackFixture events{&f};callback_fixture=&events;c->original=&SyntheticCameraOriginal;c->observing=true;auto* previous=feature::owned_camera;feature::owned_camera=c.get();
@@ -254,5 +258,25 @@ static void GazeTest(){
     Check(split.independent&&Near(weights[8],1)&&Near(weights[10],1)&&Near(weights[9]+weights[11]+weights[2]+weights[3],0),"independent gaze preserves convergence without double-driving common shapes");
     Check(gaze::Build({"A"}).channels.empty(),"missing pupil targets are unsupported, not guessed");
 }
-int main(){auto fixture=std::make_unique<Fixture>();DirectTest(*fixture);FaceTest(*fixture);GazeTest();CameraTest(*fixture);FormationCameraTest(*fixture);CameraCallbackTest(*fixture);CameraTrackHeightTest(*fixture);
-    std::cout<<assertions<<" synthetic feature assertions passed; game_accessed=false; hooks_installed=false\n";}
+static void ClothingProfilesTest(const std::filesystem::path& data) {
+    for(const auto* id:{"femalems--lili--r2t1lilimd10011","femalexl--taidaonv--r2t1taidaonvmd20011"}) {
+        std::ifstream input(data/"characters"/"profiles"/(std::string(id)+".json"),std::ios::binary);
+        Json profile;input>>profile;
+        const auto names=profile.at("bone_names").get<std::vector<std::string>>();
+        const auto parents=profile.at("bone_parents").get<std::vector<int32_t>>();
+        const auto angular=play::ww_secondary::ReadCharacterProfile(data/"bone_chains.json",names,parents,
+            profile.at("physics_model_id").get<std::string>());
+        Check(angular.bone_count==names.size()&&angular.chain_count>0,"3.8 clothing profiles bind to their exact skeletons");
+        std::vector<sub::TransformBytes> pose(names.size());
+        for(size_t i=0;i<pose.size();++i)Transform(uint64_t(pose[i].data()),float(i));
+        const auto prepared=play::ww_chain::Prepare(angular,names,pose.data());
+        Check(prepared.capsule_count==4&&std::any_of(prepared.particles.begin(),prepared.particles.end(),
+            [](const auto& particle){return particle.enabled&&!particle.pinned;}),
+            "3.8 clothing profiles produce simulated descendants and collision capsules");
+    }
+}
+int wmain(int argc,wchar_t** argv){
+    auto fixture=std::make_unique<Fixture>();DirectTest(*fixture);FaceTest(*fixture);GazeTest();CameraTest(*fixture);FormationCameraTest(*fixture);CameraCallbackTest(*fixture);CameraTrackHeightTest(*fixture);
+    Check(argc==2,"expected the repository data directory");
+    ClothingProfilesTest(argv[1]);
+    std::cout<<assertions<<" feature assertions passed; game_accessed=false; hooks_installed=false\n";}

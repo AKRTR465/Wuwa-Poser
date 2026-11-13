@@ -2,6 +2,7 @@
 #include "mono_owned_public_facade.h"
 #include "owned_mmd_body.h"
 #include "owned_recovery.h"
+#include "../../../probes/v20_recon/game_thread_diagnostics.h"
 #include <atomic>
 #include <functional>
 
@@ -74,10 +75,34 @@ static DWORD WINAPI Worker(LPVOID){
         util::Require(layout.value("compatibility_profile",std::string())==ww_game_compat::ProfileId&&
             layout.value("compatibility_source_sha256",std::string())==ww_game_compat::SourceSha256,"runtime layout and compiled compatibility profile differ; rebuild the runtime package");
         out["compatibility_profile"]=ww_game_compat::ProfileId;out["compatibility_source_sha256"]=ww_game_compat::SourceSha256;
-        Reader threadReader{GetCurrentProcess()};uint32_t registeredThread=0;uint8_t threadInitialized=0;
-        util::Require(threadReader.Get(host+ww_object::Rva(layout.at("registered_game_thread_id_rva")),registeredThread)&&
-            threadReader.Get(host+ww_object::Rva(layout.at("registered_game_thread_initialized_rva")),threadInitialized)&&
-            registeredThread==config.thread&&threadInitialized==1,"selected window thread is not registered GameThread");
+        Reader threadReader{GetCurrentProcess()};
+        const auto threadIdRva=ww_object::Rva(layout.at("registered_game_thread_id_rva"));
+        const auto initializedRva=ww_object::Rva(layout.at("registered_game_thread_initialized_rva"));
+        uint32_t registeredThread=0;
+        uint8_t threadInitialized=0;
+        const bool idRead=threadReader.Get(host+threadIdRva,registeredThread);
+        const bool initializedRead=threadReader.Get(host+initializedRva,threadInitialized);
+        const char* threadStatus=!idRead||!initializedRead?"read_failed":
+            threadInitialized!=1?"registration_flag_mismatch":
+            registeredThread!=config.thread?"thread_id_mismatch":"verified";
+        out["game_thread_check"]={{"status",threadStatus},{"window_thread_id",config.thread},
+            {"thread_id_rva",layout.at("registered_game_thread_id_rva")},
+            {"initialized_rva",layout.at("registered_game_thread_initialized_rva")},
+            {"registered_thread_id",idRead?Json(registeredThread):Json(nullptr)},
+            {"initialized_flag",initializedRead?Json(threadInitialized):Json(nullptr)}};
+        if (!idRead || !initializedRead || threadInitialized != 1 || registeredThread != config.thread) {
+            try {
+                MODULEINFO module{};
+                if (GetModuleInformation(GetCurrentProcess(),GetModuleHandleW(nullptr),&module,sizeof(module))) {
+                    const auto read = [&](Address address,void* data,size_t bytes){return threadReader.Read(address,data,bytes);};
+                    out["game_thread_check"]["relocation"] =
+                        ww_game_thread_diagnostics::Collect(read,host,module.SizeOfImage,config.thread);
+                }
+            } catch (const std::exception& error) {
+                out["game_thread_check"]["relocation"] = {{"status","error"},{"reason",error.what()}};
+            }
+            throw std::runtime_error("selected window thread is not registered GameThread");
+        }
         calls_ready.store(true,std::memory_order_release);
         run(owned::Action::BeginTarget);began=bridge.BeginEntered();
         while(!(loaded=dispatch(owned::Action::CheckLoaded))&&!Cancelled())Sleep(1000);

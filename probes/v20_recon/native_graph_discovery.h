@@ -25,6 +25,28 @@ constexpr HookSpec kSpecs[kHooks]={
 template<class T> inline T Get(const uint8_t* p,unsigned off){T v{};std::memcpy(&v,p+off,sizeof(v));return v;}
 inline bool Range(uint64_t address,size_t bytes){return bytes&&address>=ww_game_compat::PointerMinimum&&address<kTop&&bytes<=kTop-address;}
 struct GoView {uint64_t table=0;uint32_t count=0;};
+template<class Read> bool OwnsMainAnimation(Read&& read,uint64_t mesh,uint64_t owner){
+    uint64_t actual=0;
+    return read(mesh+ww_game_compat::ComponentMainAnimOffset,&actual,sizeof(actual))&&actual==owner;
+}
+template<class Read> bool ResolveMainProxy(Read&& read,uint64_t proxy,uint64_t owner,uint64_t mainOwner,
+    uint64_t mesh,uint64_t skeleton,uint64_t& mainProxy,uint64_t observedMainProxy=0){
+    mainProxy=0;
+    uint64_t actualMesh=0,actualSkeleton=0,actualOwner=0,alternateOwner=0;
+    // The target mesh's registered main animation instance directly identifies
+    // its own proxy. Linked instances still need a verified back-reference.
+    if(owner==mainOwner)mainProxy=proxy;
+    else if(observedMainProxy)mainProxy=observedMainProxy;
+    else if(!read(proxy+ww_game_compat::AnimProxyMainProxyOffset,&mainProxy,sizeof(mainProxy)))return false;
+    if(!Range(mainProxy,ww_game_compat::AnimProxyIdentityBytes)||
+       !read(mainProxy+ww_game_compat::AnimProxyOwnerOffset,&actualOwner,sizeof(actualOwner))||actualOwner!=mainOwner||
+       !read(mainProxy+ww_game_compat::AnimProxyOwnerAltOffset,&alternateOwner,sizeof(alternateOwner))||alternateOwner!=mainOwner||
+       !read(mainProxy+ww_game_compat::AnimProxyMeshOffset,&actualMesh,sizeof(actualMesh))||actualMesh!=mesh||
+       !read(mainProxy+ww_game_compat::AnimProxySkeletonOffset,&actualSkeleton,sizeof(actualSkeleton))||actualSkeleton!=skeleton)return false;
+    if(owner==mainOwner||observedMainProxy)return true;
+    uint64_t self=0;
+    return read(mainProxy+ww_game_compat::AnimProxyMainProxyOffset,&self,sizeof(self))&&self==mainProxy;
+}
 struct Token {uint64_t address=0,item=0;std::array<uint8_t,ww_game_compat::ObjectHeaderBytes> header{};std::array<uint8_t,ww_game_compat::ObjectItemBytes> item_bytes{};};
 inline uint32_t Index(const Token& t){return Get<uint32_t>(t.header.data(),ww_game_compat::ObjectIndexOffset);}
 inline uint32_t Serial(const Token& t){return Get<uint32_t>(t.item_bytes.data(),ww_game_compat::ObjectItemSerialOffset);}
@@ -94,21 +116,19 @@ struct Phase {
     uint8_t alpha_type=0,extra_active=0,external_route=0;float alpha=0,delta=0,update_delta=0;
     int32_t mapping_id=-1,root_snapshot_id=-1;
 };
-template<class Read> bool CapturePhase(Read&& read,const Binding& b,Kind kind,uint64_t node,uint64_t context,Phase& p,Mapping& mapping,RootSnapshot* roots=nullptr){
+template<class Read> bool CapturePhase(Read&& read,const Binding& b,Kind kind,uint64_t node,uint64_t context,Phase& p,Mapping& mapping,RootSnapshot* roots=nullptr,uint64_t observedMainProxy=0){
     p.node=node;p.context=context;const auto& spec=kSpecs[unsigned(kind)];
     if(!read(context+ww_game_compat::AnimContextProxyOffset,&p.proxy,sizeof(p.proxy))||!Range(p.proxy,ww_game_compat::AnimProxyObservationBytes)||!read(p.proxy+ww_game_compat::AnimProxyMeshOffset,&p.mesh,sizeof(uint64_t))||p.mesh!=b.mesh.address)return false;
-    if(!read(p.proxy+ww_game_compat::AnimProxyOwnerOffset,&p.owner_a0,sizeof(uint64_t))||!read(p.proxy+ww_game_compat::AnimProxyOwnerAltOffset,&p.owner_a8,sizeof(uint64_t))||!read(p.proxy+ww_game_compat::AnimProxyMainProxyOffset,&p.main_proxy,sizeof(uint64_t))||
+    if(!read(p.proxy+ww_game_compat::AnimProxyOwnerOffset,&p.owner_a0,sizeof(uint64_t))||!read(p.proxy+ww_game_compat::AnimProxyOwnerAltOffset,&p.owner_a8,sizeof(uint64_t))||
        !read(p.proxy+ww_game_compat::AnimProxySkeletonOffset,&p.skeleton,sizeof(uint64_t))||!read(p.proxy+ww_game_compat::AnimProxyFrameOffset,&p.frame,sizeof(uint64_t))||!read(p.proxy+ww_game_compat::AnimProxyCounterOffset,&p.counter,2)||
        !read(node,&p.vtable,sizeof(uint64_t))||!read(b.mesh.address+ww_game_compat::ComponentExternalRouteOffset,&p.external_route,1))return false;
     p.read=true;p.type_verified=p.vtable==b.image+spec.vtable_rva;
     p.binding_alive=true;p.owner_verified=CaptureToken(read,b.go,p.owner_a0,p.owner);
     p.owner_is_main=p.owner_a0==b.main_anim.address;
-    uint64_t mainOwner=0,mainMesh=0,mainSelf=0;
-    p.owner_role_verified=p.owner_verified&&p.owner_a8==p.owner_a0&&Range(p.main_proxy,ww_game_compat::AnimProxyObservationBytes)&&
-        read(p.main_proxy+ww_game_compat::AnimProxyOwnerOffset,&mainOwner,sizeof(uint64_t))&&mainOwner==b.main_anim.address&&
-        read(p.main_proxy+ww_game_compat::AnimProxyMeshOffset,&mainMesh,sizeof(uint64_t))&&mainMesh==b.mesh.address&&
-        read(p.main_proxy+ww_game_compat::AnimProxyMainProxyOffset,&mainSelf,sizeof(uint64_t))&&mainSelf==p.main_proxy&&
-        (!p.owner_is_main||p.proxy==p.main_proxy)&&
+    p.owner_role_verified=p.owner_verified&&p.owner_a8==p.owner_a0&&p.skeleton==b.skeleton_asset.address&&
+        Get<uint64_t>(p.owner.header.data(),ww_game_compat::ObjectOuterOffset)==b.mesh.address&&OwnsMainAnimation(read,b.mesh.address,b.main_anim.address)&&
+        ResolveMainProxy(read,p.proxy,p.owner_a0,b.main_anim.address,b.mesh.address,b.skeleton_asset.address,p.main_proxy,observedMainProxy)&&
+        Range(p.main_proxy,ww_game_compat::AnimProxyObservationBytes)&&
         read(p.main_proxy+ww_game_compat::AnimProxyFrameOffset,&p.main_frame,sizeof(uint64_t))&&read(p.main_proxy+ww_game_compat::AnimProxyCounterOffset,&p.main_counter,2);
     if(kind!=Kind::LocalToComponent&&p.type_verified){
         p.node_fields_read=read(node+ww_game_compat::KawaiiAlphaOffset,&p.alpha,4)&&read(node+ww_game_compat::KawaiiAlphaTypeOffset,&p.alpha_type,1)&&

@@ -10,10 +10,20 @@ static class CharacterFormChecks
         void Check(bool value, string label) { if (!value) throw new Exception(label); count++; }
         var catalog = OwnedCharacterCatalog.Load(root);
         var forms = catalog.Characters.Where(character => character.Form is not null).ToArray();
-        Check(forms.Length == 4 && catalog.Characters.Count == 84, "four source-backed forms extend the original role/skin catalog");
+        Check(forms.Length == 4 && catalog.Characters.Count == 86, "four source-backed forms extend the 3.8 role/skin catalog");
         var selected = forms.SelectMany(form => new[] { catalog.Select(form.CharacterId[..form.CharacterId.LastIndexOf("-form-", StringComparison.Ordinal)]), form }).ToArray();
         Check(selected.All(character => character.IndependentInstance), "both defaults and alternates of each form family require independent instances");
         var service = new PlaybackSessionService(root);
+        var additions = new[] { catalog.Select("role1512-skin81001512"), catalog.Select("role1108-skin81011108") };
+        var additionRequest = new PlaybackSessionRequest(additions.Select(character => new PlaybackActorRequest(body, face, CharacterId: character.CharacterId)).ToArray());
+        var additionPreparation = await service.PrepareAsync(additionRequest);
+        var additionDirectory = additionPreparation["session_dir"]!.GetValue<string>();
+        var additionConfig = OwnedMmdPlaybackService.Config(additionDirectory);
+        var additionActors = OwnedMmdPlaybackService.ActorConfigs(additionConfig);
+        Check(additionActors.Select(actor => actor["mesh_asset_name"]!.GetValue<string>())
+            .SequenceEqual(new[] { "R2T1LiliMd10011", "R2T1TaidaonvMd20011" }), "3.8 selections compile for their exact meshes");
+        Check(additionActors.All(actor => actor["native_physics"]!.GetValue<bool>() && actor["expression_enabled"]!.GetValue<bool>())
+            && OwnedMmdPlaybackService.NativeTargetRoutes(additionConfig, additionDirectory).Count == 2, "3.8 selections prepare expression and native physics");
         var request = new PlaybackSessionRequest(selected.Select((character, index) => new PlaybackActorRequest(body, face,
             CharacterId: character.CharacterId, Stage: new(index * 100, index * 10), Placement: new(OffsetX: index))).ToArray());
         var preparation = await service.PrepareAsync(request);

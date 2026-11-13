@@ -3,6 +3,13 @@ public sealed partial class NativeGraphService(string repoRoot)
 {
     private readonly string root = Path.GetFullPath(repoRoot);
     private readonly CharacterRegistry registry = new(repoRoot);
+    private JsonArray? VersionedWitnesses()
+    {
+        var path = Path.Combine(root, "data", "runtime_contracts", "native_functions_3_8.json");
+        if (!File.Exists(path)) return null;
+        var witness = JsonData.ReadObject(path);
+        return Contract.S(witness, "source_sha256") == GameCompat.SourceBuildSha256 ? Contract.A(witness, "functions") : null;
+    }
     private static readonly (string Label, ulong Rva)[] ObserverFunctions =
     [
         ("ConvertLocalToComponentEvaluate", GameCompat.FunctionLocalToComponentRva),
@@ -13,7 +20,9 @@ public sealed partial class NativeGraphService(string repoRoot)
 
     private JsonArray FunctionWitnesses(params (string Label, ulong Rva)[] functions)
     {
-        var rows = new[] { "native_kawaii.json", "native_activation.json" }.SelectMany(file => Contract.A(JsonData.ReadObject(Path.Combine(root, "data", "runtime_contracts", file)), "functions")).ToArray();
+        IEnumerable<JsonNode?>? rows = VersionedWitnesses();
+        rows ??= new[] { "native_kawaii.json", "native_activation.json" }
+            .SelectMany(file => Contract.A(JsonData.ReadObject(Path.Combine(root, "data", "runtime_contracts", file)), "functions"));
         return ResolveFunctionWitnesses(rows, functions);
     }
 
@@ -72,7 +81,7 @@ public sealed partial class NativeGraphService(string repoRoot)
         if (registration != null)
         {
             var contract = JsonData.ReadObject(registration);
-            contract["functions"] = ResolveFunctionWitnesses(Contract.A(contract, "functions"),
+            contract["functions"] = ResolveFunctionWitnesses(VersionedWitnesses() ?? Contract.A(contract, "functions"),
                 ("FUObjectArray_AllocateSerialNumber", GameCompat.FunctionAllocateSerialNumberRva),
                 ("FWeakObjectPtr_AssignObject", GameCompat.FunctionAssignWeakObjectRva));
             contract["source_archive_sha256"] = JsonData.Digest(registration);

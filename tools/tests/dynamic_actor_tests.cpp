@@ -11,7 +11,26 @@ namespace native=play::native_physics;
 static unsigned assertions=0;
 static void Check(bool value,const char* message){++assertions;if(!value){std::cerr<<message<<'\n';std::exit(1);}}
 static bool Near(double a,double b){return std::fabs(a-b)<1e-8;}
+static void CheckProxyIdentity(){
+    namespace ng=native_graph_discovery;
+    constexpr uint64_t proxy=0x100000, linked=0x110000, mainOwner=0x200000, linkedOwner=0x210000, mesh=0x300000, skeleton=0x400000;
+    std::unordered_map<uint64_t,uint64_t> fields{{proxy+ww_game_compat::AnimProxyOwnerOffset,mainOwner},
+        {proxy+ww_game_compat::AnimProxyOwnerAltOffset,mainOwner},{proxy+ww_game_compat::AnimProxyMeshOffset,mesh},
+        {proxy+ww_game_compat::AnimProxySkeletonOffset,skeleton},{linked+ww_game_compat::AnimProxyMainProxyOffset,proxy}};
+    const auto read=[&](uint64_t address,void* out,size_t size){const auto item=fields.find(address);
+        if(size!=sizeof(uint64_t)||item==fields.end())return false;
+        std::memcpy(out,&item->second,size);return true;};
+    uint64_t found=0;
+    Check(ng::ResolveMainProxy(read,proxy,mainOwner,mainOwner,mesh,skeleton,found)&&found==proxy,"registered main actor can identify its proxy directly");
+    Check(!ng::ResolveMainProxy(read,linked,linkedOwner,mainOwner,mesh,skeleton,found),"linked owner still requires the verified main back-reference");
+    Check(ng::ResolveMainProxy(read,linked,linkedOwner,mainOwner,mesh,skeleton,found,proxy)&&found==proxy,"linked owner can use an independently observed and revalidated main proxy");
+    fields[proxy+ww_game_compat::AnimProxyMainProxyOffset]=proxy;
+    Check(ng::ResolveMainProxy(read,linked,linkedOwner,mainOwner,mesh,skeleton,found)&&found==proxy,"linked owner resolves the same verified main proxy");
+    fields[proxy+ww_game_compat::AnimProxySkeletonOffset]=skeleton+8;
+    Check(!ng::ResolveMainProxy(read,proxy,mainOwner,mainOwner,mesh,skeleton,found),"mismatched skeleton blocks direct identification");
+}
 int main(){
+    CheckProxyIdentity();
     auto& runtime=scene::runtime;constexpr unsigned sampleActors=40;
     native::Registry registry;
     for(unsigned i=0;i<sampleActors;++i){auto actor=std::make_unique<scene::ActorRuntime>();
@@ -100,15 +119,20 @@ int main(){
         "a later accepted command publishes its own result instead of inheriting the preceding rejection");
     auto report=scene::Status();Check(report.at("actor_count")==40&&report.at("actors").size()==40,"status reports the actual dynamic actor set");
     Check(report.at("borrowed_count")==3&&report.at("created_count")==37,"status reports actual mixed ownership rather than request assumptions");
-    auto authority=std::make_unique<scene::ActorRuntime>();std::vector<uint8_t> mesh(0x920),asset(0xe0);
+    auto authority=std::make_unique<scene::ActorRuntime>();
+    std::vector<uint8_t> mesh((std::max)({ww_game_compat::ComponentOwnerOffset,ww_game_compat::ComponentAssetOffset,ww_game_compat::ComponentMainAnimOffset})+sizeof(uint64_t));
+    std::vector<uint8_t> asset(ww_game_compat::AssetSkeletonOffset+sizeof(uint64_t));
     authority->ownership=native_animation_target::OwnerPolicy::SceneTeamMember;
     authority->tokens[scene::Mesh].object=uint64_t(mesh.data());authority->tokens[scene::Asset].object=uint64_t(asset.data());
     authority->tokens[scene::Actor].object=101;authority->tokens[scene::Skeleton].object=202;authority->tokens[scene::MainAnim].object=303;
     const auto put=[](uint64_t address,uint64_t value){std::memcpy((void*)address,&value,8);};
-    put(uint64_t(mesh.data())+0xa8,101);put(uint64_t(mesh.data())+0x5d0,uint64_t(asset.data()));put(uint64_t(asset.data())+0xd8,202);put(uint64_t(mesh.data())+0x910,303);
+    put(uint64_t(mesh.data())+ww_game_compat::ComponentOwnerOffset,101);
+    put(uint64_t(mesh.data())+ww_game_compat::ComponentAssetOffset,uint64_t(asset.data()));
+    put(uint64_t(asset.data())+ww_game_compat::AssetSkeletonOffset,202);
+    put(uint64_t(mesh.data())+ww_game_compat::ComponentMainAnimOffset,303);
     native::Access access;access.read=[](void*,uintptr_t from,void* to,size_t size){std::memcpy(to,(void*)from,size);return true;};
     Check(scene::NativeAuthority(authority.get(),access),"borrowed actor authority uses its own live graph without requiring player control");
-    put(uint64_t(mesh.data())+0xa8,404);Check(!scene::NativeAuthority(authority.get(),access),"changed actor owner rejects publication authority");
+    put(uint64_t(mesh.data())+ww_game_compat::ComponentOwnerOffset,404);Check(!scene::NativeAuthority(authority.get(),access),"changed actor owner rejects publication authority");
     unsigned maintenanceCalls=0;
     const auto maintenance=[](void* value){++*static_cast<unsigned*>(value);return true;};
     // No camera target is available in this synthetic fixture, so installation

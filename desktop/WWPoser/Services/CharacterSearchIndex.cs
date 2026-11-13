@@ -24,12 +24,12 @@ public sealed class CharacterSearchIndex
         ["守岸人"] = ["shou an ren"], ["菲比"] = ["fei bi"], ["赞妮"] = ["zan ni"], ["千咲"] = ["qian xiao"],
         ["琳奈"] = ["lin nai"], ["陆"] = ["lu"], ["赫斯"] = ["he si"], ["露西"] = ["lu xi"], ["桃祈"] = ["tao qi"],
         ["丹瑾"] = ["dan jin"], ["椿"] = ["chun"], ["洛可可"] = ["luo ke ke"], ["坎特蕾拉"] = ["kan te lei la"],
-        ["弗洛洛"] = ["fu luo luo"], ["玄翎"] = ["xuan ling"],
+        ["弗洛洛"] = ["fu luo luo"], ["玄翎"] = ["xuan ling"], ["莉莉"] = ["li li", "lily"],
         ["默认"] = ["mo ren"], ["男"] = ["nan"], ["女"] = ["nv"], ["导电"] = ["dao dian"], ["气动"] = ["qi dong"],
         ["衍射"] = ["yan she"], ["湮灭"] = ["yan mie", "yin mie"], ["叱妖诰"] = ["chi yao gao"],
         ["夏日旖旎"] = ["xia ri yi ni"], ["桂枝宁芙"] = ["gui zhi ning fu"], ["呢绒梦"] = ["ni rong meng"],
         ["桃夭灼灼"] = ["tao yao zhuo zhuo"], ["星火永明"] = ["xing huo yong ming"], ["城市午茶"] = ["cheng shi wu cha"],
-        ["蜜桃冰"] = ["mi tao bing"], ["薄荷糖"] = ["bo he tang"], ["机甲"] = ["ji jia"],
+        ["蜜桃冰"] = ["mi tao bing"], ["薄荷糖"] = ["bo he tang"], ["月沉霜"] = ["yue chen shuang"], ["机甲"] = ["ji jia"],
         ["特殊形态"] = ["te shu xing tai"], ["芙露德莉斯"] = ["fu lu de li si"]
     };
     private static readonly string[] Phrases = Readings.Keys.OrderByDescending(word => word.Length).ToArray();

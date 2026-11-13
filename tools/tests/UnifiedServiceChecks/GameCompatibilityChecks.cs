@@ -15,6 +15,25 @@ static class GameCompatibilityChecks
             throw new Exception(reason);
         }
 
+        const string threadFailure = "selected window thread is not registered GameThread";
+        var threadResult = new JsonObject { ["reason"] = threadFailure };
+        Check(OwnedMmdPlaybackService.StartupFailure(threadResult) == "无法确认当前鸣潮窗口线程是游戏线程",
+            "legacy thread-check reports have a readable fallback");
+        var threadCheck = new JsonObject();
+        threadResult["worker_result"] = new JsonObject { ["game_thread_check"] = threadCheck };
+        foreach (var (status, expected) in new[]
+        {
+            ("read_failed", "无法读取当前兼容配置的游戏线程登记字段"),
+            ("registration_flag_mismatch", "当前兼容配置读取到的游戏线程登记标记不符合预期"),
+            ("thread_id_mismatch", "当前兼容配置读取到的游戏线程 ID 与窗口线程 ID 不一致")
+        })
+        {
+            threadCheck["status"] = status;
+            Check(OwnedMmdPlaybackService.StartupFailure(threadResult) == expected, "thread check explains " + status);
+        }
+        Check(OwnedMmdPlaybackService.StartupFailure(new JsonObject { ["reason"] = "other failure" }) == "other failure",
+            "unrelated startup errors keep the original report");
+
         var root = Path.Combine(fixture, "compatibility-relocated-functions");
         var contracts = Path.Combine(root, "data", "runtime_contracts");
         var observers = Path.Combine(root, "probes", "v20_recon");
@@ -89,6 +108,21 @@ static class GameCompatibilityChecks
             "identity configuration hashes the actual staged contract");
         Check(JsonData.Digest(identityArchivePath) == identityArchiveDigest && Contract.S(identityContract, "source_archive_sha256") == identityArchiveDigest,
             "identity staging preserves the original archive and records its provenance");
+
+        var currentArchive = Path.Combine(contracts, "native_functions_3_8.json");
+        var currentFunctions = new JsonArray(archive.Concat(identityFunctions).Select(row => row?.DeepClone()).ToArray());
+        currentFunctions[0]!["function_bytes_hex"] = "88aabb";
+        currentFunctions[archive.Count]!["function_bytes_hex"] = "5566aabb";
+        currentFunctions.RemoveAt(currentFunctions.Count - 1);
+        JsonData.Write(currentArchive, new JsonObject { ["source_sha256"] = "different-build", ["functions"] = currentFunctions.DeepClone() });
+        Check(service.InputWitnesses()[0]!["function_bytes_hex"]!.GetValue<string>() == "00aabb", "a witness archive for a different build is ignored");
+        JsonData.Write(currentArchive, new JsonObject { ["source_sha256"] = GameCompat.SourceBuildSha256, ["functions"] = currentFunctions });
+        Check(service.InputWitnesses()[0]!["function_bytes_hex"]!.GetValue<string>() == "88aabb", "current-build function evidence takes precedence");
+        var currentStage = Path.Combine(root, "identity-current");
+        service.PrepareIdentity(source, currentStage, 123);
+        var currentContract = JsonData.ReadObject(Path.Combine(currentStage, "native_identity_registration_contract.json"));
+        Check(Contract.A(currentContract, "functions")[0]!["function_bytes_hex"]!.GetValue<string>() == "5566aabb", "identity staging uses the current-build allocator witness");
+        File.Delete(currentArchive);
 
         var removedIdentity = identityFunctions[1]!.DeepClone(); identityFunctions.RemoveAt(1); SaveIdentityArchive();
         Reject(() => service.PrepareIdentity(source, Path.Combine(root, "identity-missing"), 123), "missing identity semantic byte evidence must be rejected");

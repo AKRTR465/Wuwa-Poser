@@ -34,6 +34,9 @@ internal static class CharacterSearchUiChecks
         Check(Ids("pbz nv").SequenceEqual(Ids("漂泊者 女")) && Ids("nv").SequenceEqual(Ids("nǚ")),
             "Rover variants can be narrowed by gender, including accented u-umlaut pinyin");
         Check(index.Search("dny dark").Single().CharacterId.EndsWith("-form-dark"), "Latin form labels combine with role initials");
+        Check(Ids("lily").SequenceEqual(new[] { "role1512-skin81001512" })
+            && Ids("fei xue yue chen shuang").SequenceEqual(new[] { "role1108-skin81011108" }),
+            "3.8 role and skin resolve by English name and pinyin");
         Check(index.Search(" ").Count == catalog.Characters.Count && index.Search("not-a-real-character").Count == 0,
             "empty search restores the catalog and unmatched text yields no candidates");
         Check(catalog.Characters.All(character => CharacterSearchIndex.Romanize(character.DisplayName)

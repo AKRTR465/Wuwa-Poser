@@ -37,10 +37,12 @@ class Bridge {
         const auto compatibility=find_method(klass,"VerifyCompatibility",0);
         Require(compatibility,"loaded actor helper lacks compatibility verification; restart the game once");
         const auto bind_session=find_method(klass,"BindSession",0);Require(bind_session,"loaded owned helper lacks session isolation; restart the game once");
-        Call(compatibility);
+        Call(compatibility,"loaded actor helper uses a different compatibility configuration; restart the game after updating Wuwa Poser");
         bind_session_=bind_session;
     }
-    void Call(Method* method){Object* exception=nullptr;invoke_(method,nullptr,nullptr,&exception);Require(!exception,"owned helper raised managed exception");}
+    void Call(Method* method,const char* failure="owned helper raised managed exception"){
+        Object* exception=nullptr;invoke_(method,nullptr,nullptr,&exception);Require(!exception,failure);
+    }
 public:
     bool BeginEntered()const noexcept{return entry_.begin_entered;}
     void Run(const std::string& helper,Action action){

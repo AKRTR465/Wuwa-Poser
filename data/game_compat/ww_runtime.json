@@ -1,100 +1,100 @@
 {
   "schema": 1,
-  "profile_id": "wuwa-current-layout-v1",
+  "profile_id": "wuwa-3.8.0-physics-check-v1",
   "source_baseline": "d94f861577e38efe9a07454de6463a4165d83804",
   "description": "Version-sensitive game constants. Generated language bindings and deployed layout are derived from this file. Character resource profiles remain separate.",
   "native": {
     "GObjectsRva": {
       "type": "u64",
-      "value": "0x99a3ff0"
+      "value": "0x970d150"
     },
     "NamePoolRva": {
       "type": "u64",
-      "value": "0x9967340"
+      "value": "0x96d04c0"
     },
     "EngineFrameRva": {
       "type": "u64",
-      "value": "0x992f2d8"
+      "value": "0x9698458"
     },
     "ObjectArrayRva": {
       "type": "u64",
-      "value": "0x99a3fe0"
+      "value": "0x970d140"
     },
     "FunctionAllocateSerialNumberRva": {
       "type": "u64",
-      "value": "0x33f11d0"
+      "value": "0x30f3e80"
     },
     "FunctionAssignWeakObjectRva": {
       "type": "u64",
-      "value": "0x3404280"
+      "value": "0x3106f30"
     },
     "FunctionLocalToComponentRva": {
       "type": "u64",
-      "value": "0x4e0ba10"
+      "value": "0x4b14450"
     },
     "FunctionSharedSkeletalControlEvaluateCSRva": {
       "type": "u64",
-      "value": "0x49a34d0"
+      "value": "0x46a8910"
     },
     "FunctionSharedSkeletalControlUpdateRva": {
       "type": "u64",
-      "value": "0x49dd440"
+      "value": "0x46e2880"
     },
     "FunctionGroupEvaluateRva": {
       "type": "u64",
-      "value": "0xa3db40"
+      "value": "0xa567f0"
     },
     "FunctionGroupInitializeBoneReferencesRva": {
       "type": "u64",
-      "value": "0xa40710"
+      "value": "0xa593c0"
     },
     "FunctionGroupInitializeModifyBonesRva": {
       "type": "u64",
-      "value": "0xa3fc60"
+      "value": "0xa58910"
     },
     "FunctionComponentSpaceTransformGetterRva": {
       "type": "u64",
-      "value": "0xa3f270"
+      "value": "0xa57f20"
     },
     "FunctionAnimInstanceRootEvaluationCounterRva": {
       "type": "u64",
-      "value": "0x4dedaa0"
+      "value": "0x4af5f30"
     },
     "FunctionCachedPoseEvaluationCounterRva": {
       "type": "u64",
-      "value": "0x4e0d850"
+      "value": "0x4b16290"
     },
     "FunctionSkeletalControlLODAllowedRva": {
       "type": "u64",
-      "value": "0x4e1abc0"
+      "value": "0x4b23790"
     },
     "FunctionGroupIsValidToEvaluateRva": {
       "type": "u64",
-      "value": "0xa40a50"
+      "value": "0xa59700"
     },
     "FunctionSharedUpdateInternalRva": {
       "type": "u64",
-      "value": "0xa44ae0"
+      "value": "0xa5d4d0"
     },
     "FunctionSetMorphTargetRva": {
       "type": "u64",
-      "value": "0x5009b50"
+      "value": "0x4d13810"
     },
     "FunctionUpdateCameraRva": {
       "type": "u64",
-      "value": "0x542faa0"
+      "value": "0x51d6560"
     },
     "VtableLocalToComponentRva": {
       "type": "u64",
-      "value": "0x83ec178"
+      "value": "0x813b708"
     },
     "VtableKawaiiPhysicsGroupRva": {
       "type": "u64",
-      "value": "0x7405e28"
+      "value": "0x71c8828"
     },
     "VtableKawaiiPhysicsSingleRva": {
       "type": "u64",
-      "value": "0x7405cf0"
+      "value": "0x71c86f0"
     },
     "PointerMinimum": {
       "type": "u64",
@@ -346,15 +346,15 @@
     },
     "AssetSkeletonOffset": {
       "type": "u32",
-      "value": "0xd8"
+      "value": "0xe8"
     },
     "AssetRefBoneInfoOffset": {
       "type": "u32",
-      "value": "0x3b8"
+      "value": "0x3c8"
     },
     "AssetMorphArrayOffset": {
       "type": "u32",
-      "value": "0x368"
+      "value": "0x378"
     },
     "ComponentMorphMapOffset": {
       "type": "u32",
@@ -434,11 +434,11 @@
     },
     "AnimProxySkeletonOffset": {
       "type": "u32",
-      "value": "0xb8"
+      "value": "0xc0"
     },
     "AnimProxyMeshOffset": {
       "type": "u32",
-      "value": "0xc0"
+      "value": "0xc8"
     },
     "AnimProxyMainProxyOffset": {
       "type": "u32",
@@ -446,11 +446,11 @@
     },
     "AnimProxyFrameOffset": {
       "type": "u32",
-      "value": "0x528"
+      "value": "0x530"
     },
     "AnimProxyCounterOffset": {
       "type": "u32",
-      "value": "0x530"
+      "value": "0x538"
     },
     "AnimProxyIdentityBytes": {
       "type": "u32",
@@ -458,7 +458,7 @@
     },
     "AnimProxyObservationBytes": {
       "type": "u32",
-      "value": "0x538"
+      "value": "0x540"
     },
     "AnimProxyBoneContainerOffset": {
       "type": "u32",
@@ -590,15 +590,15 @@
     },
     "CameraViewTargetOffset": {
       "type": "u32",
-      "value": "0x1880"
+      "value": "0x18e0"
     },
     "CameraCacheOffset": {
       "type": "u32",
-      "value": "0x2e40"
+      "value": "0x2f00"
     },
     "CameraLastCacheOffset": {
       "type": "u32",
-      "value": "0x38e0"
+      "value": "0x39d0"
     },
     "CameraPovOffset": {
       "type": "u32",
@@ -650,7 +650,7 @@
     },
     "SourceBuildSha256": {
       "type": "string",
-      "value": "c4956c30be531f3b992eabe42fa92fa9d10186000fe12e7546a11e1179bdac18"
+      "value": "38b3980f0436d8ead42a0ff8c45c183936ed02cd8b4b33944a03316b68cfd887"
     },
     "FunctionAllocateSerialNumberRvaText": {
       "type": "hexref",
@@ -662,19 +662,19 @@
     },
     "FunctionAllocateSerialNumberSha256": {
       "type": "string",
-      "value": "d061ffb1798bb5262881a0842045a842350288a0a34a07728bb43bf0c70a106e"
+      "value": "e9a45314af4ec25ab59d048ee1fda1a307f814817b3f1edbe19ecc792d5abd1f"
     },
     "FunctionAssignWeakObjectSha256": {
       "type": "string",
-      "value": "165872ef14eebb05c725a39e381bf60d31d5b8e5beb16cc4f33627eff3eb2b1b"
+      "value": "5e11a1ff463285758fb363bf152428b82239081102613c8af31593e818486139"
     },
     "FunctionPublishRva": {
       "type": "u64",
-      "value": "0x4ff3cd0"
+      "value": "0x4cfc880"
     },
     "VtableSkeletalMeshComponentRva": {
       "type": "u64",
-      "value": "0x843eb78"
+      "value": "0x818c708"
     },
     "SlotComponentPublish": {
       "type": "u32",
@@ -682,15 +682,15 @@
     },
     "SlotComponentPublishRva": {
       "type": "u64",
-      "value": "0x843f630"
+      "value": "0x818d1c0"
     },
     "RegisteredGameThreadIdRva": {
       "type": "u64",
-      "value": "0x992f300"
+      "value": "0x9698480"
     },
     "RegisteredGameThreadInitializedRva": {
       "type": "u64",
-      "value": "0x992f310"
+      "value": "0x9698490"
     },
     "ObjectArrayObjectsOffset": {
       "type": "u32",

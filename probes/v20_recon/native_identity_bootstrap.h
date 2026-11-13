@@ -13,17 +13,16 @@ inline const char* Name(Code code){switch(code){
     case Code::OwnerLimit:return "owner_limit";case Code::NativeRejected:return "allocator_gate_rejected";case Code::NativeException:return "allocator_exception";
     default:return "identity_changed_during_registration";}}
 struct Basis {ng::GoView go;uint64_t image=0;ng::Token mesh,pawn,controller,mesh_asset,skeleton_asset,main_candidate;native_animation_target::AuthorityTarget authority;};
-struct Context {uint64_t proxy=0,mesh=0,owner=0,owner_alt=0,main_proxy=0,main_owner=0,main_owner_alt=0,main_mesh=0,main_self=0,skeleton=0;};
+struct Context {uint64_t proxy=0,mesh=0,owner=0,owner_alt=0,main_proxy=0,main_owner=0,skeleton=0;};
 template<class Read>bool CaptureContext(Read&& read,const Basis& b,uint64_t address,Context& value){
     if(!read(address+ww_game_compat::AnimContextProxyOffset,&value.proxy,sizeof(value.proxy))||!ng::Range(value.proxy,ww_game_compat::AnimProxyIdentityBytes)||!read(value.proxy+ww_game_compat::AnimProxyMeshOffset,&value.mesh,sizeof(uint64_t))||value.mesh!=b.mesh.address)return false;
-    return read(value.proxy+ww_game_compat::AnimProxyOwnerOffset,&value.owner,sizeof(uint64_t))&&read(value.proxy+ww_game_compat::AnimProxyOwnerAltOffset,&value.owner_alt,sizeof(uint64_t))&&value.owner==value.owner_alt&&
-        read(value.proxy+ww_game_compat::AnimProxyMainProxyOffset,&value.main_proxy,sizeof(uint64_t))&&ng::Range(value.main_proxy,ww_game_compat::AnimProxyIdentityBytes)&&
-        read(value.main_proxy+ww_game_compat::AnimProxyOwnerOffset,&value.main_owner,sizeof(uint64_t))&&value.main_owner==b.main_candidate.address&&
-        read(value.main_proxy+ww_game_compat::AnimProxyOwnerAltOffset,&value.main_owner_alt,sizeof(uint64_t))&&value.main_owner_alt==value.main_owner&&
-        read(value.main_proxy+ww_game_compat::AnimProxyMeshOffset,&value.main_mesh,sizeof(uint64_t))&&value.main_mesh==b.mesh.address&&
-        read(value.main_proxy+ww_game_compat::AnimProxyMainProxyOffset,&value.main_self,sizeof(uint64_t))&&value.main_self==value.main_proxy&&
-        read(value.proxy+ww_game_compat::AnimProxySkeletonOffset,&value.skeleton,sizeof(uint64_t))&&value.skeleton==b.skeleton_asset.address&&
-        (value.owner!=value.main_owner||value.proxy==value.main_proxy);
+    value.main_owner=b.main_candidate.address;
+    if(!read(value.proxy+ww_game_compat::AnimProxyOwnerOffset,&value.owner,sizeof(uint64_t))||!read(value.proxy+ww_game_compat::AnimProxyOwnerAltOffset,&value.owner_alt,sizeof(uint64_t))||value.owner!=value.owner_alt||
+        !read(value.proxy+ww_game_compat::AnimProxySkeletonOffset,&value.skeleton,sizeof(uint64_t))||value.skeleton!=b.skeleton_asset.address||
+        !ng::OwnsMainAnimation(read,b.mesh.address,value.main_owner))return false;
+    if(value.owner==value.main_owner)return ng::ResolveMainProxy(read,value.proxy,value.owner,value.main_owner,b.mesh.address,b.skeleton_asset.address,value.main_proxy);
+    ng::Token owner;
+    return ng::CaptureToken(read,b.go,value.owner,owner,false)&&ng::Get<uint64_t>(owner.header.data(),ww_game_compat::ObjectOuterOffset)==b.mesh.address;
 }
 struct Candidate {ng::Token object,klass;};
 template<class Read,class ClassAllowed>bool CaptureCandidate(Read&& read,const Basis& b,uint64_t address,Candidate& value,ClassAllowed&& allowed){
@@ -35,11 +34,17 @@ struct NativeResult {int32_t serial=0;bool called=false;Code code=Code::NativeRe
 struct Owner {ng::Token before,after,klass;bool main=false,allocator_called=false;int32_t returned_serial=0;Code code=Code::None;
     unsigned thread=0;uint64_t tick=0;bool accepted=false;};
 struct Rejection {uint64_t owner=0;Code code=Code::None;unsigned thread=0;};
+struct ContextWitness {
+    uint64_t vtable=0,proxy=0;unsigned hook=0;
+    std::array<uint64_t,64> proxy_words{};
+    ng::Token owner{},alternate_owner{};
+    bool readable=false;
+};
 struct State {
     Basis basis;std::atomic_flag gate=ATOMIC_FLAG_INIT;std::atomic<bool> failed{false};
     std::atomic<uint64_t> busy_callbacks{0},target_callbacks{0},rejected_callbacks{0};
     std::array<Owner,kOwners> owners{};std::array<Rejection,kRejections> rejections{};
-    std::array<Owner,2> supports{};unsigned support_count=0;
+    std::array<Owner,2> supports{};unsigned support_count=0;ContextWitness context_witness{};
     unsigned owner_limit=kOwners,owner_count=0,rejection_count=0,native_calls=0;bool truncated=false,main_confirmed=false;
     void Reject(uint64_t owner,Code code,unsigned thread){failed.store(true);++rejected_callbacks;
         if(rejection_count<kRejections)rejections[rejection_count++]={owner,code,thread};else truncated=true;}
@@ -81,11 +86,14 @@ void Visit(State& state,Read&& read,ClassAllowed&& allowed,Allocate&& allocate,u
     if(state.failed.load())return;
     Context before;uint64_t vtable=0;
     if(!read(node,&vtable,sizeof(uint64_t))||vtable!=state.basis.image+ng::kSpecs[hook].vtable_rva||!CaptureContext(read,state.basis,context,before)){
+        auto& witness=state.context_witness;witness.vtable=vtable;witness.hook=hook;witness.proxy=proxy;
+        witness.readable=read(proxy,witness.proxy_words.data(),sizeof(witness.proxy_words));
+        ng::CaptureToken(read,state.basis.go,before.owner,witness.owner,false);
+        ng::CaptureToken(read,state.basis.go,before.owner_alt,witness.alternate_owner,false);
         state.Reject(0,Code::ContextChanged,thread);return;}
     if(!RegisterSupport(state,read,allocate,state.basis.mesh_asset,thread,tick)||
        !RegisterSupport(state,read,allocate,state.basis.skeleton_asset,thread,tick))return;
-    if(!Register(state,read,allowed,allocate,before.main_owner,true,thread,tick))return;
-    if(before.owner!=before.main_owner)Register(state,read,allowed,allocate,before.owner,false,thread,tick);
+    Register(state,read,allowed,allocate,before.owner,before.owner==before.main_owner,thread,tick);
 }
 inline bool Complete(const State& state){return !state.failed.load()&&state.main_confirmed&&!state.truncated&&!state.busy_callbacks.load();}
 } // namespace native_identity_bootstrap

@@ -8,6 +8,12 @@
 
 namespace ww_object {
 constexpr const char* kLayoutHash=ww_game_compat::SourceBuildSha256;
+// Compare the ASCII spelling of UE names independently of display casing.
+// Keep suffixes and non-ASCII bytes exact.
+inline bool SameName(const std::string& a,const std::string& b){
+    const auto fold=[](unsigned char c){return c>='A'&&c<='Z'?c+('a'-'A'):c;};
+    return a.size()==b.size()&&std::equal(a.begin(),a.end(),b.begin(),[&](char x,char y){return fold(x)==fold(y);});
+}
 static uint64_t Integer(const Json& j,const char* key,uint64_t low,uint64_t high){
     const auto& v=j.at(key);
     if(!v.is_number_integer()||(!v.is_number_unsigned()&&v.get<int64_t>()<0))throw std::runtime_error(std::string(key)+" must be an unsigned integer");
