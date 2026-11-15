@@ -332,11 +332,16 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     var fakePackage = Path.Combine(fixture, "build", "owned_mmd"); Directory.CreateDirectory(fakePackage);
     foreach (var file in new[] { "ownedmmd_lite_observer.dll", "ownedmmd_lite_installer.exe", OwnedMmdPlaybackService.HelperFilename, "owned_mmd_layout.json" }) File.WriteAllText(Path.Combine(fakePackage, file), "offline package fixture");
     var isolation = new OwnedMmdPlaybackService(fixture);
-    foreach (var sourceFile in Directory.EnumerateFiles(Path.Combine(args[1], "data", "characters"), "*", SearchOption.AllDirectories))
+    foreach (var section in new[] { "characters", "native_graphs" })
     {
-        var destination = Path.Combine(fixture, "data", "characters", Path.GetRelativePath(Path.Combine(args[1], "data", "characters"), sourceFile));
-        Directory.CreateDirectory(Path.GetDirectoryName(destination)!); File.Copy(sourceFile, destination);
+        var source = Path.Combine(args[1], "data", section);
+        foreach (var sourceFile in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            var destination = Path.Combine(fixture, "data", section, Path.GetRelativePath(source, sourceFile));
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!); File.Copy(sourceFile, destination);
+        }
     }
+    File.Copy(Path.Combine(args[1], "data", "bone_chains.json"), Path.Combine(fixture, "data", "bone_chains.json"));
     var prepareRuntime = typeof(OwnedMmdPlaybackService).GetMethod("PrepareRuntime", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
     var sourceConfig = OwnedMmdPlaybackService.Config(firstPreparation!); sourceConfig["camera_controller_address"] = "0xdead"; sourceConfig["native_graph_binding"] = new JsonObject { ["stale"] = true }; sourceConfig["start_paused"] = true;
     var gazeRelative = Path.Combine(OwnedMmdPlaybackService.ActorConfigs(sourceConfig)[0]["actor_directory"]!.GetValue<string>(), "gaze_source.vmd");
@@ -345,8 +350,9 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     var legacyPreparation = Path.Combine(fixture, "legacy-cli-preparation");
     await new OwnedMmdPlaybackService(args[1]).PrepareAsync(new(bodyPath + ".moved", legacyPreparation, CharacterId: selectedCharacter));
     var legacyRuntime = (string)prepareRuntime.Invoke(isolation, [legacyPreparation, fakeGame, false])!;
-    Check(OwnedMmdPlaybackService.ActorConfigs(OwnedMmdPlaybackService.Config(legacyRuntime)).Single()["slot"]!.GetValue<uint>() == 1,
-        "single-actor CLI preparation converts to a runtime slot");
+    var legacyActor = OwnedMmdPlaybackService.ActorConfigs(OwnedMmdPlaybackService.Config(legacyRuntime)).Single();
+    Check(legacyActor["slot"]!.GetValue<uint>() == 1 && legacyActor["gravity_parts"] is JsonArray { Count: > 0 },
+        "single-actor CLI preparation converts to a runtime slot and resolves its native physics parts");
     var snapshotA = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, false])!;
     sourceConfig["start_paused"] = false; Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig);
     var snapshotB = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, true])!;
