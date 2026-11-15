@@ -6,11 +6,12 @@ internal static class NativePhysicsPreset
     public static readonly string[] Commands = ["native_damping", "native_stiffness", "native_limit_angle"];
     public static readonly double[] Maxima = [1, 1, 180];
     public const string GravityCommand = "native_gravity";
+    public const string PartGravityCommand = "part_gravity";
     public const double GravityMaximum = 1500;
 
     public static bool HasOverrides(JsonObject? preset) => preset?["groups"] is JsonArray { Count: > 0 } ||
         preset?["sleeves"] is JsonArray { Count: > 0 } || preset?["disabled_capsules"] is JsonArray { Count: > 0 } ||
-        preset?["gravity"] is JsonArray { Count: > 0 };
+        preset?["gravity"] is JsonArray { Count: > 0 } || preset?["part_gravity"] is JsonArray { Count: > 0 };
 
     public static void ValidateDraft(JsonObject preset, string? characterId, string? profileId = null)
     {
@@ -42,12 +43,43 @@ internal static class NativePhysicsPreset
             var strength = Contract.D(entry!, "strength");
             Contract.Require(double.IsFinite(strength) && strength is >= 0 and <= GravityMaximum, "预设中的重力强度越界。");
         }
+        _ = ReadPartGravity(preset);
 
         static void ValidateTarget(JsonNode entry)
         {
             _ = Contract.S(entry, "curve_name");
             foreach (var bone in Contract.A(entry, "root_bones")) _ = bone!.GetValue<string>();
         }
+    }
+
+    private static Dictionary<string, double> ReadPartGravity(JsonObject? preset)
+    {
+        var values = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        if (preset?["part_gravity"] is null) return values;
+        foreach (var row in Contract.A(preset, "part_gravity"))
+        {
+            var root = Contract.S(row!, "root");
+            var strength = Contract.D(row!, "strength");
+            Contract.Require(root.Length > 0 && double.IsFinite(strength) && strength is >= 0 and <= GravityMaximum &&
+                values.TryAdd(root, strength), "预设中的部件重力无效或重复。");
+        }
+        return values;
+    }
+
+    public static double[] DraftPartGravity(JsonObject? preset, IEnumerable<string> roots)
+    {
+        var values = ReadPartGravity(preset);
+        return roots.Select(root => values.GetValueOrDefault(root, -1)).ToArray();
+    }
+
+    public static void SetDraftPartGravity(JsonObject preset, IEnumerable<string> roots, double strength)
+    {
+        var values = ReadPartGravity(preset);
+        foreach (var root in roots)
+            if (strength == -1) values.Remove(root);
+            else values[root] = strength;
+        preset["part_gravity"] = new JsonArray(values.Select(entry => (JsonNode)new JsonObject
+            { ["root"] = entry.Key, ["strength"] = entry.Value }).ToArray());
     }
 
     public static double[] DraftValues(JsonObject? preset, PhysicsGroup group, string? root) =>
@@ -105,7 +137,8 @@ internal static class NativePhysicsPreset
         return row;
     }
 
-    public static IReadOnlyList<Control> Plan(JsonObject preset, OwnedCharacterSelection character, IEnumerable<JsonObject> liveGroups)
+    public static IReadOnlyList<Control> Plan(JsonObject preset, OwnedCharacterSelection character, IEnumerable<JsonObject> liveGroups,
+        IEnumerable<JsonObject>? liveParts = null)
     {
         var groups = liveGroups.ToArray();
         var controls = new List<Control>();
@@ -130,6 +163,15 @@ internal static class NativePhysicsPreset
             var strength = gravity.GetValueOrDefault(id, -1);
             if (Math.Abs(strength - Contract.D(group["gravity"]!, "requested")) > .000001) controls.Add(new(GravityCommand, strength, id, 0));
         }
+        var parts = ReadPartGravity(preset);
+        foreach (var part in liveParts ?? [])
+        {
+            var root = Contract.S(part, "root");
+            var strength = parts.Remove(root, out var value) ? value : -1;
+            if (Math.Abs(strength - Contract.D(part, "strength")) > .000001)
+                controls.Add(new(PartGravityCommand, strength, 0, Contract.N(part, "id").GetValue<uint>()));
+        }
+        Contract.Require(parts.Count == 0, "预设未匹配到本次播放的物理部件。");
         return controls;
     }
 
@@ -139,7 +181,8 @@ internal static class NativePhysicsPreset
             await PlaybackControl.SendAsync(directory, control.Command, control.Value, cancellation, slot, control.Group, control.Member);
     }
 
-    public static JsonObject Create(OwnedCharacterSelection character, IEnumerable<JsonObject> groups)
+    public static JsonObject Create(OwnedCharacterSelection character, IEnumerable<JsonObject> groups,
+        IEnumerable<JsonObject>? parts = null)
     {
         var parameters = new JsonArray();
         var sleeves = new JsonArray();
@@ -172,8 +215,13 @@ internal static class NativePhysicsPreset
                     sleeves.Add(new JsonObject { ["curve_name"] = group["curve_name"]!.DeepClone(),
                         ["root_bones"] = group["root_bones"]!.DeepClone(), ["root"] = sleeve["root"]!.DeepClone(), ["follow"] = sleeve["follow"]!.DeepClone() });
         }
-        return new JsonObject { ["schema"] = 1, ["kind"] = "native_physics_group_preset", ["character_id"] = character.CharacterId,
+        var result = new JsonObject { ["schema"] = 1, ["kind"] = "native_physics_group_preset", ["character_id"] = character.CharacterId,
             ["profile_id"] = character.ProfileId, ["groups"] = parameters, ["sleeves"] = sleeves, ["disabled_capsules"] = capsules, ["gravity"] = gravity };
+        if (parts is not null)
+            foreach (var part in parts)
+                if (Contract.D(part, "strength") is var strength && strength >= 0)
+                    SetDraftPartGravity(result, [Contract.S(part, "root")], strength);
+        return result;
     }
 
     public static IReadOnlyList<(uint Group, uint Chain, double Follow, double Current)> ResolveSleeves(JsonObject preset, IEnumerable<JsonObject> liveGroups)

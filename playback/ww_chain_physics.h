@@ -12,11 +12,14 @@ namespace wwp_playback { namespace ww_chain {
 namespace sub=wwp_ue::subtree_rotation;namespace collision=eiem_collision;
 constexpr uint32_t kLimit=1024,kCapsules=16;
 using V=collision::V;
+enum class DirectionReference { Authored, ParentTangent, ParentFrame };
 struct ParticleConfig {
     bool enabled=false,pinned=false;
     uint32_t anchor=UINT32_MAX;
     float damping=.12f,frequency=2.5f,cone_radians=.6f,radius_ue=.7f;
     uint16_t collision_exempt_mask=0; // authored rest inside capsule cannot be forced outside without changing rig.
+    DirectionReference direction_reference=DirectionReference::Authored;
+    bool preserve_pinned_rotation=false,drape_spine=false;
 };
 struct CapsuleBinding {uint32_t a=UINT32_MAX,b=UINT32_MAX;float radius_ue=1;};
 struct Prepared {
@@ -27,18 +30,26 @@ struct Prepared {
 };
 struct Control {bool enabled=false,playing=false,reset=false;uint64_t epoch=0;double clock_seconds=0,cursor_seconds=0;
     uint32_t iterations=12;float gravity_ue=-980,gravity_strength=.15f;
+    V gravity_up{0,0,1};
+    bool settle_while_paused=false;
+    bool align_incoming_frames=false;
+    bool downward_drape=false;
+    bool project_constraint_velocity=false;
+    double link_turn_rate=0, rotation_rate=0;
     // Contact takes priority over the heuristic authored cone when the cone is
     // infeasible. Bone length remains hard.
     bool collision_priority=true;float maximum_collision_cone_radians=1.5707963f;};
 struct Runtime {
     std::array<V,kLimit> position{},previous{},target_previous{};
     std::array<sub::detail::Q,kLimit> target_rotation_previous{};
+    std::array<sub::detail::Q,kLimit> solved_rotation_previous{};
     bool ready=false,was_playing=false;
     uint64_t epoch=0;double clock=0,cursor=0;
 };
 struct Scratch {
-    std::array<V,kLimit> targets{};
+    std::array<V,kLimit> targets{},rest{};
     std::array<V,kLimit> before_direction{},after_direction{};
+    std::array<V,kLimit> frame_direction{},predicted_position{};
     std::array<Quat,kLimit> correction{};
     std::array<double,kLimit> length{};
     std::array<sub::TransformBytes,kLimit> output{};
@@ -46,11 +57,24 @@ struct Scratch {
 };
 inline V Position(const sub::TransformBytes& t){auto p=sub::detail::Position(t);return {p[0],p[1],p[2]};}
 inline V Unit(V v,V fallback={1,0,0}){double n=collision::Length(v);return n>1e-12?v*(1/n):fallback;}
+inline Quat Swing(V before,V after){
+    if(collision::Length(before)<1e-6||collision::Length(after)<1e-6)return {};
+    const auto inbound=Unit(before),outbound=Unit(after);
+    return Quat::FromTo({float(inbound.x),float(inbound.y),float(inbound.z)},{float(outbound.x),float(outbound.y),float(outbound.z)});
+}
+inline sub::detail::Q LimitRotation(sub::detail::Q from,sub::detail::Q to,double angle){
+    const auto quat=[](sub::detail::Q q){return NormQ({float(q[0]),float(q[1]),float(q[2]),float(q[3])});};
+    const auto start=quat(from),end=quat(to);
+    const auto distance=Quat::Angle(start,end);
+    if(distance<=angle)return to;
+    const auto result=Quat::Slerp(start,end,float(angle/distance));
+    return {{result.x,result.y,result.z,result.w}};
+}
 inline V Closest(V p,V a,V b){V d=b-a;const double n=collision::Dot(d,d);return a+d*(n>1e-12?std::clamp(collision::Dot(p-a,d)/n,0.,1.):0);}
 inline void Reset(Runtime* r){if(r)*r=Runtime{};}
 inline void Rebase(const Prepared& p,const Control& c,const sub::TransformBytes* pose,Runtime& r){
     for(uint32_t i=0;i<p.count;++i){r.position[i]=r.previous[i]=r.target_previous[i]=Position(pose[i]);
-        r.target_rotation_previous[i]=sub::detail::Rotation(pose[i]);}
+        r.solved_rotation_previous[i]=r.target_rotation_previous[i]=sub::detail::Rotation(pose[i]);}
     r.ready=true;r.was_playing=c.playing;r.epoch=c.epoch;r.clock=c.clock_seconds;r.cursor=c.cursor_seconds;
 }
 inline V LimitDirection(V direction,V target,double angle){
@@ -58,6 +82,23 @@ inline V LimitDirection(V direction,V target,double angle){
     if(dot>=std::cos(angle))return direction;
     V tangent=direction-target*dot;if(collision::Length(tangent)<1e-12)tangent=collision::Cross(target,std::fabs(target.z)<.9?V{0,0,1}:V{0,1,0});
     return target*std::cos(angle)+Unit(tangent)*std::sin(angle);
+}
+inline void DrapeRest(const Prepared& p,V down,Scratch& scratch){
+    std::copy_n(scratch.targets.begin(),p.count,scratch.rest.begin());
+    for(uint32_t i=1;i<p.count;++i){
+        const auto& point=p.particles[i];
+        if(!point.enabled||point.pinned)continue;
+        const auto parent=uint32_t(p.parents[i]);
+        V delta=scratch.targets[i]-scratch.targets[parent];
+        if(point.drape_spine)delta=LimitDirection(delta,down,.60)*scratch.length[i];
+        else if(point.direction_reference==DirectionReference::ParentFrame&&parent>0){
+            const auto previous=uint32_t(p.parents[parent]);
+            const auto swing=Swing(scratch.targets[parent]-scratch.targets[previous],scratch.rest[parent]-scratch.rest[previous]);
+            const auto rotated=sub::detail::Rotate({{swing.x,swing.y,swing.z,swing.w}},{{delta.x,delta.y,delta.z}});
+            delta={rotated[0],rotated[1],rotated[2]};
+        }
+        scratch.rest[i]=scratch.rest[parent]+delta;
+    }
 }
 inline V ProjectOutsideCapsuleOnSphere(V proposed,V origin,double length,const collision::Capsule& capsule,double radius,V preferred,double cone_radians){
     // Preserve the exact bone-length sphere while moving away from the body.
@@ -123,10 +164,20 @@ inline bool Step(const Prepared& p,const Control& c,const sub::TransformBytes* p
     bool discontinuity=!r.ready||c.reset||r.epoch!=c.epoch||c.cursor_seconds<r.cursor-1e-5||c.clock_seconds<r.clock||c.clock_seconds-r.clock>.25;
     if(r.ready&&c.cursor_seconds-r.cursor>(std::max)(.25,4*(c.clock_seconds-r.clock)))discontinuity=true;
     if(r.ready)for(uint32_t i=0;i<count;++i)if(p.particles[i].pinned&&collision::Length(s.targets[i]-r.target_previous[i])>150)discontinuity=true;
-    if(discontinuity){Rebase(p,c,pose,r);return true;}
+    const V down=Unit(c.gravity_up)*-1;
+    if(c.downward_drape)DrapeRest(p,down,s);
+    if(discontinuity){
+        Rebase(p,c,pose,r);
+        if(!c.downward_drape)return true;
+        for(uint32_t i=0;i<count;++i)
+            if(p.particles[i].enabled&&!p.particles[i].pinned)r.position[i]=r.previous[i]=s.rest[i];
+    }
     for(uint32_t k=0;k<p.capsule_count;++k){const auto& binding=p.capsules[k];s.capsules[k]={s.targets[binding.a],s.targets[binding.b],binding.radius_ue,binding.radius_ue,true};}
-    const double dt=c.clock_seconds-r.clock;
-    if(!c.playing||!r.was_playing||c.cursor_seconds==r.cursor||dt<1e-5){
+    const double dt=discontinuity?1./60:c.clock_seconds-r.clock;
+    const double frame_time=(std::min)(dt,1./15);
+    if(c.link_turn_rate>0)
+        for(uint32_t i=1;i<count;++i)s.frame_direction[i]=r.position[i]-r.position[uint32_t(p.parents[i])];
+    if(dt<1e-5||(!c.settle_while_paused&&(!c.playing||!r.was_playing||c.cursor_seconds==r.cursor))){
         for(uint32_t i=0;i<count;++i)if(p.particles[i].enabled){const auto anchor=p.particles[i].anchor;
             const auto next_anchor_rotation=sub::detail::Rotation(pose[anchor]);
             const V next_anchor=s.targets[anchor],previous_anchor=r.target_previous[anchor];
@@ -143,32 +194,80 @@ inline bool Step(const Prepared& p,const Control& c,const sub::TransformBytes* p
         for(uint32_t step=0;step<substeps;++step){
             for(uint32_t i=0;i<count;++i){const auto& config=p.particles[i];if(!config.enabled||config.pinned){r.position[i]=r.previous[i]=s.targets[i];continue;}
                 const double damping=std::pow((std::max)(0.,1-double(config.damping)),h*60);
-                const double omega=6.283185307179586*config.frequency;V acceleration=(s.targets[i]-r.position[i])*(omega*omega);
-                acceleration.z+=c.gravity_ue*c.gravity_strength;const V next=r.position[i]+(r.position[i]-r.previous[i])*damping+acceleration*(h*h);
-                r.previous[i]=r.position[i];r.position[i]=next;}
+                const double omega=6.283185307179586*config.frequency;
+                const V rest=c.downward_drape?s.rest[i]:s.targets[i];
+                V acceleration=(rest-r.position[i])*(omega*omega);
+                acceleration=acceleration+c.gravity_up*(c.gravity_ue*c.gravity_strength);
+                const V next=r.position[i]+(r.position[i]-r.previous[i])*damping+acceleration*(h*h);
+                r.previous[i]=r.position[i];r.position[i]=next;
+                if(c.project_constraint_velocity)s.predicted_position[i]=next;}
             for(uint32_t iteration=0;iteration<c.iterations;++iteration){
                 bool pushed=false;double maximum_move=0;
                 for(uint32_t i=1;i<count;++i){const auto& config=p.particles[i];if(!config.enabled||config.pinned)continue;
                     const V before=r.position[i];
                     const uint32_t parent=uint32_t(p.parents[i]);V origin=p.particles[parent].enabled?r.position[parent]:s.targets[parent];
-                    const V target=s.targets[i]-s.targets[parent];const V direction=LimitDirection(r.position[i]-origin,target,config.cone_radians);
+                    V target=s.targets[i]-s.targets[parent];
+                    if(config.direction_reference!=DirectionReference::Authored&&parent>0){
+                        const auto grandparent=uint32_t(p.parents[parent]);
+                        const V parent_before=s.targets[parent]-s.targets[grandparent];
+                        const V parent_after=origin-r.position[grandparent];
+                        if(config.direction_reference==DirectionReference::ParentTangent)target=parent_after;
+                        else{
+                            const auto q=Swing(parent_before,parent_after);
+                            const auto direction=sub::detail::Rotate({{q.x,q.y,q.z,q.w}},{{target.x,target.y,target.z}});
+                            target={direction[0],direction[1],direction[2]};
+                        }
+                    }
+                    V direction=LimitDirection(r.position[i]-origin,target,config.cone_radians);
+                    const bool limit_turn=c.link_turn_rate>0&&!discontinuity&&collision::Length(s.frame_direction[i])>1e-6;
+                    const double turn_angle=c.link_turn_rate*frame_time;
+                    if(limit_turn)direction=LimitDirection(direction,s.frame_direction[i],turn_angle);
+                    constexpr double drape_cone=1.30;
+                    const bool draping=c.downward_drape&&config.drape_spine;
+                    if(draping)direction=LimitDirection(direction,down,drape_cone);
                     r.position[i]=origin+direction*s.length[i];
+                    const auto contact_target=draping?down:target;
+                    const auto contact_cone=draping?drape_cone:config.cone_radians;
                     const uint16_t contact_mask=ContactMask(p,i);
                     for(uint32_t k=0;k<p.capsule_count;++k){const auto& capsule=s.capsules[k];
                         if(config.collision_exempt_mask&(1u<<k))continue;
                         if(i==p.capsules[k].a||i==p.capsules[k].b||config.anchor==p.capsules[k].a||config.anchor==p.capsules[k].b)continue;
                         const V nearest=Closest(r.position[i],capsule.a,capsule.b);const V separation=r.position[i]-nearest;
                         const double radius=capsule.ra+config.radius_ue,dist=collision::Length(separation);
-                        if(dist<radius-1e-7){r.position[i]=ProjectOutsideCapsuleOnSphere(r.position[i],origin,s.length[i],capsule,radius,target,config.cone_radians);pushed=true;}}
+                        if(dist<radius-1e-7){r.position[i]=ProjectOutsideCapsuleOnSphere(r.position[i],origin,s.length[i],capsule,radius,contact_target,contact_cone);pushed=true;}}
                     if(ContactClearance(r.position[i],s,contact_mask,config.radius_ue)<-1e-7){
-                        r.position[i]=ProjectOutsideAllCapsulesOnSphere(r.position[i],origin,s.length[i],target,config.cone_radians,s,contact_mask,config.radius_ue);pushed=true;}
+                        r.position[i]=ProjectOutsideAllCapsulesOnSphere(r.position[i],origin,s.length[i],contact_target,contact_cone,s,contact_mask,config.radius_ue);pushed=true;}
                     if(c.collision_priority&&c.maximum_collision_cone_radians>config.cone_radians&&ContactClearance(r.position[i],s,contact_mask,config.radius_ue)<-1e-7){
                         r.position[i]=ProjectOutsideAllCapsulesOnSphere(r.position[i],origin,s.length[i],target,c.maximum_collision_cone_radians,s,contact_mask,config.radius_ue);pushed=true;}
+                    if(limit_turn){
+                        // Contact and drape can redirect the link after the initial limit.
+                        // If they exceed this frame's turn, look for contact clearance inside it.
+                        const V direction_from_last=Unit(s.frame_direction[i]);
+                        const V solved=Unit(r.position[i]-origin,direction_from_last);
+                        if(collision::Dot(solved,direction_from_last)<std::cos(turn_angle)-1e-9){
+                            const V limited=origin+LimitDirection(solved,direction_from_last,turn_angle)*s.length[i];
+                            r.position[i]=ProjectOutsideAllCapsulesOnSphere(limited,origin,s.length[i],direction_from_last,
+                                turn_angle,s,contact_mask,config.radius_ue);
+                        }
+                    }
                     maximum_move=(std::max)(maximum_move,collision::Length(r.position[i]-before));
                 }
                 // Parent-first length/cone constraints are already exact after
                 // one pass without contact; do not repropose the same endpoint.
                 if(!pushed||maximum_move<1e-7)break;
+            }
+            if(c.project_constraint_velocity){
+                // A constraint moves the endpoint instantly. Carry its incoming
+                // velocity forward, removing the component blocked by the constraint.
+                for(uint32_t i=1;i<count;++i){
+                    if(!p.particles[i].enabled||p.particles[i].pinned)continue;
+                    const V correction=r.position[i]-s.predicted_position[i];
+                    if(collision::Length(correction)<1e-7)continue;
+                    const V normal=Unit(correction);
+                    const V velocity=s.predicted_position[i]-r.previous[i];
+                    const auto allowed=velocity-normal*(std::min)(0.,collision::Dot(velocity,normal));
+                    r.previous[i]=r.position[i]-allowed;
+                }
             }
         }
     }
@@ -176,21 +275,31 @@ inline bool Step(const Prepared& p,const Control& c,const sub::TransformBytes* p
         if(!collision::Finite(r.position[i]))return false;
         for(unsigned k=0;k<3;++k){const double v=k==0?r.position[i].x:k==1?r.position[i].y:r.position[i].z;if(!sub::detail::Store(s.output[i].data()+16+k*4,v))return false;}
     }
-    // Orient each simulated parent toward the centroid of its direct children.
-    // Terminal orientation inherits its parent's directional correction.
+    // The legacy solver follows child centroids. Cloth branches can instead
+    // share the incoming frame of the corresponding section of the main chain.
     for(uint32_t i=0;i<count;++i){s.before_direction[i]=s.after_direction[i]=V{};s.correction[i]=Quat{};}
     for(uint32_t i=1;i<count;++i)if(p.particles[i].enabled&&p.particles[uint32_t(p.parents[i])].enabled){const auto parent=uint32_t(p.parents[i]);
         s.before_direction[parent]=s.before_direction[parent]+(s.targets[i]-s.targets[parent]);s.after_direction[parent]=s.after_direction[parent]+(r.position[i]-r.position[parent]);}
     for(uint32_t i=0;i<count;++i)if(p.particles[i].enabled){const auto before=s.before_direction[i],after=s.after_direction[i];
-        Quat correction;if(collision::Length(before)>1e-6&&collision::Length(after)>1e-6)
+        Quat correction;
+        if(c.align_incoming_frames&&i&&!p.particles[i].pinned){
+            const auto parent=uint32_t(p.parents[i]);
+            correction=p.particles[i].direction_reference==DirectionReference::ParentFrame?s.correction[parent]:
+                Swing(s.targets[i]-s.targets[parent],r.position[i]-r.position[parent]);
+        }else if(collision::Length(before)>1e-6&&collision::Length(after)>1e-6)
             correction=Quat::FromTo({float(before.x),float(before.y),float(before.z)},{float(after.x),float(after.y),float(after.z)});
         else if(i&&p.particles[uint32_t(p.parents[i])].enabled)correction=s.correction[uint32_t(p.parents[i])];
         s.correction[i]=correction;
         // No directional change must preserve the exact input quaternion,
         // including accepted float rounding, on every held or paused frame.
-        if(correction.x==0&&correction.y==0&&correction.z==0&&correction.w==1)continue;
-        auto q=sub::detail::Rotation(pose[i]);const auto rotated=sub::detail::Unit(sub::detail::Mul({{correction.x,correction.y,correction.z,correction.w}},q));
+        if(p.particles[i].pinned&&p.particles[i].preserve_pinned_rotation)continue;
+        const bool unrotated=correction.x==0&&correction.y==0&&correction.z==0&&correction.w==1;
+        if(unrotated&&c.rotation_rate==0)continue;
+        const auto q=sub::detail::Rotation(pose[i]);
+        auto rotated=unrotated?q:sub::detail::Unit(sub::detail::Mul({{correction.x,correction.y,correction.z,correction.w}},q));
+        if(c.rotation_rate>0&&!discontinuity)rotated=LimitRotation(r.solved_rotation_previous[i],rotated,c.rotation_rate*frame_time);
         for(unsigned k=0;k<4;++k)if(!sub::detail::Store(s.output[i].data()+k*4,rotated[k]))return false;
+        if(c.rotation_rate>0)r.solved_rotation_previous[i]=sub::detail::Rotation(s.output[i]);
     }
     r.clock=c.clock_seconds;r.cursor=c.cursor_seconds;r.epoch=c.epoch;r.was_playing=c.playing;for(uint32_t i=0;i<count;++i){r.target_previous[i]=s.targets[i];r.target_rotation_previous[i]=sub::detail::Rotation(pose[i]);}
     out->count=0;

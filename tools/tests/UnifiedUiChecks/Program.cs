@@ -90,6 +90,16 @@ internal static class Program
             var profile = partCatalog.Read(character);
             Check(profile.Bones.Count > 0 && profile.Bones.All(bone => float.IsFinite(bone.Position.X) &&
                 float.IsFinite(bone.Position.Y) && float.IsFinite(bone.Position.Z)), "physics preview loads " + character.CharacterId);
+            var gravityParts = PartGravityCatalog.Build(root, character, profile).OfType<JsonObject>().ToArray();
+            Check(gravityParts.Length != 0, "part gravity is available for " + character.CharacterId);
+            var claimed = new HashSet<int>();
+            foreach (var part in gravityParts)
+            {
+                var members = PartGravityCatalog.Members(part, profile.Bones);
+                if (members.Count == 0 || members.Overlaps(claimed))
+                    throw new Exception("part gravity contains overlapping or empty targets for " + character.CharacterId);
+                claimed.UnionWith(members);
+            }
         }
         var lily = characters.Select("role1512-skin81001512");
         characterPicker.SelectedItem = lily;

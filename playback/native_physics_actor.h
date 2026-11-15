@@ -82,6 +82,7 @@ struct Actor {
     std::array<kawaii_parameters::Group,graph::kMaxGroups> settings;
     std::array<kawaii_collision::State,graph::kMaxGroups> capsules;
     std::array<kawaii_gravity::State,graph::kMaxGroups> gravity;
+    std::atomic<unsigned> part_gravity_group_mask{0};
     std::vector<std::string> physics_bone_names;
     mutable std::mutex sleeve_edit;
     std::vector<sleeve_follow::Chain> sleeves;

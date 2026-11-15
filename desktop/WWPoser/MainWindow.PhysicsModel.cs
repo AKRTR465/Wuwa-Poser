@@ -121,6 +121,7 @@ public sealed partial class MainWindow
             modelSubscription = null;
             displayedModelFrame = 0;
             if (physicsModel is { } model) physicsModelView.Apply(PhysicsModelView.Deform(model, null));
+            physicsModelView.SetCapsulePose(null);
             if (desired is { } target)
             {
                 var receipt = await PlaybackControl.SendAsync(target.Session, "model_preview", 1, lifetime.Token, target.Slot);
@@ -155,15 +156,16 @@ public sealed partial class MainWindow
         {
             var count = modelBoneCount;
             var previous = displayedModelFrame;
-            var result = await Task.Run<(ulong Frame, PhysicsModelView.Surface[] Surface)?>(() =>
+            var result = await Task.Run<(PhysicsModelPose Pose, PhysicsModelView.Surface[] Surface)?>(() =>
             {
                 var pose = PhysicsModelPose.Read(live.Session, live.Slot, live.Revision, count, previous);
-                return pose is null ? null : (pose.Frame, PhysicsModelView.Deform(model, pose));
+                return pose is null ? null : (pose, PhysicsModelView.Deform(model, pose));
             });
             if (result is { } frame && ReferenceEquals(physicsModel, model) && DesiredModelSubscription() == (live.Session, live.Slot) && modelSubscription == live)
             {
                 physicsModelView.Apply(frame.Surface);
-                displayedModelFrame = frame.Frame;
+                physicsModelView.SetCapsulePose(frame.Pose);
+                displayedModelFrame = frame.Pose.Frame;
                 lastModelSample = Environment.TickCount64;
             }
             if (page == 3) RefreshPhysicsModelHeading();

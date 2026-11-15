@@ -32,6 +32,14 @@ enum class CommandKind : uint32_t {
     SetNativeCapsuleCollision=26,
     SetModelPreview=27,
     SetNativeGravity=28,
+    SetPartGravity=29,
+    SetNativeCapsuleRadius=30,
+    SetNativeCapsuleLength=31,
+    SetNativeCapsuleOffsetX=32,
+    SetNativeCapsuleOffsetY=33,
+    SetNativeCapsuleOffsetZ=34,
+    ResetNativeCapsule=35,
+    SetNativeCapsuleActive=36,
 };
 inline bool IsActorCommand(CommandKind kind) noexcept {
     switch(kind) {
@@ -50,6 +58,14 @@ inline bool IsActorCommand(CommandKind kind) noexcept {
     case CommandKind::SetNativeCapsuleCollision:
     case CommandKind::SetModelPreview:
     case CommandKind::SetNativeGravity:
+    case CommandKind::SetPartGravity:
+    case CommandKind::SetNativeCapsuleRadius:
+    case CommandKind::SetNativeCapsuleLength:
+    case CommandKind::SetNativeCapsuleOffsetX:
+    case CommandKind::SetNativeCapsuleOffsetY:
+    case CommandKind::SetNativeCapsuleOffsetZ:
+    case CommandKind::ResetNativeCapsule:
+    case CommandKind::SetNativeCapsuleActive:
         return true;
     default:return false;
     }
@@ -85,6 +101,14 @@ inline bool ValidCommandArguments(CommandKind kind,double value,uint32_t target_
     case CommandKind::SetNativeCapsuleCollision:return value>=0&&value<=1&&std::trunc(value)==value;
     case CommandKind::SetModelPreview:return value>=0&&value<=1&&std::trunc(value)==value;
     case CommandKind::SetNativeGravity:return value>=-1&&value<=1500;
+    case CommandKind::SetPartGravity:return value>=-1&&value<=1500;
+    case CommandKind::SetNativeCapsuleRadius:return value>=0&&value<=100;
+    case CommandKind::SetNativeCapsuleLength:return value>=0&&value<=300;
+    case CommandKind::SetNativeCapsuleOffsetX:return value>=-300&&value<=300;
+    case CommandKind::SetNativeCapsuleOffsetY:return value>=-300&&value<=300;
+    case CommandKind::SetNativeCapsuleOffsetZ:return value>=-300&&value<=300;
+    case CommandKind::ResetNativeCapsule:return value>=0&&value<=0;
+    case CommandKind::SetNativeCapsuleActive:return value>=0&&value<=1&&std::trunc(value)==value;
     }
     return false;
 }

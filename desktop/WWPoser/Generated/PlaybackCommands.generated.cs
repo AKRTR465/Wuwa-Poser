@@ -34,6 +34,14 @@ internal static class PlaybackCommands
             "native_capsule_collision" => (26U, 0d, 1d, true, false),
             "model_preview" => (27U, 0d, 1d, true, false),
             "native_gravity" => (28U, -1d, 1500d, false, false),
+            "part_gravity" => (29U, -1d, 1500d, false, false),
+            "native_capsule_radius" => (30U, 0d, 100d, false, false),
+            "native_capsule_length" => (31U, 0d, 300d, false, false),
+            "native_capsule_offset_x" => (32U, -300d, 300d, false, false),
+            "native_capsule_offset_y" => (33U, -300d, 300d, false, false),
+            "native_capsule_offset_z" => (34U, -300d, 300d, false, false),
+            "native_capsule_reset" => (35U, 0d, 0d, false, false),
+            "native_capsule_active" => (36U, 0d, 1d, true, false),
             _ => throw new ArgumentException("未知控制命令：" + kind, nameof(kind))
         };
         if (scene && targetSlot != 0) throw new ArgumentException("全场命令不接受演员槽位：" + kind, nameof(targetSlot));

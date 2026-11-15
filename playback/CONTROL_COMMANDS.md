@@ -35,3 +35,11 @@
 | 26 | `native_capsule_collision` / `SetNativeCapsuleCollision` | boolean | — | 0…1 | actor | 开关指定物理组中由指定骨骼驱动的胶囊碰撞 |
 | 27 | `model_preview` / `SetModelPreview` | boolean | — | 0…1 | actor | 订阅指定演员发布后的完整模型姿态 |
 | 28 | `native_gravity` / `SetNativeGravity` | number | 原生值 | -1…1500 | actor | 指定物理组的向下重力，-1 为还原 |
+| 29 | `part_gravity` / `SetPartGravity` | number | 厘米/秒² | -1…1500 | actor | 指定部件的重力加速度，-1 为还原 |
+| 30 | `native_capsule_radius` / `SetNativeCapsuleRadius` | number | 厘米 | 0…100 | actor | 编辑单个原生胶囊的半径 |
+| 31 | `native_capsule_length` / `SetNativeCapsuleLength` | number | 厘米 | 0…300 | actor | 编辑原生胶囊两端球心间的长度 |
+| 32 | `native_capsule_offset_x` / `SetNativeCapsuleOffsetX` | number | 厘米 | -300…300 | actor | 编辑原生胶囊局部 X 偏移 |
+| 33 | `native_capsule_offset_y` / `SetNativeCapsuleOffsetY` | number | 厘米 | -300…300 | actor | 编辑原生胶囊局部 Y 偏移 |
+| 34 | `native_capsule_offset_z` / `SetNativeCapsuleOffsetZ` | number | 厘米 | -300…300 | actor | 编辑原生胶囊局部 Z 偏移 |
+| 35 | `native_capsule_reset` / `ResetNativeCapsule` | none | — | 0 | actor | 还原单个原生胶囊的尺寸、偏移和开关 |
+| 36 | `native_capsule_active` / `SetNativeCapsuleActive` | boolean | — | 0…1 | actor | 开关单个原生胶囊 |

@@ -170,6 +170,27 @@ static void CapsuleIsolation() {
     parameters::Array restored{};access.Get(base+collision::kCapsuleArrays[0],restored);
     Check(faults==0&&parameters::SameArray(restored,original)&&state.drivers[0].active==0&&state.drivers[1].active==1&&!state.restore_pending.load(),
         "authored capsule header is restored and evaluation counts are isolated");
+    state.drivers[0].enabled=true;
+    const std::array<int32_t,2> sameDriver{0,0};
+    std::memcpy(capsules[1].bytes.data()+collision::kCapsuleIdentity,sameDriver.data(),sizeof(sameDriver));
+    state.available=false;
+    collision::EvaluateCapsules(state,base,access,true,map,[]{},[&]{++faults;});
+    Check(state.shapes.size()==3&&state.shapes[0].id!=state.shapes[1].id&&state.shapes[0].bone==state.shapes[1].bone,
+        "separate capsule entries remain independently addressable on the same bone");
+    const auto stock=capsules;
+    auto& chosen=state.shapes[1];
+    chosen.requested={6.5f,19.f,2.f,-1.f,.5f};chosen.edited=(1u<<collision::Fields)-1;
+    const auto geometry=chosen.requested;
+    collision::EvaluateCapsules(state,base,access,true,map,[&]{
+        parameters::Array used{};access.Get(base+collision::kCapsuleArrays[0],used);
+        std::array<collision::Capsule,3> copies{};access.Get(used.data,copies);
+        collision::Shape sampled{};
+        Check(collision::ReadGeometry(copies[1],sampled)&&sampled.baseline==geometry&&copies[0].bytes==stock[0].bytes&&copies[2].bytes==stock[2].bytes,
+            "the engine sees the selected capsule's new geometry only");
+    },[&]{++faults;});
+    access.Get(base+collision::kCapsuleArrays[0],restored);
+    Check(parameters::SameArray(restored,original)&&capsules[1].bytes==stock[1].bytes&&faults==0,
+        "a size-only edit restores the original capsule and array after evaluation");
 }
 static void GravityIsolation(){
     namespace gravity=wwp_playback::kawaii_gravity;
@@ -199,6 +220,12 @@ static void GravityIsolation(){
     Check(inside==stock&&state.sample.applied==2,"reset uses the authored vector including X/Y");
     state.requested=450;gravity::EvaluateGravity(state,node,access,false,evaluate,fault);
     Check(inside==stock&&state.sample.applied==2&&!state.restore_pending.load(),"closed feed uses authored gravity");
+    gravity::EvaluateGravity(state,node,access,true,evaluate,fault,true);
+    Check(inside==stock&&state.sample.suspended_by_parts&&state.requested==450&&state.sample.applied==2,
+        "a fully covered native gravity override is suspended without losing its value");
+    gravity::EvaluateGravity(state,node,access,true,evaluate,fault);
+    Check(inside==gravity::Vector{0,0,-450}&&!state.sample.suspended_by_parts&&state.sample.applied==3,
+        "coverage ending resumes the saved gravity override");
 }
 int main(int argc,char** argv){try{
     if(argc!=2)throw std::runtime_error("expected an evidence output directory");

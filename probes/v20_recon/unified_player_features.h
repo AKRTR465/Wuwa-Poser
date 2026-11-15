@@ -1,8 +1,8 @@
 #pragma once
 #include "../../runtime/generated/GameCompat.generated.h"
 // Shared per-actor expression/direct-pose features and scene camera overlay.
-// Preparation performs file IO and fresh catalog capture. Frame functions run
-// only after the caller's original publication / UpdateCamera callback.
+// Preparation performs file IO and fresh catalog capture. The caller selects
+// the matching skeletal publication phase for its part-gravity input.
 #include "object_identity.h"
 #include "publish_observer.h"
 #include "face_capture_readonly.h"
@@ -17,6 +17,7 @@
 #include "../../playback/ww_mmd_placement.h"
 #include "../../playback/vmd_local_clip.h"
 #include "../../playback/ww_chain_physics_profile.h"
+#include "../../playback/ww_part_gravity.h"
 #include <algorithm>
 #include <vector>
 #include <atomic>
@@ -51,6 +52,7 @@ struct ActorFeatures {
     std::array<sub::TransformBytes,1024> pose{},secondary_pose{};
     sub::FixedPlan plan,secondary_plan,combined_plan;std::array<PoseBackup,2> backups;
     play::ww_chain::Prepared chain_profile;play::ww_chain::Runtime chain_runtime;play::ww_chain::Scratch chain_scratch;
+    std::vector<play::part_gravity::Part> gravity_parts;
 };
 inline std::filesystem::path FeaturePath(const Json& cfg,const char* field,const std::filesystem::path& dir,const char* fallback){
     return dir/std::filesystem::u8path(cfg.value(field,std::string(fallback)));}
@@ -65,6 +67,11 @@ inline void PrepareActor(ActorFeatures& a,::Reader& r,Go& go,Pool& pool,const Js
     Require(topology.count&&topology.count<=1024&&topology.count==clip.bone_count,"actor feature topology mismatch");
     Require(ww_object::ReadStable(r,go,mesh,&a.mesh)&&ww_object::ReadStable(r,go,asset,&a.asset),"actor feature identities unavailable");
     a.native_physics=cfg.value("native_physics",true);
+    if(a.native_physics&&cfg.contains("gravity_parts")){
+        const auto names=cfg.at("bone_names").get<std::vector<std::string>>();
+        Require(names.size()==topology.count,"part gravity topology mismatch");
+        play::part_gravity::Prepare(cfg.at("gravity_parts"),names,topology.parents.data(),a.gravity_parts);
+    }
     a.face_enabled=cfg.value("expression_enabled",cfg.contains("expression_target_names"));
     if(a.face_enabled){
         a.face_clip=play::face::ReadClip(FeaturePath(cfg,"expression_clip_file",directory,"expression.wwexpr"));
@@ -103,34 +110,158 @@ inline bool FaceFrame(ActorFeatures& a,::Reader& r,const play::PlayerState& stat
     for(unsigned i=0;i<count;++i)a.weights[i]=a.sampled_weights[a.face_order[i]];
     return fr::Frame(reader,writer,a.weights.data(),count,&a.face_state,&a.face_scratch);
 }
+inline bool RestorePoseBuffer(PoseBackup& backup,::Reader& r,const obs::ArrayHead& head){
+    if(!backup.valid)return true;
+    bool restored=true;
+    if(head.data==backup.head.data&&head.num==backup.head.num)for(unsigned k=0;k<backup.plan.count;++k){const auto& p=backup.plan.patches[k];
+        const auto address=head.data+uint64_t(p.bone)*ww_game_compat::TransformBytes;std::array<uint8_t,ww_game_compat::TransformRotationBytes> q{};std::array<uint8_t,ww_game_compat::VectorBytes> position{};
+        if(!r.Read(address,q.data(),ww_game_compat::TransformRotationBytes)){restored=false;continue;}
+        if(!memcmp(q.data(),p.rotated_rotation.data(),ww_game_compat::TransformRotationBytes)&&!Write(address,p.original_rotation.data(),ww_game_compat::TransformRotationBytes))restored=false;
+        if(p.position_changed){if(!r.Read(address+ww_game_compat::TransformTranslationOffset,position.data(),ww_game_compat::VectorBytes))restored=false;
+            else if(!memcmp(position.data(),p.rotated_position.data(),ww_game_compat::VectorBytes)&&!Write(address+ww_game_compat::TransformTranslationOffset,p.original_position.data(),ww_game_compat::VectorBytes))restored=false;}}
+    backup.valid=!restored;
+    return restored;
+}
 inline bool RestorePose(ActorFeatures& a,::Reader& r,const obs::Metadata& metadata){
-    bool ok=true;
-    for(unsigned slot=0;slot<2;++slot){auto& backup=a.backups[slot];if(!backup.valid)continue;const auto& head=metadata.heads[slot];
-        bool restored=true;
-        if(head.data==backup.head.data&&head.num==backup.head.num)for(unsigned k=0;k<backup.plan.count;++k){const auto& p=backup.plan.patches[k];
-            const auto address=head.data+uint64_t(p.bone)*ww_game_compat::TransformBytes;std::array<uint8_t,ww_game_compat::TransformRotationBytes> q{};std::array<uint8_t,ww_game_compat::VectorBytes> position{};
-            if(!r.Read(address,q.data(),ww_game_compat::TransformRotationBytes)){restored=false;continue;}
-            if(!memcmp(q.data(),p.rotated_rotation.data(),ww_game_compat::TransformRotationBytes)&&!Write(address,p.original_rotation.data(),ww_game_compat::TransformRotationBytes))restored=false;
-            if(p.position_changed){if(!r.Read(address+ww_game_compat::TransformTranslationOffset,position.data(),ww_game_compat::VectorBytes))restored=false;
-                else if(!memcmp(position.data(),p.rotated_position.data(),ww_game_compat::VectorBytes)&&!Write(address+ww_game_compat::TransformTranslationOffset,p.original_position.data(),ww_game_compat::VectorBytes))restored=false;}}
-        backup.valid=!restored;ok=ok&&restored;
-    }
+    const bool first=RestorePoseBuffer(a.backups[0],r,metadata.heads[0]);
+    const bool second=RestorePoseBuffer(a.backups[1],r,metadata.heads[1]);
+    const bool ok=first&&second;
     if(ok)a.anchor_captured=false;return ok;
+}
+inline bool WritePosePlan(PoseBackup& backup,const obs::ArrayHead& head,const sub::FixedPlan& plan){
+    backup.head=head;backup.plan=plan;backup.valid=plan.count!=0;
+    for(unsigned i=0;i<plan.count;++i){const auto& patch=plan.patches[i];const auto address=head.data+uint64_t(patch.bone)*ww_game_compat::TransformBytes;
+        if(!Write(address,patch.rotated_rotation.data(),ww_game_compat::TransformRotationBytes)||
+           (patch.position_changed&&!Write(address+ww_game_compat::TransformTranslationOffset,patch.rotated_position.data(),ww_game_compat::VectorBytes)))return false;}
+    return true;
+}
+inline void RecoverPoseInput(const PoseBackup& backup,const obs::ArrayHead& head,sub::TransformBytes* pose){
+    if(!backup.valid||head.data!=backup.head.data||head.num!=backup.head.num)return;
+    for(unsigned i=0;i<backup.plan.count;++i){
+        const auto& patch=backup.plan.patches[i];
+        auto* bone=pose[patch.bone].data();
+        if(!memcmp(bone,patch.rotated_rotation.data(),patch.rotated_rotation.size()))
+            memcpy(bone,patch.original_rotation.data(),patch.original_rotation.size());
+        auto* position=bone+ww_game_compat::TransformTranslationOffset;
+        if(patch.position_changed&&!memcmp(position,patch.rotated_position.data(),patch.rotated_position.size()))
+            memcpy(position,patch.original_position.data(),patch.original_position.size());
+    }
+}
+inline bool CommitPartPose(ActorFeatures& a,::Reader& r,const obs::ArrayHead& head,unsigned slot){
+    constexpr size_t rotation=ww_game_compat::TransformRotationBytes;
+    constexpr size_t position=ww_game_compat::TransformTranslationOffset;
+    constexpr size_t extent=position+ww_game_compat::VectorBytes;
+    auto& result=a.chain_scratch.output;
+    std::copy_n(a.pose.begin(),head.num,result.begin());
+    for(unsigned i=0;i<a.combined_plan.count;++i){
+        const auto& patch=a.combined_plan.patches[i];
+        auto* bone=result[patch.bone].data();
+        memcpy(bone,patch.rotated_rotation.data(),rotation);
+        if(patch.position_changed)memcpy(bone+position,patch.rotated_position.data(),ww_game_compat::VectorBytes);
+    }
+    auto& backup=a.backups[slot];
+    backup.head=head;
+    backup.plan.count=0;
+    bool committed=true;
+    for(int32_t i=0;i<head.num;++i){
+        const auto* before=a.secondary_pose[i].data();
+        const auto* baseline=a.pose[i].data();
+        const auto* target=result[i].data();
+        const auto* live=before;
+        std::array<uint8_t,extent> after{};
+        if(committed&&memcmp(before,target,extent)){
+            const auto address=head.data+uint64_t(i)*ww_game_compat::TransformBytes;
+            const bool move=memcmp(before+position,target+position,ww_game_compat::VectorBytes)!=0;
+            committed=Write(address,target,move?extent:rotation);
+            live=target;
+            if(!committed&&r.Read(address,after.data(),after.size()))live=after.data();
+        }
+        if(!memcmp(baseline,live,extent))continue;
+        auto& patch=backup.plan.patches[backup.plan.count++];
+        patch.bone=uint32_t(i);
+        memcpy(patch.original_rotation.data(),baseline,rotation);
+        memcpy(patch.rotated_rotation.data(),live,rotation);
+        memcpy(patch.original_position.data(),baseline+position,ww_game_compat::VectorBytes);
+        memcpy(patch.rotated_position.data(),live+position,ww_game_compat::VectorBytes);
+        patch.position_changed=patch.original_position!=patch.rotated_position;
+    }
+    backup.valid=backup.plan.count!=0;
+    return committed;
+}
+inline bool GravityPartFrame(ActorFeatures& a,::Reader& r,const play::PlayerState& state,bool feed,double clock,bool before_publication=false){
+    if(a.gravity_parts.empty())return true;
+    const bool enabled=feed&&std::any_of(a.gravity_parts.begin(),a.gravity_parts.end(),[](const auto& part){return part.strength>=0;});
+    if(!enabled&&!a.backups[0].valid&&!a.backups[1].valid){
+        for(auto& part:a.gravity_parts)if(part.sampled!=part.sequence){
+            part.motion.reset();part.moved_bones=0;part.sampled=part.sequence;
+        }
+        return true;
+    }
+    obs::Metadata metadata;if(!obs::ReadMetadata(r,a.mesh.object,obs::kVerifiedLayout,metadata))return false;
+    if(!enabled){
+        if(!RestorePose(a,r,metadata))return false;
+        for(auto& part:a.gravity_parts){part.motion.reset();part.moved_bones=0;part.sampled=part.sequence;}
+        return true;
+    }
+    if(metadata.previous_index<0||metadata.previous_index>1)return false;
+    const auto input=before_publication?metadata.read_index:metadata.previous_index;
+    if(input<0||input>1||(before_publication&&input==metadata.previous_index))return false;
+    const auto slot=unsigned(input);const auto& head=metadata.heads[slot];
+    const auto other=1u-slot;
+    const bool aliased=metadata.heads[other].data==head.data;
+    if(before_publication&&aliased)return false;
+    if(head.num!=int32_t(a.topology.count)||!obs::ValidHead(head,obs::kVerifiedLayout.max_bones)||
+        !r.Read(head.data,a.secondary_pose.data(),size_t(head.num)*ww_game_compat::TransformBytes))return false;
+    std::copy_n(a.secondary_pose.begin(),head.num,a.pose.begin());
+    // Reconstruct the solver input privately. The published buffer stays
+    // corrected while the solver is running, including when a slot is reused.
+    if(aliased)RecoverPoseInput(a.backups[other],head,a.pose.data());
+    RecoverPoseInput(a.backups[slot],head,a.pose.data());
+    sub::TransformBytes world;
+    if(!r.Read(a.mesh.object+ww_game_compat::ComponentToWorldOffset,world.data(),world.size()))return false;
+    const auto rotation=sub::detail::Rotation(world);
+    const auto norm=sub::detail::Norm(rotation);
+    if(!std::isfinite(norm)||norm<.9||norm>1.1)return false;
+    const auto up=sub::detail::Rotate(sub::detail::Conj(sub::detail::Unit(rotation)),{{0,0,1}});
+    play::ww_chain::Control control;
+    control.enabled=true;control.playing=state.mode==play::PlayerMode::Playing;
+    control.settle_while_paused=true;control.align_incoming_frames=true;control.gravity_strength=1;
+    control.project_constraint_velocity=true;
+    control.link_turn_rate=7;control.rotation_rate=9;
+    control.gravity_up={up[0],up[1],up[2]};control.epoch=a.epoch;
+    control.clock_seconds=clock;control.cursor_seconds=state.seconds;
+    a.combined_plan.count=0;
+    for(auto& part:a.gravity_parts){
+        if(part.strength<0){part.motion.reset();part.moved_bones=0;continue;}
+        if(!part.motion)part.motion.reset(new(std::nothrow) play::ww_chain::Runtime{});
+        if(!part.motion)return false;
+        control.gravity_ue=-part.strength;
+        control.downward_drape=part.downward_drape&&part.strength>0;
+        // The component-space capsule tests keep the solved points away from the arm.
+        control.collision_priority=false;
+        if(!play::ww_chain::Step(part.rig,control,a.pose.data(),a.topology.count,part.motion.get(),&a.chain_scratch,&a.secondary_plan))return false;
+        part.moved_bones=a.secondary_plan.count;
+        std::copy_n(a.secondary_plan.patches.begin(),a.secondary_plan.count,a.combined_plan.patches.begin()+a.combined_plan.count);
+        a.combined_plan.count+=a.secondary_plan.count;
+    }
+    const bool committed=CommitPartPose(a,r,head,slot);
+    if(aliased)a.backups[other].valid=false;
+    if(!committed)return false;
+    for(auto& part:a.gravity_parts)part.sampled=part.sequence;
+    return true;
 }
 inline bool ActorFrame(ActorFeatures& a,::Reader& r,const play::PlayerState& state,const play::placement::Settings& placement,bool feed){
     if(!a.prepared)return false;feed=feed&&!state.restore_requested&&state.mode!=play::PlayerMode::Stopped;
     if(!ActorAlive(a,r))return false;
     if(!FaceFrame(a,r,state,feed))return false;
-    if(a.native_physics)return true;
+    if(a.native_physics)return GravityPartFrame(a,r,state,feed,GetTickCount64()/1000.);
     obs::Metadata metadata;if(!obs::ReadMetadata(r,a.mesh.object,obs::kVerifiedLayout,metadata))return false;
     if(!feed)return RestorePose(a,r,metadata);
     if(metadata.previous_index<0||metadata.previous_index>1)return false;
     const auto slot=unsigned(metadata.previous_index);const auto& head=metadata.heads[slot];const auto count=a.topology.count;
     if(head.num!=int32_t(count)||!r.Read(head.data,a.pose.data(),size_t(count)*ww_game_compat::TransformBytes))return false;
     auto& backup=a.backups[slot];
-    if(backup.valid&&head.data==backup.head.data)for(unsigned i=0;i<backup.plan.count;++i){const auto& p=backup.plan.patches[i];auto& b=a.pose[p.bone];
-        if(!memcmp(b.data(),p.rotated_rotation.data(),ww_game_compat::TransformRotationBytes))memcpy(b.data(),p.original_rotation.data(),ww_game_compat::TransformRotationBytes);
-        if(p.position_changed&&!memcmp(b.data()+ww_game_compat::TransformTranslationOffset,p.rotated_position.data(),ww_game_compat::VectorBytes))memcpy(b.data()+ww_game_compat::TransformTranslationOffset,p.original_position.data(),ww_game_compat::VectorBytes);}
+    RecoverPoseInput(backup,head,a.pose.data());
     if(!a.anchor_captured){a.request.root_anchor_position=sub::detail::Position(a.pose[0]);a.request.root_anchor_rotation=sub::detail::Rotation(a.pose[0]);
         a.request.root_anchor_enabled=a.request.root_rotation_enabled=true;a.anchor_captured=true;}
     if(!play::local_clip::Sample(*a.clip,state.seconds,a.samples.data(),count))return false;
@@ -156,9 +287,7 @@ inline bool ActorFrame(ActorFeatures& a,::Reader& r,const play::PlayerState& sta
                 memcpy(p.rotated_rotation.data(),a.secondary_pose[i].data(),ww_game_compat::TransformRotationBytes);memcpy(p.rotated_position.data(),a.secondary_pose[i].data()+ww_game_compat::TransformTranslationOffset,ww_game_compat::VectorBytes);
                 p.position_changed=p.original_position!=p.rotated_position;
                 if(p.position_changed||p.original_rotation!=p.rotated_rotation)a.combined_plan.patches[a.combined_plan.count++]=p;}a.plan=a.combined_plan;}}
-    backup.head=head;backup.plan=a.plan;backup.valid=a.plan.count!=0;
-    for(unsigned i=0;i<a.plan.count;++i){const auto& p=a.plan.patches[i];const auto address=head.data+uint64_t(p.bone)*ww_game_compat::TransformBytes;
-        if(!Write(address,p.rotated_rotation.data(),ww_game_compat::TransformRotationBytes)||(p.position_changed&&!Write(address+ww_game_compat::TransformTranslationOffset,p.rotated_position.data(),ww_game_compat::VectorBytes)))return false;}
+    if(!WritePosePlan(backup,head,a.plan))return false;
     ++a.frames;a.writes+=a.plan.count;return true;
 }
 

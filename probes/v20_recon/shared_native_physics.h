@@ -120,7 +120,7 @@ inline void EvaluateDetour(void* node,void* context,void* out){
     auto with_capsules=[&]{if(actor->capsules_verified)collision::EvaluateCapsules(actor->capsules[index],uintptr_t(node),access,feed,map,evaluate,
         [&]{core::Fail(*actor,610);});else evaluate();};
     auto with_gravity=[&]{if(actor->gravity_verified)gravity::EvaluateGravity(actor->gravity[index],uintptr_t(node),access,feed,with_capsules,
-        [&]{core::Fail(*actor,612);});else with_capsules();};
+        [&]{core::Fail(*actor,612);},(actor->part_gravity_group_mask.load()&(1u<<index))!=0);else with_capsules();};
     settings::EvaluateGroup(group,uintptr_t(node),access,feed,with_gravity,
         &RefreshGroupSettings,[&]{core::Fail(*actor,608);},[&]{std::array<int32_t,1024> result{};
             return map(result)&&settings::MapChains(group,uintptr_t(node),access,result);});
@@ -379,7 +379,8 @@ inline void Stats(const Actor& a,Json& j){
         if(a.gravity_verified){const auto& state=a.gravity[i];std::lock_guard<std::mutex> lock(state.edit);const auto& sample=state.sample;
             group["gravity"]={{"requested",state.requested},{"revision",state.revision},{"sampled_revision",sample.revision},
                 {"original",sample.read?Json(sample.original):Json(nullptr)},{"effective",sample.read?Json(sample.effective):Json(nullptr)},
-                {"applied",sample.applied},{"restored",sample.restored},{"restore_pending",state.restore_pending.load()}};}
+                {"applied",sample.applied},{"restored",sample.restored},{"restore_pending",state.restore_pending.load()},
+                {"suspended_by_parts",sample.suspended_by_parts}};}
         if(!a.sleeves.empty()){
             std::lock_guard<std::mutex> lock(a.sleeve_edit);
             for(const auto& sleeve:a.sleeves)if(sleeve.group==i+1)group["sleeves"].push_back({{"chain_id",sleeve.root_slot},
@@ -393,10 +394,18 @@ inline void Stats(const Actor& a,Json& j){
         }
         if(a.capsules_verified){const auto& state=a.capsules[i];std::lock_guard<std::mutex> lock(state.edit);
             group["capsule_restore_pending"]=state.restore_pending.load();
+            group["capsule_shapes"]=Json::array();
+            for(const auto& shape:state.shapes){
+                Json item={{"id",shape.id},{"bone",shape.bone},{"enabled",shape.enabled},{"active",shape.active},
+                    {"driver",shape.bone>=0&&size_t(shape.bone)<a.physics_bone_names.size()?a.physics_bone_names[size_t(shape.bone)]:std::string{}},
+                    {"editable",shape.geometry_available}};
+                if(shape.geometry_available){item["baseline"]=shape.baseline;item["values"]=collision::Effective(shape);item["rotation"]=shape.rotation;}
+                group["capsule_shapes"].push_back(std::move(item));
+            }
             if(state.available){group["capsules"]=Json::array();for(const auto& driver:state.drivers)if(driver.bone<a.physics_bone_names.size())
                 group["capsules"].push_back({{"driver",a.physics_bone_names[driver.bone]},{"driver_id",driver.bone+1},
                     {"enabled",driver.enabled},{"original_count",driver.original},{"evaluated_count",driver.active}});}
         }
-        j["native_physics_groups"].push_back(group);if(b.alpha_type==ww_game_compat::AlphaTypeCurve){group.erase("settings");group.erase("chains");group.erase("capsules");j["native_curve_groups"].push_back(group);}}
+        j["native_physics_groups"].push_back(group);if(b.alpha_type==ww_game_compat::AlphaTypeCurve){group.erase("settings");group.erase("chains");group.erase("capsules");group.erase("capsule_shapes");j["native_curve_groups"].push_back(group);}}
 }
 } // namespace v20_shared_native_physics

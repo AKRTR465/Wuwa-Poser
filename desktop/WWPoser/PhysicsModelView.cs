@@ -8,7 +8,7 @@ using WWPoser.Services;
 
 namespace WWPoser;
 
-internal sealed class PhysicsModelView : Grid
+internal sealed partial class PhysicsModelView : Grid
 {
     private readonly Viewport3D viewport = new() { ClipToBounds = true, IsHitTestVisible = false };
     private readonly OrthographicCamera camera = new();
@@ -17,7 +17,7 @@ internal sealed class PhysicsModelView : Grid
         VerticalAlignment = VerticalAlignment.Bottom, Margin = new(6, 6, 6, 9), IsHitTestVisible = false, FontSize = 11 };
     private readonly Material baseMaterial = MakeMaterial(Color.FromRgb(163, 185, 209));
     private readonly Material highlightMaterial = MakeMaterial(Color.FromRgb(255, 156, 71));
-    private (MeshGeometry3D Base, MeshGeometry3D Highlight)[] geometry = [];
+    private (GeometryModel3D Base, GeometryModel3D Highlight)[] geometry = [];
     private PhysicsPreviewModel? model;
     private Point origin;
     private MouseButton? dragging;
@@ -30,14 +30,15 @@ internal sealed class PhysicsModelView : Grid
         instructions.Foreground = new SolidColorBrush(Color.FromRgb(181, 196, 216));
         viewport.Camera = camera;
         viewport.Children.Add(new ModelVisual3D { Content = scene });
-        Children.Add(viewport); Children.Add(instructions);
+        capsuleOverlay = new CapsuleOverlay(this) { IsHitTestVisible = false, ClipToBounds = true };
+        Children.Add(viewport); Children.Add(capsuleOverlay); Children.Add(instructions);
         SizeChanged += (_, _) => UpdateCamera();
-        LostMouseCapture += (_, _) => dragging = null;
+        LostMouseCapture += (_, _) => { dragging = null; StopCapsuleDrag(false); };
     }
 
     public void SetModel(PhysicsPreviewModel? value)
     {
-        model = value; scene.Children.Clear(); geometry = [];
+        model = value; scene.Children.Clear(); geometry = []; SetCapsulePose(null);
         if (model is null) return;
         scene.Children.Add(new AmbientLight(Color.FromRgb(110, 117, 128)));
         scene.Children.Add(new DirectionalLight(Color.FromRgb(215, 219, 225), new Vector3D(.2, -.55, -.86)));
@@ -58,11 +59,11 @@ internal sealed class PhysicsModelView : Grid
         SetView(0);
     }
 
-    private MeshGeometry3D AddGeometry(Material material)
+    private GeometryModel3D AddGeometry(Material material)
     {
-        var mesh = new MeshGeometry3D();
-        scene.Children.Add(new GeometryModel3D(mesh, material) { BackMaterial = material });
-        return mesh;
+        var entry = new GeometryModel3D(new MeshGeometry3D(), material) { BackMaterial = material };
+        scene.Children.Add(entry);
+        return entry;
     }
 
     public int Highlight(HashSet<int> selection)
@@ -86,11 +87,19 @@ internal sealed class PhysicsModelView : Grid
                 target.Add(a); target.Add(b); target.Add(c);
             }
             normal.Freeze(); accent.Freeze();
-            geometry[i].Base.TriangleIndices = normal;
-            geometry[i].Highlight.TriangleIndices = accent;
+            SetTriangles(geometry[i].Base, normal, baseMaterial);
+            SetTriangles(geometry[i].Highlight, accent, highlightMaterial);
             selectedTriangles += accent.Count / 3;
         }
         return selectedTriangles;
+    }
+
+    private static void SetTriangles(GeometryModel3D target, Int32Collection triangles, Material material)
+    {
+        // WPF draws sequential vertex triples when the index collection is empty.
+        // Hide that layer so an empty highlight never contributes geometry.
+        target.Material = target.BackMaterial = triangles.Count > 0 ? material : null;
+        ((MeshGeometry3D)target.Geometry).TriangleIndices = triangles;
     }
 
     internal sealed record Surface(Point3DCollection Positions, Vector3DCollection Normals);
@@ -134,7 +143,8 @@ internal sealed class PhysicsModelView : Grid
     {
         for (var i = 0; i < geometry.Length; i++)
         {
-            var (main, selected) = geometry[i];
+            var main = (MeshGeometry3D)geometry[i].Base.Geometry;
+            var selected = (MeshGeometry3D)geometry[i].Highlight.Geometry;
             main.Positions = selected.Positions = surfaces[i].Positions;
             main.Normals = selected.Normals = surfaces[i].Normals;
         }
@@ -170,6 +180,7 @@ internal sealed class PhysicsModelView : Grid
         camera.NearPlaneDistance = span * .01;
         camera.FarPlaneDistance = distance * 3;
         camera.Width = span * zoom * Math.Max(1, ActualWidth / Math.Max(1, ActualHeight));
+        capsuleOverlay.InvalidateVisual();
     }
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
@@ -177,6 +188,7 @@ internal sealed class PhysicsModelView : Grid
         base.OnMouseDown(e);
         if (e.ChangedButton is not (MouseButton.Left or MouseButton.Right)) return;
         origin = e.GetPosition(this);
+        if (e.ChangedButton == MouseButton.Left && SelectOrDragCapsule(origin)) { e.Handled = true; return; }
         dragging = e.ChangedButton;
         CaptureMouse(); e.Handled = true;
     }
@@ -184,6 +196,7 @@ internal sealed class PhysicsModelView : Grid
     protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         base.OnMouseUp(e);
+        if (e.ChangedButton == MouseButton.Left && StopCapsuleDrag(true)) { ReleaseMouseCapture(); e.Handled = true; return; }
         if (dragging != e.ChangedButton) return;
         ReleaseMouseCapture(); e.Handled = true;
     }
@@ -191,6 +204,7 @@ internal sealed class PhysicsModelView : Grid
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
+        if (MoveCapsuleDrag(e.GetPosition(this))) { e.Handled = true; return; }
         if (dragging is null) return;
         var position = e.GetPosition(this); var delta = position - origin; origin = position;
         if (dragging == MouseButton.Left) Orbit(delta.X, delta.Y);

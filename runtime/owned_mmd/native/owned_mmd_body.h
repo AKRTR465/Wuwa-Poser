@@ -20,6 +20,7 @@
 #include <cmath>
 #include <filesystem>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace owned_mmd_body {
@@ -63,7 +64,7 @@ struct Runtime {
     features::CameraFeatures cameraFeatures;vmt::State hook;
     using Publish=void(*)(void*);Publish original=nullptr;
     std::atomic<bool> observing{false},writing{false},closing{false},closed{false},deadlineExpired{false},nativeInstalled{false};
-    std::atomic_flag busy=ATOMIC_FLAG_INIT;
+    std::mutex publicationMutex;
     std::atomic<uint32_t> error{0},active{0},work{0},lastControlCode{0};
     std::atomic<uint64_t> rejectedCommands{0},playStart{0},actualPlayStart{0};
 };
@@ -116,6 +117,25 @@ inline play::ControlCode ApplyCommand(const play::Command& command,double now){a
         }
         return code;
     }
+    if(play::NativeCapsuleCommand(command.kind)){
+        auto* actor=FindSlot(command.target_slot);
+        if(!actor||!actor->nativePrepared||!actor->native.capsules_verified||
+            !v20_shared_native_physics::CanSetParameter(actor->native,command.target_group,0))return play::ControlCode::InvalidCommand;
+        auto& capsules=actor->native.capsules[command.target_group-1];
+        std::lock_guard<std::mutex> lock(capsules.edit);
+        const auto shape=std::find_if(capsules.shapes.begin(),capsules.shapes.end(),[&](const auto& s){return s.id==command.target_chain;});
+        if(shape==capsules.shapes.end()||(!shape->geometry_available&&command.kind<play::CommandKind::ResetNativeCapsule))
+            return play::ControlCode::InvalidCommand;
+        const auto code=r.transport.AcceptRoutedCommand(command,now);
+        if(code!=play::ControlCode::Ok)return code;
+        if(command.kind==play::CommandKind::SetNativeCapsuleActive)shape->enabled=command.value!=0;
+        else if(command.kind==play::CommandKind::ResetNativeCapsule){shape->enabled=true;shape->edited=0;}
+        else{
+            const auto field=unsigned(command.kind)-unsigned(play::CommandKind::SetNativeCapsuleRadius);
+            shape->requested[field]=float(command.value);shape->edited|=1u<<field;
+        }
+        return code;
+    }
     if(command.kind==play::CommandKind::SetNativeCapsuleCollision){
         auto* actor=FindSlot(command.target_slot);
         if(!actor||!actor->nativePrepared||!actor->native.capsules_verified||!command.target_chain||
@@ -135,6 +155,23 @@ inline play::ControlCode ApplyCommand(const play::Command& command,double now){a
         auto& gravity=actor->native.gravity[command.target_group-1];
         std::lock_guard<std::mutex> lock(gravity.edit);
         gravity.requested=float(command.value);gravity.revision=command.sequence;return code;
+    }
+    if(command.kind==play::CommandKind::SetPartGravity){
+        auto* actor=FindSlot(command.target_slot);
+        if(!actor||!actor->nativePrepared)return play::ControlCode::InvalidCommand;
+        auto& parts=actor->features.gravity_parts;
+        const auto part=std::find_if(parts.begin(),parts.end(),[&](const auto& item){return item.id==command.target_chain;});
+        if(part==parts.end())return play::ControlCode::InvalidCommand;
+        const auto code=r.transport.AcceptRoutedCommand(command,now);
+        if(code==play::ControlCode::Ok){
+            part->strength=float(command.value);part->sequence=command.sequence;
+            unsigned covered=0;
+            for(unsigned i=0;i<actor->native.binding.group_count;++i)
+                if(play::part_gravity::CoversGroup(parts,actor->native.settings[i].chains,actor->native.binding.groups[i].root_bones.size()))
+                    covered|=1u<<i;
+            actor->native.part_gravity_group_mask.store(covered);
+        }
+        return code;
     }
     if(command.kind==play::CommandKind::SetNativePreview){
         auto* actor=FindSlot(command.target_slot);
@@ -226,18 +263,30 @@ inline void CapturePublishedPreview(ActorRuntime& actor,::Reader& read){
 }
 inline void Detour(void* object){auto& r=runtime;r.active.fetch_add(1,std::memory_order_acq_rel);
     struct Active {~Active(){runtime.active.fetch_sub(1,std::memory_order_release);}} active;
-    r.original(object);
-    if(!r.observing.load(std::memory_order_acquire)||GetCurrentThreadId()!=r.gameThread)return;
-    auto* actor=FindMesh(uint64_t(object));if(!actor||r.busy.test_and_set(std::memory_order_acquire))return;
+    static thread_local bool publishing=false;
+    if(publishing||!r.observing.load(std::memory_order_acquire)||GetCurrentThreadId()!=r.gameThread){r.original(object);return;}
+    // Status readers and pose writers share this lock. A busy reader must
+    // never cause the native publisher to see an uncorrected frame.
+    std::unique_lock<std::mutex> publication(r.publicationMutex);
+    auto* actor=r.observing.load(std::memory_order_acquire)?FindMesh(uint64_t(object)):nullptr;
+    if(!actor){publication.unlock();r.original(object);return;}
+    publishing=true;
+    struct Publication {bool& active;~Publication(){active=false;}} callback{publishing};
     r.work.fetch_add(1,std::memory_order_acq_rel);
-    struct Work {~Work(){runtime.work.fetch_sub(1,std::memory_order_release);runtime.busy.clear(std::memory_order_release);}} work;
+    struct Work {~Work(){runtime.work.fetch_sub(1,std::memory_order_release);}} work;
     if(actor->native.error.load()||r.cameraFeatures.failed.load())Fail(Error::Plan);
-    Reader read;uint64_t frame=0;if(!read.Get(r.host+r.frameRva,frame)||!frame)Fail(Error::Plan);else Advance(frame,GetTickCount64()/1000.0);
+    Reader read;uint64_t frame=0;const auto now=GetTickCount64()/1000.0;
+    if(!read.Get(r.host+r.frameRva,frame)||!frame)Fail(Error::Plan);else Advance(frame,now);
     auto state=r.transport.State();state.physics_enabled=actor->physicsEnabled;
     const bool feed=r.writing.load()&&!r.closing.load()&&state.mode!=play::PlayerMode::Stopped&&state.mode!=play::PlayerMode::Empty;
     ::Reader featureReader{GetCurrentProcess()};
+    if(actor->nativePhysics&&(!features::ActorAlive(actor->features,featureReader)||
+        !features::GravityPartFrame(actor->features,featureReader,state,feed,now,true)))Fail(Error::Plan);
+    r.original(object);
     const auto placement=EffectivePlacement(*actor);
-    if(!features::ActorFrame(actor->features,featureReader,state,placement,feed))Fail(Error::Plan);
+    if(actor->nativePhysics){
+        if(!features::FaceFrame(actor->features,featureReader,state,feed&&!r.closing.load()))Fail(Error::Plan);
+    }else if(!features::ActorFrame(actor->features,featureReader,state,placement,feed))Fail(Error::Plan);
     if(actor->nativePhysics)v20_shared_native_physics::Publish(actor->native,state.seconds,placement,feed&&!r.closing.load());
     if(feed&&!r.closing.load())CapturePublishedPreview(*actor,featureReader);
     features::PublishCamera(r.cameraFeatures,CameraState(state),feed&&!r.closing.load());
@@ -543,7 +592,7 @@ inline void Start(uint64_t now) noexcept {auto& r=runtime;r.lastWireSequence=++r
     if(!r.startPaused&&!r.commands.Push({r.epoch,r.initialSequence,play::CommandKind::Play,0})){Fail(Error::Plan);return;}r.playStart.store(now);r.writing.store(true);}
 inline void PollCommands(){auto& r=runtime;std::ifstream stream(r.directory/L"control.dat",std::ios::binary);play::CommandWire wire{};play::Command command;
     if(stream&&stream.read(reinterpret_cast<char*>(wire.data()),wire.size())&&play::DecodeCommandFrame(wire,&command)&&command.sequence>r.lastWireSequence&&r.commands.Push(command))r.lastWireSequence=command.sequence;}
-struct WorkerLock {WorkerLock(){while(runtime.busy.test_and_set(std::memory_order_acquire))Sleep(0);}~WorkerLock(){runtime.busy.clear(std::memory_order_release);}};
+struct WorkerLock {std::lock_guard<std::mutex> lock{runtime.publicationMutex};};
 inline void SaveModelPreview(const std::filesystem::path& path,uint64_t& revision,uint64_t& frame){
     play::model_preview::Frame snapshot;
     size_t bytes=0;
@@ -578,7 +627,12 @@ inline Json Status(){auto& r=runtime;WorkerLock lock;if(r.payloadReleased)return
             {"frames",count},{"writes",writeCount},{"native_physics",a.nativePhysics},{"physics_enabled",a.physicsEnabled},{"physics_available",a.features.physics_available},
             {"expression_enabled",a.features.face_enabled},{"restoration_complete",!pending},{"pose_pending_restore",pending},
             {"placement",{{"offset_x_cm",a.placement.x},{"offset_y_cm",a.placement.y},{"height_cm",a.placement.height},{"yaw_degrees",a.placement.yaw_degrees},{"in_place",a.placement.in_place}}}};
-        if(a.nativePrepared){v20_shared_native_physics::Stats(a.native,actor);nativeFrames+=actor.value("native_input_frames",uint64_t(0));if(a.native.error.load())nativeError=a.native.error.load();}members.push_back(std::move(actor));
+        if(a.nativePrepared){v20_shared_native_physics::Stats(a.native,actor);nativeFrames+=actor.value("native_input_frames",uint64_t(0));if(a.native.error.load())nativeError=a.native.error.load();}
+        actor["gravity_parts"]=Json::array();
+        for(const auto& part:a.features.gravity_parts)
+            actor["gravity_parts"].push_back({{"id",part.id},{"root",part.root},{"strength",part.strength},
+                {"sampled_revision",part.sampled},{"moved_bones",part.moved_bones}});
+        members.push_back(std::move(actor));
     }
     const bool initialPoseReady=allObserved&&(!r.cameraFeatures.available||r.cameraFeatures.applied_frames.load()!=0);
     Json value={{"schema",3},{"actor_count",r.actors.size()},{"borrowed_count",borrowed},{"created_count",created},{"actors",members},{"members",members},{"all_actors_observed",allObserved},{"body_only",!face},

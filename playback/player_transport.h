@@ -36,11 +36,15 @@ inline uint32_t WireChecksum(const CommandWire& bytes) {
 inline bool NativeSettingsCommand(CommandKind kind) {
     return kind==CommandKind::SetNativeDamping||kind==CommandKind::SetNativeStiffness||kind==CommandKind::SetNativeLimitAngle;
 }
+inline bool NativeCapsuleCommand(CommandKind kind){
+    return kind>=CommandKind::SetNativeCapsuleRadius&&kind<=CommandKind::SetNativeCapsuleActive;
+}
 inline bool ValidCommand(const Command& command) {
-    const bool target_valid=command.kind==CommandKind::SetNativeShoulderFollow||command.kind==CommandKind::SetNativeCapsuleCollision ?
+    const bool target_valid=command.kind==CommandKind::SetNativeShoulderFollow||command.kind==CommandKind::SetNativeCapsuleCollision||NativeCapsuleCommand(command.kind) ?
         command.target_slot&&command.target_group&&command.target_chain :
         command.kind==CommandKind::SetNativePreview?command.target_slot&&command.target_group&&!command.target_chain:
         command.kind==CommandKind::SetNativeGravity?command.target_slot&&command.target_group&&!command.target_chain&&(command.value>=0||command.value==-1):
+        command.kind==CommandKind::SetPartGravity?command.target_slot&&!command.target_group&&command.target_chain&&(command.value>=0||command.value==-1):
         command.kind==CommandKind::SetModelPreview?command.target_slot&&!command.target_group&&!command.target_chain:
         NativeSettingsCommand(command.kind)?command.target_slot&&command.target_group&&(command.value>=0||command.value==-1):
         !command.target_group&&!command.target_chain;
@@ -187,8 +191,16 @@ public:
         case CommandKind::SetNativeLimitAngle:
         case CommandKind::SetNativePreview:
         case CommandKind::SetNativeGravity:
+        case CommandKind::SetPartGravity:
         case CommandKind::SetModelPreview:
         case CommandKind::SetNativeCapsuleCollision:
+        case CommandKind::SetNativeCapsuleRadius:
+        case CommandKind::SetNativeCapsuleLength:
+        case CommandKind::SetNativeCapsuleOffsetX:
+        case CommandKind::SetNativeCapsuleOffsetY:
+        case CommandKind::SetNativeCapsuleOffsetZ:
+        case CommandKind::ResetNativeCapsule:
+        case CommandKind::SetNativeCapsuleActive:
         case CommandKind::SetNativeShoulderFollow:return ControlCode::InvalidCommand;
         case CommandKind::Stop:
             state_.restore_requested=state_.mode!=PlayerMode::Stopped||state_.seconds!=0||state_.restore_requested;

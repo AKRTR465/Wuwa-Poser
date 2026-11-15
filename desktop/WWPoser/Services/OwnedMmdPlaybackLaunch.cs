@@ -34,6 +34,12 @@ public sealed partial class OwnedMmdPlaybackService
                 && Contract.I(actor, "role_id") == selected.RoleId && Contract.I(actor, "skin_id") == selected.SkinId
                 && Contract.S(actor, "character_profile_sha256") == JsonData.Digest(registry.ProfilePath(registry.GetProfile(selected.ProfileId))), "角色形态或适配数据已更改，请重新准备动作。");
             actor["form"] = selected.Form?.DeepClone(); actor["independent_instance"] = selected.IndependentInstance;
+            actor.Remove("gravity_parts");
+            if (actor["native_physics"]?.GetValue<bool>() ?? true)
+            {
+                var parts = PartGravityCatalog.Build(root, selected);
+                if (parts.Count != 0) actor["gravity_parts"] = parts;
+            }
         }
         foreach (var key in new[] { "camera_observation", "controller_address", "camera_controller_address", "camera_pawn_address", "native_graph_binding", "animation_target" }) config.Remove(key);
         var directory = Path.Combine(prepared, "runtime_sessions", "actors_" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);

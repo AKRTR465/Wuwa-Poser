@@ -11,13 +11,14 @@ public static class PlaybackControl
         if (epoch == 0 || sequence == 0) throw new ArgumentException("控制命令的 epoch 和 sequence 必须为正数");
         var id = PlaybackCommands.Validate(kind, value, targetSlot);
         var nativeSetting = kind is "native_damping" or "native_stiffness" or "native_limit_angle";
-        var requiresMember = kind is "native_shoulder_follow" or "native_capsule_collision";
+        var requiresMember = kind == "native_shoulder_follow" || kind.StartsWith("native_capsule_", StringComparison.Ordinal);
         if (requiresMember ? targetSlot == 0 || targetGroup == 0 || targetChain == 0 :
             kind == "native_preview" ? targetSlot == 0 || targetGroup == 0 || targetChain != 0 :
             kind == "native_gravity" ? targetSlot == 0 || targetGroup == 0 || targetChain != 0 || (value < 0 && value != -1) :
+            kind == "part_gravity" ? targetSlot == 0 || targetGroup != 0 || targetChain == 0 || (value < 0 && value != -1) :
             kind == "model_preview" ? targetSlot == 0 || targetGroup != 0 || targetChain != 0 :
             nativeSetting ? targetSlot == 0 || targetGroup == 0 || (value < 0 && value != -1) : targetGroup != 0 || targetChain != 0)
-            throw new ArgumentException("物理组控制需要指定演员和物理组；还原值为 -1。");
+            throw new ArgumentException("控制命令的演员、物理组、部件或还原值无效。");
         var bytes = new byte[64]; "WWPCTL1\0"u8.CopyTo(bytes);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(8), 1); BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(12), 64);
         BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(16), epoch); BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(24), sequence);

@@ -17,7 +17,7 @@ static_assert(sizeof(Vector)==12,"expected UE FVector3f");
 struct Sample {
     Vector original{},effective{};
     uint64_t revision=0,applied=0,restored=0;
-    bool read=false;
+    bool read=false,suspended_by_parts=false;
 };
 struct State {
     mutable std::mutex edit;
@@ -47,14 +47,15 @@ template<class Access> bool Restore(State& state,uintptr_t address,const Access&
 // The caller serializes evaluation of the selected registered node. Publication
 // uses the copied telemetry, after the original vector has been restored.
 template<class Access,class Evaluate,class Fault>
-void EvaluateGravity(State& state,uintptr_t node,const Access& access,bool feed,Evaluate&& evaluate,Fault&& fault){
+void EvaluateGravity(State& state,uintptr_t node,const Access& access,bool feed,Evaluate&& evaluate,Fault&& fault,bool covered=false){
     const auto address=node+kNodeGravity;
     if(state.restore_pending.load(std::memory_order_acquire)&&!Restore(state,address,access)){fault();return;}
     float strength=-1;Sample sample;
     {std::lock_guard<std::mutex> lock(state.edit);strength=state.requested;sample=state.sample;sample.revision=state.revision;}
     sample.read=access.Get(address,sample.original)&&Finite(sample.original);
     sample.effective=sample.original;
-    if(feed&&strength>=0){
+    sample.suspended_by_parts=feed&&strength>=0&&covered;
+    if(feed&&strength>=0&&!covered){
         if(!sample.read||!access.writable(access.user,address,sizeof(Vector))){fault();evaluate();return;}
         const Vector requested{0,0,-strength};
         state.saved=sample.original;

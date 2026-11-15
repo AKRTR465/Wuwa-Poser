@@ -1,0 +1,161 @@
+{
+  "schema": 1,
+  "profiles": {
+    "femalems--lili--r2t1lilimd10011": [
+      {
+        "id": 1,
+        "name": "左袖",
+        "downward_drape": true,
+        "root": "Bone_Piao201_L",
+        "anchor": "Bone_Piao200_L",
+        "transition_roots": ["Bone_Piao219_L", "Bone_Piao221_L"],
+        "continuation": ["Bone_Piao202_L", "Bone_Piao203_L"],
+        "capsules": [
+          {"start": "Bip001LUpperArm", "end": "Bip001LForearm", "radius_cm": 3.5},
+          {"start": "Bip001LForearm", "end": "Bip001LHand", "radius_cm": 3.25}
+        ]
+      },
+      {
+        "id": 2,
+        "name": "右袖",
+        "downward_drape": true,
+        "root": "Bone_Piao201_R",
+        "anchor": "Bone_Piao200_R",
+        "transition_roots": ["Bone_Piao219_R", "Bone_Piao221_R"],
+        "continuation": ["Bone_Piao202_R", "Bone_Piao203_R"],
+        "capsules": [
+          {"start": "Bip001RUpperArm", "end": "Bip001RForearm", "radius_cm": 3.5},
+          {"start": "Bip001RForearm", "end": "Bip001RHand", "radius_cm": 3.25}
+        ]
+      }
+    ],
+    "femalem--suisui--r2t1suisuimd10011": [
+      {
+        "id": 1,
+        "name": "左袖",
+        "root": "Bone_Piao092_L",
+        "anchor": "Bone_Piao091_L",
+        "transition_roots": ["Bone_Piao081_L", "Bone_Piao211_L", "Bone_Piao221_L", "Bone_Piao231_L"],
+        "continuation": ["Bone_Piao111_L", "Bone_Piao112_L", "Bone_Piao113_L", "Bone_Piao114_L"],
+        "capsules": [
+          {"start": "Bip001LUpperArm", "end": "Bip001LForearm", "radius_cm": 3.5},
+          {"start": "Bip001LForearm", "end": "Bip001LHand", "radius_cm": 3.25}
+        ]
+      },
+      {
+        "id": 2,
+        "name": "右袖",
+        "root": "Bone_Piao092_R",
+        "anchor": "Bone_Piao091_R",
+        "transition_roots": ["Bone_Piao083_R", "Bone_Piao211_R", "Bone_Piao221_R", "Bone_Piao231_R"],
+        "continuation": ["Bone_Piao111_R", "Bone_Piao112_R", "Bone_Piao113_R", "Bone_Piao114_R"],
+        "capsules": [
+          {"start": "Bip001RUpperArm", "end": "Bip001RForearm", "radius_cm": 3.5},
+          {"start": "Bip001RForearm", "end": "Bip001RHand", "radius_cm": 3.25}
+        ]
+      }
+    ],
+    "femalem--taohua--r2t1taohuamd10011": [
+      {
+        "id": 1,
+        "name": "左袖",
+        "root": "Piao_L_yiXiuB02",
+        "anchor": "Piao_L_yiXiuB01",
+        "transition_roots": ["Piao_L_yiXiuA02"],
+        "continuation": ["Piao_L_yiXiuB03"],
+        "capsules": [
+          {"start": "Bip001LUpperArm", "end": "Bip001LForearm", "radius_cm": 3.5},
+          {"start": "Bip001LForearm", "end": "Bip001LHand", "radius_cm": 3.25}
+        ]
+      },
+      {
+        "id": 2,
+        "name": "右袖",
+        "root": "Piao_R_yiXiuB02",
+        "anchor": "Piao_R_yiXiuB01",
+        "transition_roots": ["Piao_R_yiXiuA02"],
+        "continuation": ["Piao_R_yiXiuB03"],
+        "capsules": [
+          {"start": "Bip001RUpperArm", "end": "Bip001RForearm", "radius_cm": 3.5},
+          {"start": "Bip001RForearm", "end": "Bip001RHand", "radius_cm": 3.25}
+        ]
+      }
+    ],
+    "femalem--xuanling--r2t1xuanlingmd10011": [
+      {
+        "id": 1,
+        "name": "左袖",
+        "root": "Bone_Piao011_L",
+        "anchor": "Bone_Piao010_L",
+        "transition_roots": ["Bone_Piao080_L"],
+        "continuation": ["Bone_Piao012_L", "Bone_Piao013_L", "Bone_Piao014_L"],
+        "capsules": [
+          {"start": "Bip001LUpperArm", "end": "Bip001LForearm", "radius_cm": 3.5},
+          {"start": "Bip001LForearm", "end": "Bip001LHand", "radius_cm": 3.25}
+        ]
+      },
+      {
+        "id": 2,
+        "name": "右袖",
+        "root": "Bone_Piao011_R",
+        "anchor": "Bone_Piao010_R",
+        "transition_roots": ["Bone_Piao080_R"],
+        "continuation": ["Bone_Piao012_R", "Bone_Piao013_R", "Bone_Piao014_R"],
+        "capsules": [
+          {"start": "Bip001RUpperArm", "end": "Bip001RForearm", "radius_cm": 3.5},
+          {"start": "Bip001RForearm", "end": "Bip001RHand", "radius_cm": 3.25}
+        ]
+      }
+    ],
+    "femalems--katixiya--r2t1katixiyamd10011": [
+      {
+        "id": 1,
+        "name": "左袖带",
+        "root": "Bone_Piao032_L",
+        "anchor": "Bone_Piao031_L",
+        "continuation": ["Bone_Piao033_L", "Bone_Piao034_L", "Bone_Piao035_L", "Bone_Piao036_L", "Bone_Piao037_L"],
+        "capsules": [
+          {"start": "Bip001LUpperArm", "end": "Bip001LForearm", "radius_cm": 3.5},
+          {"start": "Bip001LForearm", "end": "Bip001LHand", "radius_cm": 3.25}
+        ]
+      },
+      {
+        "id": 2,
+        "name": "右袖带",
+        "root": "Bone_Piao032_R",
+        "anchor": "Bone_Piao031_R",
+        "continuation": ["Bone_Piao033_R", "Bone_Piao034_R", "Bone_Piao035_R", "Bone_Piao036_R", "Bone_Piao037_R"],
+        "capsules": [
+          {"start": "Bip001RUpperArm", "end": "Bip001RForearm", "radius_cm": 3.5},
+          {"start": "Bip001RForearm", "end": "Bip001RHand", "radius_cm": 3.25}
+        ]
+      }
+    ],
+    "femalexl--xinyuehu--r2t1xinmd10011": [
+      {
+        "id": 1,
+        "name": "左袖",
+        "root": "Bone_Piao032_L",
+        "anchor": "Bone_Piao031_L",
+        "transition_roots": ["Bone_Piao121_L", "Bone_Piao124_L"],
+        "continuation": ["Bone_Piao033_L", "Bone_Piao034_L"],
+        "capsules": [
+          {"start": "Bip001LUpperArm", "end": "Bip001LForearm", "radius_cm": 3.5},
+          {"start": "Bip001LForearm", "end": "Bip001LHand", "radius_cm": 3.25}
+        ]
+      },
+      {
+        "id": 2,
+        "name": "右袖",
+        "root": "Bone_Piao032_R",
+        "anchor": "Bone_Piao031_R",
+        "transition_roots": ["Bone_Piao121_R", "Bone_Piao124_R"],
+        "continuation": ["Bone_Piao033_R", "Bone_Piao034_R"],
+        "capsules": [
+          {"start": "Bip001RUpperArm", "end": "Bip001RForearm", "radius_cm": 3.5},
+          {"start": "Bip001RForearm", "end": "Bip001RHand", "radius_cm": 3.25}
+        ]
+      }
+    ]
+  }
+}

@@ -1,9 +1,11 @@
 // Synthetic in-process memory only: no game process, windows, hooks or engine calls.
 #include "../../probes/v20_recon/unified_player_features.h"
 #include "../../playback/ww_gaze_profile.h"
+#include "../../playback/native_kawaii_parameters.h"
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <numeric>
 
 namespace feature=unified_player_features;
 namespace play=wwp_playback;
@@ -275,8 +277,187 @@ static void ClothingProfilesTest(const std::filesystem::path& data) {
             "3.8 clothing profiles produce simulated descendants and collision capsules");
     }
 }
+static void PartContactTurnLimitTest(){
+    namespace chain=play::ww_chain;
+    chain::Prepared rig;
+    rig.count=4;
+    rig.parents={-1,0,0,0};
+    rig.particles[0].enabled=rig.particles[0].pinned=true;
+    rig.particles[1].enabled=true;
+    rig.particles[1].anchor=0;
+    rig.particles[1].cone_radians=1;
+    rig.capsule_count=1;
+    rig.capsules[0]={2,3,2};
+    std::array<sub::TransformBytes,4> pose;
+    Transform(uint64_t(pose[0].data()));
+    Transform(uint64_t(pose[1].data()),10);
+    Transform(uint64_t(pose[2].data()),10,10);
+    Transform(uint64_t(pose[3].data()),10,10,3);
+    auto runtime=std::make_unique<chain::Runtime>();
+    auto scratch=std::make_unique<chain::Scratch>();
+    auto plan=std::make_unique<sub::FixedPlan>();
+    chain::Control control;
+    control.enabled=control.playing=true;
+    control.link_turn_rate=6;
+    control.gravity_ue=0;
+    control.project_constraint_velocity=true;
+    Check(chain::Step(rig,control,pose.data(),rig.count,runtime.get(),scratch.get(),plan.get()),
+        "sleeve initializes outside the arm obstacle");
+    Transform(uint64_t(pose[2].data()),10);
+    Transform(uint64_t(pose[3].data()),10,0,3);
+    for(unsigned frame=1;frame<=6;++frame){
+        const auto previous=chain::Unit(runtime->position[1]);
+        control.clock_seconds=control.cursor_seconds=frame/60.;
+        Check(chain::Step(rig,control,pose.data(),rig.count,runtime.get(),scratch.get(),plan.get()),
+            "sleeve solves after the arm moves across its path");
+        const auto current=runtime->position[1];
+        Check(chain::collision::Dot(previous,chain::Unit(current))>=std::cos(.10001)&&
+            Near(chain::collision::Length(current),10),"contact honors the turn rate and preserves link length");
+        if(frame==1)Check(chain::collision::Length(current-runtime->previous[1])<1e-7,
+            "a position-only contact correction cannot introduce velocity into a stationary sleeve");
+    }
+    Check(chain::collision::SegmentDistance(runtime->position[1],{10,0,0},{10,0,3})>=2.699,
+        "contact clears the arm over successive frames");
+}
+static void SelectedPartGravityTest(const std::filesystem::path& data) {
+    const std::string profile_id="femalems--lili--r2t1lilimd10011";
+    const auto profile=Json::parse(std::ifstream(data/"characters"/"profiles"/(profile_id+".json")));
+    const auto definitions=Json::parse(std::ifstream(data/"characters"/"part_gravity.json"));
+    const auto names=profile.at("bone_names").get<std::vector<std::string>>();
+    const auto parents=profile.at("bone_parents").get<std::vector<int32_t>>();
+    const auto joint=[&](const char* name){return uint32_t(std::find(names.begin(),names.end(),name)-names.begin());};
+    const auto anchor=joint("Bone_Piao200_L"),first=joint("Bone_Piao201_L"),edge=joint("Bone_Piao214_L"),right=joint("Bone_Piao201_R");
+    const auto transition=joint("Bone_Piao219_L"),transition_anchor=uint32_t(parents[transition]);
+    auto fixture=std::make_unique<Fixture>();
+    auto actor=std::make_unique<feature::ActorFeatures>();
+    actor->mesh.object=fixture->Object(3);
+    actor->epoch=13;
+    actor->topology.count=uint32_t(names.size());
+    play::part_gravity::Prepare(definitions.at("profiles").at(profile_id),names,parents.data(),actor->gravity_parts);
+    auto& part=actor->gravity_parts.front();
+    auto& opposite=actor->gravity_parts.at(1);
+    Check(part.rig.particles[anchor].pinned&&part.rig.particles[edge].enabled&&!part.rig.particles[right].enabled,
+        "the left sleeve includes its edge and fixes its seam without selecting the right sleeve");
+    std::vector<sub::TransformBytes> pose(names.size());
+    for(size_t i=0;i<pose.size();++i)Transform(uint64_t(pose[i].data()),float(i),50);
+    Transform(uint64_t(pose[anchor].data()),0,0,0);
+    for(uint32_t index=0;index<names.size();++index)
+        if((part.rig.particles[index].enabled&&!part.rig.particles[index].pinned)||
+           (opposite.rig.particles[index].enabled&&!opposite.rig.particles[index].pinned)){
+            const auto parent=sub::detail::Position(pose[uint32_t(parents[index])]);
+            const auto& particle=part.rig.particles[index].enabled?part.rig.particles[index]:opposite.rig.particles[index];
+            const bool branch=particle.direction_reference==play::ww_chain::DirectionReference::ParentFrame;
+            Transform(uint64_t(pose[index].data()),float(parent[0])+5,float(parent[1])+(branch?5.f:0.f),0);
+        }
+    const auto original=pose;
+    const auto head=v20_publish_observer::ArrayHead{uint64_t(pose.data()),int32_t(names.size()),int32_t(names.size())};
+    Put(actor->mesh.object+ww_game_compat::ComponentPoseBuffer0Offset,head);
+    play::PlayerState state;state.mode=play::PlayerMode::Paused;
+    part.strength=980;part.sequence=32;
+    std::array<play::kawaii_parameters::Chain,2> shared_group{};
+    shared_group[0].root_bone=first;shared_group[1].root_bone=right;
+    Check(!play::part_gravity::CoversGroup(actor->gravity_parts,shared_group,2),
+        "enabling only one sleeve leaves the shared native group override available");
+    for(int step=0;step<100;++step)
+        if(!feature::GravityPartFrame(*actor,fixture->reader,state,true,double(step)/60))
+            Check(false,"part gravity frame publishes");
+    Check(part.sampled==32&&part.moved_bones==11,"part output includes the main chain, edge branches, and proximal cloth");
+    Check(pose[anchor]==original[anchor]&&pose[transition_anchor]==original[transition_anchor]&&pose[right]==original[right],
+        "publication keeps both anchors and the opposite sleeve byte-identical");
+    Check(sub::detail::Position(pose[first])[2]<-4&&pose[edge]!=original[edge],"gravity reaches the first free bone and the edge follows it");
+    Check(sub::detail::Position(pose[transition])[2]<-1,"the additional cloth below the seam participates");
+    for(uint32_t i=0;i<names.size();++i)
+        if(!part.rig.particles[i].enabled)
+            Check(pose[i]==original[i],"no writes outside the selected part");
+    const auto published=pose;
+    const auto world=actor->mesh.object+ww_game_compat::ComponentToWorldOffset;
+    Put(world,std::array<float,4>{});
+    Check(!feature::GravityPartFrame(*actor,fixture->reader,state,true,100./60)&&pose==published,
+        "a failed solve leaves the last corrected pose published");
+    Transform(world,100);
+    Put(actor->mesh.object+ww_game_compat::ComponentPoseBuffer1Offset,head);
+    Put(actor->mesh.object+ww_game_compat::ComponentPosePreviousIndexOffset,int32_t(1));
+    Check(feature::GravityPartFrame(*actor,fixture->reader,state,true,100./60)&&
+        pose[anchor]==original[anchor]&&pose[right]==original[right]&&
+        !actor->backups[0].valid&&actor->backups[1].valid,
+        "an aliased buffer retains one restoration ledger and preserves unowned bones");
+    Put(actor->mesh.object+ww_game_compat::ComponentPosePreviousIndexOffset,int32_t(0));
+    opposite.strength=980;opposite.sequence=33;
+    Check(play::part_gravity::CoversGroup(actor->gravity_parts,shared_group,2)&&
+        !play::part_gravity::CoversGroup(actor->gravity_parts,shared_group,3),
+        "only fully matched native groups give precedence to their active parts");
+    for(int step=100;step<200;++step)
+        if(!feature::GravityPartFrame(*actor,fixture->reader,state,true,double(step)/60))
+            Check(false,"both part gravity frames publish");
+    Check(part.moved_bones==11&&opposite.moved_bones==11&&sub::detail::Position(pose[right])[2]<-4,
+        "both sleeves independently contribute to the same published frame");
+    for(uint32_t i=0;i<names.size();++i)
+        if((!part.rig.particles[i].enabled||part.rig.particles[i].pinned)&&
+           (!opposite.rig.particles[i].enabled||opposite.rig.particles[i].pinned))
+            Check(pose[i]==original[i],"both sleeves preserve their attachment transforms and the rest of the pose");
+    const auto previous=sub::detail::Rotation(pose[edge]);
+    const auto abrupt=Quat::AxisAngle({1,0,0},2.8f);
+    Put(uint64_t(pose[edge].data()),std::array<float,4>{abrupt.x,abrupt.y,abrupt.z,abrupt.w});
+    Check(feature::GravityPartFrame(*actor,fixture->reader,state,true,200./60),"publishes through an abrupt input rotation");
+    const auto current=sub::detail::Rotation(pose[edge]);
+    Check(std::abs(std::inner_product(previous.begin(),previous.end(),current.begin(),0.))>=std::cos(.0751),
+        "a part's published rotation cannot flip in one 60 Hz frame");
+    // A fresh native frame retires the abrupt input used for this check.
+    pose[edge]=original[edge];
+    const auto previous_publication=pose;
+    auto next_pose=original;
+    const auto next_head=v20_publish_observer::ArrayHead{uint64_t(next_pose.data()),int32_t(names.size()),int32_t(names.size())};
+    Put(actor->mesh.object+ww_game_compat::ComponentPoseBuffer1Offset,next_head);
+    Put(actor->mesh.object+ww_game_compat::ComponentPosePreviousIndexOffset,int32_t(1));
+    part.strength=opposite.strength=120;
+    state.seconds=5; // seek must publish the constrained pose immediately
+    Check(feature::GravityPartFrame(*actor,fixture->reader,state,true,201./60)&&
+        sub::detail::Position(next_pose[first])[2]<-2&&sub::detail::Position(next_pose[right])[2]<-2,
+        "low gravity keeps both sleeves down on the first published frame after a seek");
+    Check(pose==previous_publication,"processing the next buffer preserves the previous corrected frame");
+    part.strength=-1;part.sequence=34;
+    Check(feature::GravityPartFrame(*actor,fixture->reader,state,true,202./60)&&part.sampled==34&&
+        next_pose[first]==original[first]&&next_pose[edge]==original[edge]&&next_pose[right]!=original[right],
+        "disabling one part restores its native pose while the opposite sleeve keeps settling");
+    part.strength=opposite.strength=-1;part.sequence=opposite.sequence=34;
+    Check(feature::GravityPartFrame(*actor,fixture->reader,state,true,4)&&part.sampled==34&&opposite.sampled==34&&
+        pose==original&&next_pose==original&&!feature::ActorPending(*actor),"turning off both parts restores both original buffers");
+    Put(actor->mesh.object+ww_game_compat::ComponentPosePreviousIndexOffset,int32_t(0));
+    Put(actor->mesh.object+ww_game_compat::ComponentPoseReadIndexOffset,int32_t(1));
+    part.strength=60;part.sequence=35;
+    Check(feature::GravityPartFrame(*actor,fixture->reader,state,true,5,true)&&
+        part.sampled==35&&next_pose[first]!=original[first]&&pose==original,
+        "before publication gravity updates only the ready input and preserves render history");
+    Check(feature::GravityPartFrame(*actor,fixture->reader,state,false,6,true)&&next_pose==original,
+        "stop restores the pending publication input");
+    Put(actor->mesh.object+ww_game_compat::ComponentPoseBuffer1Offset,head);
+    Check(!feature::GravityPartFrame(*actor,fixture->reader,state,true,7,true)&&pose==original,
+        "before publication gravity does not write through an aliased history buffer");
+}
+static void PartGravityCatalogTest(const std::filesystem::path& data) {
+    const auto rows=Json::parse(std::ifstream(data/"characters"/"part_gravity.json")).at("profiles");
+    for(auto it=rows.begin();it!=rows.end();++it){
+        const auto profile=Json::parse(std::ifstream(data/"characters"/"profiles"/(it.key()+".json")));
+        const auto names=profile.at("bone_names").get<std::vector<std::string>>();
+        const auto parents=profile.at("bone_parents").get<std::vector<int32_t>>();
+        std::vector<play::part_gravity::Part> parts;
+        play::part_gravity::Prepare(it.value(),names,parents.data(),parts);
+        Check(parts.size()==it.value().size(),"all catalog parts bind to the exported skeleton");
+        for(const auto& part:parts){
+            const bool left=part.root.find("_L")!=std::string::npos;
+            bool confined=true;
+            for(uint32_t i=0;i<part.rig.count;++i)
+                if(part.rig.particles[i].enabled&&!part.rig.particles[i].pinned&&
+                    (names[i].find("Bip001")==0||names[i].find(left?"_R":"_L")!=std::string::npos))confined=false;
+            Check(confined,"catalog parts never deform body bones or the opposite side");
+        }
+    }
+}
 int wmain(int argc,wchar_t** argv){
     auto fixture=std::make_unique<Fixture>();DirectTest(*fixture);FaceTest(*fixture);GazeTest();CameraTest(*fixture);FormationCameraTest(*fixture);CameraCallbackTest(*fixture);CameraTrackHeightTest(*fixture);
     Check(argc==2,"expected the repository data directory");
     ClothingProfilesTest(argv[1]);
+    PartContactTurnLimitTest();
+    SelectedPartGravityTest(argv[1]);
+    PartGravityCatalogTest(argv[1]);
     std::cout<<assertions<<" feature assertions passed; game_accessed=false; hooks_installed=false\n";}

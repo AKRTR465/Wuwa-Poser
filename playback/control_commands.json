@@ -26,5 +26,13 @@
   {"id":25,"name":"native_preview","native":"SetNativePreview","type":"boolean","unit":"—","min":0,"max":1,"scope":"actor","description":"采样指定物理组的实时求值骨架"},
   {"id":26,"name":"native_capsule_collision","native":"SetNativeCapsuleCollision","type":"boolean","unit":"—","min":0,"max":1,"scope":"actor","description":"开关指定物理组中由指定骨骼驱动的胶囊碰撞"},
   {"id":27,"name":"model_preview","native":"SetModelPreview","type":"boolean","unit":"—","min":0,"max":1,"scope":"actor","description":"订阅指定演员发布后的完整模型姿态"},
-  {"id":28,"name":"native_gravity","native":"SetNativeGravity","type":"number","unit":"原生值","min":-1,"max":1500,"scope":"actor","description":"指定物理组的向下重力，-1 为还原"}
+  {"id":28,"name":"native_gravity","native":"SetNativeGravity","type":"number","unit":"原生值","min":-1,"max":1500,"scope":"actor","description":"指定物理组的向下重力，-1 为还原"},
+  {"id":29,"name":"part_gravity","native":"SetPartGravity","type":"number","unit":"厘米/秒²","min":-1,"max":1500,"scope":"actor","description":"指定部件的重力加速度，-1 为还原"},
+  {"id":30,"name":"native_capsule_radius","native":"SetNativeCapsuleRadius","type":"number","unit":"厘米","min":0,"max":100,"scope":"actor","description":"编辑单个原生胶囊的半径"},
+  {"id":31,"name":"native_capsule_length","native":"SetNativeCapsuleLength","type":"number","unit":"厘米","min":0,"max":300,"scope":"actor","description":"编辑原生胶囊两端球心间的长度"},
+  {"id":32,"name":"native_capsule_offset_x","native":"SetNativeCapsuleOffsetX","type":"number","unit":"厘米","min":-300,"max":300,"scope":"actor","description":"编辑原生胶囊局部 X 偏移"},
+  {"id":33,"name":"native_capsule_offset_y","native":"SetNativeCapsuleOffsetY","type":"number","unit":"厘米","min":-300,"max":300,"scope":"actor","description":"编辑原生胶囊局部 Y 偏移"},
+  {"id":34,"name":"native_capsule_offset_z","native":"SetNativeCapsuleOffsetZ","type":"number","unit":"厘米","min":-300,"max":300,"scope":"actor","description":"编辑原生胶囊局部 Z 偏移"},
+  {"id":35,"name":"native_capsule_reset","native":"ResetNativeCapsule","type":"none","unit":"—","min":0,"max":0,"scope":"actor","description":"还原单个原生胶囊的尺寸、偏移和开关"},
+  {"id":36,"name":"native_capsule_active","native":"SetNativeCapsuleActive","type":"boolean","unit":"—","min":0,"max":1,"scope":"actor","description":"开关单个原生胶囊"}
 ]

@@ -18,6 +18,7 @@ public sealed partial class MainWindow
     private PhysicsSelection? physicsSelection;
     private PhysicsParameterRow? shoulderFollow;
     private PhysicsGravityRow? gravityControls;
+    private PhysicsGravityRow? partGravityControls;
     private StackPanel? capsuleControls;
     private readonly Dictionary<uint, (CheckBox Toggle, TextBlock Counts)> capsuleRows = [];
     private Button physicsSavePreset = null!, physicsLoadPreset = null!;
@@ -65,6 +66,7 @@ public sealed partial class MainWindow
         toggleModelView = new Button { Content = "骨架", IsEnabled = false, Margin = new(4, 0, 0, 4) };
         toggleModelView.Click += (_, _) => SetPhysicsView(physicsModelView.Visibility != Visibility.Visible);
         views.Children.Add(toggleModelView);
+        AddCapsuleEditorToggle(views);
         DockPanel.SetDock(views, Dock.Top); preview.Children.Add(views);
         var compare = new WrapPanel { Margin = new(0, 8, 0, 0) };
         compare.Children.Add(Field("起点（秒）", physicsLoopStart, 78));
@@ -84,8 +86,10 @@ public sealed partial class MainWindow
         preview.Children.Add(viewport);
         Grid.SetColumn(preview, 1); layout.Children.Add(preview);
 
-        physicsDetails.Margin = new Thickness(12, 0, 0, 16);
-        var inspector = new ScrollViewer { Content = physicsDetails, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+        var inspectorContents = new StackPanel { Margin = new Thickness(12, 0, 0, 16) };
+        inspectorContents.Children.Add(BuildCapsuleInspector());
+        inspectorContents.Children.Add(physicsDetails);
+        var inspector = new ScrollViewer { Content = inspectorContents, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         Grid.SetColumn(inspector, 2); layout.Children.Add(inspector);
         physicsActor.SelectionChanged += (_, _) => LoadPhysicsActor();
         physicsTree.SelectedItemChanged += (_, e) => ShowPhysicsSelection((e.NewValue as TreeViewItem)?.Tag as PhysicsSelection);
@@ -110,18 +114,39 @@ public sealed partial class MainWindow
             var profile = physicsParts.Read(character);
             physicsSkeleton.SetBones(profile.Bones);
             _ = LoadPhysicsModelAsync(character, profile.Bones);
+            var parts = PartGravityCatalog.Build(root, character, profile).OfType<JsonObject>()
+                .Select(part => new GravityPart(Contract.S(part, "root"), Contract.True(part, "from_chain") ? null : Contract.S(part, "name"),
+                    PartGravityCatalog.Members(part, profile.Bones).Order().ToArray())).ToArray();
+            var boneIndices = profile.Bones.Select((bone, index) => (bone.Name, index))
+                .ToDictionary(entry => entry.Name, entry => entry.index, StringComparer.OrdinalIgnoreCase);
             foreach (var source in profile.Groups.GroupBy(group => group.Source))
             {
                 var branch = new TreeViewItem { Header = source.Key, IsExpanded = true };
+                var targets = source.SelectMany(group => group.Chains.Select(chain => (Group: group, Chain: chain)))
+                    .Where(target => boneIndices.ContainsKey(target.Chain.Root)).OrderBy(target => boneIndices[target.Chain.Root]).ToArray();
+                var assigned = new Dictionary<(PhysicsGroup Group, PhysicsChain Chain), GravityPart>();
+                foreach (var part in parts)
+                {
+                    var target = targets.FirstOrDefault(entry => string.Equals(entry.Chain.Root, part.Root, StringComparison.OrdinalIgnoreCase));
+                    if (target.Group is null)
+                        target = targets.FirstOrDefault(entry => part.Bones.Contains(boneIndices[entry.Chain.Root]));
+                    if (target.Group is not null) assigned.Add(target, part);
+                }
                 foreach (var group in source)
                 {
-                    var parts = string.Join("、", group.Chains.Select(chain => chain.Part).Distinct());
+                    var groupParts = group.Chains.Select(chain => assigned.GetValueOrDefault((group, chain))).OfType<GravityPart>().ToArray();
+                    var labels = string.Join("、", group.Chains.Select(chain => assigned.GetValueOrDefault((group, chain))?.Name ?? chain.Part).Distinct());
                     var groupNumber = group.Node.StartsWith("AnimGraphNode_KawaiiPhysicsGroup", StringComparison.Ordinal)
                         ? group.Node["AnimGraphNode_KawaiiPhysicsGroup".Length..].TrimStart('_') : group.Node;
-                    var label = parts.Length == 0 ? "物理组" : parts;
-                    var item = new TreeViewItem { Header = groupNumber.Length == 0 ? label : $"{label} · {groupNumber}", Tag = new PhysicsSelection(group, null, profile.Bones) };
+                    var label = labels is "左袖、右袖" or "右袖、左袖" ? "双袖" : labels.Length == 0 ? "物理组" : labels;
+                    var item = new TreeViewItem { Header = groupNumber.Length == 0 ? label : $"{label} · {groupNumber}",
+                        Tag = new PhysicsSelection(group, null, profile.Bones, groupParts) };
                     foreach (var chain in group.Chains)
-                        item.Items.Add(new TreeViewItem { Header = chain.Root, Tag = new PhysicsSelection(group, chain, profile.Bones) });
+                    {
+                        var part = assigned.GetValueOrDefault((group, chain));
+                        item.Items.Add(new TreeViewItem { Header = part?.Name is { } name ? $"{name} · {chain.Root}" : chain.Root,
+                            Tag = new PhysicsSelection(group, chain, profile.Bones, part is null ? [] : [part]) });
+                    }
                     branch.Items.Add(item);
                 }
                 physicsTree.Items.Add(branch);
@@ -140,18 +165,27 @@ public sealed partial class MainWindow
         physicsSelection = selection;
         shoulderFollow = null;
         gravityControls = null;
+        partGravityControls = null;
         capsuleControls = null; capsuleRows.Clear();
         physicsParameters.Clear();
         physicsDetails.Children.Clear();
         physicsHighlighted = (selection?.Chain?.Bones ?? selection?.Group.Chains.SelectMany(chain => chain.Bones) ?? []).ToHashSet();
+        if (selection is not null)
+            physicsHighlighted.UnionWith(selection.GravityParts.SelectMany(part => part.Bones));
         physicsSkeleton.Highlight(physicsHighlighted);
         highlightedModelTriangles = physicsModelView.Highlight(physicsHighlighted);
         if (selection is null) { physicsDetails.Children.Add(Hint("选择一个物理组或骨链。")); RefreshPhysicsSettings(); return; }
 
         var group = selection.Group;
-        physicsDetails.Children.Add(Label(selection.Chain?.Part ?? "物理组"));
+        physicsDetails.Children.Add(Label(selection.Chain is null ? "物理组" : selection.GravityParts.FirstOrDefault()?.Name ?? selection.Chain.Part));
         physicsDetails.Children.Add(Hint(group.Node));
         if (group.Curve is not null) physicsDetails.Children.Add(Hint(group.Curve));
+        if (selection.GravityParts.Count != 0)
+        {
+            AddGravityControls(part: true);
+            if (selection.Chain is null)
+                physicsDetails.Children.Add(Hint(selection.GravityParts.Count == 1 ? "调整本组关联的部件。" : "一起调整本组关联的部件。"));
+        }
         physicsDetails.Children.Add(Spacer(12));
         physicsDetails.Children.Add(Label("资源导出值"));
         physicsDetails.Children.Add(Hint("阻尼　" + Value(group.Damping)));
@@ -241,23 +275,27 @@ public sealed partial class MainWindow
         return sleeves.OfType<JsonObject>().SingleOrDefault(sleeve => string.Equals(sleeve["root"]?.GetValue<string>(), chain.Root, StringComparison.OrdinalIgnoreCase));
     }
 
-    private void AddGravityControls()
+    private void AddGravityControls(bool part = false)
     {
-        var toggle = new CheckBox { Content = "自定义向下重力", Margin = new(0, 12, 0, 3), IsEnabled = false };
+        var command = part ? NativePhysicsPreset.PartGravityCommand : NativePhysicsPreset.GravityCommand;
+        var toggle = new CheckBox { Content = part ? "部件重力" : "自定义向下重力", Margin = new(0, 12, 0, 3), IsEnabled = false,
+            ToolTip = part ? "固定各部件的挂点，让其余骨段参与重力求解" : "修改此原生组的重力参数" };
         var slider = new Slider { Maximum = NativePhysicsPreset.GravityMaximum, TickFrequency = 10, IsSnapToTickEnabled = true,
-            Value = 150, IsEnabled = false, ToolTip = "重力强度使用游戏原生数值" };
+            Value = part ? 980 : 150, IsEnabled = false, ToolTip = part ? "向下加速度（厘米/秒²）" : "重力强度使用游戏原生数值" };
         var strength = Label("强度　" + Value(slider.Value));
         slider.ValueChanged += (_, _) => strength.Text = "强度　" + Value(slider.Value);
         var readback = Hint("");
         var actions = new WrapPanel { Margin = new(0, 0, 0, 4) };
         var apply = new Button { Content = "应用", Margin = new(0, 0, 4, 0) };
         var reset = new Button { Content = "还原" };
-        toggle.Click += async (_, _) => await EditPhysicsParameterAsync(NativePhysicsPreset.GravityCommand, toggle.IsChecked == true ? slider.Value : -1);
-        apply.Click += async (_, _) => await EditPhysicsParameterAsync(NativePhysicsPreset.GravityCommand, slider.Value);
-        reset.Click += async (_, _) => await EditPhysicsParameterAsync(NativePhysicsPreset.GravityCommand, -1);
+        toggle.Click += async (_, _) => await EditPhysicsParameterAsync(command, toggle.IsChecked == true ? slider.Value : -1);
+        apply.Click += async (_, _) => await EditPhysicsParameterAsync(command, slider.Value);
+        reset.Click += async (_, _) => await EditPhysicsParameterAsync(command, -1);
         actions.Children.Add(apply); actions.Children.Add(reset);
         foreach (var element in new FrameworkElement[] { toggle, strength, slider, readback, actions }) physicsDetails.Children.Add(element);
-        gravityControls = new(toggle, slider, apply, reset, readback);
+        var row = new PhysicsGravityRow(toggle, slider, apply, reset, readback);
+        if (part) partGravityControls = row;
+        else gravityControls = row;
     }
 
     private JsonObject? FindLiveParameterTarget(JsonObject? group)
@@ -281,7 +319,8 @@ public sealed partial class MainWindow
         if (SelectedLivePhysicsActor() is not { } selected) return null;
         var actor = (state["actors"] as JsonArray)?.OfType<JsonObject>().FirstOrDefault(row => row["slot"]?.GetValue<uint>() == selected.Slot);
         return actor?["native_physics_settings_verified"]?.GetValue<bool>() == true && actor["native_physics_groups"] is JsonArray groups
-            ? new LivePhysicsTarget(selected.Slot, selected.Character, groups.OfType<JsonObject>().ToArray(), actor["native_preview"] as JsonObject) : null;
+            ? new LivePhysicsTarget(selected.Slot, selected.Character, groups.OfType<JsonObject>().ToArray(), actor["native_preview"] as JsonObject,
+                (actor["gravity_parts"] as JsonArray ?? []).OfType<JsonObject>().ToArray()) : null;
     }
 
     private (ActorCard Card, OwnedCharacterSelection Character)? SelectedPhysicsActor() =>
@@ -331,7 +370,11 @@ public sealed partial class MainWindow
         var inherited = selection?.Chain is null ? null : NativePhysicsPreset.DraftValues(draft, selection.Group, null);
         double?[] previewValues = [selection?.Group.Damping, selection?.Group.Stiffness, selection?.Group.LimitAngle];
         var liveEditable = !editingPhysics && !busy && !player.IsBusy;
-        if (selection is not null && gravityControls is not null) RefreshGravity(selection.Group, draft, live?.Group, idle, liveEditable);
+        if (selection is not null)
+        {
+            RefreshGroupGravity(selection.Group, draft, live?.Group, idle, liveEditable);
+            RefreshPartGravity(selection.GravityParts, draft, targets, idle, liveEditable);
+        }
         for (var i = 0; i < physicsParameters.Count; i++)
         {
             var row = physicsParameters[i];
@@ -364,9 +407,13 @@ public sealed partial class MainWindow
                 sleeve?["sampled_follow"] is JsonValue applied ? $"原值 100% · 输入 {applied.GetValue<double>() * 100:0}%" : "等待匹配袖套骨链";
         }
         RefreshCapsules(live?.Group);
+        RefreshCapsuleEditor(targets, live?.Group, liveEditable);
     }
 
-    private void RefreshGravity(PhysicsGroup group, JsonObject? draft, JsonObject? live, bool idle, bool liveEditable)
+    private static JsonObject? FindLiveGravityPart(LivePhysicsTarget? target, string root) =>
+        target?.Parts.SingleOrDefault(part => string.Equals(Contract.S(part, "root"), root, StringComparison.OrdinalIgnoreCase));
+
+    private void RefreshGroupGravity(PhysicsGroup group, JsonObject? draft, JsonObject? live, bool idle, bool liveEditable)
     {
         if (gravityControls is not { } row) return;
         var gravity = live?["gravity"] as JsonObject;
@@ -382,9 +429,36 @@ public sealed partial class MainWindow
             row.Slider.Value = requested >= 0 ? requested : 150;
         }
         row.Readback.Text = idle ? requested >= 0 ? "预设值 " + Value(requested) : "开演时使用原值"
+            : gravity?["suspended_by_parts"]?.GetValue<bool>() == true ? "部件已覆盖整组，原生重力覆盖已暂停。"
             : gravity is null ? "等待匹配实机重力" : gravity["effective"] is JsonArray effective
-                ? $"原值 Z {Value(gravity["original"]?[2]?.GetValue<double>())} · 求值 Z {Value(effective[2]?.GetValue<double>())}"
-                : "等待游戏求值";
+            ? $"原值 Z {Value(gravity["original"]?[2]?.GetValue<double>())} · 求值 Z {Value(effective[2]?.GetValue<double>())}"
+            : "等待游戏求值";
+    }
+
+    private void RefreshPartGravity(IReadOnlyList<GravityPart> parts, JsonObject? draft, LivePhysicsTarget? target, bool idle, bool liveEditable)
+    {
+        if (partGravityControls is not { } row) return;
+        var live = parts.Select(part => FindLiveGravityPart(target, part.Root)).ToArray();
+        var values = idle ? NativePhysicsPreset.DraftPartGravity(draft, parts.Select(part => part.Root))
+            : live.Select(part => part?["strength"]?.GetValue<double>() ?? -1).ToArray();
+        var requested = values.Max();
+        var mixed = values.Any(value => value != requested);
+        var matched = live.All(part => part is not null);
+        var editable = idle || matched && liveEditable;
+        row.Toggle.IsEnabled = editable;
+        row.Toggle.IsChecked = mixed ? null : requested >= 0;
+        row.Apply.Content = idle ? "加入预设" : "应用";
+        row.Slider.IsEnabled = row.Apply.IsEnabled = row.Reset.IsEnabled = editable && requested >= 0;
+        if (row.LastRequest != requested)
+        {
+            row.LastRequest = requested;
+            row.Slider.Value = requested >= 0 ? requested : 980;
+        }
+        row.Readback.Text = !idle && !matched ? "等待匹配实机部件"
+            : mixed ? "部件强度不同。应用会统一强度。"
+            : requested < 0 ? "使用原值"
+            : idle ? "预设值 " + Value(requested)
+            : $"强度 {Value(requested)} · 已更新 {live.Sum(part => part?["moved_bones"]?.GetValue<int>() ?? 0)} 骨";
     }
 
     private void RefreshCapsules(JsonObject? group)
@@ -471,7 +545,7 @@ public sealed partial class MainWindow
     {
         if (editingPhysics || session is not { } directory || player.Snapshot is not { } snapshot || LivePhysicsActor(snapshot.State) is not { } target) return;
         var adjusted = adjustedPhysics.GetValueOrDefault(target.Slot);
-        var current = NativePhysicsPreset.Create(target.Character, target.Groups);
+        var current = NativePhysicsPreset.Create(target.Character, target.Groups, target.Parts);
         editingPhysics = true;
         RefreshPhysicsSettings();
         try
@@ -490,7 +564,7 @@ public sealed partial class MainWindow
     }
 
     private Task ApplyPhysicsPresetAsync(string directory, LivePhysicsTarget target, JsonObject preset) =>
-        NativePhysicsPreset.ApplyAsync(directory, target.Slot, NativePhysicsPreset.Plan(preset, target.Character, target.Groups), Token);
+        NativePhysicsPreset.ApplyAsync(directory, target.Slot, NativePhysicsPreset.Plan(preset, target.Character, target.Groups, target.Parts), Token);
 
     private static void KeepPhysicsDraft(ActorCard card, OwnedCharacterSelection character, JsonObject preset)
     {
@@ -503,7 +577,7 @@ public sealed partial class MainWindow
         if (SelectedPhysicsActor() is not { } selected) return;
         var live = sessionControllable && player.Snapshot is { } snapshot ? LivePhysicsActor(snapshot.State) : null;
         if (!CanDraftPhysics && live is null) return;
-        var preset = live is not null ? NativePhysicsPreset.Create(live.Character, live.Groups)
+        var preset = live is not null ? NativePhysicsPreset.Create(live.Character, live.Groups, live.Parts)
             : selected.Card.PhysicsPresets.GetValueOrDefault(selected.Character.CharacterId) ?? NativePhysicsPreset.Create(selected.Character, []);
         var dialog = new SaveFileDialog { Filter = "Kawaii 物理预设|*.wwphysics", FileName = selected.Character.DisplayName + ".wwphysics", AddExtension = true };
         if (dialog.ShowDialog(this) != true) return;
@@ -558,7 +632,9 @@ public sealed partial class MainWindow
         if (!editingPhysics && CanDraftPhysics && SelectedPhysicsActor() is { } authoring && physicsSelection is { } selection)
         {
             var preset = authoring.Card.PhysicsPresets.GetValueOrDefault(authoring.Character.CharacterId) ?? NativePhysicsPreset.Create(authoring.Character, []);
-            if (command == NativePhysicsPreset.GravityCommand && selection.Chain is null)
+            if (command == NativePhysicsPreset.PartGravityCommand && selection.GravityParts.Count != 0)
+                NativePhysicsPreset.SetDraftPartGravity(preset, selection.GravityParts.Select(part => part.Root), value);
+            else if (command == NativePhysicsPreset.GravityCommand && selection.Chain is null)
                 NativePhysicsPreset.SetDraftGravity(preset, selection.Group, value);
             else if (command == "native_shoulder_follow" && selection.Chain is { } sleeveChain)
                 NativePhysicsPreset.SetDraftFollow(preset, selection.Group, sleeveChain.Root, value);
@@ -571,12 +647,18 @@ public sealed partial class MainWindow
             return;
         }
         if (editingPhysics || busy || player.IsBusy || session is not { } directory || !sessionControllable || player.Snapshot is not { } snapshot ||
-            LivePhysicsGroup(snapshot.State) is not { } target) return;
+            LivePhysicsActor(snapshot.State) is not { } target) return;
+        if (command == NativePhysicsPreset.PartGravityCommand)
+        {
+            if (physicsSelection is { } partSelection) await EditPartGravityAsync(directory, target, partSelection.GravityParts, value);
+            return;
+        }
+        var group = LivePhysicsGroup(snapshot.State)?.Group;
         var selected = command switch
         {
-            NativePhysicsPreset.GravityCommand => physicsSelection?.Chain is null ? target.Group["gravity"] as JsonObject : null,
-            "native_shoulder_follow" => FindLiveSleeve(target.Group),
-            _ => FindLiveParameterTarget(target.Group)
+            NativePhysicsPreset.GravityCommand => physicsSelection?.Chain is null ? group?["gravity"] as JsonObject : null,
+            "native_shoulder_follow" => FindLiveSleeve(group),
+            _ => FindLiveParameterTarget(group)
         };
         if (selected is null) return;
         var chain = selected["chain_id"]?.GetValue<uint>() ?? 0;
@@ -584,7 +666,8 @@ public sealed partial class MainWindow
         RefreshPhysicsSettings();
         try
         {
-            var received = await PlaybackControl.SendAsync(directory, command, value, Token, target.Slot, target.Group["group_id"]!.GetValue<uint>(), chain);
+            var received = await PlaybackControl.SendAsync(directory, command, value, Token, target.Slot,
+                group!["group_id"]!.GetValue<uint>(), chain);
             var current = LivePhysicsGroup(received)?.Group;
             var revision = received["last_control_sequence"]?.GetValue<ulong>();
             var observed = command switch
@@ -594,15 +677,55 @@ public sealed partial class MainWindow
                 _ => FindLiveParameterTarget(current)?["settings"]?["sampled_revision"]?.GetValue<ulong>() == revision
             };
             status.Text = observed
-                ? "已读回本次物理求值。" : "物理参数已提交，等待该组的下一次求值。";
+                ? "已读回本次物理求值。" : "物理参数已提交，等待下一次求值。";
         }
         catch (Exception error) { status.Text = error.Message; }
         finally { editingPhysics = false; RefreshPhysicsSettings(); }
     }
 
+    private async Task EditPartGravityAsync(string directory, LivePhysicsTarget target, IReadOnlyList<GravityPart> parts, double value)
+    {
+        var edits = new List<(uint Id, double Previous)>();
+        foreach (var part in parts)
+        {
+            var live = FindLiveGravityPart(target, part.Root);
+            if (live is null) return;
+            var previous = Contract.D(live, "strength");
+            if (previous != value) edits.Add((Contract.N(live, "id").GetValue<uint>(), previous));
+        }
+        if (edits.Count == 0) return;
+        editingPhysics = true;
+        RefreshPhysicsSettings();
+        var attempted = new List<(uint Id, double Previous)>();
+        try
+        {
+            foreach (var edit in edits)
+            {
+                attempted.Add(edit);
+                await PlaybackControl.SendAsync(directory, NativePhysicsPreset.PartGravityCommand, value, Token, target.Slot, 0, edit.Id);
+            }
+            status.Text = "部件重力已提交，等待下一次求值。";
+        }
+        catch (Exception error)
+        {
+            var restored = true;
+            if (edits.Count > 1 && session == directory && !Token.IsCancellationRequested)
+                foreach (var edit in attempted.AsEnumerable().Reverse())
+                    try { await PlaybackControl.SendAsync(directory, NativePhysicsPreset.PartGravityCommand, edit.Previous, Token, target.Slot, 0, edit.Id); }
+                    catch (Exception) { restored = false; }
+            status.Text = error.Message + (restored ? "" : " 部分设置可能已生效，请查看部件状态。");
+        }
+        finally
+        {
+            editingPhysics = false;
+            RefreshPhysicsSettings();
+        }
+    }
+
     private static string Value(double? number) => number?.ToString("0.###", CultureInfo.InvariantCulture) ?? "暂无数据";
-    private sealed record PhysicsSelection(PhysicsGroup Group, PhysicsChain? Chain, IReadOnlyList<PhysicsBone> Bones);
-    private sealed record LivePhysicsTarget(uint Slot, OwnedCharacterSelection Character, IReadOnlyList<JsonObject> Groups, JsonObject? Preview);
+    private sealed record GravityPart(string Root, string? Name, IReadOnlyList<int> Bones);
+    private sealed record PhysicsSelection(PhysicsGroup Group, PhysicsChain? Chain, IReadOnlyList<PhysicsBone> Bones, IReadOnlyList<GravityPart> GravityParts);
+    private sealed record LivePhysicsTarget(uint Slot, OwnedCharacterSelection Character, IReadOnlyList<JsonObject> Groups, JsonObject? Preview, IReadOnlyList<JsonObject> Parts);
     private sealed record PhysicsParameterRow(Slider Slider, Button Apply, Button Reset, TextBlock Readback);
     private sealed record PhysicsGravityRow(CheckBox Toggle, Slider Slider, Button Apply, Button Reset, TextBlock Readback)
     {
