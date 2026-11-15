@@ -8,6 +8,8 @@
 #include "../../../probes/v20_recon/vmt_slot_patch.h"
 #include "../../../playback/vmd_local_clip.h"
 #include "../../../playback/player_transport.h"
+#include "../../../playback/model_preview_frame.h"
+#include "../../../probes/v20_recon/json_report.h"
 #include "../../../probes/v20_recon/native_target_publication.h"
 #include "../../../probes/v20_recon/shared_native_physics.h"
 #include "../../../probes/v20_recon/unified_player_features.h"
@@ -53,6 +55,7 @@ struct Runtime {
     uint64_t host=0,publishRva=0,slotRva=0,epoch=0,durationMs=0,frameRva=ww_game_compat::EngineFrameRva,lastEngineFrame=0;
     play::Transport transport;play::SpscCommandQueue<64> commands;
     uint64_t initialSequence=0,lastWireSequence=0,lastControlSequence=0;DWORD gameThread=0;
+    play::model_preview::Frame modelPreview{};
     Go go{};Pool pool{};
     std::vector<std::unique_ptr<ActorRuntime>> actors;
     std::vector<ActorRuntime*> bySlot,byMesh;ActorRuntime* cameraAnchor=nullptr;
@@ -104,6 +107,57 @@ inline void ApplyActorCommand(ActorRuntime& actor,const play::Command& command){
 }}
 inline play::ControlCode ApplyCommand(const play::Command& command,double now){auto& r=runtime;
     if(command.target_slot&&!FindSlot(command.target_slot))return play::ControlCode::InvalidCommand;
+    if(command.kind==play::CommandKind::SetModelPreview){
+        const auto code=r.transport.AcceptRoutedCommand(command,now);
+        if(code!=play::ControlCode::Ok)return code;
+        auto& preview=r.modelPreview;
+        if(command.value!=0||preview.slot==command.target_slot){
+            preview.slot=command.value!=0?command.target_slot:0;preview.revision=command.sequence;preview.count=0;preview.frame=0;
+        }
+        return code;
+    }
+    if(command.kind==play::CommandKind::SetNativeCapsuleCollision){
+        auto* actor=FindSlot(command.target_slot);
+        if(!actor||!actor->nativePrepared||!actor->native.capsules_verified||!command.target_chain||
+           !v20_shared_native_physics::CanSetParameter(actor->native,command.target_group,0))return play::ControlCode::InvalidCommand;
+        auto& capsule=actor->native.capsules[command.target_group-1];
+        std::lock_guard<std::mutex> lock(capsule.edit);
+        const auto driver=std::find_if(capsule.drivers.begin(),capsule.drivers.end(),[&](const auto& d){return d.bone+1==command.target_chain;});
+        if(driver==capsule.drivers.end())return play::ControlCode::InvalidCommand;
+        const auto code=r.transport.AcceptRoutedCommand(command,now);if(code==play::ControlCode::Ok)driver->enabled=command.value!=0;
+        return code;
+    }
+    if(command.kind==play::CommandKind::SetNativeGravity){
+        auto* actor=FindSlot(command.target_slot);
+        if(!actor||!actor->nativePrepared||!actor->native.gravity_verified||
+           !v20_shared_native_physics::CanSetParameter(actor->native,command.target_group,0))return play::ControlCode::InvalidCommand;
+        const auto code=r.transport.AcceptRoutedCommand(command,now);if(code!=play::ControlCode::Ok)return code;
+        auto& gravity=actor->native.gravity[command.target_group-1];
+        std::lock_guard<std::mutex> lock(gravity.edit);
+        gravity.requested=float(command.value);gravity.revision=command.sequence;return code;
+    }
+    if(command.kind==play::CommandKind::SetNativePreview){
+        auto* actor=FindSlot(command.target_slot);
+        if(!actor||!actor->nativePrepared||!v20_shared_native_physics::CanSetParameter(actor->native,command.target_group,0))return play::ControlCode::InvalidCommand;
+        const auto code=r.transport.AcceptRoutedCommand(command,now);if(code!=play::ControlCode::Ok)return code;
+        v20_shared_native_physics::SetPreview(actor->native,command.target_group,command.value!=0);return code;
+    }
+    if(command.kind==play::CommandKind::SetNativeShoulderFollow){
+        auto* actor=FindSlot(command.target_slot);if(!actor||!actor->nativePrepared)return play::ControlCode::InvalidCommand;
+        auto& native=actor->native;auto sleeve=v20_shared_native_physics::FindSleeve(native,command.target_group,command.target_chain);
+        if(sleeve==native.sleeves.end())return play::ControlCode::InvalidCommand;
+        const auto code=r.transport.AcceptRoutedCommand(command,now);if(code!=play::ControlCode::Ok)return code;
+        std::lock_guard<std::mutex> lock(native.sleeve_edit);
+        sleeve->follow=float(command.value);sleeve->applied_frames=0;sleeve->peak_correction_degrees=0;return code;
+    }
+    if(play::NativeSettingsCommand(command.kind)){
+        auto* actor=FindSlot(command.target_slot);
+        if(!actor||!actor->nativePrepared||!v20_shared_native_physics::CanSetParameter(actor->native,command.target_group,command.target_chain))return play::ControlCode::InvalidCommand;
+        const auto code=r.transport.AcceptRoutedCommand(command,now);if(code!=play::ControlCode::Ok)return code;
+        const unsigned parameter=command.kind==play::CommandKind::SetNativeDamping?0:command.kind==play::CommandKind::SetNativeStiffness?1:2;
+        v20_shared_native_physics::SetParameter(actor->native,command.target_group,command.target_chain,parameter,float(command.value),command.sequence);
+        return code;
+    }
     if(command.kind==play::CommandKind::SetCameraMode&&command.value==2&&!r.cameraFeatures.clip_available)return play::ControlCode::InvalidCommand;
     if(command.kind==play::CommandKind::SetPhysics&&command.value==1)
         for(const auto& actor:r.actors)if((!command.target_slot||actor->slot==command.target_slot)&&(actor->nativePhysics||!actor->features.physics_available))return play::ControlCode::InvalidCommand;
@@ -134,6 +188,42 @@ inline double FormationHeightCorrection(const Json& config,const Json&){
 inline play::PlayerState CameraState(const play::PlayerState& timeline){auto state=timeline;if(const auto* actor=runtime.cameraAnchor){
     state.placement_x=actor->placement.x;state.placement_y=actor->placement.y;state.placement_height=EffectivePlacement(*actor).height;
     state.placement_yaw_degrees=actor->placement.yaw_degrees;state.placement_in_place=actor->placement.in_place;}return state;}
+inline void CapturePublishedPreview(ActorRuntime& actor,::Reader& read){
+    namespace observation=v20_publish_observer;
+    auto& native=actor.native;
+    const auto group=native.preview_group.load(std::memory_order_acquire);
+    auto& model=runtime.modelPreview;
+    const bool model_requested=model.slot==actor.slot&&model.frame!=runtime.lastEngineFrame;
+    if(!group&&!model_requested)return;
+    observation::Metadata before,after;
+    const auto mesh=actor.features.mesh.object;
+    if(!observation::ReadMetadata(read,mesh,observation::kVerifiedLayout,before)||before.previous_index<0||before.previous_index>1)return;
+    const auto index=unsigned(before.previous_index);
+    const auto& head=before.heads[index];
+    if(head.num!=int32_t(actor.topology.count)||!observation::ValidHead(head,observation::kVerifiedLayout.max_bones)||
+       !read.Read(head.data,actor.features.pose.data(),size_t(head.num)*ww_game_compat::TransformBytes)||
+       !observation::ReadMetadata(read,mesh,observation::kVerifiedLayout,after)||after.previous_index!=before.previous_index||
+       after.generation!=before.generation||after.heads[index].data!=head.data||after.heads[index].num!=head.num)return;
+    if(model_requested&&unsigned(head.num)<=play::model_preview::kMaxBones){
+        model.count=0;
+        for(int i=0;i<head.num;++i)
+            if(!play::model_preview::ReadBone(actor.features.pose[i].data(),model.bones[i]))return;
+        model.count=unsigned(head.num);model.frame=runtime.lastEngineFrame;
+    }
+    if(!group)return;
+    std::lock_guard<std::mutex> lock(native.preview_lock);
+    if(native.preview_group.load(std::memory_order_relaxed)!=group)return;
+    const auto count=native.topology.count;
+    native.preview_pose.resize(count);native.preview_frame=runtime.lastEngineFrame;
+    const auto& chain=native.settings[group-1].skeleton_chain;
+    native.preview_solved_bones=0;
+    for(unsigned i=0;i<count;++i){
+        const auto value=wwp_ue::subtree_rotation::detail::Position(actor.features.pose[i]);
+        native.preview_pose[i]={float(value[0]),float(value[1]),float(value[2])};
+        if(!wwp_playback::kawaii_parameters::Finite(native.preview_pose[i])){native.preview_pose.clear();native.preview_solved_bones=0;return;}
+        if(i<chain.size()&&chain[i])++native.preview_solved_bones;
+    }
+}
 inline void Detour(void* object){auto& r=runtime;r.active.fetch_add(1,std::memory_order_acq_rel);
     struct Active {~Active(){runtime.active.fetch_sub(1,std::memory_order_release);}} active;
     r.original(object);
@@ -149,6 +239,7 @@ inline void Detour(void* object){auto& r=runtime;r.active.fetch_add(1,std::memor
     const auto placement=EffectivePlacement(*actor);
     if(!features::ActorFrame(actor->features,featureReader,state,placement,feed))Fail(Error::Plan);
     if(actor->nativePhysics)v20_shared_native_physics::Publish(actor->native,state.seconds,placement,feed&&!r.closing.load());
+    if(feed&&!r.closing.load())CapturePublishedPreview(*actor,featureReader);
     features::PublishCamera(r.cameraFeatures,CameraState(state),feed&&!r.closing.load());
 }
 inline bool NativeAuthority(void* user,const v20_shared_native_physics::Access& access){
@@ -453,6 +544,20 @@ inline void Start(uint64_t now) noexcept {auto& r=runtime;r.lastWireSequence=++r
 inline void PollCommands(){auto& r=runtime;std::ifstream stream(r.directory/L"control.dat",std::ios::binary);play::CommandWire wire{};play::Command command;
     if(stream&&stream.read(reinterpret_cast<char*>(wire.data()),wire.size())&&play::DecodeCommandFrame(wire,&command)&&command.sequence>r.lastWireSequence&&r.commands.Push(command))r.lastWireSequence=command.sequence;}
 struct WorkerLock {WorkerLock(){while(runtime.busy.test_and_set(std::memory_order_acquire))Sleep(0);}~WorkerLock(){runtime.busy.clear(std::memory_order_release);}};
+inline void SaveModelPreview(const std::filesystem::path& path,uint64_t& revision,uint64_t& frame){
+    play::model_preview::Frame snapshot;
+    size_t bytes=0;
+    {
+        WorkerLock lock;
+        const auto& model=runtime.modelPreview;
+        if(!model.slot||!model.count||!model.frame||(revision==model.revision&&frame==model.frame))return;
+        bytes=offsetof(play::model_preview::Frame,bones)+model.count*sizeof(play::model_preview::Bone);
+        std::memcpy(&snapshot,&model,bytes);
+    }
+    if(ww_report::WriteBytes(path,{reinterpret_cast<const char*>(&snapshot),bytes})){
+        revision=snapshot.revision;frame=snapshot.frame;
+    }
+}
 inline play::PlayerState Snapshot(){WorkerLock lock;return runtime.transport.State();}
 inline bool FeaturePending(){WorkerLock lock;for(const auto& actor:runtime.actors)if(features::ActorPending(actor->features))return true;return features::CameraPending(runtime.cameraFeatures);}
 inline bool NativePending(){for(const auto& actor:runtime.actors)if(actor->nativePrepared&&!v20_shared_native_physics::Restored(actor->native))return true;return false;}
@@ -483,7 +588,9 @@ inline Json Status(){auto& r=runtime;WorkerLock lock;if(r.payloadReleased)return
         {"hooks_restored",!r.hook.changed&&!r.hook.protection_pending&&!r.cameraFeatures.hook.changed&&!r.cameraFeatures.hook.protection_pending&&!hub.converter_patch.changed&&!hub.group_patch.changed&&!hub.converter_patch.protection_pending&&!hub.group_patch.protection_pending},
         {"callbacks_quiescent",!r.active.load()&&!r.work.load()&&!r.observing.load()&&!r.cameraFeatures.callbacks.load()&&!r.cameraFeatures.work.load()&&!r.cameraFeatures.observing.load()&&!hub.active.load()&&!hub.group_active.load()},
         {"session_epoch",r.epoch},{"clip_epoch",r.epoch},{"frames",frames},{"body_frames",frames},{"writes",writes},{"duration_ms",r.durationMs},
-        {"seconds",state.seconds},{"duration_seconds",state.duration_seconds},{"speed",state.speed},{"loop",state.loop},{"mode",r.closed.load()?"closed":ModeName(state.mode)},
+        {"seconds",state.seconds},{"duration_seconds",state.duration_seconds},{"speed",state.speed},{"loop",state.loop},
+        {"preview_loop_start",state.preview_begin},{"preview_loop_end",state.preview_end},{"mode",r.closed.load()?"closed":ModeName(state.mode)},
+        {"model_preview_supported",true},{"model_preview_slot",r.modelPreview.slot},{"model_preview_revision",r.modelPreview.revision},
         {"last_sequence",state.last_sequence},{"revision",state.revision},{"restore_requested",state.restore_requested||r.closing.load()},{"session_active",r.writing.load()&&!r.closing.load()},
         {"time_limit_seconds",state.time_limit_seconds},{"session_elapsed_seconds",state.session_elapsed_seconds},{"time_limit_reached",state.time_limit_reached||r.deadlineExpired.load()},
         {"camera_mode",state.camera_mode},{"camera_track_height_cm",state.camera_track_height_cm},{"camera_anchor_slot",r.cameraAnchor?r.cameraAnchor->slot:0},{"camera_available",r.cameraFeatures.available},{"camera_clip_available",r.cameraFeatures.clip_available},{"camera_applied_frames",r.cameraFeatures.applied_frames.load()},{"camera_failed",r.cameraFeatures.failed.load()},

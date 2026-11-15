@@ -13,13 +13,14 @@
 namespace wwp_playback {
 enum class PlayerMode : uint32_t {Empty, Stopped, Playing, Paused, Ended};
 enum class ControlCode : uint32_t {Ok, InvalidCommand, StaleEpoch, DuplicateSequence, ClockInvalid, RestorePending};
-struct Command {uint64_t clip_epoch=0, sequence=0; CommandKind kind=CommandKind::Play; double value=0; uint32_t target_slot=0;};
+struct Command {uint64_t clip_epoch=0, sequence=0; CommandKind kind=CommandKind::Play; double value=0; uint32_t target_slot=0,target_group=0,target_chain=0;};
 struct PlayerState {
     uint64_t clip_epoch=0, last_sequence=0, revision=0;
     double duration_seconds=0, seconds=0, speed=1;
     double time_limit_seconds=0, session_elapsed_seconds=0;
     double placement_x=0, placement_y=0, placement_height=0, placement_yaw_degrees=0;
     double camera_track_height_cm=0;
+    double preview_begin=0,preview_end=0;
     PlayerMode mode=PlayerMode::Empty;
     uint32_t camera_mode=0;
     bool loop=false, restore_requested=false, physics_enabled=false, placement_in_place=false, time_limit_reached=false;
@@ -32,19 +33,29 @@ inline uint64_t LoadU64(const uint8_t* p) {uint64_t v=0;for(unsigned i=0;i<8;++i
 inline uint32_t WireChecksum(const CommandWire& bytes) {
     uint32_t hash=2166136261u;for(unsigned i=0;i<60;++i){hash^=bytes[i];hash*=16777619u;}return hash;
 }
+inline bool NativeSettingsCommand(CommandKind kind) {
+    return kind==CommandKind::SetNativeDamping||kind==CommandKind::SetNativeStiffness||kind==CommandKind::SetNativeLimitAngle;
+}
 inline bool ValidCommand(const Command& command) {
-    return command.clip_epoch&&command.sequence&&ValidCommandArguments(command.kind,command.value,command.target_slot);
+    const bool target_valid=command.kind==CommandKind::SetNativeShoulderFollow||command.kind==CommandKind::SetNativeCapsuleCollision ?
+        command.target_slot&&command.target_group&&command.target_chain :
+        command.kind==CommandKind::SetNativePreview?command.target_slot&&command.target_group&&!command.target_chain:
+        command.kind==CommandKind::SetNativeGravity?command.target_slot&&command.target_group&&!command.target_chain&&(command.value>=0||command.value==-1):
+        command.kind==CommandKind::SetModelPreview?command.target_slot&&!command.target_group&&!command.target_chain:
+        NativeSettingsCommand(command.kind)?command.target_slot&&command.target_group&&(command.value>=0||command.value==-1):
+        !command.target_group&&!command.target_chain;
+    return target_valid&&command.clip_epoch&&command.sequence&&ValidCommandArguments(command.kind,command.value,command.target_slot);
 }
 // A well-formed frame retains its identity even when its arguments are invalid,
 // so the scene host can publish a rejection for that sequence.
 inline bool DecodeCommandFrame(const CommandWire& wire,Command* output) {
     const char magic[8]={'W','W','P','C','T','L','1','\0'};
     if(!output||std::memcmp(wire.data(),magic,8)||LoadU32(wire.data()+8)!=1||LoadU32(wire.data()+12)!=64||
-        LoadU64(wire.data()+48)||LoadU32(wire.data()+56)||
+        LoadU32(wire.data()+56)||
         LoadU32(wire.data()+60)!=WireChecksum(wire))return false;
     Command command{};command.clip_epoch=LoadU64(wire.data()+16);command.sequence=LoadU64(wire.data()+24);
     command.kind=CommandKind(LoadU32(wire.data()+32));command.target_slot=LoadU32(wire.data()+36);const uint64_t bits=LoadU64(wire.data()+40);
-    std::memcpy(&command.value,&bits,8);*output=command;return true;
+    command.target_group=LoadU32(wire.data()+48);command.target_chain=LoadU32(wire.data()+52);std::memcpy(&command.value,&bits,8);*output=command;return true;
 }
 inline bool DecodeCommand(const CommandWire& wire,Command* output) {
     Command command;if(!DecodeCommandFrame(wire,&command)||!ValidCommand(command)||!output)return false;
@@ -67,7 +78,7 @@ public:
     }
 };
 class Transport {
-    PlayerState state_{};double last_clock_=0;bool clock_valid_=false,session_clock_active_=false;
+    PlayerState state_{};double last_clock_=0,preview_draft_begin_=0;bool clock_valid_=false,session_clock_active_=false;
     ControlCode BeforeCommand(const Command& command,double now) noexcept {
         if(!ValidCommand(command))return ControlCode::InvalidCommand;
         if(command.clip_epoch!=state_.clip_epoch||state_.mode==PlayerMode::Empty)return ControlCode::StaleEpoch;
@@ -86,7 +97,7 @@ public:
         if(!epoch||!std::isfinite(duration)||duration<0||duration>10000000||state_.restore_requested||
             (state_.mode!=PlayerMode::Empty&&state_.mode!=PlayerMode::Stopped))return false;
         state_=PlayerState{};state_.clip_epoch=epoch;state_.duration_seconds=duration;
-        state_.mode=PlayerMode::Stopped;clock_valid_=false;session_clock_active_=false;return true;
+        state_.mode=PlayerMode::Stopped;preview_draft_begin_=0;clock_valid_=false;session_clock_active_=false;return true;
     }
     // Host-only startup barrier, configured before callbacks are installed.
     // Hold the first pose without starting the residency clock. A later Play
@@ -113,9 +124,13 @@ public:
         const double duration=state_.duration_seconds;
         if(!duration){state_.seconds=0;state_.mode=PlayerMode::Ended;++state_.revision;return ControlCode::Ok;}
         if(!delta)return ControlCode::Ok;
-        if(state_.loop) {
-            const double period=duration/state_.speed;
-            state_.seconds=std::fmod(state_.seconds+std::fmod(delta,period)*state_.speed,duration);
+        if(state_.preview_end>state_.preview_begin||state_.loop) {
+            const bool preview=state_.preview_end>state_.preview_begin;
+            const double begin=preview?state_.preview_begin:0;
+            const double length=preview?state_.preview_end-begin:duration;
+            const double period=length/state_.speed;
+            const double relative=state_.seconds>=begin&&state_.seconds<=begin+length?state_.seconds-begin:0;
+            state_.seconds=begin+std::fmod(relative+std::fmod(delta,period)*state_.speed,length);
         } else if(delta>=(duration-state_.seconds)/state_.speed) {
             state_.seconds=duration;state_.mode=PlayerMode::Ended;
         } else state_.seconds+=delta*state_.speed;
@@ -149,6 +164,13 @@ public:
         case CommandKind::SetPhysics:state_.physics_enabled=command.value!=0;break;
         case CommandKind::SetCameraMode:state_.camera_mode=uint32_t(command.value);break;
         case CommandKind::SetCameraTrackHeight:state_.camera_track_height_cm=command.value;break;
+        case CommandKind::SetPreviewLoopStart:
+            if(command.value>=state_.duration_seconds)return ControlCode::InvalidCommand;
+            preview_draft_begin_=command.value;break;
+        case CommandKind::SetPreviewLoopEnd:
+            if(command.value==0){state_.preview_begin=state_.preview_end=0;break;}
+            if(command.value>state_.duration_seconds||command.value<=preview_draft_begin_)return ControlCode::InvalidCommand;
+            state_.preview_begin=preview_draft_begin_;state_.preview_end=command.value;state_.seconds=state_.preview_begin;break;
         // Placement remains a selection while stopped; only Play activates it.
         // Stop preserves this user selection, while SetClip resets it.
         case CommandKind::SetPlacementX:state_.placement_x=command.value;break;
@@ -159,7 +181,15 @@ public:
         case CommandKind::ResetPlacement:
             state_.placement_x=state_.placement_y=state_.placement_height=state_.placement_yaw_degrees=0;
             state_.placement_in_place=false;break;
-        case CommandKind::SetGroundHeight:return ControlCode::InvalidCommand; // Scene host owns the shared height.
+        case CommandKind::SetGroundHeight: // Scene host owns the shared height and native settings.
+        case CommandKind::SetNativeDamping:
+        case CommandKind::SetNativeStiffness:
+        case CommandKind::SetNativeLimitAngle:
+        case CommandKind::SetNativePreview:
+        case CommandKind::SetNativeGravity:
+        case CommandKind::SetModelPreview:
+        case CommandKind::SetNativeCapsuleCollision:
+        case CommandKind::SetNativeShoulderFollow:return ControlCode::InvalidCommand;
         case CommandKind::Stop:
             state_.restore_requested=state_.mode!=PlayerMode::Stopped||state_.seconds!=0||state_.restore_requested;
             state_.seconds=0;state_.mode=PlayerMode::Stopped;session_clock_active_=false;break;

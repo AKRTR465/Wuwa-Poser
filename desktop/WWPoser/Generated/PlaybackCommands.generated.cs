@@ -24,6 +24,16 @@ internal static class PlaybackCommands
             "time_limit" => (16U, 0d, 10000000d, false, false),
             "ground_height" => (17U, -1000d, 1000d, false, true),
             "camera_track_height" => (18U, -10000d, 10000d, false, true),
+            "native_damping" => (19U, -1d, 1d, false, false),
+            "native_stiffness" => (20U, -1d, 1d, false, false),
+            "native_limit_angle" => (21U, -1d, 180d, false, false),
+            "native_shoulder_follow" => (22U, 0d, 1d, false, false),
+            "preview_loop_start" => (23U, 0d, 10000000d, false, true),
+            "preview_loop_end" => (24U, 0d, 10000000d, false, true),
+            "native_preview" => (25U, 0d, 1d, true, false),
+            "native_capsule_collision" => (26U, 0d, 1d, true, false),
+            "model_preview" => (27U, 0d, 1d, true, false),
+            "native_gravity" => (28U, -1d, 1500d, false, false),
             _ => throw new ArgumentException("未知控制命令：" + kind, nameof(kind))
         };
         if (scene && targetSlot != 0) throw new ArgumentException("全场命令不接受演员槽位：" + kind, nameof(targetSlot));

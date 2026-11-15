@@ -131,6 +131,7 @@ public sealed partial class NativeGraphService
             var f = Contract.O(p, "node_fields");
             var alphaType = Contract.I(f, "alpha_type");
             output.Add(new JsonObject { ["offset"] = p["offset_from_main"]!.DeepClone(), ["node_type"] = "KawaiiPhysicsGroup", ["vtable_rva"] = GameCompat.AddressHex(GameCompat.VtableKawaiiPhysicsGroupRva), ["alpha_type"] = alphaType, ["activation"] = alphaType == GameCompat.AlphaTypeCurve ? "force_when_zero" : "observe_natural", ["curve_name"] = f["curve_name"]?.DeepClone() ?? JsonValue.Create("None"), ["curve_name_words"] = f["curve_name_words"]!.DeepClone(), ["root_binding"] = new JsonObject { ["array"] = f["root_array"]!.DeepClone(), ["extended_array"] = f["extended_root_array"]!.DeepClone(), ["name_words"] = f["root_bone_name_words"]!.DeepClone() } });
+            output[^1]!["root_bones"] = f["root_bones"]!.DeepClone();
         }
 
         return (output, true);

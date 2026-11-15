@@ -88,14 +88,61 @@ public sealed partial class PlaybackSessionService
             UpdatePreparation(preparedDirectory, request);
         }
         Phase = PlaybackSessionPhase.Loading;
-        var result = await owned.LaunchAsync(preparedDirectory, cancellation, startPaused);
+        var stagedPhysics = HasLaunchPhysics(ActiveRequest);
+        var result = await owned.LaunchAsync(preparedDirectory, cancellation, startPaused || stagedPhysics);
         if (ActiveSession is { } directory)
         {
             if (ActiveRequest is not null) WriteRequest(directory, ActiveRequest);
             Phase = Contract.True(result, "loaded") ? PlaybackSessionPhase.Active : PlaybackSessionPhase.RecoveryPending;
-            if (Phase == PlaybackSessionPhase.Active) Snapshot = ReadStatus(directory);
+            if (Phase == PlaybackSessionPhase.Active)
+            {
+                Snapshot = ReadStatus(directory);
+                if (stagedPhysics)
+                {
+                    try
+                    {
+                        Progress?.Invoke("正在应用演员的物理预设…");
+                        await ApplyLaunchPhysicsAsync(directory, ActiveRequest!, Snapshot.Value.State, cancellation);
+                        if (!startPaused)
+                        {
+                            await SendAsync(directory, "play", cancellation: cancellation);
+                            result["state"] = "actors_playing";
+                        }
+                        result["start_paused"] = startPaused;
+                        Snapshot = ReadStatus(directory);
+                    }
+                    catch (Exception error) when (error is not OperationCanceledException)
+                    {
+                        await StopCoreAsync(directory, CancellationToken.None);
+                        throw new InvalidOperationException("物理预设应用失败，演员已停止并恢复：" + error.Message, error);
+                    }
+                }
+            }
         }
         return result;
+    }
+
+    private static bool HasLaunchPhysics(PlaybackSessionRequest? request) => request is { NativePhysics: true } &&
+        request.Actors.Any(actor => actor.Enabled && NativePhysicsPreset.HasOverrides(actor.PhysicsPreset));
+
+    internal async Task ApplyLaunchPhysicsAsync(string directory, PlaybackSessionRequest request, JsonObject state, CancellationToken cancellation)
+    {
+        if (!HasLaunchPhysics(request)) return;
+        var catalog = OwnedCharacterCatalog.Load(root);
+        var actors = Contract.A(state, "actors").OfType<JsonObject>().ToDictionary(row => Contract.N(row, "slot").GetValue<uint>());
+        var plans = new List<(uint Slot, IReadOnlyList<NativePhysicsPreset.Control> Controls)>();
+        foreach (var actor in AssignSlots(request).Actors.Where(actor => actor.Enabled && NativePhysicsPreset.HasOverrides(actor.PhysicsPreset)))
+        {
+            var character = catalog.Select(actor.CharacterId);
+            try
+            {
+                if (!actors.TryGetValue(actor.Slot, out var live) || !Contract.True(live, "native_physics_settings_verified") || live["native_physics_groups"] is not JsonArray groups)
+                    throw new InvalidDataException("未匹配到本次播放的原生物理组。");
+                plans.Add((actor.Slot, NativePhysicsPreset.Plan(actor.PhysicsPreset!, character, groups.OfType<JsonObject>())));
+            }
+            catch (InvalidDataException error) { throw new InvalidDataException(character.DisplayName + " · " + error.Message, error); }
+        }
+        foreach (var plan in plans) await NativePhysicsPreset.ApplyAsync(directory, plan.Slot, plan.Controls, cancellation);
     }
     public Task<JsonObject> StartAsync(PlaybackSessionRequest request, CancellationToken cancellation = default, bool startPaused = false) => RunAsync(async token =>
     {

@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "source": "Wuthering Waves 3.8.0 DT_ModelConfig_Player UI用子网格体 entries with DefaultVisible=true belonging to the character rig",
+  "selections": {
+    "role1107-skin81001107": ["/Game/Aki/Character/Role/FemaleMS/Kmola/R2T1KamolaMd10011/Model/R2T1KamolaMd10011_Hair1.R2T1KamolaMd10011_Hair1"],
+    "role1107-skin81011107": ["/Game/Aki/Character/Role/FemaleMS/Kmola/R2T1KamolaMd20011/Model/R2T1KamolaMd20011_Hair1.R2T1KamolaMd20011_Hair1"],
+    "role1207-skin81001207": ["/Game/Aki/Character/Role/FemaleM/Lupa/R2T1LupaMd10011/Model/R2T1LupaMd10011_Tail1.R2T1LupaMd10011_Tail1"],
+    "role1301-skin81001301": ["/Game/Aki/Character/Role/MaleXL/Kakaluo/R2T1KakaluoMd10011/Model/R2T1KakaluoMd10011_2.R2T1KakaluoMd10011_2"],
+    "role1308-skin81001308": ["/Game/Aki/Character/Role/FemaleMS/Rebecca/R2T1RebeccaMd10011/Model/R2T1RebeccaMd10011_up.R2T1RebeccaMd10011_up"]
+  }
+}

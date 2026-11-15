@@ -25,6 +25,7 @@ static std::array<std::atomic<uint64_t>,ng::kHooks> calls{},targetCalls{};
 static std::array<Fn2,ng::kHooks> originals2{};static std::array<Fn3,ng::kHooks> originals3{};
 static std::atomic<uint64_t> unreadableTarget{0};
 static bool rootLayoutVerified=false;
+static bool observePhysicsSettings=false;
 static std::vector<std::string> referenceBoneNames;
 static Json rootSetJson=Json::array(); // Worker-only decoded cache, after quiescence.
 static constexpr uint64_t kRootRvas[]={compat::FunctionGroupInitializeBoneReferencesRva,compat::FunctionGroupInitializeModifyBonesRva};
@@ -33,10 +34,70 @@ static bool Read(uint64_t address,void* out,size_t bytes) noexcept {
     if(!ng::Range(address,bytes))return false;SIZE_T got=0;
     return ReadProcessMemory(GetCurrentProcess(),reinterpret_cast<void*>(address),out,bytes,&got)&&got==bytes;
 }
+struct SettingsCodeTarget { const char* label; uint32_t callOffset, rva, bytes; uint64_t caller=compat::FunctionGroupEvaluateRva; };
+static constexpr SettingsCodeTarget kSettingsCode[] = {{"GroupUpdatePhysicsSettings", 0x90, 0xa5d990, 0x471},
+                                                       {"GroupSimulate", 0x178, 0xa5b750, 0x18fe}};
+static constexpr SettingsCodeTarget kApplyResult = {"GroupApplyResult", 0x189, 0xa51030, 0x6af};
+static constexpr SettingsCodeTarget kCapsuleUpdate = {"GroupUpdateCapsuleLimits", 0xf4, 0xa5d280, 0x241};
+static constexpr SettingsCodeTarget kLimits = {"GroupApplyLimits", 0xcf9, 0xa578c0, 0x338, 0xa5b750};
+static constexpr SettingsCodeTarget kWorldCollision = {"GroupWorldCollision", 0x165, 0xa5eaf0, 0x486};
+static constexpr SettingsCodeTarget kCollisionCandidate = {"GroupCollisionCandidate", 0x15aa, 0xa4c220, 0x476, 0xa5b750};
+static constexpr SettingsCodeTarget kCapsuleContacts[] = {{"CapsuleContactsA", 0x62, 0xa4ff20, 0x262, 0xa4c220},
+    {"CapsuleContactsB", 0x190, 0xa4ce90, 0x2af, 0xa4c220}, {"CapsuleContactsC", 0x2a6, 0xa4cab0, 0x3d3, 0xa4c220}};
+static Json CapturePhysicsSettingsEvidence(uint64_t image, unsigned imageSize,bool collision,bool contacts) {
+    if (std::string_view(compat::SourceBuildSha256) != "38b3980f0436d8ead42a0ff8c45c183936ed02cd8b4b33944a03316b68cfd887")
+        throw std::runtime_error("Kawaii settings sample is defined for 3.8.0");
+    // These are the direct calls identified in the already verified GroupEvaluate.
+    // Use the contiguous unwind ranges for each callee in the 3.8.0 image.
+    Json samples = Json::array();
+    for (const auto& target : {kSettingsCode[0], kSettingsCode[1], kApplyResult,kCapsuleUpdate,kLimits,kWorldCollision,kCollisionCandidate,
+         kCapsuleContacts[0],kCapsuleContacts[1],kCapsuleContacts[2]}) {
+        if(target.caller==kCollisionCandidate.rva&&!contacts)continue;
+        if(!collision&&target.rva!=kSettingsCode[0].rva&&target.rva!=kSettingsCode[1].rva&&target.rva!=kApplyResult.rva)continue;
+        const auto site = target.caller + target.callOffset;
+        std::array<uint8_t, 5> call{};
+        uint64_t address = 0;
+        if (!Read(image + site, call.data(), call.size()) || call[0] != 0xe8 ||
+            int64_t(site + call.size()) + ng::Get<int32_t>(call.data(), 1) != target.rva ||
+            !ww_game_compat_resolution::ResolveImageAddress(image, imageSize, target.rva, target.bytes, address))
+            throw std::runtime_error("unexpected Kawaii settings call target");
+        std::vector<uint8_t> bytes(target.bytes);
+        if (!Read(address, bytes.data(), bytes.size())) throw std::runtime_error("Kawaii settings code sample unreadable");
+        constexpr char digits[] = "0123456789abcdef";
+        std::string hex(bytes.size() * 2, '0');
+        for (size_t i = 0; i < bytes.size(); ++i) {
+            hex[i * 2] = digits[bytes[i] >> 4];
+            hex[i * 2 + 1] = digits[bytes[i] & 0xf];
+        }
+        samples.push_back({{"label", target.label}, {"call_site_rva", Hex(site)}, {"rva", Hex(target.rva)},
+                           {"bytes", target.bytes}, {"function_bytes_hex", std::move(hex)}});
+    }
+    return samples;
+}
 struct Entry {uint64_t sequence=0;int32_t slot=-1;bool read=false,target=false;};
+static void CapturePhysicsSettings(ng::Phase& phase) {
+    // Confirmed against both the group updater and Lily's authored values.
+    constexpr size_t simulatedBoneBytes = 0x1b0;
+    constexpr size_t cachedSettingsOffset = 0x28;
+    ng::ArrayHead bones;
+    phase.settings_read = Read(phase.node + 0x108, phase.settings.data(), sizeof(phase.settings)) &&
+        Read(phase.node + 0x260, &phase.settings_cache_initialized, 1) &&
+        Read(phase.node + 0x160, &phase.settings_refresh_each_evaluation, 1);
+    if (!phase.settings_read || !Read(phase.node + 0x1f8, &bones, sizeof(bones)) || !ng::Array(bones)) return;
+    phase.settings_cache_count = bones.num;
+    if (!bones.num || !phase.settings_cache_initialized || !ng::Range(bones.data, size_t(bones.num) * simulatedBoneBytes)) return;
+    const auto first = bones.data + cachedSettingsOffset;
+    const auto last = first + size_t(bones.num - 1) * simulatedBoneBytes;
+    ng::ArrayHead after;
+    phase.settings_cache_read = Read(first, phase.settings_cache_first.data(), sizeof(phase.settings_cache_first)) &&
+        Read(last, phase.settings_cache_last.data(), sizeof(phase.settings_cache_last)) &&
+        Read(phase.node + 0x1f8, &after, sizeof(after)) && ng::SameHead(bones, after);
+}
 static void CaptureObservation(unsigned hook,void* node,void* context,ng::Phase& phase,ng::Mapping& mapping,ng::RootSnapshot* roots){
     ng::CapturePhase(Read,binding,ng::Kind(hook),reinterpret_cast<uint64_t>(node),reinterpret_cast<uint64_t>(context),phase,mapping,roots,observedMainProxy.load(std::memory_order_acquire));
     if(phase.type_verified&&phase.owner_role_verified&&phase.owner_is_main)observedMainProxy.store(phase.proxy,std::memory_order_release);
+    if (observePhysicsSettings && phase.type_verified && phase.owner_role_verified &&
+        (hook == unsigned(ng::Kind::GroupUpdate) || hook == unsigned(ng::Kind::GroupEvaluate))) CapturePhysicsSettings(phase);
 }
 // These helper frames are gone before forwarding the recursive graph call.
 // Keeping 1024-bone scratch arrays in Detour would multiply stack use by the
@@ -169,6 +230,16 @@ static Json PhaseJson(Reader& r,const Pool& pool,const ng::Phase& p,unsigned hoo
         {"curve_name",named?Json(curve):Json(nullptr)},{"curve_name_decoded",named},{"curve_semantically_active",fields&&p.alpha_type==2}};
     j["node_fields"]["root_bones"]=Json::array();j["node_fields"]["root_bones_verified"]=false;
     j["node_fields"]["root_bones_reason"]=rootLayoutVerified?"root_snapshot_unavailable":"layout_not_verified";
+    if (p.settings_read) {
+        const auto namedSettings=[](const std::array<float,7>& values) {
+            return Json{{"damping",values[0]},{"world_damping_location",values[1]},{"world_damping_rotation",values[2]},
+                {"stiffness",values[3]},{"radius",values[4]},{"limit_angle_degrees",values[5]},{"half_width",values[6]}};
+        };
+        j["kawaii_settings"] = {{"node_values", namedSettings(p.settings)}, {"cache_initialized", p.settings_cache_initialized},
+            {"refresh_each_evaluation", p.settings_refresh_each_evaluation}, {"cache_count", p.settings_cache_count},
+            {"cache_first", p.settings_cache_read ? namedSettings(p.settings_cache_first) : Json(nullptr)},
+            {"cache_last", p.settings_cache_read ? namedSettings(p.settings_cache_last) : Json(nullptr)}};
+    }
     if(p.root_snapshot_id>=0&&size_t(p.root_snapshot_id)<rootSetJson.size()){
         const auto& roots=rootSetJson[size_t(p.root_snapshot_id)];for(auto it=roots.begin();it!=roots.end();++it)j["node_fields"][it.key()]=it.value();
         j["node_fields"]["root_snapshot_id"]=p.root_snapshot_id;
@@ -227,13 +298,37 @@ static DWORD WINAPI Worker(LPVOID){
         std::ifstream input(configPath,std::ios::binary);input>>cfg;
         std::string verificationError;
         if(!witness::CompatibleSource(cfg,compat::ProfileId,compat::SourceSha256,report["checks_performed"],verificationError))throw std::runtime_error(verificationError);
-        config=ParseConfig(cfg);report["host_sha256"]=compat::SourceBuildSha256;
+        report["host_sha256"]=compat::SourceBuildSha256;
         MODULEINFO module{};if(!GetModuleInformation(GetCurrentProcess(),GetModuleHandleW(nullptr),&module,sizeof(module)))throw std::runtime_error("main module unavailable");
         const uint64_t image=reinterpret_cast<uint64_t>(module.lpBaseOfDll);report["image_base"]=Hex(image);
+        const auto& discovery = cfg.at("native_graph_discovery");
+        if (discovery.value("observe_kawaii_settings_only", false)) {
+            if (discovery.at("expected_pid").get<DWORD>() != GetCurrentProcessId())
+                throw std::runtime_error("Kawaii settings sample process changed");
+            const bool collision=discovery.value("observe_kawaii_collision_code",false);
+            const bool contacts=collision&&discovery.value("observe_capsule_contact_code",false);
+            std::vector<witness::Function> functions={{"GroupEvaluate",compat::FunctionGroupEvaluateRva,compat::FunctionGroupEvaluateBytes}};
+            if(collision)functions.push_back({"GroupSimulate",kSettingsCode[1].rva,kSettingsCode[1].bytes});
+            if(contacts)functions.push_back({"GroupCollisionCandidate",kCollisionCandidate.rva,kCollisionCandidate.bytes});
+            if (!witness::VerifyFunctions(Read,image,module.SizeOfImage,discovery.at("function_witnesses"),functions,
+                report["checks_performed"],"kawaii_settings_code",verificationError)) throw std::runtime_error(verificationError);
+            report["kawaii_settings_code"] = CapturePhysicsSettingsEvidence(image,module.SizeOfImage,collision,contacts);
+            report["scope"] = "Read-only function bytes; no actor, animation-node or vtable access.";
+            report["status"] = "complete"; report["callbacks_quiescent"] = true;
+            Save(resultPath,report); Save(statusPath,report); return 0;
+        }
+        config=ParseConfig(cfg);
         std::vector<witness::Function> hookFunctions;
         for(const auto& spec:ng::kSpecs)if(std::none_of(hookFunctions.begin(),hookFunctions.end(),[&](const witness::Function& value){return value.rva==spec.function_rva;}))
             hookFunctions.push_back({spec.name,spec.function_rva,spec.function_bytes});
         if(!witness::VerifyFunctions(Read,image,module.SizeOfImage,config.function_witnesses,hookFunctions,report["checks_performed"],"graph_hooks",verificationError))throw std::runtime_error(verificationError);
+        if (discovery.contains("kawaii_settings_witnesses")) {
+            std::vector<witness::Function> functions;
+            for (const auto& target : kSettingsCode) functions.push_back({target.label,target.rva,target.bytes});
+            if (!witness::VerifyFunctions(Read,image,module.SizeOfImage,discovery.at("kawaii_settings_witnesses"),functions,
+                report["checks_performed"],"kawaii_settings_layout",verificationError)) throw std::runtime_error(verificationError);
+            observePhysicsSettings = true;
+        }
         const std::vector<witness::Function> rootFunctions={
             {"GroupInitializeBoneReferences",kRootRvas[0],kRootBytes[0]},
             {"GroupInitializeModifyBones",kRootRvas[1],kRootBytes[1]}};

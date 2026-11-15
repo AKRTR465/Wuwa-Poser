@@ -77,7 +77,7 @@ public sealed partial class MainWindow
         actorList.ItemsSource = actors; actorList.ItemTemplate = (DataTemplate)Resources["ActorItem"]; actorList.SelectionChanged += (_, _) => SelectActor();
         VirtualizingPanel.SetIsVirtualizing(actorList, true); VirtualizingPanel.SetVirtualizationMode(actorList, VirtualizationMode.Recycling);
         ScrollViewer.SetHorizontalScrollBarVisibility(actorList, ScrollBarVisibility.Disabled);
-        pages.Add(BuildActorsPage()); pages.Add(BuildStagePage()); pages.Add(BuildPerformPage());
+        pages.Add(BuildActorsPage()); pages.Add(BuildStagePage()); pages.Add(BuildPerformPage()); pages.Add(BuildPhysicsEditorPage());
         camera.TextChanged += (_, _) => UpdateGuide(); audio.TextChanged += (_, _) => UpdateGuide(); cameraMode.SelectionChanged += (_, _) => UpdateGuide();
         placementMode.SelectionChanged += (_, _) => { UpdateStageMapVisibility(); UpdateGuide(); };
         hideSceneCharacters.Checked += (_, _) => UpdateGuide(); hideSceneCharacters.Unchecked += (_, _) => UpdateGuide();
@@ -102,6 +102,7 @@ public sealed partial class MainWindow
         {
             var entry = new StepEntry(index, title); entry.Button.Click += (_, _) => ShowPage(index); steps.Add(entry); list.Children.Add(entry.Button);
         }
+        list.Children.Add(NavButton("物理编辑器", 3, primary: false));
         DockPanel.SetDock(list, Dock.Top); side.Children.Add(list);
         var presetControls = BuildPresetControls(); DockPanel.SetDock(presetControls, Dock.Top); side.Children.Add(presetControls);
 
@@ -301,6 +302,8 @@ public sealed partial class MainWindow
     private void ShowPage(int index)
     {
         page = index; pageHost.Content = pages[index]; UpdateSteps();
+        if (page == 3) RefreshPhysicsActors();
+        UpdatePhysicsModelPage();
     }
 
     private void UpdateGuide()
@@ -395,7 +398,7 @@ public sealed partial class MainWindow
         foreach (var button in sessionActions) button.IsEnabled = !unavailable && session is not null && sessionControllable;
         if (loadPresetButton is not null) loadPresetButton.IsEnabled = !unavailable && player.ActiveSession is null && !recorder.IsBusy;
         if (stopButton is not null) stopButton.IsEnabled = (!unavailable && player.ActiveSession is not null) || (busy && operationCancellation is { IsCancellationRequested: false });
-        UpdateRecordingControls(); busyBar.Visibility = busy ? Visibility.Visible : Visibility.Hidden; UpdateSessionView();
+        UpdateRecordingControls(); busyBar.Visibility = busy ? Visibility.Visible : Visibility.Hidden; UpdateSessionView(); RefreshPhysicsSettings();
     }
 
     private void UpdateRecordingControls()
@@ -567,6 +570,7 @@ public sealed partial class MainWindow
         public event Action? Changed;
         public string Number => (index + 1).ToString();
         public string CharacterName => (Character.SelectedItem as OwnedCharacterSelection)?.DisplayName ?? MissingCharacterName ?? MissingCharacterId ?? "还没选角色";
+        public string PhysicsDisplayName => $"演员 {Number} · {CharacterName}";
         public string? MissingCharacterId { get; private set; }
         public string? MissingCharacterName { get; private set; }
         public long MissingRoleId { get; private set; }
@@ -575,13 +579,14 @@ public sealed partial class MainWindow
         {
             MissingCharacterId = id; MissingRoleId = roleId; MissingCharacterName = name;
             missingCharacter.Text = "缺少角色 / 皮肤 / 形态：" + (name ?? id) + "，请重新选择。";
-            missingCharacter.Visibility = Visibility.Visible; Notify(nameof(CharacterName)); Notify(nameof(IsReady));
+            missingCharacter.Visibility = Visibility.Visible; Notify(nameof(CharacterName)); Notify(nameof(PhysicsDisplayName)); Notify(nameof(IsReady));
         }
         public string MotionSummary => string.IsNullOrWhiteSpace(Body.Text) ? "还没有身体动作" : System.IO.Path.GetFileNameWithoutExtension(Body.Text.Trim()) + (string.IsNullOrWhiteSpace(Face.Text) ? "" : " · 含表情") + (string.IsNullOrWhiteSpace(Gaze.Text) ? "" : " · 含目线");
         public bool IsReady => !string.IsNullOrWhiteSpace(Body.Text) && Character.SelectedItem is not null;
         public bool IsParticipating => Enabled.IsChecked == true;
         public StagePosition? Stage { get; set; }
-        public void SetIndex(int value) { index = value; Name.Text = $"演员 {index + 1}"; Notify(nameof(Number)); }
+        public Dictionary<string, JsonObject> PhysicsPresets { get; } = new(StringComparer.Ordinal);
+        public void SetIndex(int value) { index = value; Name.Text = $"演员 {index + 1}"; Notify(nameof(Number)); Notify(nameof(PhysicsDisplayName)); }
         public Border Panel { get; }
         public TextBlock Name { get; } = Text("", 22, "Ink", FontWeights.SemiBold);
         public CheckBox Enabled { get; } = new() { Content = "参与表演", IsChecked = true, Margin = new(0) };
@@ -595,7 +600,7 @@ public sealed partial class MainWindow
             this.index = index; Name.Text = $"演员 {index + 1}"; Character.ItemsSource = catalog.Characters; Character.SelectedValue = catalog.DefaultCharacterId;
             Character.SelectionChanged += (_, _) => {
                 if (Character.SelectedItem is not null) { MissingCharacterId = MissingCharacterName = null; MissingRoleId = 0; missingCharacter.Visibility = Visibility.Collapsed; }
-                Notify(nameof(CharacterName)); Notify(nameof(IsReady)); Changed?.Invoke(); };
+                Notify(nameof(CharacterName)); Notify(nameof(PhysicsDisplayName)); Notify(nameof(IsReady)); Changed?.Invoke(); };
             Enabled.Checked += (_, _) => { Notify(nameof(IsParticipating)); Changed?.Invoke(); }; Enabled.Unchecked += (_, _) => { Notify(nameof(IsParticipating)); Changed?.Invoke(); };
             Body.TextChanged += (_, _) => { Notify(nameof(MotionSummary)); Notify(nameof(IsReady)); Changed?.Invoke(); };
             Face.TextChanged += (_, _) => Notify(nameof(MotionSummary));

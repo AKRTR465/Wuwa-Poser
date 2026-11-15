@@ -6,19 +6,29 @@ namespace WWPoser.Services;
 public static class PlaybackControl
 {
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> SendLocks = new(StringComparer.OrdinalIgnoreCase);
-    public static byte[] Encode(ulong epoch, ulong sequence, string kind, double value = 0, uint targetSlot = 0)
+    public static byte[] Encode(ulong epoch, ulong sequence, string kind, double value = 0, uint targetSlot = 0, uint targetGroup = 0, uint targetChain = 0)
     {
         if (epoch == 0 || sequence == 0) throw new ArgumentException("控制命令的 epoch 和 sequence 必须为正数");
         var id = PlaybackCommands.Validate(kind, value, targetSlot);
+        var nativeSetting = kind is "native_damping" or "native_stiffness" or "native_limit_angle";
+        var requiresMember = kind is "native_shoulder_follow" or "native_capsule_collision";
+        if (requiresMember ? targetSlot == 0 || targetGroup == 0 || targetChain == 0 :
+            kind == "native_preview" ? targetSlot == 0 || targetGroup == 0 || targetChain != 0 :
+            kind == "native_gravity" ? targetSlot == 0 || targetGroup == 0 || targetChain != 0 || (value < 0 && value != -1) :
+            kind == "model_preview" ? targetSlot == 0 || targetGroup != 0 || targetChain != 0 :
+            nativeSetting ? targetSlot == 0 || targetGroup == 0 || (value < 0 && value != -1) : targetGroup != 0 || targetChain != 0)
+            throw new ArgumentException("物理组控制需要指定演员和物理组；还原值为 -1。");
         var bytes = new byte[64]; "WWPCTL1\0"u8.CopyTo(bytes);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(8), 1); BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(12), 64);
         BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(16), epoch); BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(24), sequence);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(32), id); BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(36), targetSlot); BinaryPrimitives.WriteDoubleLittleEndian(bytes.AsSpan(40), value);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(48), targetGroup);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(52), targetChain);
         uint checksum = 2166136261; foreach (var b in bytes.AsSpan(0, 60)) checksum = unchecked((checksum ^ b) * 16777619);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(60), checksum); return bytes;
     }
     public static JsonObject Status(string session) => PlaybackSessionStatus.Read(session).State;
-    public static async Task<JsonObject> SendAsync(string session, string kind, double value = 0, CancellationToken cancellation = default, uint targetSlot = 0)
+    public static async Task<JsonObject> SendAsync(string session, string kind, double value = 0, CancellationToken cancellation = default, uint targetSlot = 0, uint targetGroup = 0, uint targetChain = 0)
     {
         var gate = SendLocks.GetOrAdd(Path.GetFullPath(session), _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(cancellation).ConfigureAwait(false);
@@ -31,7 +41,7 @@ public static class PlaybackControl
             if (!Contract.True(state, "session_active")) throw new InvalidOperationException("播放会话已结束");
             var processed = state["last_control_sequence"]?.GetValue<ulong>() ?? 0;
             var sequence = Math.Max(checked((ulong)DateTime.UtcNow.Ticks), Math.Max(processed, Contract.N(state, "last_sequence").GetValue<ulong>()) + 1);
-            JsonData.AtomicWrite(Path.Combine(session, "control.dat"), Encode(epoch, sequence, kind, value, targetSlot));
+            JsonData.AtomicWrite(Path.Combine(session, "control.dat"), Encode(epoch, sequence, kind, value, targetSlot, targetGroup, targetChain));
             var deadline = Environment.TickCount64 + 3000;
             while (Environment.TickCount64 < deadline)
             {

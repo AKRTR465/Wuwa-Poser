@@ -12,7 +12,7 @@ static void Put32(CommandWire& wire,unsigned offset,uint32_t value){for(unsigned
 static void Put64(CommandWire& wire,unsigned offset,uint64_t value){for(unsigned n=0;n<8;++n)wire[offset+n]=uint8_t(value>>(8*n));}
 static CommandWire Wire(Command command){CommandWire wire{};std::memcpy(wire.data(),"WWPCTL1",7);Put32(wire,8,1);Put32(wire,12,64);
     Put64(wire,16,command.clip_epoch);Put64(wire,24,command.sequence);Put32(wire,32,uint32_t(command.kind));Put32(wire,36,command.target_slot);
-    uint64_t bits=0;std::memcpy(&bits,&command.value,8);Put64(wire,40,bits);Put32(wire,60,WireChecksum(wire));return wire;}
+    uint64_t bits=0;std::memcpy(&bits,&command.value,8);Put64(wire,40,bits);Put32(wire,48,command.target_group);Put32(wire,52,command.target_chain);Put32(wire,60,WireChecksum(wire));return wire;}
 int main(){
     Command decoded;
     auto wire=Wire({42,1,CommandKind::SetPlacementX,25,3});
@@ -24,7 +24,20 @@ int main(){
     Check(DecodeCommand(Wire({42,1,CommandKind::SetCameraTrackHeight,-150.5}),&decoded)&&decoded.value==-150.5,"signed camera track height survives wire decoding");
     Check(!ValidCommand({42,1,CommandKind::SetCameraTrackHeight,10001})&&!ValidCommand({42,1,CommandKind::SetCameraTrackHeight,20,1}),"track height is bounded and global, never actor-routed");
     Check(DecodeCommand(Wire({42,1,CommandKind::Play,0,UINT32_MAX}),&decoded)&&decoded.target_slot==UINT32_MAX,"full positive uint32 actor slot range accepted");
-    wire[48]=1;Put32(wire,60,WireChecksum(wire));Check(!DecodeCommand(wire,&decoded),"reserved payload bytes remain reserved");
+    wire[48]=1;Put32(wire,60,WireChecksum(wire));Check(!DecodeCommand(wire,&decoded),"group index is reserved for native settings commands");
+    Check(DecodeCommand(Wire({42,4,CommandKind::SetNativeDamping,.4,3,12}),&decoded)&&decoded.target_slot==3&&decoded.target_group==12&&Close(decoded.value,.4),"native damping targets one group on one actor");
+    Check(DecodeCommand(Wire({42,4,CommandKind::SetNativeDamping,.4,3,12,2}),&decoded)&&decoded.target_chain==2,"one parameter command targets a verified chain inside its group");
+    Check(ValidCommand({42,7,CommandKind::SetNativeLimitAngle,-1,1,2})&&!ValidCommand({42,7,CommandKind::SetNativeLimitAngle,-.5,1,2})&&
+        !ValidCommand({42,7,CommandKind::SetNativeStiffness,.5,0,2})&&!ValidCommand({42,7,CommandKind::SetNativeStiffness,.5,1,0}),
+        "native settings allow a single reset sentinel and require both targets");
+    Check(DecodeCommand(Wire({42,5,CommandKind::SetNativeShoulderFollow,0,3,12,2}),&decoded)&&decoded.target_chain==2&&
+        !ValidCommand({42,6,CommandKind::SetNativeShoulderFollow,0,3,12}),"shoulder rotation follows only an explicitly selected chain");
+    Check(DecodeCommand(Wire({42,5,CommandKind::SetNativeCapsuleCollision,0,3,12,28}),&decoded)&&decoded.target_chain==28&&
+        !ValidCommand({42,7,CommandKind::SetNativeCapsuleCollision,0,3,12}),"capsule collision requires an exact verified driver");
+    Check(DecodeCommand(Wire({42,6,CommandKind::SetNativeGravity,150,3,12}),&decoded)&&decoded.target_group==12&&
+        ValidCommand({42,7,CommandKind::SetNativeGravity,-1,3,12})&&!ValidCommand({42,7,CommandKind::SetNativeGravity,-.5,3,12})&&
+        !ValidCommand({42,7,CommandKind::SetNativeGravity,100,3,12,1})&&!ValidCommand({42,7,CommandKind::SetNativeGravity,1501,3,12}),
+        "gravity is group-scoped with an explicit restore sentinel");
     wire=Wire({42,1,CommandKind::SetTimeLimit,0});wire[40]^=1;Check(!DecodeCommand(wire,&decoded),"modified payload checksum rejected");
     wire=Wire({42,2,CommandKind::SetSpeed,5});
     Check(DecodeCommandFrame(wire,&decoded)&&decoded.sequence==2&&!DecodeCommand(wire,&decoded),"a valid frame preserves rejected command identity without weakening strict decoding");
@@ -78,6 +91,14 @@ int main(){
     camera.Apply({103,4,CommandKind::Stop,0},0);Check(camera.State().camera_track_height_cm==-75,"stop retains the selected track offset for restart");
     Check(!camera.SetClip(104,12),"a camera offset never bypasses pending restoration");
     camera.AcknowledgeRestore();Check(camera.SetClip(104,12)&&camera.State().camera_track_height_cm==0,"a new restored clip resets the previous track offset");
+    Transport compare;compare.SetClip(110,12);compare.Apply({110,1,CommandKind::Play,0},0);
+    Check(compare.Apply({110,2,CommandKind::SetPreviewLoopStart,2},0)==ControlCode::Ok&&
+        compare.Apply({110,3,CommandKind::SetPreviewLoopEnd,5},0)==ControlCode::Ok,"physics preview selects an explicit interval");
+    compare.Tick(4);
+    Check(Close(compare.State().seconds,3)&&!compare.State().loop,"physics preview loops between the marked times without persisting whole-clip loop mode");
+    Check(compare.Apply({110,4,CommandKind::SetPreviewLoopEnd,0},4)==ControlCode::Ok,"exit physics interval");
+    compare.Tick(8);
+    Check(Close(compare.State().seconds,7),"exiting the preview interval restores ordinary playback time");
 
     ww_mmd_squad::SharedTimeline squad;squad.Configure(55,{10,20,30},7);squad.Advance(1,100);
     Check(squad.Apply({55,1,CommandKind::Play,0},true)==ww_mmd_squad::ClockCode::Ok,"shared play accepted");

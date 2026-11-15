@@ -70,6 +70,12 @@ public sealed partial class NativeGraphService(string repoRoot)
         cfg["native_graph_discovery"] = new JsonObject { ["schema"] = 1, ["phase"] = "discovery", ["expected_pid"] = pid,
             ["duration_ms"] = 6000, ["frame_limit"] = 8, ["node_limit"] = 128,
             ["function_witnesses"] = FunctionWitnesses(ObserverFunctions), ["root_layout_witnesses"] = RootWitnesses() };
+        if (Environment.GetEnvironmentVariable("WWPOSER_OBSERVE_KAWAII_SETTINGS") == "1")
+        {
+            var version = VersionedWitnesses() ?? throw new InvalidOperationException("当前游戏版本没有 Kawaii 参数函数证据。");
+            var settings = version.Where(row => Contract.S(row!, "label") is "GroupUpdatePhysicsSettings" or "GroupSimulate");
+            cfg["native_graph_discovery"]!["kawaii_settings_witnesses"] = new JsonArray(settings.Select(row => row!.DeepClone()).ToArray());
+        }
         StageObserver(cfg, output, "native_graph_discovery.dll");
     }
 
@@ -119,6 +125,15 @@ public sealed partial class NativeGraphService(string repoRoot)
         cfg["native_graph_source_config_sha256"] = binding["proof"]!["source_config_sha256"]!.DeepClone();
         cfg["native_physics_witnesses"] = InputWitnesses();
         cfg["native_physics_activation_witnesses"] = ActivationWitnesses();
+        if (VersionedWitnesses() is { } version)
+        {
+            var settings = version.Where(row => Contract.S(row!, "label") is "GroupEvaluate" or "GroupUpdatePhysicsSettings" or "GroupSimulate" or "GroupApplyResult")
+                .Select(row => row!.DeepClone()).ToArray();
+            if (settings.Length == 4) cfg["native_physics_settings_witnesses"] = new JsonArray(settings);
+            var capsules = version.Where(row => Contract.S(row!, "label") is "GroupUpdateCapsuleLimits" or "GroupWorldCollision" or
+                "GroupCollisionCandidate" or "CapsuleContactsA" or "CapsuleContactsB" or "CapsuleContactsC").Select(row => row!.DeepClone()).ToArray();
+            if (capsules.Length == 6) cfg["native_physics_capsule_witnesses"] = new JsonArray(capsules);
+        }
         if (Contract.A(binding, "curve_groups").Any(x => x!["root_binding"] != null)) cfg["native_graph_root_layout_witnesses"] = RootWitnesses();
     }
 }

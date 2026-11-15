@@ -8,9 +8,13 @@
 #include "game_compat_witness.h"
 #include "../../playback/native_physics_actor.h"
 #include <filesystem>
+#include <cctype>
 
 namespace v20_shared_native_physics {
 namespace core=wwp_playback::native_physics;
+namespace settings=wwp_playback::kawaii_parameters;
+namespace collision=wwp_playback::kawaii_collision;
+namespace gravity=wwp_playback::kawaii_gravity;
 namespace graph=v20_native_graph_binding;
 using Actor=core::Actor;
 using Access=core::Access;
@@ -18,15 +22,17 @@ using AuthorityCheck=bool(*)(void*,const Access&);
 using Snapshot=core::Snapshot;
 struct HookHub {
     core::Registry registry;
-    v20_vmt_slot_patch::State converter_patch,group_patch;
+    v20_vmt_slot_patch::State converter_patch,group_patch,settings_patch;
     void (*original_converter)(void*,void*)=nullptr;
     void (*original_group)(void*,void*)=nullptr;
+    void (*original_evaluate)(void*,void*,void*)=nullptr;
+    void (*update_settings)(void*)=nullptr;
     const void* (*getter)(void*,int32_t)=nullptr;
     bool (*lod)(void*,void*)=nullptr;
     bool (*valid)(void*,void*,void*)=nullptr;
     void (*internal)(void*,void*)=nullptr;
     uint64_t image=0,converter_vtable=0,group_vtable=0;
-    std::atomic<bool> observing{false},group_observing{false};
+    std::atomic<bool> observing{false},group_observing{false},settings_observing{false};
     std::atomic<unsigned> active{0},group_active{0};
     std::atomic<unsigned> dispatch_active{0};
     std::mutex lifecycle;
@@ -78,6 +84,47 @@ inline void GroupDetour(void* node,void* context){
     unsigned index=0;auto actor=hub.registry.Group(uintptr_t(node),&index);if(!actor)return;
     core::ForceGroup(*actor,index,uintptr_t(node),uintptr_t(context),MakeAccess());
 }
+inline bool RefreshGroupSettings(uintptr_t node){
+    __try{hub.update_settings(reinterpret_cast<void*>(node));return true;}
+    __except(EXCEPTION_EXECUTE_HANDLER){return false;}
+}
+inline bool ReadCompactToSkeleton(const Actor& actor,uintptr_t context,const Access& access,std::array<int32_t,1024>& compact_to_skeleton){
+    uint64_t container=0;settings::Array indices{};
+    const auto count=actor.topology.count;
+    if(!access.Get(context+ww_game_compat::AnimContextBoneContainerOffset,container)||!container||
+       !access.Get(container+ww_game_compat::BoneContainerSkeletonToCompactOffset,indices)||!settings::ValidArray(indices)||
+       indices.count!=int32_t(count))return false;
+    std::array<int32_t,1024> skeleton_to_compact{};compact_to_skeleton.fill(-1);
+    if(!access.Read(indices.data,skeleton_to_compact.data(),count*sizeof(int32_t)))return false;
+    for(uint32_t i=0;i<count;++i){
+        const int32_t compact=skeleton_to_compact[i];
+        if(compact<0||uint32_t(compact)>=count||compact_to_skeleton[size_t(compact)]!=-1)return false;
+        compact_to_skeleton[size_t(compact)]=int32_t(i);
+    }
+    return true;
+}
+inline void EvaluateDetour(void* node,void* context,void* out){
+    ++hub.group_active;struct Active{~Active(){--hub.group_active;}} callback_scope;
+    auto evaluate=[&]{hub.original_evaluate(node,context,out);};
+    Dispatch dispatch(hub.settings_observing);if(!dispatch){evaluate();return;}
+    unsigned index=0;auto actor=hub.registry.Group(uintptr_t(node),&index);
+    if(!actor||!actor->settings_verified){evaluate();return;}
+    const auto access=MakeAccess();uint64_t proxy=0,mesh=0,owner=0,vtable=0;
+    if(!access.Get(uintptr_t(context)+ww_game_compat::AnimContextProxyOffset,proxy)||!proxy||
+       !access.Get(proxy+ww_game_compat::AnimProxyMeshOffset,mesh)||mesh!=actor->target.mesh||
+       !access.Get(proxy+ww_game_compat::AnimProxyOwnerOffset,owner)||owner!=actor->target.main_anim||
+       !access.Get(uintptr_t(node),vtable)||vtable!=actor->group_vtable||!core::Alive(*actor,access)){evaluate();return;}
+    auto& group=actor->settings[index];
+    const bool feed=core::Feeding(*actor);
+    auto map=[&](auto& result){return ReadCompactToSkeleton(*actor,uintptr_t(context),access,result);};
+    auto with_capsules=[&]{if(actor->capsules_verified)collision::EvaluateCapsules(actor->capsules[index],uintptr_t(node),access,feed,map,evaluate,
+        [&]{core::Fail(*actor,610);});else evaluate();};
+    auto with_gravity=[&]{if(actor->gravity_verified)gravity::EvaluateGravity(actor->gravity[index],uintptr_t(node),access,feed,with_capsules,
+        [&]{core::Fail(*actor,612);});else with_capsules();};
+    settings::EvaluateGroup(group,uintptr_t(node),access,feed,with_gravity,
+        &RefreshGroupSettings,[&]{core::Fail(*actor,608);},[&]{std::array<int32_t,1024> result{};
+            return map(result)&&settings::MapChains(group,uintptr_t(node),access,result);});
+}
 template<class Reader>inline core::ObjectToken Capture(Reader& r,const Go& go,uint64_t address){
     core::ObjectToken t;t.address=address;uint64_t chunk=0;std::array<uint8_t,ww_game_compat::ObjectItemBytes> item{};
     graph::Require(r.Read(address,t.header.data(),ww_game_compat::ObjectHeaderBytes),"native actor object unreadable");t.index=At<uint32_t>(t.header.data(),ww_game_compat::ObjectIndexOffset);
@@ -118,18 +165,42 @@ template<class Reader>inline void VerifyNativeFunctions(Actor& a,Reader& r,const
     a.function_witnesses_verified.store(false,std::memory_order_release);
     a.function_witnesses_required.store(unsigned(InputFunctionSpecs().size()+ActivationFunctionSpecs().size()));
     a.function_witnesses_matched.store(0);
-    Json checks=Json::array();std::string error;bool verified=false;
+    Json checks=Json::array(),settingsChecks=Json::array(),capsuleChecks=Json::array();std::string error,settingsError,capsuleError;bool verified=false;
     try{
         MODULEINFO module{};
         graph::Require(GetModuleInformation(GetCurrentProcess(),GetModuleHandleW(nullptr),&module,sizeof(module))!=0,"native physics main module unavailable");
         verified=VerifyNativeFunctionSets(r,uint64_t(module.lpBaseOfDll),module.SizeOfImage,cfg,checks,error);
+        if(verified&&cfg.contains("native_physics_settings_witnesses")){
+            const std::vector<ww_game_compat_witness::Function> specs={
+                {"GroupEvaluate",ww_game_compat::FunctionGroupEvaluateRva,ww_game_compat::FunctionGroupEvaluateBytes},
+                {"GroupUpdatePhysicsSettings",settings::kUpdateRva,settings::kUpdateBytes},
+                {"GroupSimulate",settings::kSimulateRva,settings::kSimulateBytes},
+                {"GroupApplyResult",settings::kApplyResultRva,settings::kApplyResultBytes}};
+            auto read=[&](uint64_t address,void* out,size_t bytes){return r.Read(address,out,bytes);};
+            a.settings_verified=ww_game_compat_witness::VerifyFunctions(read,uint64_t(module.lpBaseOfDll),module.SizeOfImage,
+                cfg.at("native_physics_settings_witnesses"),specs,settingsChecks,"native_settings",settingsError);
+        }
+        if(a.settings_verified&&cfg.contains("native_physics_capsule_witnesses")){
+            const std::vector<ww_game_compat_witness::Function> specs={
+                {"GroupUpdateCapsuleLimits",0xa5d280,0x241},{"GroupWorldCollision",0xa5eaf0,0x486},
+                {"GroupCollisionCandidate",0xa4c220,0x476},{"CapsuleContactsA",0xa4ff20,0x262},
+                {"CapsuleContactsB",0xa4ce90,0x2af},{"CapsuleContactsC",0xa4cab0,0x3d3}};
+            auto read=[&](uint64_t address,void* out,size_t bytes){return r.Read(address,out,bytes);};
+            a.capsules_verified=ww_game_compat_witness::VerifyFunctions(read,uint64_t(module.lpBaseOfDll),module.SizeOfImage,
+                cfg.at("native_physics_capsule_witnesses"),specs,capsuleChecks,"native_capsule_contacts",capsuleError);
+        }
+        std::array<float,4> signs{};
+        a.gravity_verified=a.settings_verified&&gravity::kConjugateSignsRva+sizeof(signs)<=module.SizeOfImage&&
+            r.Read(uint64_t(module.lpBaseOfDll)+gravity::kConjugateSignsRva,signs.data(),sizeof(signs))&&gravity::ConjugateSigns(signs);
     }catch(const std::exception& failure){error=failure.what();}
     unsigned matched=0;for(const auto& row:checks)if(row.value("kind",std::string())=="function_bytes"&&row.value("matched",false))++matched;
     a.function_witnesses_matched.store(matched);
     std::filesystem::create_directories(directory);
     ww_report::Save(directory/L"native_function_checks.json",{{"schema",1},{"compatibility_profile",ww_game_compat::ProfileId},
         {"compatibility_source_sha256",ww_game_compat::SourceSha256},{"verified",verified},{"required_function_count",a.function_witnesses_required.load()},
-        {"matched_function_count",matched},{"checks",checks},{"error",error},{"candidate_relocation_authorized",false}});
+        {"matched_function_count",matched},{"checks",checks},{"error",error},{"settings_verified",a.settings_verified},
+        {"settings_checks",settingsChecks},{"settings_error",settingsError},{"capsules_verified",a.capsules_verified},
+        {"capsule_checks",capsuleChecks},{"capsule_error",capsuleError},{"gravity_verified",a.gravity_verified},{"candidate_relocation_authorized",false}});
     graph::Require(verified,error.empty()?"native physics function verification failed":error.c_str());
     a.function_witnesses_verified.store(true,std::memory_order_release);
 }
@@ -151,10 +222,60 @@ template<class Reader>inline void PrepareBinding(Actor& a,Reader& r,const Json& 
     a.node=a.target.main_anim+a.binding.converter_offset;a.node_vtable=a.image+graph::kConverterVtableRva;a.group_vtable=a.image+graph::kGroupVtableRva;
     a.authority_alive=check;a.authority_user=user;a.prepared=true;
 }
+inline std::string LowerBoneName(std::string name){for(char& c:name)c=char(std::tolower(static_cast<unsigned char>(c)));return name;}
+inline void PrepareSettingsChains(Actor& a,const Json& cfg){
+    if(!a.settings_verified||!cfg.contains("expected_bone_names"))return;
+    auto names=cfg.at("expected_bone_names").get<std::vector<std::string>>();
+    if(names.size()!=a.topology.count)return;
+    if(a.capsules_verified)a.physics_bone_names=names;
+    for(auto& name:names)name=LowerBoneName(name);
+    for(unsigned group=0;group<a.binding.group_count;++group){
+        auto& state=a.settings[group];const auto& roots=a.binding.groups[group].root_bones;
+        state.skeleton_chain.resize(names.size());
+        for(unsigned slot=0;slot<roots.size();++slot){
+            const auto found=std::find(names.begin(),names.end(),LowerBoneName(roots[slot]));
+            if(found==names.end())continue;
+            settings::Chain chain;chain.root_slot=slot+1;chain.root_bone=unsigned(found-names.begin());
+            if(state.skeleton_chain[chain.root_bone])continue;
+            state.chains.push_back(chain);state.skeleton_chain[chain.root_bone]=static_cast<unsigned short>(state.chains.size());
+        }
+        for(unsigned bone=1;bone<a.topology.count;++bone)
+            if(!state.skeleton_chain[bone])state.skeleton_chain[bone]=state.skeleton_chain[size_t(a.topology.parents[bone])];
+    }
+}
+inline void PrepareSleeves(Actor& a,const Json& cfg){
+    if(!a.request.canonical_local_rotations||!cfg.contains("expected_bone_names"))return;
+    auto names=cfg.at("expected_bone_names").get<std::vector<std::string>>();
+    if(names.size()!=a.topology.count)return;
+    for(auto& name:names)name=LowerBoneName(name);
+    for(unsigned group=0;group<a.binding.group_count;++group){const auto& roots=a.binding.groups[group].root_bones;
+        for(unsigned slot=0;slot<roots.size();++slot){const auto name=LowerBoneName(roots[slot]);
+            if(name.find("yixiu")==std::string::npos&&name.find("xiuzi")==std::string::npos&&name.find("sleeve")==std::string::npos)continue;
+            const auto found=std::find(names.begin(),names.end(),name);if(found==names.end())continue;
+            wwp_playback::sleeve_follow::Chain chain;chain.group=group+1;chain.root_slot=slot+1;chain.root=unsigned(found-names.begin());
+            int32_t shoulder=a.topology.parents[chain.root];
+            while(shoulder>0&&names[size_t(shoulder)]!="bip001lclavicle"&&names[size_t(shoulder)]!="bip001rclavicle")shoulder=a.topology.parents[size_t(shoulder)];
+            if(shoulder<=0)continue;
+            chain.shoulder=unsigned(shoulder);chain.shoulder_parent=unsigned(a.topology.parents[chain.shoulder]);
+            const auto& neutral=a.request.canonical_local_rotations[chain.shoulder];
+            std::copy(neutral.begin(),neutral.end(),chain.neutral_shoulder.begin());
+            if(!(std::abs(wwp_playback::sleeve_follow::bone::Norm(chain.neutral_shoulder)-1)<=.001))continue;
+            chain.neutral_shoulder=wwp_playback::sleeve_follow::bone::Unit(chain.neutral_shoulder);
+            std::array<bool,core::input::kLimit> selected{};selected[chain.root]=true;chain.bones.push_back(chain.root);
+            for(unsigned bone=chain.root+1;bone<a.topology.count;++bone)if(selected[unsigned(a.topology.parents[bone])]){
+                selected[bone]=true;chain.bones.push_back(bone);}
+            if(std::any_of(a.sleeves.begin(),a.sleeves.end(),[&](const auto& other){
+                return selected[other.root]||std::binary_search(other.bones.begin(),other.bones.end(),chain.root);}))continue;
+            a.sleeves.push_back(std::move(chain));
+        }
+    }
+}
 template<class Reader>inline void PrepareFromConfig(Actor& a,Reader& r,const Json& cfg,const std::string& profile,const std::filesystem::path& directory,
     const wwp_playback::local_clip::Clip& motion,const wwp_ue::full_body::Topology& topology,const wwp_ue::full_body::Request& request,uint64_t epoch,AuthorityCheck check,void* user){
     core::PrepareMotion(a,motion,topology,request,epoch);PrepareBinding(a,r,cfg,profile,directory,check,user);
     graph::Require(a.binding.bone_count==topology.count,"native actor topology differs");
+    PrepareSettingsChains(a,cfg);
+    PrepareSleeves(a,cfg);
 }
 inline bool RegisterActor(Actor& a){return a.prepared&&a.function_witnesses_verified.load(std::memory_order_acquire)&&hub.registry.Add(a);}
 inline bool UnregisterActor(Actor& a){return hub.registry.Remove(a);}
@@ -162,6 +283,24 @@ inline void Publish(Actor& a,double seconds,const wwp_playback::placement::Setti
 inline void RequestStop(Actor& a){core::RequestStop(a);}
 inline void CloseAdmission(Actor& a){core::CloseAdmission(a);}
 inline bool Restored(const Actor& a){return core::Restored(a);}
+inline bool CanSetParameter(const Actor& actor,unsigned group,unsigned chain){
+    if(!actor.settings_verified||!group||group>actor.binding.group_count)return false;
+    const auto& chains=actor.settings[group-1].chains;
+    return !chain||std::any_of(chains.begin(),chains.end(),[&](const auto& row){return row.root_slot==chain;});
+}
+inline void SetPreview(Actor& actor,unsigned group,bool enabled){
+    std::lock_guard<std::mutex> lock(actor.preview_lock);
+    if(!enabled&&actor.preview_group.load(std::memory_order_relaxed)!=group)return;
+    actor.preview_frame=0;actor.preview_solved_bones=0;actor.preview_pose.clear();
+    actor.preview_group.store(enabled?group:0,std::memory_order_release);
+}
+inline void SetParameter(Actor& actor,unsigned group,unsigned chain,unsigned parameter,float value,uint64_t revision){
+    auto& entry=actor.settings[group-1];std::lock_guard<std::mutex> lock(entry.edit);
+    if(!chain){entry.requested[parameter]=value;entry.revision=revision;return;}
+    for(auto& row:entry.chains)if(row.root_slot==chain){row.requested[parameter]=value;row.revision=revision;return;}
+}
+inline auto FindSleeve(Actor& actor,unsigned group,unsigned chain){return std::find_if(actor.sleeves.begin(),actor.sleeves.end(),
+    [&](const auto& sleeve){return sleeve.group==group&&sleeve.root_slot==chain;});}
 inline void Install(Json&){
     std::lock_guard<std::mutex> lifecycle(hub.lifecycle);
     graph::Require(hub.registry.Freeze(),"native shared registry cannot be frozen");
@@ -175,14 +314,22 @@ inline void Install(Json&){
     graph::Require(v20_vmt_slot_patch::Install(hub.converter_patch,(void**)(hub.converter_vtable+ww_game_compat::SlotLocalToComponentEvaluateCS),(void*)hub.original_converter,(void*)&ConverterDetour).code==v20_vmt_slot_patch::Code::Ok,"native shared converter installation failed");
     if(groups){hub.group_observing.store(true,std::memory_order_release);
         graph::Require(v20_vmt_slot_patch::Install(hub.group_patch,(void**)(hub.group_vtable+ww_game_compat::SlotSkeletalControlUpdate),(void*)hub.original_group,(void*)&GroupDetour).code==v20_vmt_slot_patch::Code::Ok,"native shared group installation failed");}
+    const bool edit=std::any_of(hub.registry.actors.begin(),hub.registry.actors.end(),[](const auto* actor){return actor->settings_verified&&actor->binding.group_count;});
+    if(edit){
+        hub.original_evaluate=reinterpret_cast<void(*)(void*,void*,void*)>(hub.image+ww_game_compat::FunctionGroupEvaluateRva);
+        hub.update_settings=reinterpret_cast<void(*)(void*)>(hub.image+settings::kUpdateRva);
+        hub.settings_observing.store(true,std::memory_order_release);
+        graph::Require(v20_vmt_slot_patch::Install(hub.settings_patch,(void**)(hub.group_vtable+ww_game_compat::SlotKawaiiGroupEvaluate),
+            (void*)hub.original_evaluate,(void*)&EvaluateDetour).code==v20_vmt_slot_patch::Code::Ok,"native settings installation failed");
+    }
 }
 inline bool CloseDispatchForRestore(uint64_t deadline){
-    const bool converter=hub.observing.exchange(false),group=hub.group_observing.exchange(false);
+    const bool converter=hub.observing.exchange(false),group=hub.group_observing.exchange(false),evaluate=hub.settings_observing.exchange(false);
     while(hub.dispatch_active.load()&&GetTickCount64()<deadline)Sleep(1);
     if(hub.dispatch_active.load()||!hub.registry.RestoredAll()){
         // An admitted callback may have written input before terminal feed
         // closed. Keep natural recovery routing available until it retires.
-        hub.observing.store(converter);hub.group_observing.store(group);return false;}
+        hub.observing.store(converter);hub.group_observing.store(group);hub.settings_observing.store(evaluate);return false;}
     return true;
 }
 inline bool Uninstall(Json& report,const char* field="cleanup_native_vmt_restore"){
@@ -194,11 +341,25 @@ inline bool Uninstall(Json& report,const char* field="cleanup_native_vmt_restore
         report[field]={{"code",v20_vmt_slot_patch::Name(r.code)},{"protection_restored",r.protection_restored}};ok=r.code==v20_vmt_slot_patch::Code::Ok;}
     if(hub.group_patch.changed||hub.group_patch.protection_pending){const auto r=v20_vmt_slot_patch::Restore(hub.group_patch);
         report["cleanup_native_group_update_vmt_restore"]={{"code",v20_vmt_slot_patch::Name(r.code)},{"protection_restored",r.protection_restored}};ok=ok&&r.code==v20_vmt_slot_patch::Code::Ok;}
+    if(hub.settings_patch.changed||hub.settings_patch.protection_pending){const auto r=v20_vmt_slot_patch::Restore(hub.settings_patch);
+        report["cleanup_native_settings_vmt_restore"]={{"code",v20_vmt_slot_patch::Name(r.code)},{"protection_restored",r.protection_restored}};ok=ok&&r.code==v20_vmt_slot_patch::Code::Ok;}
     const auto deadline=GetTickCount64()+5000;Sleep(200);while((hub.active.load()||hub.group_active.load())&&GetTickCount64()<deadline)Sleep(1);
     ok=ok&&!hub.active.load()&&!hub.group_active.load()&&!hub.dispatch_active.load()&&hub.registry.RestoredAll();if(ok)hub.registry.Thaw();return ok;
 }
+inline Json SampleSettings(const settings::Values& requested,uint64_t revision,const settings::Sample& sample,bool pending){
+    return {{"requested",requested},{"revision",revision},{"sampled_revision",sample.revision},
+        {"original",sample.read?Json(sample.original):Json(nullptr)},{"effective_first",sample.effective_read?Json(sample.effective_first):Json(nullptr)},
+        {"effective_last",sample.effective_read?Json(sample.effective_last):Json(nullptr)},{"simulated_bones",sample.bones},{"restore_pending",pending}};
+}
 inline void Stats(const Actor& a,Json& j){
     j["native_physics"]=true;j["physics_backend"]="game_native";
+    j["native_physics_settings_verified"]=a.settings_verified;
+    j["native_physics_gravity_verified"]=a.gravity_verified;
+    if(a.preview_group.load(std::memory_order_acquire)){
+        std::lock_guard<std::mutex> lock(a.preview_lock);
+        const auto group=a.preview_group.load(std::memory_order_relaxed);
+        if(group)j["native_preview"]={{"group_id",group},{"frame",a.preview_frame},{"positions",a.preview_pose},{"solved_bones",a.preview_solved_bones}};
+    }
     j["native_function_witnesses_verified"]=a.function_witnesses_verified.load();
     j["native_function_witnesses_required"]=a.function_witnesses_required.load();j["native_function_witnesses_matched"]=a.function_witnesses_matched.load();
     j["native_input_frames"]=a.frames.load();j["native_input_error"]=a.error.load();j["native_restore_pending"]=a.pending.load();
@@ -214,6 +375,28 @@ inline void Stats(const Actor& a,Json& j){
         Json group={{"offset",Hex(b.offset)},{"alpha_type",b.alpha_type},{"activation",b.alpha_type==ww_game_compat::AlphaTypeCurve?"force_when_zero":"observe_natural"},{"curve_name",b.curve_name},{"curve_name_words",b.curve_name_words},
             {"calls",g.calls.load()},{"forced",g.forced.load()},{"alpha",g.alpha.load()},{"delta",g.delta.load()},
             {"natural_positive_delta_updates",g.natural_positive_delta_updates.load()},{"activation_runtime_observed",g.forced.load()!=0||g.natural_positive_delta_updates.load()!=0}};
-        j["native_physics_groups"].push_back(group);if(b.alpha_type==ww_game_compat::AlphaTypeCurve)j["native_curve_groups"].push_back(group);}
+        group["group_id"]=i+1;group["root_bones"]=b.root_bones;
+        if(a.gravity_verified){const auto& state=a.gravity[i];std::lock_guard<std::mutex> lock(state.edit);const auto& sample=state.sample;
+            group["gravity"]={{"requested",state.requested},{"revision",state.revision},{"sampled_revision",sample.revision},
+                {"original",sample.read?Json(sample.original):Json(nullptr)},{"effective",sample.read?Json(sample.effective):Json(nullptr)},
+                {"applied",sample.applied},{"restored",sample.restored},{"restore_pending",state.restore_pending.load()}};}
+        if(!a.sleeves.empty()){
+            std::lock_guard<std::mutex> lock(a.sleeve_edit);
+            for(const auto& sleeve:a.sleeves)if(sleeve.group==i+1)group["sleeves"].push_back({{"chain_id",sleeve.root_slot},
+                {"root",b.root_bones[sleeve.root_slot-1]},{"follow",sleeve.follow},{"sampled_follow",sleeve.sampled_follow},
+                {"applied_frames",sleeve.applied_frames},{"peak_correction_degrees",sleeve.peak_correction_degrees}});
+        }
+        if(a.settings_verified){const auto& entry=a.settings[i];std::lock_guard<std::mutex> lock(entry.edit);
+            const bool pending=entry.restore_pending.load();group["settings"]=SampleSettings(entry.requested,entry.revision,entry.sampled,pending);
+            for(const auto& chain:entry.chains)group["chains"].push_back({{"root",b.root_bones[chain.root_slot-1]},{"chain_id",chain.root_slot},
+                {"settings",SampleSettings(chain.requested,chain.revision,chain.sampled,pending)}});
+        }
+        if(a.capsules_verified){const auto& state=a.capsules[i];std::lock_guard<std::mutex> lock(state.edit);
+            group["capsule_restore_pending"]=state.restore_pending.load();
+            if(state.available){group["capsules"]=Json::array();for(const auto& driver:state.drivers)if(driver.bone<a.physics_bone_names.size())
+                group["capsules"].push_back({{"driver",a.physics_bone_names[driver.bone]},{"driver_id",driver.bone+1},
+                    {"enabled",driver.enabled},{"original_count",driver.original},{"evaluated_count",driver.active}});}
+        }
+        j["native_physics_groups"].push_back(group);if(b.alpha_type==ww_game_compat::AlphaTypeCurve){group.erase("settings");group.erase("chains");group.erase("capsules");j["native_curve_groups"].push_back(group);}}
 }
 } // namespace v20_shared_native_physics

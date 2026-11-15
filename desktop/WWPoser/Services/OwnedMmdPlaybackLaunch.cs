@@ -142,7 +142,7 @@ public sealed partial class OwnedMmdPlaybackService
                 if (Contract.True(state, "ready") && Contract.True(state, "session_active"))
                 {
                     if (startPaused && (Contract.S(state, "mode") != "paused" || Contract.D(state, "seconds") != 0))
-                        throw new InvalidDataException("运行模块未停在动作起点，无法保证完整录屏；请停止恢复，并在升级后重启游戏。");
+                        throw new InvalidDataException("运行模块未停在动作起点；请停止恢复，并在升级后重启游戏。");
                     LaunchStage = startPaused ? "actors_paused" : "actors_playing";
                     return new JsonObject { ["session_dir"] = directory, ["loaded"] = true, ["state"] = LaunchStage, ["start_paused"] = startPaused, ["actor_count"] = ActorConfigs(Config(directory)).Count };
                 }

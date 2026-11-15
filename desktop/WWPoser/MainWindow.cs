@@ -35,9 +35,10 @@ public sealed partial class MainWindow : Window
     private CancellationToken Token => operationCancellation?.Token ?? lifetime.Token;
 
     public MainWindow(string repositoryRoot, bool startPolling = true) : this(repositoryRoot, startPolling, new RecordingService(repositoryRoot)) { }
-    internal MainWindow(string repositoryRoot, bool startPolling, RecordingService recordingService)
+    internal MainWindow(string repositoryRoot, bool startPolling, RecordingService recordingService, string? physicsModelCache = null)
     {
         root = repositoryRoot; player = new(root, recordingService); characterCatalog = OwnedCharacterCatalog.Load(root);
+        this.physicsModelCache = physicsModelCache ?? PhysicsPreviewModel.CacheDirectory;
         player.Progress += message => Dispatcher.Invoke(() => status.Text = message);
         BuildWindow();
         native.Checked += (_, _) => UpdatePhysics(); native.Unchecked += (_, _) => UpdatePhysics();
@@ -94,7 +95,8 @@ public sealed partial class MainWindow : Window
             Placement: new SquadPlacement(Number(card.X, -1000, 1000), Number(card.Y, -1000, 1000), Number(card.Height, -1000, 1000), Number(card.Yaw, -180, 180), card.InPlace.IsChecked == true),
             RoleId: (card.Character.SelectedItem as OwnedCharacterSelection)?.RoleId ?? card.MissingRoleId, Enabled: card.Enabled.IsChecked == true,
             CharacterId: card.Character.SelectedValue?.ToString() ?? card.MissingCharacterId, Slot: checked((uint)index + 1), Stage: card.Stage,
-            GazeSource: Optional(card.Gaze), GazeStrength: Number(card.GazeStrength, 0, 3))).ToArray();
+            GazeSource: Optional(card.Gaze), GazeStrength: Number(card.GazeStrength, 0, 3),
+            PhysicsPreset: card.PhysicsPresets.GetValueOrDefault(card.Character.SelectedValue?.ToString() ?? card.MissingCharacterId ?? "")?.DeepClone().AsObject())).ToArray();
         return new(selected, CameraSource: Optional(camera), CameraMode: cameraMode.SelectedIndex, Speed: Number(speed, .1, 4), Loop: loop.IsChecked == true,
             DurationSeconds: Number(duration, 0, 2147483), NativePhysics: native.IsChecked == true, Physics: secondary.IsChecked == true,
             SpacingCm: Number(spacing, 0, 1000), FormationNative: placementMode.SelectedIndex == 1, HideSceneCharacters: hideSceneCharacters.IsChecked == true, GroundHeightCm: Number(groundHeight, -1000, 1000), CameraTrackHeightCm: Number(cameraTrackHeight, -10000, 10000));
@@ -122,7 +124,7 @@ public sealed partial class MainWindow : Window
     private void UpdateLiveActors()
     {
         if (displayedSession == session) return;
-        displayedSession = session; livePlacements.Clear(); liveActorCards.Clear(); placementTarget.ItemsSource = null;
+        displayedSession = session; livePlacements.Clear(); liveActorCards.Clear(); adjustedPhysics.Clear(); placementTarget.ItemsSource = null;
         if (session is null || activeRequest is not { } request) return;
         sessionLabel.Text = $"正在表演 · {request.Actors.Count(actor => actor.Enabled)} 位演员同步";
         placementTarget.ItemsSource = request.Actors.Select((actor, index) => new ActorTarget(actor.Slot == 0 ? checked((uint)index + 1) : actor.Slot,
@@ -306,6 +308,7 @@ public sealed partial class MainWindow : Window
             card.Gaze.Text = actor.GazeSource ?? ""; card.GazeStrength.Text = F(actor.GazeStrength);
             card.Enabled.IsChecked = actor.Enabled; card.X.Text = F(p.OffsetX); card.Y.Text = F(p.OffsetY); card.Height.Text = F(p.Height); card.Yaw.Text = F(p.Yaw); card.InPlace.IsChecked = p.InPlace;
             card.Character.SelectedValue = actor.CharacterId; card.Stage = actor.Stage;
+            if (actor.CharacterId is { } id && actor.PhysicsPreset is { } physics) card.PhysicsPresets[id] = physics.DeepClone().AsObject();
             if (card.Character.SelectedItem is null && !string.IsNullOrWhiteSpace(actor.CharacterId)) card.MarkMissingCharacter(actor.CharacterId, actor.RoleId);
             card.Changed += RefreshActorList; actors.Add(card);
         }

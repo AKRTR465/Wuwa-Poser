@@ -22,7 +22,7 @@ public sealed partial class PlaybackSessionService
             preparedDirectory = Contract.S(await PrepareCoreAsync(request, token), "session_dir");
         }
         Progress?.Invoke("请切回鸣潮，正在加载演员并准备播放…");
-        var result = await LaunchCoreAsync(preparedDirectory, request, token, recording.Automatic);
+        var result = await LaunchCoreAsync(preparedDirectory, request, token, recording.Automatic || HasLaunchPhysics(request));
         await CompletePlaybackStartAsync(result, music, recording, token);
         return result;
     }, cancellation);
@@ -37,7 +37,7 @@ public sealed partial class PlaybackSessionService
         if (recording.Automatic && Recorder.IsStopping) await Recorder.StopAsync().WaitAsync(cancellation);
         await ApplyMusicAsync(music);
         if (recording.Automatic && !Recorder.IsBusy) await StartRecordingAsync(recording, automatic: true);
-        if (Contract.True(result, "start_paused"))
+        if (Contract.True(result, "start_paused") && recording.Automatic)
         {
             Progress?.Invoke("演员已停在动作起点，正在等待录屏首帧…");
             try { await Recorder.WaitForReadyAsync(cancellation); }
@@ -46,8 +46,8 @@ public sealed partial class PlaybackSessionService
                 if (AutomaticRecordingSession == ActiveSession) await StopRecordingAsync();
                 throw new InvalidOperationException("自动录屏未能就绪，演员仍在动作起点暂停。请检查录屏状态后重试，或停止并恢复：" + error.Message, error);
             }
-            await SendAsync(ActiveSession!, "play", cancellation: cancellation);
         }
+        if (Contract.True(result, "start_paused")) await SendAsync(ActiveSession!, "play", cancellation: cancellation);
         Progress?.Invoke(AutomaticRecordingSession == ActiveSession ? "播放已开始，正在自动录制鸣潮窗口。"
             : result["message"]?.GetValue<string>() ?? "播放已开始。");
     }

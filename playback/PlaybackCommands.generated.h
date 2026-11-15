@@ -22,6 +22,16 @@ enum class CommandKind : uint32_t {
     SetTimeLimit=16,
     SetGroundHeight=17,
     SetCameraTrackHeight=18,
+    SetNativeDamping=19,
+    SetNativeStiffness=20,
+    SetNativeLimitAngle=21,
+    SetNativeShoulderFollow=22,
+    SetPreviewLoopStart=23,
+    SetPreviewLoopEnd=24,
+    SetNativePreview=25,
+    SetNativeCapsuleCollision=26,
+    SetModelPreview=27,
+    SetNativeGravity=28,
 };
 inline bool IsActorCommand(CommandKind kind) noexcept {
     switch(kind) {
@@ -32,6 +42,14 @@ inline bool IsActorCommand(CommandKind kind) noexcept {
     case CommandKind::SetPlacementYaw:
     case CommandKind::SetPlacementInPlace:
     case CommandKind::ResetPlacement:
+    case CommandKind::SetNativeDamping:
+    case CommandKind::SetNativeStiffness:
+    case CommandKind::SetNativeLimitAngle:
+    case CommandKind::SetNativeShoulderFollow:
+    case CommandKind::SetNativePreview:
+    case CommandKind::SetNativeCapsuleCollision:
+    case CommandKind::SetModelPreview:
+    case CommandKind::SetNativeGravity:
         return true;
     default:return false;
     }
@@ -57,6 +75,16 @@ inline bool ValidCommandArguments(CommandKind kind,double value,uint32_t target_
     case CommandKind::SetTimeLimit:return value>=0&&value<=10000000;
     case CommandKind::SetGroundHeight:return value>=-1000&&value<=1000&&target_slot==0;
     case CommandKind::SetCameraTrackHeight:return value>=-10000&&value<=10000&&target_slot==0;
+    case CommandKind::SetNativeDamping:return value>=-1&&value<=1;
+    case CommandKind::SetNativeStiffness:return value>=-1&&value<=1;
+    case CommandKind::SetNativeLimitAngle:return value>=-1&&value<=180;
+    case CommandKind::SetNativeShoulderFollow:return value>=0&&value<=1;
+    case CommandKind::SetPreviewLoopStart:return value>=0&&value<=10000000&&target_slot==0;
+    case CommandKind::SetPreviewLoopEnd:return value>=0&&value<=10000000&&target_slot==0;
+    case CommandKind::SetNativePreview:return value>=0&&value<=1&&std::trunc(value)==value;
+    case CommandKind::SetNativeCapsuleCollision:return value>=0&&value<=1&&std::trunc(value)==value;
+    case CommandKind::SetModelPreview:return value>=0&&value<=1&&std::trunc(value)==value;
+    case CommandKind::SetNativeGravity:return value>=-1&&value<=1500;
     }
     return false;
 }

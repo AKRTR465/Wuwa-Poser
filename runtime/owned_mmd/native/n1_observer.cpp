@@ -136,9 +136,13 @@ static DWORD WINAPI Worker(LPVOID){
             util::Require(owned_mmd_body::Ready(),"owned MMD publication preflight failed");
             display_started=GetTickCount64();owned_mmd_body::Start(display_started);
             auto next_status=display_started;
+            auto next_preview=display_started;uint64_t preview_revision=0,preview_frame=0;
+            const auto preview_path=dir/L"model_pose.dat";
             while(!owned_mmd_body::Finished()&&!Cancelled()&&!owned_mmd_body::Failed()){
                 owned_mmd_body::PollCommands();owned_mmd_body::CheckTimeLimit();
-                if(GetTickCount64()>=next_status){const auto state=owned_mmd_body::Status();ww_report::Save(dir/L"mmd_status.json",state);ww_report::Save(dir/L"player_status.json",state);next_status+=250;}Sleep(10);
+                const auto now=GetTickCount64();
+                if(now>=next_preview){owned_mmd_body::SaveModelPreview(preview_path,preview_revision,preview_frame);next_preview=now+30;}
+                if(now>=next_status){const auto state=owned_mmd_body::Status();ww_report::Save(dir/L"mmd_status.json",state);ww_report::Save(dir/L"player_status.json",state);next_status+=250;}Sleep(10);
             }
             display_elapsed=GetTickCount64()-display_started;
             const auto finalState=owned_mmd_body::Status();display_requested=uint64_t(finalState.value("time_limit_seconds",0.0)*1000.0);

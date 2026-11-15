@@ -19,6 +19,8 @@ __pycache__/
 /desktop/**/publish/
 /tools/tests/**/bin/
 /tools/tests/**/obj/
+/tools/PhysicsModelExport/bin/
+/tools/PhysicsModelExport/obj/
 /bundle_validation.json
 
 # Local motion, audio, recordings, and compiled motion caches

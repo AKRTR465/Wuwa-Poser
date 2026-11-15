@@ -47,7 +47,7 @@ internal static class Program
             if (finalization is not null) await finalization.Task.ConfigureAwait(false);
             if (captureCompletion is not null) typeof(RecordingService).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(recorder, new object[] { captureCompletion });
         });
-        var window = new MainWindow(root, startPolling: false, recordingService: recorder); int checks = 0;
+        var window = new MainWindow(root, startPolling: false, recordingService: recorder, physicsModelCache: Path.Combine(output, "absent-model-cache")); int checks = 0;
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
         T Field<T>(string name) => UiSessionFixture.Read<T>(window, name);
         object? Call(string name, params object?[] values) => typeof(MainWindow).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, values);
@@ -81,6 +81,80 @@ internal static class Program
             Check(Field<List<Button>>("actions").Any(b => Equals(b.Content, label) && b.IsEnabled == !sessionOnlyLabels.Contains(label)), "missing control or invalid idle state: " + label);
         Render("actors-1");
         checks += CharacterSearchUiChecks.Run(window, root, output);
+        var characterPicker = (CharacterPicker)actors[0]!.GetType().GetProperty("Character")!.GetValue(actors[0])!;
+        var initialCharacter = characterPicker.SelectedItem;
+        var partCatalog = new PhysicsPartCatalog(root);
+        var characters = OwnedCharacterCatalog.Load(root);
+        foreach (var character in characters.Characters)
+        {
+            var profile = partCatalog.Read(character);
+            Check(profile.Bones.Count > 0 && profile.Bones.All(bone => float.IsFinite(bone.Position.X) &&
+                float.IsFinite(bone.Position.Y) && float.IsFinite(bone.Position.Z)), "physics preview loads " + character.CharacterId);
+        }
+        var lily = characters.Select("role1512-skin81001512");
+        characterPicker.SelectedItem = lily;
+        Call("ShowPage", 3);
+        var physicsTree = Field<TreeView>("physicsTree");
+        var skirtGroup = physicsTree.Items.Cast<TreeViewItem>().SelectMany(source => source.Items.Cast<TreeViewItem>())
+            .Single(group => Equals(group.Header, "裙摆 · 12"));
+        Check(skirtGroup.Items.Count == 2 && Equals(((TreeViewItem)skirtGroup.Items[0]).Header, "Bone_Skirt001_L"),
+            "Lily’s UI AnimBP shows both roots of the selected skirt group");
+        skirtGroup.IsSelected = true;
+        Check(Field<StackPanel>("physicsDetails").Children.OfType<TextBlock>().Any(label => label.Text.Contains("0.2")),
+            "selecting Lily’s skirt shows its exported damping");
+        var liveGroup = new JsonObject { ["group_id"] = 3u, ["curve_name"] = "Kawaii_alpha_S03",
+            ["root_bones"] = new JsonArray("Bone_Skirt001_L", "Bone_Skirt001_R"),
+            ["settings"] = new JsonObject { ["requested"] = new JsonArray(.05, -1d, 65d) } };
+        var preset = NativePhysicsPreset.Create(lily, [liveGroup]);
+        var laterGroup = liveGroup.DeepClone().AsObject();
+        laterGroup["group_id"] = 12u;
+        laterGroup["root_bones"] = new JsonArray("Bone_Skirt001_R", "Bone_Skirt001_L");
+        laterGroup["settings"]!["requested"] = new JsonArray(-1d, -1d, -1d);
+        var resolved = NativePhysicsPreset.Resolve(preset, lily, [laterGroup]).Single();
+        Check(resolved.Group == 12 && resolved.Parameters.SequenceEqual(new[] { .05, -1, 65 }),
+            "physics presets rematch both roots to the current actor's group ID");
+        Check(!preset.ToJsonString().Contains("group_id"), "physics presets omit transient live group IDs");
+        var combined = liveGroup.DeepClone().AsObject();
+        combined["chains"] = new JsonArray(new JsonObject { ["chain_id"] = 1u, ["root"] = "Bone_Skirt001_L",
+            ["settings"] = new JsonObject { ["requested"] = new JsonArray(.25, -1d, -1d) } });
+        combined["sleeves"] = new JsonArray(new JsonObject { ["chain_id"] = 1u, ["root"] = "Bone_Skirt001_L", ["follow"] = .5 });
+        combined["capsules"] = new JsonArray(new JsonObject { ["driver_id"] = 21u, ["driver"] = "Bip001LUpperArm", ["enabled"] = false });
+        var combinedPreset = NativePhysicsPreset.Create(lily, [combined]);
+        var reloaded = JsonNode.Parse(combinedPreset.ToJsonString())!.AsObject();
+        var rebuilt = combined.DeepClone().AsObject();
+        rebuilt["group_id"] = 12u;
+        rebuilt["chains"]![0]!["chain_id"] = 2u;
+        rebuilt["sleeves"]![0]!["chain_id"] = 2u;
+        rebuilt["capsules"]![0]!["driver_id"] = 31u;
+        Check(NativePhysicsPreset.Resolve(reloaded, lily, [rebuilt]).Any(row => row is { Group: 12, Chain: 2 } && row.Parameters[0] == .25),
+            "native preset round-trips a per-chain override to the current group and root IDs");
+        Check(NativePhysicsPreset.ResolveSleeves(reloaded, [rebuilt]).Single() is { Group: 12, Chain: 2, Follow: .5 } &&
+            NativePhysicsPreset.ResolveCapsules(reloaded, [rebuilt]).Single() is { Group: 12, Driver: 31, Enabled: false },
+            "native preset round-trips shoulder follow and the exact capsule driver");
+        try
+        {
+            NativePhysicsPreset.Resolve(preset, characters.Select("role1204-skin81001204"), [laterGroup]);
+            throw new Exception("foreign physics preset accepted");
+        }
+        catch (InvalidDataException) { checks++; }
+        var wire = PlaybackControl.Encode(42, 1, "native_shoulder_follow", 0, 3, 7, 2);
+        Check(BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(36)) == 3 &&
+            BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(48)) == 7 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(52)) == 2,
+            "desktop transmits actor, group and sleeve root separately");
+        Render("physics-skirt", 1240, 860);
+        checks += PhysicsEditorUiChecks.RunDraft(window, output, lily, Await);
+        checks += PhysicsEditorUiChecks.Run(window, output, lily, partCatalog.Read(lily), Await, name => Render(name, 1240, 860));
+        var modelCacheOption = Array.IndexOf(args, "--physics-model-cache");
+        if (modelCacheOption >= 0)
+            checks += PhysicsModelUiChecks.Run(window, root, output, args[modelCacheOption + 1], Await, name => Render(name, 1240, 860));
+        var replayOption = Array.IndexOf(args, "--physics-replay");
+        if (modelCacheOption >= 0 && replayOption >= 0)
+            checks += PhysicsModelUiChecks.ReplayLive(window, root, output, args[replayOption + 1], Await, name => Render(name, 1240, 860));
+        var sleeveProfile = partCatalog.Read(characters.Characters.Single(character => character.ProfileId == "malexl--baer--r2t1baermd10011"));
+        Check(sleeveProfile.Groups.SelectMany(group => group.Chains).Any(chain => chain is { Root: "Piao_L_xiuZiA01", Part: "袖子" } &&
+            sleeveProfile.Bones[sleeveProfile.Bones[chain.Bones[0]].Parent].Name == "Bip001LForearm"), "sleeve follows its authored forearm parent");
+        characterPicker.SelectedItem = initialCharacter;
+        Call("ShowPage", 0);
         var initialStageRequest = (PlaybackSessionRequest)Call("BuildRequest", false)!;
         var formation = Field<ComboBox>("placementMode"); var stagePanel = Field<FrameworkElement>("stageMapPanel");
         var cameraSelector = Field<ComboBox>("cameraMode"); var cameraSource = Field<TextBox>("camera");

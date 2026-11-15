@@ -6,13 +6,14 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace v20_native_graph_binding {
 using Json=nlohmann::json;
 constexpr uint32_t kMaxGroups=32;
 constexpr uint64_t kConverterVtableRva=ww_game_compat::VtableLocalToComponentRva,kGroupVtableRva=ww_game_compat::VtableKawaiiPhysicsGroupRva;
 struct Identity {uint64_t address=0;uint32_t index=0,serial=0;};
-struct CurveGroup {uint32_t offset=0,alpha_type=ww_game_compat::AlphaTypeCurve;std::array<uint32_t,ww_game_compat::NameWordCount> curve_name_words{};std::string curve_name;};
+struct CurveGroup {uint32_t offset=0,alpha_type=ww_game_compat::AlphaTypeCurve;std::array<uint32_t,ww_game_compat::NameWordCount> curve_name_words{};std::string curve_name;std::vector<std::string> root_bones;};
 struct Binding {
     Identity target,main_anim;
     uint32_t bone_count=0,converter_offset=0,group_count=0;
@@ -30,6 +31,7 @@ inline Binding Parse(const Json& j){
     b.group_count=uint32_t(groups.size());
     for(uint32_t i=0;i<b.group_count;++i){const auto& source=groups[i];auto& group=b.groups[i];
         group.offset=U32(source.at("offset"));group.alpha_type=U32(source.at("alpha_type"));group.curve_name=source.at("curve_name").get<std::string>();
+        if(source.contains("root_bones"))group.root_bones=source.at("root_bones").get<std::vector<std::string>>();
         for(unsigned k=0;k<ww_game_compat::NameWordCount;++k)group.curve_name_words[k]=U32(source.at("curve_name_words")[k]);}
     b.activation_complete=j.at("proof").at("activation_complete").get<bool>();
     return b;

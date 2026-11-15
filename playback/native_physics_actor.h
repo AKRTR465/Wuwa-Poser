@@ -3,6 +3,10 @@
 // Per-instance native animation input. Detached from hooks/process APIs so the
 // same evaluation code serves controlled, owned and SceneTeam actors.
 #include "native_kawaii_pose.h"
+#include "native_kawaii_parameters.h"
+#include "native_kawaii_collision.h"
+#include "native_kawaii_gravity.h"
+#include "native_sleeve_follow.h"
 #include "native_animation_target.h"
 #include "vmd_local_clip.h"
 #include "ww_mmd_placement.h"
@@ -74,6 +78,18 @@ struct Actor {
     std::atomic<double> seconds{0},x{0},y{0},height{0},yaw{0};
     std::atomic<bool> in_place{false},stop{false};
     std::array<CurveStats,graph::kMaxGroups> groups{};
+    bool settings_verified=false, capsules_verified=false, gravity_verified=false;
+    std::array<kawaii_parameters::Group,graph::kMaxGroups> settings;
+    std::array<kawaii_collision::State,graph::kMaxGroups> capsules;
+    std::array<kawaii_gravity::State,graph::kMaxGroups> gravity;
+    std::vector<std::string> physics_bone_names;
+    mutable std::mutex sleeve_edit;
+    std::vector<sleeve_follow::Chain> sleeves;
+    std::atomic<unsigned> preview_group{0};
+    mutable std::mutex preview_lock;
+    uint64_t preview_frame=0;
+    unsigned preview_solved_bones=0;
+    std::vector<std::array<float,3>> preview_pose;
     body::Scratch scratch;
     body::LocalFrame frame;
     std::array<local_clip::BoneCommand,input::kLimit> sample{};
@@ -115,7 +131,12 @@ inline bool Alive(const Actor& a,const Access& r){
     return r.Get(a.target.mesh+ww_game_compat::ComponentOwnerOffset,owner)&&owner==a.target.actor&&r.Get(a.target.mesh+ww_game_compat::ComponentAssetOffset,asset)&&asset==a.target.mesh_asset&&
         r.Get(a.target.mesh+ww_game_compat::ComponentMainAnimOffset,main)&&main==a.target.main_anim&&r.Get(a.node,vtable)&&vtable==a.node_vtable;
 }
-inline bool Restored(const Actor& a){return !a.pending.load()&&!a.force_pending.load()&&!a.work.load()&&!a.group_work.load();}
+inline bool Restored(const Actor& a){
+    if(a.pending.load()||a.force_pending.load()||a.work.load()||a.group_work.load())return false;
+    if(a.settings_verified)for(unsigned i=0;i<a.binding.group_count;++i)
+        if(a.settings[i].restore_pending.load()||a.capsules[i].restore_pending.load()||a.gravity[i].restore_pending.load())return false;
+    return true;
+}
 inline void PrepareMotion(Actor& a,const local_clip::Clip& motion,const body::Topology& topology,const body::Request& request,uint64_t epoch){
     a.motion=&motion;a.topology=topology;a.request=request;a.epoch=epoch;a.owned.fill(0);a.canonical_position.fill(0);a.canonical_rotation.fill(0);a.mask.fill(1);
     for(uint32_t i=0;i<topology.count;++i)if(motion.frames[i].mask)for(int32_t k=int32_t(i);k>=0;k=topology.parents[k])a.owned[k]=1;
@@ -167,6 +188,11 @@ inline void InputFrame(Actor& a,uintptr_t node,uintptr_t context,const Access& r
         a.plan_code.store(unsigned(failure.code));a.plan_bone.store(failure.bone);Fail(a,11);return;}
     for(uint32_t i=0;i<a.plan.count;++i){const auto& patch=a.plan.patches[i];memcpy(a.pose[patch.bone].data(),patch.rotated_rotation.data(),ww_game_compat::TransformRotationBytes);
         if(patch.position_changed)memcpy(a.pose[patch.bone].data()+ww_game_compat::TransformTranslationOffset,patch.rotated_position.data(),ww_game_compat::VectorBytes);}
+    std::unique_lock<std::mutex> sleeve_lock(a.sleeve_edit,std::defer_lock);
+    if(feed&&!a.sleeves.empty()){
+        sleeve_lock.lock();
+        for(auto& sleeve:a.sleeves)if(!sleeve_follow::Apply(sleeve,a.pose.data())){Fail(a,609);return;}
+    }
     input::PrepareInput(a.mapping,a.pose.data(),a.mask.data(),&a.prepared_pose);
     if(!feed){
         if(!a.warmup_token_valid||frame!=a.warmup_frame||counter!=a.warmup_counter){a.warmup_frame=frame;a.warmup_counter=counter;a.warmup_token_valid=true;
@@ -179,6 +205,8 @@ inline void InputFrame(Actor& a,uintptr_t node,uintptr_t context,const Access& r
     a.pending_frame=frame;a.pending_counter=counter;a.pending_token_valid=true;Pending(a,true);
     auto write=[&](uintptr_t p,const void* in,size_t n){return r.write(r.user,p,in,n);};
     if(!input::CommitInput(view,a.prepared_pose,write)){Fail(a,12);return;}
+    if(sleeve_lock.owns_lock())for(auto& sleeve:a.sleeves){sleeve.sampled_follow=sleeve.follow;if(sleeve.follow<1){
+        ++sleeve.applied_frames;sleeve.peak_correction_degrees=(std::max)(sleeve.peak_correction_degrees,sleeve.correction_degrees);}}
     a.last_frame=frame;a.last_counter=counter;a.token_valid=true;++a.frames;if(a.external_frames)++*a.external_frames;
     if(a.on_commit)a.on_commit(a.authority_user,a.plan.count);
 }

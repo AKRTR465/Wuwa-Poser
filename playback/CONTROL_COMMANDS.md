@@ -25,3 +25,13 @@
 | 16 | `time_limit` / `SetTimeLimit` | number | 秒 | 0…10000000 | session | 驻留时限，0 表示不限时 |
 | 17 | `ground_height` / `SetGroundHeight` | number | cm | -1000…1000 | scene | 全体演员共用地面高度修正 |
 | 18 | `camera_track_height` / `SetCameraTrackHeight` | number | cm | -10000…10000 | scene | VMD 镜头轨道的世界高度偏移 |
+| 19 | `native_damping` / `SetNativeDamping` | number | — | -1…1 | actor | 指定原生物理组的阻尼，-1 为还原 |
+| 20 | `native_stiffness` / `SetNativeStiffness` | number | — | -1…1 | actor | 指定原生物理组的回正强度，-1 为还原 |
+| 21 | `native_limit_angle` / `SetNativeLimitAngle` | number | 度 | -1…180 | actor | 指定原生物理组的摆角上限，-1 为还原 |
+| 22 | `native_shoulder_follow` / `SetNativeShoulderFollow` | number | 比例 | 0…1 | actor | 指定袖套骨链继承肩部旋转的比例 |
+| 23 | `preview_loop_start` / `SetPreviewLoopStart` | number | 秒 | 0…10000000 | scene | 暂存物理对照的片段起点 |
+| 24 | `preview_loop_end` / `SetPreviewLoopEnd` | number | 秒 | 0…10000000 | scene | 提交物理对照片段终点，0 为退出片段循环 |
+| 25 | `native_preview` / `SetNativePreview` | boolean | — | 0…1 | actor | 采样指定物理组的实时求值骨架 |
+| 26 | `native_capsule_collision` / `SetNativeCapsuleCollision` | boolean | — | 0…1 | actor | 开关指定物理组中由指定骨骼驱动的胶囊碰撞 |
+| 27 | `model_preview` / `SetModelPreview` | boolean | — | 0…1 | actor | 订阅指定演员发布后的完整模型姿态 |
+| 28 | `native_gravity` / `SetNativeGravity` | number | 原生值 | -1…1500 | actor | 指定物理组的向下重力，-1 为还原 |

@@ -2,13 +2,13 @@
 #include <windows.h>
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <stdexcept>
 #include "../../core_math/third_party/nlohmann/json.hpp"
 
 namespace ww_report {
 // A reader sees either the previous complete report or the new complete report.
-inline bool Write(const std::filesystem::path& path,const nlohmann::json& value) {
-    const auto bytes=value.dump(2)+"\n";
+inline bool WriteBytes(const std::filesystem::path& path,std::string_view bytes) {
     const std::filesystem::path temporary=path.wstring()+L".tmp."+
         std::to_wstring(GetCurrentProcessId())+L"."+std::to_wstring(GetCurrentThreadId());
     HANDLE file=CreateFileW(temporary.c_str(),GENERIC_WRITE,0,nullptr,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
@@ -27,6 +27,9 @@ inline bool Write(const std::filesystem::path& path,const nlohmann::json& value)
         }
     }
     const DWORD error=GetLastError();DeleteFileW(temporary.c_str());SetLastError(error);return false;
+}
+inline bool Write(const std::filesystem::path& path,const nlohmann::json& value) {
+    return WriteBytes(path,value.dump(2)+"\n");
 }
 inline void Save(const std::filesystem::path& path,const nlohmann::json& value) {
     if(!Write(path,value))throw std::runtime_error("Cannot publish complete JSON report: "+path.u8string());

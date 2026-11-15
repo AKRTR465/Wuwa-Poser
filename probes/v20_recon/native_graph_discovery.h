@@ -114,6 +114,10 @@ struct Phase {
     std::array<uint32_t,2> weak_mesh{},weak_skeleton{};
     std::array<uint32_t,ww_game_compat::NameWordCount> curve_name_words{};
     uint8_t alpha_type=0,extra_active=0,external_route=0;float alpha=0,delta=0,update_delta=0;
+    bool settings_read=false, settings_cache_read=false;
+    uint8_t settings_cache_initialized=0, settings_refresh_each_evaluation=0;
+    int32_t settings_cache_count=0;
+    std::array<float,7> settings{}, settings_cache_first{}, settings_cache_last{};
     int32_t mapping_id=-1,root_snapshot_id=-1;
 };
 template<class Read> bool CapturePhase(Read&& read,const Binding& b,Kind kind,uint64_t node,uint64_t context,Phase& p,Mapping& mapping,RootSnapshot* roots=nullptr,uint64_t observedMainProxy=0){
