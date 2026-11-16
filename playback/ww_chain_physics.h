@@ -273,7 +273,9 @@ inline bool Step(const Prepared& p,const Control& c,const sub::TransformBytes* p
     }
     for(uint32_t i=0;i<count;++i)if(p.particles[i].enabled){
         if(!collision::Finite(r.position[i]))return false;
-        for(unsigned k=0;k<3;++k){const double v=k==0?r.position[i].x:k==1?r.position[i].y:r.position[i].z;if(!sub::detail::Store(s.output[i].data()+16+k*4,v))return false;}
+        const double position[3]={r.position[i].x,r.position[i].y,r.position[i].z};
+        for(unsigned k=0;k<3;++k)
+            if(!sub::detail::Store(s.output[i].data()+ww_game_compat::TransformTranslationOffset+k*sizeof(float),position[k]))return false;
     }
     // The legacy solver follows child centroids. Cloth branches can instead
     // share the incoming frame of the corresponding section of the main chain.
@@ -298,15 +300,16 @@ inline bool Step(const Prepared& p,const Control& c,const sub::TransformBytes* p
         const auto q=sub::detail::Rotation(pose[i]);
         auto rotated=unrotated?q:sub::detail::Unit(sub::detail::Mul({{correction.x,correction.y,correction.z,correction.w}},q));
         if(c.rotation_rate>0&&!discontinuity)rotated=LimitRotation(r.solved_rotation_previous[i],rotated,c.rotation_rate*frame_time);
-        for(unsigned k=0;k<4;++k)if(!sub::detail::Store(s.output[i].data()+k*4,rotated[k]))return false;
+        for(unsigned k=0;k<4;++k)if(!sub::detail::Store(s.output[i].data()+ww_game_compat::TransformRotationOffset+k*sizeof(float),rotated[k]))return false;
         if(c.rotation_rate>0)r.solved_rotation_previous[i]=sub::detail::Rotation(s.output[i]);
     }
-    r.clock=c.clock_seconds;r.cursor=c.cursor_seconds;r.epoch=c.epoch;r.was_playing=c.playing;for(uint32_t i=0;i<count;++i){r.target_previous[i]=s.targets[i];r.target_rotation_previous[i]=sub::detail::Rotation(pose[i]);}
+    r.clock=c.clock_seconds;r.cursor=c.cursor_seconds;r.epoch=c.epoch;r.was_playing=c.playing;
+    for(uint32_t i=0;i<count;++i){r.target_previous[i]=s.targets[i];r.target_rotation_previous[i]=sub::detail::Rotation(pose[i]);}
     out->count=0;
-    for(uint32_t i=0;i<count;++i)if(p.particles[i].enabled){sub::Patch patch;patch.bone=i;
-        std::memcpy(patch.original_rotation.data(),pose[i].data(),16);std::memcpy(patch.rotated_rotation.data(),s.output[i].data(),16);
-        std::memcpy(patch.original_position.data(),pose[i].data()+16,12);std::memcpy(patch.rotated_position.data(),s.output[i].data()+16,12);
-        patch.position_changed=patch.original_position!=patch.rotated_position;if(patch.original_rotation!=patch.rotated_rotation||patch.position_changed)out->patches[out->count++]=patch;}
+    for(uint32_t i=0;i<count;++i)if(p.particles[i].enabled){
+        const auto patch=sub::MakePatch(i,pose[i].data(),s.output[i].data());
+        if(sub::Changed(patch))out->patches[out->count++]=patch;
+    }
     return true;
 }
 }} // namespace wwp_playback::ww_chain

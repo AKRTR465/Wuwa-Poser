@@ -36,21 +36,14 @@ public sealed partial class PlaybackSessionService
         var rows = config is null ? [] : OwnedMmdPlaybackService.ActorConfigs(config);
         PlaybackActorRequest FromConfig(JsonObject row)
         {
-            var actorDirectory = Path.Combine(directory, row["actor_directory"]?.GetValue<string>() ?? "");
+            var actorDirectory = Path.Combine(directory, Contract.S(row, "actor_directory"));
             var placement = row["placement"] as JsonObject;
-            var scale = row["requested_scale"]?.GetValue<double>();
-            var reportPath = Path.Combine(actorDirectory, "compiled_report.json");
-            if (!row.ContainsKey("requested_scale") && File.Exists(reportPath))
-            {
-                var clip = JsonData.ReadObject(reportPath)["compiled_target_clip"];
-                if (clip?["translation_scale_source"]?.GetValue<string>() == "explicit CLI --scale override")
-                    scale = clip["source_to_target_scale"]?.GetValue<double>();
-            }
             return new(Path.Combine(actorDirectory, PlaybackAssets.BodySourceFile),
-                PlaybackAssets.ReadSource(actorDirectory, PlaybackAssets.FaceSourceFile), scale,
-                placement is null ? null : new(Contract.D(placement, "offset_x_cm"), Contract.D(placement, "offset_y_cm"), Contract.D(placement, "height_cm"), Contract.D(placement, "yaw_degrees"), Contract.True(placement, "in_place")),
-                RoleId: row["role_id"]?.GetValue<long>() ?? 0, Enabled: row["enabled"]?.GetValue<bool>() ?? true, CharacterId: row["character_id"]?.GetValue<string>(),
-                Slot: row["slot"]?.GetValue<uint>() ?? 1, Stage: OwnedMmdPlaybackService.ReadStage(row),
+                PlaybackAssets.ReadSource(actorDirectory, PlaybackAssets.FaceSourceFile), row["requested_scale"]?.GetValue<double>(),
+                placement is null ? null : new(Contract.D(placement, "offset_x_cm"), Contract.D(placement, "offset_y_cm"), Contract.D(placement, "height_cm"),
+                    Contract.D(placement, "yaw_degrees"), Contract.True(placement, "in_place")),
+                RoleId: row["role_id"]?.GetValue<long>() ?? 0, Enabled: Contract.True(row, "enabled"), CharacterId: row["character_id"]?.GetValue<string>(),
+                Slot: row["slot"]!.GetValue<uint>(), Stage: OwnedMmdPlaybackService.ReadStage(row),
                 GazeSource: PlaybackAssets.ReadSource(actorDirectory, PlaybackAssets.GazeSourceFile), GazeStrength: row["gaze_strength"]?.GetValue<double>() ?? 1);
         }
         var frozenActors = rows.Select(FromConfig).ToArray();
@@ -70,11 +63,8 @@ public sealed partial class PlaybackSessionService
                 Stage = actor.Stage ?? frozen.Stage, Scale = actor.Scale ?? frozen.Scale };
         }).ToArray();
         if (actors.Any(actor => actor.Enabled && string.IsNullOrWhiteSpace(actor.CharacterId)))
-            throw new InvalidDataException("旧准备目录未保存可还原的角色身份；请重新选择角色并准备动作。");
-        var camera = request.CameraSource;
-        var cameraProfile = Path.Combine(directory, "camera_profile.json");
-        if (camera is null && File.Exists(cameraProfile)) camera = JsonData.ReadObject(cameraProfile)["source_camera_vmd"]?.GetValue<string>();
-        return request with { Actors = actors, CameraSource = PlaybackAssets.ReadSource(directory, PlaybackAssets.CameraSourceFile, camera) };
+            throw new InvalidDataException("准备目录缺少演员的角色身份；请重新选择角色并准备动作。");
+        return request with { Actors = actors, CameraSource = PlaybackAssets.ReadSource(directory, PlaybackAssets.CameraSourceFile, request.CameraSource) };
     }
 
     private static int Milliseconds(double seconds) => checked((int)Math.Round(seconds * 1000));
@@ -126,13 +116,13 @@ public sealed partial class PlaybackSessionService
         mixed["speed"] = request.Speed; mixed["loop"] = request.Loop; mixed["duration_ms"] = Milliseconds(request.DurationSeconds); mixed["camera_mode"] = request.CameraMode;
         mixed["hide_scene_characters"] = request.HideSceneCharacters; mixed["camera_track_height_cm"] = request.CameraTrackHeightCm;
         mixed["camera_enabled"] = true; mixed["native_physics"] = request.NativePhysics; mixed["physics_enabled"] = request.Physics;
-        mixed["physics_mode"] = PlaybackAssets.PhysicsMode(request.NativePhysics, request.Physics);
+        PlaybackAssets.ValidatePhysics(request.NativePhysics, request.Physics);
         var bySlot = request.Actors.Where(actor => actor.Enabled).ToDictionary(actor => actor.Slot);
         foreach (var actor in OwnedMmdPlaybackService.ActorConfigs(mixed))
         {
             if (!bySlot.TryGetValue(actor["slot"]?.GetValue<uint>() ?? 1, out var selected)) throw new InvalidDataException("演员集合已更改，需要重新准备。");
             actor["placement"] = PlaybackAssets.Placement(selected.Placement); OwnedMmdPlaybackService.SetStage(actor, selected.Stage);
-            foreach (var key in new[] { "native_physics", "physics_enabled", "physics_mode" }) actor[key] = mixed[key]!.DeepClone();
+            foreach (var key in new[] { "native_physics", "physics_enabled" }) actor[key] = mixed[key]!.DeepClone();
         }
         OwnedMmdPlaybackService.ConfigureStage(mixed, request.SpacingCm, request.FormationNative, request.GroundHeightCm);
         OwnedMmdPlaybackService.WriteActorsFile(directory, mixed);

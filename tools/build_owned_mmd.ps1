@@ -15,7 +15,7 @@ $compatibilitySource=Get-Content -LiteralPath (Join-Path $repo 'data/game_compat
 $compatibilityDigest=(Get-FileHash -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Algorithm SHA256).Hash.ToLowerInvariant()
 if(-not $PackageDirectory){$PackageDirectory=Join-Path $repo 'build\owned_mmd'}
 $packageRoot=[IO.Path]::GetFullPath($PackageDirectory)
-$purpose='single_owned_character_native_mmd'
+$purpose='owned_mmd_scene'
 $files=(Import-PowerShellDataFile (Join-Path $PSScriptRoot 'player_build_inputs.psd1')).OwnedRuntimeFiles
 $manifestPath=Join-Path $packageRoot 'runtime_package.json'
 
@@ -29,24 +29,22 @@ function Assert-RuntimeManifest {
  $manifest=Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
  if($manifest.schema -ne 2 -or $manifest.purpose -ne $purpose){throw 'Owned MMD runtime requires the current schema 2 manifest; rebuild the runtime package.'}
  $listed=@($manifest.files)
- if($listed.Count -ne $files.Count -or @($listed | Select-Object -Unique).Count -ne $files.Count){throw 'Owned MMD runtime manifest must list exactly four files.'}
+ if($listed.Count -ne $files.Count -or @($listed | Select-Object -Unique).Count -ne $files.Count){throw ('Owned MMD runtime manifest must list exactly '+$files.Count+' files.')}
  foreach($file in $listed){if($file -isnot [string] -or $file -cnotin $files){throw ('Unexpected owned MMD runtime file: '+$file)}}
- if($manifest.schema -eq 2){
-  if(-not $manifest.PSObject.Properties['compatibility_profile'] -or -not $manifest.PSObject.Properties['compatibility_source_sha256'] -or $manifest.compatibility_profile -cne $compatibilitySource.profile_id -or $manifest.compatibility_source_sha256 -cne $compatibilityDigest){throw 'Owned MMD runtime compatibility profile is stale; rebuild it.'}
-  $artifacts=@($manifest.artifacts)
-  if($artifacts.Count -ne $files.Count){throw 'Owned MMD runtime digest list is incomplete.'}
-  foreach($file in $files){
-   $record=@($artifacts | Where-Object path -CEQ $file)
-   if($record.Count -ne 1){throw ('Owned MMD runtime digest is missing or duplicated: '+$file)}
-   $path=Join-Path $packageRoot $file
-   if((Get-Item -LiteralPath $path).Length -ne $record[0].bytes -or
-      (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $record[0].sha256){
-    throw ('Owned MMD runtime integrity check failed: '+$file)
-   }
+ if($manifest.compatibility_profile -cne $compatibilitySource.profile_id -or $manifest.compatibility_source_sha256 -cne $compatibilityDigest){throw 'Owned MMD runtime compatibility profile is stale; rebuild it.'}
+ $artifacts=@($manifest.artifacts)
+ if($artifacts.Count -ne $files.Count){throw 'Owned MMD runtime digest list is incomplete.'}
+ foreach($file in $files){
+  $record=@($artifacts | Where-Object path -CEQ $file)
+  if($record.Count -ne 1){throw ('Owned MMD runtime digest is missing or duplicated: '+$file)}
+  $path=Join-Path $packageRoot $file
+  if((Get-Item -LiteralPath $path).Length -ne $record[0].bytes -or
+     (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $record[0].sha256){
+   throw ('Owned MMD runtime integrity check failed: '+$file)
   }
  }
  if($ExpectedSourceRevision){
-  if($manifest.schema -ne 2 -or $manifest.source_revision -cne $ExpectedSourceRevision -or $manifest.source_dirty){
+  if($manifest.source_revision -cne $ExpectedSourceRevision -or $manifest.source_dirty){
    throw 'Owned MMD runtime was not built from the expected clean source revision; rebuild it.'
   }
  }
@@ -72,15 +70,13 @@ if($Check){
  }
  $referencePaths=@($references | ForEach-Object {Join-Path $referenceRoot $_})
  $sourcePath=Join-Path $managedDirectory 'ManagedBridge.cs'
- $generatedSourcePath=Join-Path $repo 'runtime/generated/ManagedCompat.generated.cs'
+ $generatedSourcePath=Join-Path $repo 'runtime/generated/GameCompat.generated.cs'
  $nativeScript=Join-Path $nativeDirectory 'build_observer.bat'
- $layoutPath=Join-Path $nativeDirectory 'owned_mmd_layout.json'
- foreach($path in @($compilerPath,$sourcePath,$generatedSourcePath,$nativeScript,$layoutPath)+$referencePaths){
+ foreach($path in @($compilerPath,$sourcePath,$generatedSourcePath,$nativeScript)+$referencePaths){
   if(-not (Test-Path -LiteralPath $path -PathType Leaf)){throw ('Owned MMD build input missing: '+$path)}
  }
  New-Item -ItemType Directory -Path $packageRoot -Force|Out-Null
- # A failed rebuild must not leave a previous success manifest. Session usage
- # markers remain in place: rebuilding cannot reset a consumed game session.
+ # A failed rebuild must not leave a previous success manifest.
  if(Test-Path -LiteralPath $manifestPath -PathType Leaf){Remove-Item -LiteralPath $manifestPath}
  $compileDirectory=Join-Path $repo 'build\owned_mmd_compile\managed'
  New-Item -ItemType Directory -Path $compileDirectory -Force|Out-Null
@@ -95,7 +91,6 @@ if($Check){
  if($LASTEXITCODE -ne 0){throw 'Owned MMD helper build failed.'}
  & $nativeScript $packageRoot
  if($LASTEXITCODE -ne 0){throw 'Owned MMD native build failed.'}
- Copy-Item -LiteralPath $layoutPath -Destination (Join-Path $packageRoot 'owned_mmd_layout.json')
  Assert-RuntimeFiles
  $endRevision=(& git -C $repo rev-parse HEAD 2>$null)
  if($LASTEXITCODE -ne 0){$endRevision='uncommitted'}

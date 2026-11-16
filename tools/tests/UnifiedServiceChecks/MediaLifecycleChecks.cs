@@ -16,7 +16,7 @@ internal static class MediaLifecycleChecks
             while (!condition()) await Task.Delay(10, timeout.Token);
         }
         var timeline = Path.Combine(fixture, "music-recovery"); Directory.CreateDirectory(timeline);
-        File.WriteAllText(Path.Combine(timeline, "player_status.json"), new JsonObject {
+        File.WriteAllText(Path.Combine(timeline, "mmd_status.json"), new JsonObject {
             ["clip_epoch"] = 17UL, ["last_sequence"] = 0UL, ["session_active"] = true, ["mode"] = "playing",
             ["seconds"] = 2d, ["duration_seconds"] = 10d, ["speed"] = 1d, ["loop"] = false, ["restore_requested"] = false }.ToJsonString());
         var good = Path.Combine(fixture, "good.wav"); var bad = Path.Combine(fixture, "unsupported.wav");
@@ -42,12 +42,12 @@ internal static class MediaLifecycleChecks
         {
             audio.UpdateContext(timeline, new MusicPreset(good)); await audio.StartSynchronizationAsync();
             await Until(() => { lock (gate) return goodOpens == 1 && playing; });
-            var rewound = JsonData.ReadObject(Path.Combine(timeline, "player_status.json")); rewound["seconds"] = 0d;
+            var rewound = JsonData.ReadObject(Path.Combine(timeline, "mmd_status.json")); rewound["seconds"] = 0d;
             int seeksBeforeRewind; lock (gate) { position = 250; seeksBeforeRewind = seeks; }
-            JsonData.Write(Path.Combine(timeline, "player_status.json"), rewound); audio.RequestResynchronization();
+            JsonData.Write(Path.Combine(timeline, "mmd_status.json"), rewound); audio.RequestResynchronization();
             await Until(() => { lock (gate) return seeks > seeksBeforeRewind && position == 0 && playing; });
             Check(goodOpens == 1, "restart forces music to zero even within the normal drift tolerance, without reopening the song");
-            rewound["seconds"] = 2d; JsonData.Write(Path.Combine(timeline, "player_status.json"), rewound);
+            rewound["seconds"] = 2d; JsonData.Write(Path.Combine(timeline, "mmd_status.json"), rewound);
             lock (gate) position = 2000;
             audio.UpdateContext(timeline, new MusicPreset(bad));
             await Until(() => audio.LastError?.Contains("synthetic unsupported audio") == true);

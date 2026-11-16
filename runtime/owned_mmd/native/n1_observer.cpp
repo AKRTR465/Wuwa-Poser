@@ -2,7 +2,6 @@
 #include "mono_owned_public_facade.h"
 #include "owned_mmd_body.h"
 #include "owned_recovery.h"
-#include "../../../probes/v20_recon/game_thread_diagnostics.h"
 #include <atomic>
 #include <functional>
 
@@ -35,8 +34,8 @@ static void CallOwned(owned::Action action){
         // Environment is process-wide. Bind it on the serialized GameThread
         // for every operation, so a rejected second session cannot strand the
         // first session's pending Stop/CheckReleased operations.
-    util::Require(SetEnvironmentVariableW(L"WWPOSER_OWNED_SESSION_DIR",caller_directory.c_str())!=0,"actor session environment binding failed");
-    util::Require(SetEnvironmentVariableA("WWPOSER_EXPECTED_COMPAT_PROFILE",ww_game_compat::ProfileId)!=0&&
+    Require(SetEnvironmentVariableW(L"WWPOSER_OWNED_SESSION_DIR",caller_directory.c_str())!=0,"actor session environment binding failed");
+    Require(SetEnvironmentVariableA("WWPOSER_EXPECTED_COMPAT_PROFILE",ww_game_compat::ProfileId)!=0&&
         SetEnvironmentVariableA("WWPOSER_EXPECTED_COMPAT_SOURCE_SHA256",ww_game_compat::SourceSha256)!=0,"actor compatibility environment binding failed");
     bridge.Run(caller_helper,action);
 }
@@ -71,42 +70,26 @@ static DWORD WINAPI Worker(LPVOID){
     const auto run=[&](owned::Action action){if(!dispatch(action))throw std::runtime_error(std::string(owned::kActionNames[static_cast<size_t>(action)])+": "+completed_reason);};
     try{
         const auto mmd=ReadJson(dir/L"owned_mmd_config.json");display_requested=mmd.at("duration_ms");
-        const auto layout=ReadJson(dir/L"owned_mmd_layout.json");const auto host=reinterpret_cast<Address>(GetModuleHandleW(nullptr));
-        util::Require(layout.value("compatibility_profile",std::string())==ww_game_compat::ProfileId&&
-            layout.value("compatibility_source_sha256",std::string())==ww_game_compat::SourceSha256,"runtime layout and compiled compatibility profile differ; rebuild the runtime package");
+        const auto host=reinterpret_cast<Address>(GetModuleHandleW(nullptr));
         out["compatibility_profile"]=ww_game_compat::ProfileId;out["compatibility_source_sha256"]=ww_game_compat::SourceSha256;
         Reader threadReader{GetCurrentProcess()};
-        const auto threadIdRva=ww_object::Rva(layout.at("registered_game_thread_id_rva"));
-        const auto initializedRva=ww_object::Rva(layout.at("registered_game_thread_initialized_rva"));
         uint32_t registeredThread=0;
         uint8_t threadInitialized=0;
-        const bool idRead=threadReader.Get(host+threadIdRva,registeredThread);
-        const bool initializedRead=threadReader.Get(host+initializedRva,threadInitialized);
+        const bool idRead=threadReader.Get(host+ww_game_compat::RegisteredGameThreadIdRva,registeredThread);
+        const bool initializedRead=threadReader.Get(host+ww_game_compat::RegisteredGameThreadInitializedRva,threadInitialized);
         const char* threadStatus=!idRead||!initializedRead?"read_failed":
             threadInitialized!=1?"registration_flag_mismatch":
             registeredThread!=config.thread?"thread_id_mismatch":"verified";
         out["game_thread_check"]={{"status",threadStatus},{"window_thread_id",config.thread},
-            {"thread_id_rva",layout.at("registered_game_thread_id_rva")},
-            {"initialized_rva",layout.at("registered_game_thread_initialized_rva")},
+            {"thread_id_rva",Hex(ww_game_compat::RegisteredGameThreadIdRva)},
+            {"initialized_rva",Hex(ww_game_compat::RegisteredGameThreadInitializedRva)},
             {"registered_thread_id",idRead?Json(registeredThread):Json(nullptr)},
             {"initialized_flag",initializedRead?Json(threadInitialized):Json(nullptr)}};
-        if (!idRead || !initializedRead || threadInitialized != 1 || registeredThread != config.thread) {
-            try {
-                MODULEINFO module{};
-                if (GetModuleInformation(GetCurrentProcess(),GetModuleHandleW(nullptr),&module,sizeof(module))) {
-                    const auto read = [&](Address address,void* data,size_t bytes){return threadReader.Read(address,data,bytes);};
-                    out["game_thread_check"]["relocation"] =
-                        ww_game_thread_diagnostics::Collect(read,host,module.SizeOfImage,config.thread);
-                }
-            } catch (const std::exception& error) {
-                out["game_thread_check"]["relocation"] = {{"status","error"},{"reason",error.what()}};
-            }
-            throw std::runtime_error("selected window thread is not registered GameThread");
-        }
+        Require(std::string(threadStatus)=="verified","selected window thread is not registered GameThread");
         calls_ready.store(true,std::memory_order_release);
         run(owned::Action::BeginTarget);began=bridge.BeginEntered();
         while(!(loaded=dispatch(owned::Action::CheckLoaded))&&!Cancelled())Sleep(1000);
-        util::Require(loaded&&!Cancelled(),"owned role did not finish loading");
+        Require(loaded&&!Cancelled(),"owned role did not finish loading");
         run(owned::Action::ShowAtLocal);shown=true;
         auto shownStatus=Baseline(config);shownStatus["show_returned"]=true;ww_report::Save(dir/L"owned_display_shown.json",shownStatus);
         run(owned::Action::CheckLoaded);
@@ -118,23 +101,22 @@ static DWORD WINAPI Worker(LPVOID){
             while(!Cancelled()){
                 Json state={{"schema",3},{"preview",true},{"mode","preview"},{"ready",true},{"session_active",true},{"actor_count",count},{"borrowed_count",0},{"created_count",count},
                     {"seconds",0.0},{"duration_seconds",0.0},{"message","站位预览中：演员已站到设定位置，不播放动作。"}};
-                ww_report::Write(dir/L"mmd_status.json",state);ww_report::Write(dir/L"player_status.json",state);Sleep(250);
+                ww_report::Write(dir/L"mmd_status.json",state);Sleep(250);
             }
             display_elapsed=GetTickCount64()-display_started;
         }else{
-            const auto legacyProfile=mmd.contains("actors")?Json::object():ReadJson(dir/L"character_profile.json");
-            owned_mmd_body::Initialize(dir,ReadJson(dir/L"owned_mmd_graph.json"),mmd,legacyProfile,layout,host,reinterpret_cast<uint64_t>(config.window));
-            util::Require(owned_mmd_body::InstallSceneMaintenance(&MaintainScene,nullptr),"scene maintenance camera installation failed");
+            owned_mmd_body::Initialize(dir,ReadJson(dir/L"owned_mmd_graph.json"),mmd,host,reinterpret_cast<uint64_t>(config.window));
+            Require(owned_mmd_body::InstallSceneMaintenance(&MaintainScene,nullptr),"scene maintenance camera installation failed");
             if(owned_mmd_body::NeedsNative()){
-                const auto readyFlag=dir/(mmd.contains("actors")?L"native_inputs_ready.flag":L"native_input_ready.flag");
+                const auto readyFlag=dir/L"native_inputs_ready.flag";
                 while(!std::filesystem::exists(readyFlag)&&!Cancelled()&&!owned_mmd_body::Failed())Sleep(20);
-                util::Require(!Cancelled()&&!owned_mmd_body::Failed()&&std::filesystem::exists(readyFlag),"scene native graph preparation incomplete");
+                Require(!Cancelled()&&!owned_mmd_body::Failed()&&std::filesystem::exists(readyFlag),"scene native graph preparation incomplete");
                 owned_mmd_body::PrepareNative();
             }
-            util::Require(owned_mmd_body::Install(),"owned MMD publication installation failed");mmd_started=true;
+            Require(owned_mmd_body::Install(),"owned MMD publication installation failed");mmd_started=true;
             while(!owned_mmd_body::Ready()&&!owned_mmd_body::Failed()&&!Cancelled())Sleep(10);
-            util::Require(owned_mmd_body::Ready(),"owned MMD publication preflight failed");
-            display_started=GetTickCount64();owned_mmd_body::Start(display_started);
+            Require(owned_mmd_body::Ready(),"owned MMD publication preflight failed");
+            display_started=GetTickCount64();owned_mmd_body::Start();
             auto next_status=display_started;
             auto next_preview=display_started;uint64_t preview_revision=0,preview_frame=0;
             const auto preview_path=dir/L"model_pose.dat";
@@ -142,7 +124,8 @@ static DWORD WINAPI Worker(LPVOID){
                 owned_mmd_body::PollCommands();owned_mmd_body::CheckTimeLimit();
                 const auto now=GetTickCount64();
                 if(now>=next_preview){owned_mmd_body::SaveModelPreview(preview_path,preview_revision,preview_frame);next_preview=now+30;}
-                if(now>=next_status){const auto state=owned_mmd_body::Status();ww_report::Save(dir/L"mmd_status.json",state);ww_report::Save(dir/L"player_status.json",state);next_status+=250;}Sleep(10);
+                if(now>=next_status){ww_report::Save(dir/L"mmd_status.json",owned_mmd_body::Status());next_status+=250;}
+                Sleep(10);
             }
             display_elapsed=GetTickCount64()-display_started;
             const auto finalState=owned_mmd_body::Status();display_requested=uint64_t(finalState.value("time_limit_seconds",0.0)*1000.0);
@@ -166,7 +149,7 @@ static DWORD WINAPI Worker(LPVOID){
             status["message"]=phase==owned_recovery::Phase::Native?"正在等待身体、表情和镜头恢复；恢复服务仍在运行。":
                 phase==owned_recovery::Phase::Observers?"正在等待本次原生观察器退出；角色保留到清理完成。":
                 phase==owned_recovery::Phase::ManagedStop?"正在移除本次创建的角色；恢复服务仍在运行。":"正在确认角色已从管理器移除；恢复服务仍在运行。";
-            ww_report::Write(dir/L"mmd_status.json",status);ww_report::Write(dir/L"player_status.json",status);
+            ww_report::Write(dir/L"mmd_status.json",status);
         }catch(...){/* Reporting cannot retire the still-needed recovery owner. */}
     };
     while(!recovery.Complete()){
@@ -193,10 +176,6 @@ static DWORD WINAPI Worker(LPVOID){
     auto body=owned_mmd_body::Status();
     body["managed_owner_retirement_checked"]=released;body["cleanup_complete"]=recovery.Complete();
     body["restore_service_retained"]=false;body["recovery_attempts"]=recovery.attempts;
-    // A helper already loaded by Mono from an older build waits for this flag.
-    auto reuse=Baseline(config);reuse["same_process_reuse_ready"]=mmd_restored&&released;reuse["loaded_verified"]=loaded;reuse["stop_returned"]=stopped;reuse["managed_retired"]=released;
-    reuse["callbacks_quiescent"]=body.value("callbacks_quiescent",false);
-    try{if(mmd_restored&&released)ww_report::Save(dir/L"owned_reuse_ready.flag",reuse);}catch(const std::exception& error){out["reuse_report_error"]=error.what();}
     const bool native_input_observed=body.value("native_input_frames",uint64_t(0))>0&&body.value("native_input_error",uint64_t(1))==0;
     const bool body_input_observed=body.value("all_actors_observed",false)&&(!body.value("native_physics",true)||native_input_observed);
     const bool full=preview&&!out.contains("reason")?shown&&mmd_restored&&released:
@@ -212,7 +191,7 @@ static DWORD WINAPI Worker(LPVOID){
     body["retired_payload_released"]=false;
     owned_mmd_body::ReleaseRetiredPayload(body);out["mmd_result"]=body;
     // worker_result.json is the installer's signal that dispatch is closed and drained.
-    try{ww_report::Save(dir/L"mmd_status.json",body);ww_report::Save(dir/L"player_status.json",body);ww_report::Save(dir/L"mmd_result.json",body);ww_report::Save(dir/L"worker_result.json",out);}catch(...){return ERROR_WRITE_FAULT;}
+    try{ww_report::Save(dir/L"mmd_status.json",body);ww_report::Save(dir/L"mmd_result.json",body);ww_report::Save(dir/L"worker_result.json",out);}catch(...){return ERROR_WRITE_FAULT;}
     return full?ERROR_SUCCESS:ERROR_INVALID_DATA;
 }
 }
@@ -220,8 +199,8 @@ extern "C" __declspec(dllexport) LRESULT CALLBACK HookProc(int code,WPARAM w,LPA
     using namespace owned_carrier;
     if(code>=0&&InterlockedCompareExchange(&started,1,0)==0){const auto dir=ModulePath(self).parent_path();
         try{config=ParseConfig(ReadJson(dir/L"session_config.json"));
-            HMODULE retained=nullptr;util::Require(GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,reinterpret_cast<LPCWSTR>(&HookProc),&retained),"owned carrier PIN failed");
-            const auto worker=CreateThread(nullptr,0,Worker,nullptr,0,nullptr);util::Require(worker,"owned worker creation failed");CloseHandle(worker);
+            HMODULE retained=nullptr;Require(GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,reinterpret_cast<LPCWSTR>(&HookProc),&retained),"owned carrier PIN failed");
+            const auto worker=CreateThread(nullptr,0,Worker,nullptr,0,nullptr);Require(worker,"owned worker creation failed");CloseHandle(worker);
         }catch(const std::exception& error){gate.Close();auto failed=Baseline(config);failed["reason"]=error.what();ww_report::Write(dir/L"hook_startup_failed.json",failed);}
     }
     if(code>=0&&calls_ready.load(std::memory_order_acquire)&&gate.TryEnter()){

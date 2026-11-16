@@ -271,10 +271,10 @@ internal static class Program
         foreach (var initialMode in new[] { "playing", "paused", "ended" })
         {
             var directory = Path.Combine(output, "restart-" + initialMode); Directory.CreateDirectory(directory);
-            var statePath = Path.Combine(directory, "player_status.json"); var commandPath = Path.Combine(directory, "control.dat");
+            var statePath = Path.Combine(directory, "mmd_status.json"); var commandPath = Path.Combine(directory, "control.dat");
             if (File.Exists(commandPath)) File.Delete(commandPath);
-            var state = new JsonObject { ["clip_epoch"] = 813UL, ["last_sequence"] = 0UL, ["session_active"] = true,
-                ["mode"] = initialMode, ["seconds"] = initialMode == "ended" ? 20d : 9d, ["duration_seconds"] = 20d,
+            var state = new JsonObject { ["clip_epoch"] = 813UL, ["last_sequence"] = 0UL, ["last_control_sequence"] = 0UL, ["last_control_code"] = 0u,
+                ["session_active"] = true,                 ["mode"] = initialMode, ["seconds"] = initialMode == "ended" ? 20d : 9d, ["duration_seconds"] = 20d,
                 ["speed"] = 1.5d, ["loop"] = true, ["camera_mode"] = 2, ["placement_height"] = 13d, ["camera_track_height_cm"] = 125d };
             JsonData.Write(statePath, state); UiSessionFixture.Own(window, directory, restored, state); Call("UpdateActions");
             Check(restartButton.IsEnabled, "restart is available from " + initialMode);
@@ -295,7 +295,7 @@ internal static class Program
                             else if (kind == 2) state["mode"] = "paused";
                             else if (kind == 3) state["seconds"] = BinaryPrimitives.ReadDoubleLittleEndian(bytes.AsSpan(40));
                             else throw new Exception("Restart unexpectedly changed actors or playback settings.");
-                            state["last_sequence"] = sequence; JsonData.Write(statePath, state);
+                            state["last_sequence"] = sequence; state["last_control_sequence"] = sequence; JsonData.Write(statePath, state);
                             if (kind == 1) return;
                         }
                     }
@@ -316,7 +316,7 @@ internal static class Program
         checks += CameraTrackHeightUiChecks.Run(window, output, Await);
 
         var staleDirectory = Path.Combine(output, "stale-session"); Directory.CreateDirectory(staleDirectory);
-        var stalePath = Path.Combine(staleDirectory, "player_status.json");
+        var stalePath = Path.Combine(staleDirectory, "mmd_status.json");
         var staleState = new JsonObject { ["mode"] = "playing", ["session_active"] = true, ["seconds"] = 1d, ["duration_seconds"] = 20d };
         JsonData.Write(stalePath, staleState); File.SetLastWriteTimeUtc(stalePath, DateTime.UtcNow.AddMinutes(-1));
         UiSessionFixture.Own(window, staleDirectory, restored, staleState); Call("UpdateActions"); Action("PollAsync");
@@ -470,8 +470,8 @@ internal static class Program
         // encoder can delay its first frame independently of worker startup.
         void ReadyTimeline(string directory, string mode, ulong sequence = 0)
         {
-            var state = new JsonObject { ["clip_epoch"] = 91UL, ["last_sequence"] = sequence, ["mode"] = mode, ["session_active"] = true,
-                ["restore_requested"] = false, ["seconds"] = 0d, ["duration_seconds"] = 3d, ["speed"] = 1d, ["loop"] = false };
+            var state = new JsonObject { ["clip_epoch"] = 91UL, ["last_sequence"] = sequence, ["last_control_sequence"] = sequence, ["last_control_code"] = 0u,
+                ["mode"] = mode, ["session_active"] = true,                 ["restore_requested"] = false, ["seconds"] = 0d, ["duration_seconds"] = 3d, ["speed"] = 1d, ["loop"] = false };
             var path = Path.Combine(directory, "mmd_status.json"); var next = path + ".next";
             File.WriteAllText(next, state.ToJsonString()); File.Move(next, path, true);
         }

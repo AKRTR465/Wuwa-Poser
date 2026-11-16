@@ -20,7 +20,7 @@ int wmain(int argc,wchar_t** argv){std::filesystem::path source,output,targetPat
         else throw std::runtime_error("Usage: mmd_vmd_cli --source PATH --output NEW_JSON [--target-skeleton EXPORT --compiled NEW_WWLOCAL1 --scale MMD_TO_UE] [--omit-provenance]");}
         if(source.empty()||output.empty())throw std::runtime_error("Source and output required");
         auto clip=vmd::ReadFile(source,Decode);
-        Json report={{"schema",1},{"source",Decode(source.string(),CP_ACP)},{"fps",30},{"duration_seconds",clip.DurationSeconds()}};
+        Json report={{"schema",1},{"source",Decode(source.string(),CP_ACP,false)},{"fps",30},{"duration_seconds",clip.DurationSeconds()}};
         if(!omitProvenance)report["source_sha256"]=Sha256(source);
         if(!compiledPath.empty()){
             namespace rt=wwp_playback::ww_retarget;namespace lc=wwp_playback::local_clip;
@@ -41,7 +41,7 @@ int wmain(int argc,wchar_t** argv){std::filesystem::path source,output,targetPat
             for(uint32_t i=0;i<local.bone_count;++i){const auto& bone=target.profile.bones[i];names.push_back(bone.name);parents.push_back(bone.parent);
                 positions.push_back(target.canonical_local_positions[i]);positionMask.push_back(target.canonical_position_mask[i]);
                 rotations.push_back(target.canonical_local_rotations[i]);rotationMask.push_back(target.canonical_rotation_mask[i]);}
-            report["compiled_target_clip"]={{"path",Decode(compiledPath.string(),CP_ACP)},{"fps",60},{"frame_count",local.frame_count},
+            report["compiled_target_clip"]={{"path",Decode(compiledPath.string(),CP_ACP,false)},{"fps",60},{"frame_count",local.frame_count},
                 {"bone_count",local.bone_count},{"duration_seconds",local.duration},{"source_to_target_scale",scale},
                 {"preserved_metacarpal_finger_chains",target.metacarpal_finger_chains},
                 {"camera_source_to_component_rotation_xyzw",Quat(compiler.SourceToTargetBasis())},

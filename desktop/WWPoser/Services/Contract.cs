@@ -1,7 +1,6 @@
 namespace WWPoser.Services;
 internal static class Contract
 {
-    public const string Build = GameCompat.SourceBuildSha256;
     public static void Require(bool value, string reason)
     {
         if (!value)

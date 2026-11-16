@@ -10,7 +10,7 @@ struct Clip {uint32_t target_count=0,frame_count=0,fps=0;double duration=0;std::
 inline Clip ReadClip(const std::filesystem::path& path){
     std::ifstream file(path,std::ios::binary);std::array<char,8> magic{};file.read(magic.data(),8);auto Read=[&](auto& x){if(!file.read((char*)&x,sizeof(x)))throw std::runtime_error("truncated expression header");};
     uint32_t version=0;Clip clip;Read(version);Read(clip.target_count);Read(clip.frame_count);Read(clip.fps);Read(clip.duration);
-    if(std::memcmp(magic.data(),"WWEXPR01",8))throw std::runtime_error("invalid expression header");
+    if(std::memcmp(magic.data(),"WWEXPR01",8)||version!=1)throw std::runtime_error("invalid expression header");
     clip.payload.resize(size_t(uint64_t(clip.target_count+15)*clip.frame_count));
     if(!file.read((char*)clip.payload.data(),std::streamsize(clip.payload.size()*4)))throw std::runtime_error("truncated expressions");
     return clip;

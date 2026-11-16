@@ -2,6 +2,7 @@
 // Immutable offline-compiled target local edits. Sample performs no allocation
 // and does not access engine memory.
 #include "../core_math/include/poser_math/quat_math.h"
+#include "../engine_ue4/pose_full_body.h"
 #include <array>
 #include <cstdint>
 #include <cstring>
@@ -18,9 +19,8 @@ namespace wwp_playback { namespace local_clip {
 constexpr uint32_t kVersion=1,kMaximumFrames=100000,kMaximumBones=1024;
 constexpr size_t kHeaderBytes=160,kBoneBytes=32;
 constexpr uint64_t kMaximumFileBytes=1024ull*1024*1024;
-constexpr uint32_t kRotation=1,kTranslationDelta=2;
-struct BoneCommand {float translation_delta[3]={};float rotation_xyzw[4]={0,0,0,1};uint32_t mask=0;};
-static_assert(sizeof(BoneCommand)==32,"WWLOCAL1 bone wire format requires 32 bytes");
+constexpr uint32_t kRotation=wwp_ue::full_body::RotationOverride,kTranslationDelta=wwp_ue::full_body::TranslationDelta;
+using BoneCommand=wwp_ue::full_body::BoneCommand;
 struct Clip {uint32_t bone_count=0,frame_count=0,fps=0;double duration=0;
     std::string source_sha256,skeleton_sha256;std::vector<BoneCommand> frames;bool omit_provenance=false;};
 template<class T>inline void Write(std::ostream& out,const T& value){out.write((const char*)&value,sizeof(value));}
@@ -103,9 +103,10 @@ inline void WriteFile(const std::filesystem::path& path,const Clip& c){
     else{out.write(c.source_sha256.data(),64);out.write(c.skeleton_sha256.data(),64);}
     out.write((const char*)c.frames.data(),std::streamsize(c.frames.size()*sizeof(BoneCommand)));if(!out)throw std::runtime_error("Cannot save complete clip");}
 inline bool Sample(const Clip& clip,double seconds,BoneCommand* out,size_t count) noexcept {
-    if(!out||!std::isfinite(seconds)||count!=clip.bone_count||!clip.bone_count||!clip.frame_count||!clip.fps||
-        clip.frames.size()!=uint64_t(clip.bone_count)*clip.frame_count)return false;
-    double frame=(std::max)(0.,(std::min)(seconds,clip.duration))*clip.fps;size_t a=(std::min)(size_t(frame),size_t(clip.frame_count-1)),b=(std::min)(a+1,size_t(clip.frame_count-1));float t=float(frame-a);
+    // ReadFile/ValidatePayload already bound the clip dimensions.
+    if(!std::isfinite(seconds)||count!=clip.bone_count)return false;
+    const double frame=(std::max)(0.,(std::min)(seconds,clip.duration))*clip.fps;
+    const size_t last=clip.frame_count-1,a=(std::min)(size_t(frame),last),b=(std::min)(a+1,last);const float t=float(frame-a);
     for(size_t i=0;i<count;++i){const auto& x=clip.frames[a*count+i];const auto& y=clip.frames[b*count+i];auto& z=out[i];z.mask=x.mask;
         for(unsigned k=0;k<3;++k)z.translation_delta[k]=x.translation_delta[k]+(y.translation_delta[k]-x.translation_delta[k])*t;
         auto q=::Quat::Slerp({x.rotation_xyzw[0],x.rotation_xyzw[1],x.rotation_xyzw[2],x.rotation_xyzw[3]},

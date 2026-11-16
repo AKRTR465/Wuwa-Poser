@@ -7,23 +7,38 @@ public sealed partial class OwnedMmdPlaybackService
 {
     private readonly NativeTargetSession nativeTarget = new(repoRoot);
     public const string HelperFilename = "WwPoser.ColdLoad.ManagedBridge.OwnedMmdLite.dll";
-    private static readonly string[] RuntimeFiles = ["ownedmmd_lite_observer.dll", "ownedmmd_lite_installer.exe", HelperFilename, "owned_mmd_layout.json"];
+    private static readonly string[] RuntimeFiles = ["ownedmmd_lite_observer.dll", "ownedmmd_lite_installer.exe", HelperFilename];
+    private static readonly string[] SessionOnlyKeys = ["camera_observation", "controller_address", "camera_controller_address", "camera_pawn_address", "native_graph_binding", "animation_target"];
     private string NativePackageDirectory => Directory.Exists(Path.Combine(root, "runtime", "owned_mmd_lite")) ? Path.Combine(root, "runtime", "owned_mmd_lite") : Path.Combine(root, "build", "owned_mmd");
     private Process? installer;
     public string? ActiveSession { get; private set; }
     public string LaunchStage { get; private set; } = "not_started";
     public event Action<string>? Progress;
 
+    // Copies the runtime into a session directory and records the target game.
+    private void StageRuntime(string directory, GameIdentity game)
+    {
+        foreach (var filename in RuntimeFiles) File.Copy(Path.Combine(NativePackageDirectory, filename), Path.Combine(directory, filename));
+        JsonData.Write(Path.Combine(directory, "session_config.json"), new JsonObject
+        {
+            ["session_id"] = Guid.NewGuid().ToString("N"), ["expected_pid"] = game.Pid, ["window_handle"] = game.WindowHandle, ["window_thread_id"] = game.WindowThread
+        });
+    }
+    private async Task<Process> StartInstallerAsync(string directory, GameIdentity game, string message, CancellationToken cancellation)
+    {
+        await GameProcess.WaitForForegroundAsync(game, cancellation);
+        Progress?.Invoke(message);
+        var info = new ProcessStartInfo(Path.Combine(directory, "ownedmmd_lite_installer.exe")) { WorkingDirectory = directory, UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden };
+        info.ArgumentList.Add("--run-session"); info.ArgumentList.Add(directory);
+        LaunchStage = "owned_installer_launch";
+        var process = Process.Start(info)!;
+        ActiveSession = directory;
+        return process;
+    }
+
     private string PrepareRuntime(string prepared, GameIdentity game, bool startPaused)
     {
         var config = Config(prepared);
-        var legacy = config["actors"] is not JsonArray;
-        if (legacy)
-        {
-            var actor = (JsonObject)config.DeepClone(); actor["slot"] = 1u; actor["target_slot"] = 1u; actor["actor_directory"] = "actors/1";
-            config["actors"] = new JsonArray(actor); config["schema"] = 3; config["scope"] = "mixed_actor_mmd"; config["actor_count"] = 1; config["camera_anchor_slot"] = 1;
-            ConfigureStage(config, config["spacing_cm"]?.GetValue<double>() ?? 180, Contract.True(config, "formation_native"), config["ground_height_cm"]?.GetValue<double>() ?? -2);
-        }
         config["session_epoch"] = NewEpoch();
         config["start_paused"] = startPaused;
         var catalog = CharacterCatalog(); var registry = new CharacterRegistry(root);
@@ -41,16 +56,16 @@ public sealed partial class OwnedMmdPlaybackService
                 if (parts.Count != 0) actor["gravity_parts"] = parts;
             }
         }
-        foreach (var key in new[] { "camera_observation", "controller_address", "camera_controller_address", "camera_pawn_address", "native_graph_binding", "animation_target" }) config.Remove(key);
+        foreach (var key in SessionOnlyKeys) config.Remove(key);
         var directory = Path.Combine(prepared, "runtime_sessions", "actors_" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
-        foreach (var filename in RuntimeFiles) File.Copy(Path.Combine(NativePackageDirectory, filename), Path.Combine(directory, filename));
+        StageRuntime(directory, game);
         foreach (var actor in ActorConfigs(config))
         {
             var relative = "actors/" + actor["slot"]!.GetValue<uint>().ToString(CultureInfo.InvariantCulture);
-            var source = legacy ? prepared : Path.Combine(prepared, Contract.S(actor, "actor_directory"));
+            var source = Path.Combine(prepared, Contract.S(actor, "actor_directory"));
             var destination = Path.Combine(directory, relative); Directory.CreateDirectory(destination);
             actor["actor_directory"] = relative; actor["session_epoch"] = config["session_epoch"]!.DeepClone();
-            foreach (var key in new[] { "camera_observation", "controller_address", "camera_controller_address", "camera_pawn_address", "native_graph_binding", "animation_target" }) actor.Remove(key);
+            foreach (var key in SessionOnlyKeys) actor.Remove(key);
             PlaybackAssets.CopyFiles(source, destination, PlaybackAssets.ActorFiles);
             CompiledMotionValidation.Validate(destination, actor);
             JsonData.Write(Path.Combine(destination, "owned_mmd_config.json"), actor);
@@ -58,11 +73,6 @@ public sealed partial class OwnedMmdPlaybackService
         PlaybackAssets.CopyFiles(prepared, directory, PlaybackAssets.SceneFiles);
         JsonData.Write(Path.Combine(directory, "owned_mmd_config.json"), config);
         WriteActorsFile(directory, config);
-        JsonData.Write(Path.Combine(directory, "session_config.json"), new JsonObject
-        {
-            ["session_id"] = Guid.NewGuid().ToString("N"), ["expected_pid"] = game.Pid,
-            ["window_handle"] = game.WindowHandle, ["window_thread_id"] = game.WindowThread, ["expected_process_creation_filetime"] = game.CreationFileTime
-        });
         return directory;
     }
 
@@ -70,9 +80,7 @@ public sealed partial class OwnedMmdPlaybackService
     {
         foreach (var name in new[] { "mmd_result.json", "mmd_status.json" })
             if (File.Exists(Path.Combine(directory, name))) return JsonData.ReadObject(Path.Combine(directory, name));
-        if (!File.Exists(Path.Combine(directory, "owned_display_shown.json"))) return new JsonObject { ["ready"] = false, ["state"] = "waiting_for_owned_instance" };
-        var shown = JsonData.ReadObject(Path.Combine(directory, "owned_display_shown.json"));
-        shown["static_display"] = true; shown["ready"] = false; return shown;
+        return new JsonObject { ["ready"] = false, ["state"] = "waiting_for_owned_instance" };
     }
 
     public static bool Finished(string directory) => File.Exists(Path.Combine(directory, "session_result.json"));
@@ -97,13 +105,7 @@ public sealed partial class OwnedMmdPlaybackService
         var game = GameProcess.Current();
         var directory = PrepareRuntime(Path.GetFullPath(prepared), game, startPaused);
         cancellation.ThrowIfCancellationRequested();
-        await GameProcess.WaitForForegroundAsync(game, cancellation);
-        Progress?.Invoke("正在加载演员：优先使用编队里的原角色，其余另行创建");
-        var info = new ProcessStartInfo(Path.Combine(directory, "ownedmmd_lite_installer.exe")) { WorkingDirectory = directory, UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden };
-        info.ArgumentList.Add("--run-session"); info.ArgumentList.Add(directory);
-        LaunchStage = "owned_installer_launch";
-        installer = Process.Start(info)!;
-        ActiveSession = directory;
+        installer = await StartInstallerAsync(directory, game, "正在加载演员：优先使用编队里的原角色，其余另行创建", cancellation);
         LaunchStage = "owned_target_export";
         var nativePrepared = false;
         long? initialPoseWait = null;
@@ -179,9 +181,8 @@ public sealed partial class OwnedMmdPlaybackService
     private static void RequestStop(string directory) => JsonData.AtomicWrite(Path.Combine(directory, "stop.flag"), []);
     public sealed record NativeTargetRoute(uint Slot, string TargetConfigPath, string OutputDirectory);
     public static IReadOnlyList<NativeTargetRoute> NativeTargetRoutes(JsonObject config, string directory) => ActorConfigs(config)
-        .Where(actor => actor["enabled"]?.GetValue<bool>() ?? true)
-        .Where(actor => actor["native_physics"]?.GetValue<bool>() ?? config["native_physics"]?.GetValue<bool>() ?? true)
-        .Select(actor => actor["slot"]?.GetValue<uint>() ?? 1)
+        .Where(actor => Contract.True(actor, "enabled") && (actor["native_physics"]?.GetValue<bool>() ?? true))
+        .Select(actor => actor["slot"]!.GetValue<uint>())
         .Select(slot => new NativeTargetRoute(slot, Path.Combine(directory, "native_targets", slot.ToString(CultureInfo.InvariantCulture), "native_target.json"),
             Path.Combine(directory, "native_inputs", slot.ToString(CultureInfo.InvariantCulture)))).ToArray();
     public static bool RestorationConfirmed(string directory)

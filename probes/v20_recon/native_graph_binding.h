@@ -2,6 +2,7 @@
 #include "../../runtime/generated/GameCompat.generated.h"
 // Worker-side immutable native graph binding derived from the session discovery.
 #include "../../core_math/third_party/nlohmann/json.hpp"
+#include "../../playback/ue_memory.h"
 #include <array>
 #include <cstdint>
 #include <stdexcept>
@@ -18,9 +19,9 @@ struct Binding {
     Identity target,main_anim;
     uint32_t bone_count=0,converter_offset=0,group_count=0;
     std::array<CurveGroup,kMaxGroups> groups{};
-    bool activation_complete=false;
 };
-inline void Require(bool value,const char* message){if(!value)throw std::runtime_error(message);}
+using ue_memory::Require;
+// Hexadecimal text or an unsigned JSON number.
 inline uint64_t Address(const Json& j){return j.is_string()?std::stoull(j.get<std::string>(),nullptr,16):j.get<uint64_t>();}
 inline uint32_t U32(const Json& j){return uint32_t(Address(j));}
 inline Identity ReadIdentity(const Json& j){return {Address(j.at("address")),U32(j.at("index")),U32(j.at("serial"))};}
@@ -33,7 +34,6 @@ inline Binding Parse(const Json& j){
         group.offset=U32(source.at("offset"));group.alpha_type=U32(source.at("alpha_type"));group.curve_name=source.at("curve_name").get<std::string>();
         if(source.contains("root_bones"))group.root_bones=source.at("root_bones").get<std::vector<std::string>>();
         for(unsigned k=0;k<ww_game_compat::NameWordCount;++k)group.curve_name_words[k]=U32(source.at("curve_name_words")[k]);}
-    b.activation_complete=j.at("proof").at("activation_complete").get<bool>();
     return b;
 }
 } // namespace v20_native_graph_binding

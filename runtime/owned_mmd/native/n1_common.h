@@ -1,16 +1,14 @@
 #pragma once
 #include "../../../probes/v20_recon/object_identity.h"
-#include "../../../probes/v20_recon/runtime_evidence.h"
 #include <fstream>
 
 namespace ui_n1_host {
-namespace util=runtime_evidence;
-using Address=uint64_t;using Json=nlohmann::json;
-inline constexpr const char* kPurpose="single_owned_character_native_mmd";
+using Address=uint64_t;using Json=nlohmann::json;using ue_memory::Require;
+inline constexpr const char* kPurpose="owned_mmd_scene";
 inline constexpr const wchar_t* kCarrier=L"ownedmmd_lite_observer.dll";
 inline constexpr const char* kHelper="WwPoser.ColdLoad.ManagedBridge.OwnedMmdLite.dll";
 inline std::filesystem::path ModulePath(HMODULE module){wchar_t path[32768]{};GetModuleFileNameW(module,path,32768);return path;}
-inline Json ReadJson(const std::filesystem::path& path){std::ifstream f(path,std::ios::binary);util::Require(bool(f),"JSON file unavailable");return Json::parse(f);}
+inline Json ReadJson(const std::filesystem::path& path){std::ifstream f(path,std::ios::binary);Require(bool(f),"JSON file unavailable");return Json::parse(f);}
 struct Config {DWORD pid=0,thread=0;HWND window=nullptr;std::string session;};
 inline Config ParseConfig(const Json& j){
     Config c;c.pid=j.at("expected_pid");c.thread=j.at("window_thread_id");

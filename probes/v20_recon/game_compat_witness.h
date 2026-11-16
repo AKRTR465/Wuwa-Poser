@@ -1,43 +1,24 @@
 #pragma once
-// Preparation-only JSON adapter. Candidate scans are diagnostic and never
-// authorize replacing a function address or installing a hook.
+// Preparation-only JSON adapter: complete function bytes authorize the
+// configured address; a mismatch never relocates a function or hook.
 #include "game_compat_resolution.h"
 #include "../../core_math/third_party/nlohmann/json.hpp"
-#include <sstream>
+#include "../../playback/ue_memory.h"
 
 namespace ww_game_compat_witness {
 namespace resolution=ww_game_compat_resolution;
 using Json=nlohmann::json;
 using Address=resolution::Address;
 struct Function {const char* label;Address rva;size_t bytes;};
-inline std::string Hex(Address value){std::ostringstream text;text<<"0x"<<std::hex<<value;return text.str();}
+using ue_memory::Hex;
 inline bool CompatibleSource(const Json& cfg,const char* profile,const char* digest,Json& checks,std::string& error){
     error.clear();
     const bool valid=cfg.contains("compatibility_profile")&&cfg["compatibility_profile"].is_string()&&cfg["compatibility_profile"]==profile&&
         cfg.contains("compatibility_source_sha256")&&cfg["compatibility_source_sha256"].is_string()&&cfg["compatibility_source_sha256"]==digest;
     checks.push_back({{"kind","compatibility_source"},{"performed",true},{"matched",valid},{"game_abi_verified",false},
         {"expected_profile",profile},{"expected_source_sha256",digest}});
-    if(!valid)error="compatibility configuration and compiled carrier have different sources";return valid;
-}
-template<class Read> Json Candidate(Read&& read,Address image,Address imageBytes,const Json& witness,const std::vector<uint8_t>& exact){
-    Json result={{"execution_authorized",false},{"candidate_requires_review",true},{"complete",false}};
-    resolution::Pattern pattern;pattern.bytes=exact;pattern.mask.assign(exact.size(),0xff);std::string error;
-    if(witness.contains("signature_bytes_hex")||witness.contains("signature_mask_hex")){
-        if(!witness.contains("signature_bytes_hex")||!witness["signature_bytes_hex"].is_string()||
-           !witness.contains("signature_mask_hex")||!witness["signature_mask_hex"].is_string()||witness["signature_mask_hex"].get<std::string>().empty()||
-           !resolution::ParsePattern(witness["signature_bytes_hex"].get<std::string>(),witness["signature_mask_hex"].get<std::string>(),pattern,error)){
-            result["status"]="invalid_signature";result["reason"]=error.empty()?"explicit signature bytes and mask are both required":error;return result;}
-        result["pattern_kind"]="explicit_mask";
-    }else result["pattern_kind"]="exact_function_bytes";
-    std::vector<resolution::Range> ranges;
-    if(!resolution::ExecutableRanges(read,image,imageBytes,ranges,error)){result["status"]="invalid_executable_ranges";result["reason"]=error;return result;}
-    const auto scan=resolution::FindUnique(read,ranges,pattern);result["status"]=resolution::Name(scan.status);result["complete"]=scan.complete;
-    result["matches_lower_bound"]=scan.matches;result["executable_section_count"]=ranges.size();
-    if(scan.status==resolution::ScanStatus::Unique){result["candidate_rva"]=Hex(scan.address-image);
-        const bool code=std::any_of(ranges.begin(),ranges.end(),[&](const resolution::Range& range){return resolution::Contains(range,scan.address,exact.size());});
-        result["full_function_span_executable"]=code;
-        result["exact_function_bytes_match"]=code&&resolution::VerifyBytes(read,image,imageBytes,scan.address-image,exact)==resolution::VerifyStatus::Match;}
-    return result;
+    if(!valid)error="compatibility configuration and compiled carrier have different sources";
+    return valid;
 }
 template<class Read> bool VerifyFunctions(Read&& read,Address image,Address imageBytes,const Json& witnesses,const std::vector<Function>& required,Json& checks,const char* group,std::string& error){
     error.clear();
@@ -76,9 +57,7 @@ template<class Read> bool VerifyFunctions(Read&& read,Address image,Address imag
                 check["performed"]=true;check["executable_section_verified"]=code;
                 check["status"]=code?resolution::Name(status):"outside_executable_sections";check["matched"]=code&&status==resolution::VerifyStatus::Match;
                 check["execution_authorized"]=code&&status==resolution::VerifyStatus::Match;
-                if(!code||status!=resolution::VerifyStatus::Match){accepted=false;
-                    // A unique candidate is evidence for a human update only.
-                    check["relocation_candidate"]=Candidate(read,image,imageBytes,row,bytes);}
+                if(!code||status!=resolution::VerifyStatus::Match)accepted=false;
             }
         }
         if(!check["matched"].get<bool>()&&error.empty())error=std::string(group)+": function byte verification failed for "+expected.label;

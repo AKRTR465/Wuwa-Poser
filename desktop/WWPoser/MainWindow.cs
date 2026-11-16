@@ -286,7 +286,6 @@ public sealed partial class MainWindow : Window
             if (!closeReady) { IsEnabled = true; UpdateActions(); }
         }
     }
-    public void SelectOwnedMmdPage() { if (actors.Count == 0) _ = AddActorAsync(); actorList.SelectedIndex = 0; }
     public void LoadOwnedPreparation(string directory)
     {
         SetRequest(player.ReadPreparation(directory)); preparedDirectory = Path.GetFullPath(directory);

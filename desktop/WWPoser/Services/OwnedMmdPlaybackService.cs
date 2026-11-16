@@ -24,7 +24,7 @@ public sealed partial class OwnedMmdPlaybackService(string repoRoot)
     public static JsonObject Config(string directory) => JsonData.ReadObject(Path.Combine(directory, "owned_mmd_config.json"));
     public async Task<JsonObject> PrepareAsync(OwnedMmdPrepareRequest request, CancellationToken cancellation = default)
     {
-        PlaybackAssets.PhysicsMode(request.NativePhysics, request.Physics);
+        PlaybackAssets.ValidatePhysics(request.NativePhysics, request.Physics);
         var character = CharacterCatalog().Select(request.CharacterId);
         var registry = new CharacterRegistry(root); var profile = registry.GetProfile(character.ProfileId);
         var output = Path.GetFullPath(request.OutputDirectory);
@@ -35,7 +35,8 @@ public sealed partial class OwnedMmdPlaybackService(string repoRoot)
         File.Copy(registry.ProfilePath(profile), Path.Combine(output, "character_profile.json"));
         File.Copy(registry.SkeletonPath(profile), Path.Combine(output, "character_skeleton.json"));
         var reportPath = Path.Combine(output, "compiled_report.json");
-        var imported = await new MotionImportService(root).ImportAsync(new(bodySource, registry.SkeletonPath(profile), output, request.Scale, faceSource, character.ModelId, registry.ProfilePath(profile), character.ModelAssetName, Path.Combine(root, "playback", "character_cache_csharp"), gazeSource, request.GazeStrength), cancellation);
+        var imported = await new MotionImportService(root).ImportAsync(new(bodySource, character.ProfileId, character.ModelAssetName, output, request.Scale, faceSource,
+            Path.Combine(root, "playback", "character_cache_csharp"), gazeSource, request.GazeStrength), cancellation);
         File.Copy(Contract.S(imported, "report"), reportPath);
         var clip = Contract.O(JsonData.ReadObject(reportPath), "compiled_target_clip");
         var epoch = NewEpoch();
@@ -46,20 +47,21 @@ public sealed partial class OwnedMmdPlaybackService(string repoRoot)
             ["form"] = character.Form?.DeepClone(), ["independent_instance"] = character.IndependentInstance,
             ["character_profile_file"] = "character_profile.json", ["character_skeleton_file"] = "character_skeleton.json",
             ["character_profile_sha256"] = JsonData.Digest(registry.ProfilePath(profile)),
-            ["mesh_asset_name"] = character.ModelAssetName, ["skeleton_asset_name"] = profile["skeleton_asset_name"]!.DeepClone(),
+            ["mesh_asset_name"] = character.ModelAssetName,
             ["bone_count"] = profile["bone_count"]!.DeepClone(), ["bone_names"] = profile["bone_names"]!.DeepClone(), ["bone_parents"] = profile["bone_parents"]!.DeepClone(),
-            ["source_file"] = "source.vmd", ["local_clip_file"] = "motion.wwlocal", ["compiled_report_file"] = "compiled_report.json",
+            ["source_file"] = "source.vmd", ["local_clip_file"] = "motion.wwlocal",
             ["local_clip_sha256"] = clip["sha256"]!.DeepClone(),
             ["fps"] = 60, ["frame_count"] = clip["frame_count"]!.DeepClone(), ["clip_duration_seconds"] = clip["duration_seconds"]!.DeepClone(),
             ["duration_ms"] = request.DurationMs, ["speed"] = request.Speed, ["loop"] = request.Loop, ["session_epoch"] = epoch,
-            ["expression_enabled"] = false, ["camera_enabled"] = false, ["native_physics"] = request.NativePhysics, ["body_backend"] = "game_native", ["ground_height_cm"] = -2,
+            ["expression_enabled"] = false, ["camera_enabled"] = false, ["native_physics"] = request.NativePhysics, ["ground_height_cm"] = -2,
             ["gaze_strength"] = request.GazeStrength, ["requested_scale"] = request.Scale,
-            ["placement"] = PlaybackAssets.Placement(request.Placement), ["target_slot"] = 1,
+            ["placement"] = PlaybackAssets.Placement(request.Placement), ["slot"] = 1,
             ["physics_model_id"] = profile["physics_model_id"]?.DeepClone(), ["bone_chains_file"] = "bone_chains.json"
         };
         var assets = new PlaybackAssets(root);
         assets.Expression(config, imported);
-        assets.Physics(config, output, request.NativePhysics, request.Physics);
+        PlaybackAssets.Physics(config, request.NativePhysics, request.Physics);
+        assets.CopyBoneChains(output);
         await assets.CameraAsync(config, output, request.CameraSource, request.CameraMode, clip, cancellation);
         config["duration_seconds"] = Math.Max(Math.Max(Contract.D(clip, "duration_seconds"), config["expression_duration_seconds"]?.GetValue<double>() ?? 0), config["camera_clip_duration_seconds"]?.GetValue<double>() ?? 0);
         foreach (var key in CanonicalFields) config[key] = clip[key]!.DeepClone();

@@ -29,7 +29,8 @@ struct Image {
     Json Rows(const std::vector<witness::Function>& specs){Json rows=Json::array();
         for(const auto& spec:specs){functions.push_back({spec.rva,std::vector<uint8_t>(spec.bytes,uint8_t(functions.size()+1))});
             const auto& bytes=functions.back().bytes;
-            rows.push_back({{"rva",witness::Hex(spec.rva)},{"function_bytes_hex",BytesHex(bytes.data(),bytes.size())}});}
+            std::string hex;for(const auto byte:bytes){char pair[3];std::snprintf(pair,sizeof(pair),"%02x",byte);hex+=pair;}
+            rows.push_back({{"rva",witness::Hex(spec.rva)},{"function_bytes_hex",hex}});}
         return rows;
     }
 };
@@ -48,19 +49,18 @@ static void RequiredSets(){
     Check(!native::VerifyNativeFunctionSets(image,image.base,image.image_bytes,truncated,checks,error)&&Matched(checks)==7,"matching short prefix cannot authorize the native getter");
     image.functions[0].bytes[0]^=0xff;checks=Json::array();
     Check(!native::VerifyNativeFunctionSets(image,image.base,image.image_bytes,cfg,checks,error),"changed configured native function rejects execution");
-    Check(checks[1]["execution_authorized"]==false&&checks[1]["relocation_candidate"]["execution_authorized"]==false,"failed byte check and candidate scan cannot authorize a new address");
+    Check(checks[1]["execution_authorized"]==false,"failed byte check cannot authorize a new address");
     image.functions[0].bytes[0]^=0xff;
     auto foreign=cfg;foreign["compatibility_source_sha256"]="different-source";checks=Json::array();
     Check(!native::VerifyNativeFunctionSets(image,image.base,image.image_bytes,foreign,checks,error)&&Matched(checks)==8,"matching code does not bypass compatibility source mismatch");
 }
 static void PreparationRejects(const std::filesystem::path& output){
     Image image;auto actor=std::make_unique<native::Actor>();bool rejected=false;
-    try{native::PrepareBinding(*actor,image,Source(),"synthetic",output,nullptr,nullptr);}catch(const std::exception&){rejected=true;}
+    try{native::PrepareBinding(*actor,image,Source(),output,nullptr,nullptr);}catch(const std::exception&){rejected=true;}
     Check(rejected&&!actor->prepared&&!actor->function_witnesses_verified.load(),"preparation refuses missing witnesses before graph binding");
     Check(image.reads==0,"missing witness sets do not touch pose data or execute native functions");
     const auto report=nlohmann::json::parse(std::ifstream(output/L"native_function_checks.json"));
     Check(report["verified"]==false&&report["required_function_count"]==8&&report["matched_function_count"]==0,"failed preparation writes a complete diagnostic report");
-    Check(report["candidate_relocation_authorized"]==false,"report preserves the diagnostic-only candidate boundary");
     Check(!native::RegisterActor(*actor),"unverified actor cannot enter the native registry");
     actor->function_witnesses_verified.store(true);
     Check(!native::RegisterActor(*actor),"function verification alone cannot admit an unprepared actor");
@@ -84,7 +84,7 @@ static void ScopedSettings() {
     refresh(node);parameters::Group group;group.requested={.45f,-1,65};group.revision=43;
     unsigned solves=0,faults=0;
     const auto evaluate=[&]{++solves;uint8_t enabled=0;access.Get(node+parameters::kRefresh,enabled);if(enabled)refresh(node);};
-    parameters::EvaluateGroup(group,node,access,true,evaluate,refresh,[&]{++faults;});
+    parameters::EvaluateGroup(group,node,access,true,evaluate,refresh,[&]{++faults;},[]{return false;});
     Check(solves==1&&faults==0&&!group.restore_pending.load(),"selected group solves once and retires its writes");
     Check(group.sampled.revision==43&&group.sampled.original==parameters::Values{.2f,.2f,50}&&
         group.sampled.effective_first==parameters::Values{.45f,.2f,65}&&group.sampled.effective_last[0]==.225f,
@@ -94,9 +94,9 @@ static void ScopedSettings() {
     Check(after==baseline&&refreshFlag==0&&parameters::ReadSettingsCache(access,node,returned)&&
         returned.effective_first==parameters::Values{.2f,.2f,50},"authored node values, refresh flag and effective cache are restored after evaluation");
     group.requested[0]=-1;group.revision=44;
-    parameters::EvaluateGroup(group,node,access,true,evaluate,refresh,[&]{++faults;});
+    parameters::EvaluateGroup(group,node,access,true,evaluate,refresh,[&]{++faults;},[]{return false;});
     Check(group.sampled.effective_first==parameters::Values{.2f,.2f,65},"one-parameter reset preserves another override");
-    parameters::EvaluateGroup(group,node,access,false,evaluate,refresh,[&]{++faults;});
+    parameters::EvaluateGroup(group,node,access,false,evaluate,refresh,[&]{++faults;},[]{return false;});
     Check(group.sampled.effective_first==parameters::Values{.2f,.2f,50},"closed playback feed evaluates stock physics");
 
     parameters::Group separate;
@@ -165,7 +165,7 @@ static void CapsuleIsolation() {
     state.drivers[0].enabled=false;
     const auto evaluate=[&]{parameters::Array used{};access.Get(base+collision::kCapsuleArrays[0],used);
         collision::Capsule first{},second{};access.Get(used.data,first);access.Get(used.data+sizeof(first),second);
-        Check(used.count==2&&first.bytes==capsules[1].bytes&&second.bytes==capsules[2].bytes,"filter removes only the selected driver's capsule and retains order");};
+        Check(used.num==2&&first.bytes==capsules[1].bytes&&second.bytes==capsules[2].bytes,"filter removes only the selected driver's capsule and retains order");};
     collision::EvaluateCapsules(state,base,access,true,map,evaluate,[&]{++faults;});
     parameters::Array restored{};access.Get(base+collision::kCapsuleArrays[0],restored);
     Check(faults==0&&parameters::SameArray(restored,original)&&state.drivers[0].active==0&&state.drivers[1].active==1&&!state.restore_pending.load(),
@@ -228,7 +228,7 @@ static void GravityIsolation(){
         "coverage ending resumes the saved gravity override");
 }
 int main(int argc,char** argv){try{
-    if(argc!=2)throw std::runtime_error("expected an evidence output directory");
-    RequiredSets();PreparationRejects(std::filesystem::path(argv[1]));ScopedSettings();SleeveAttachment();CapsuleIsolation();GravityIsolation();
+    if(argc!=3)throw std::runtime_error("expected the repository root and build directory");
+    RequiredSets();PreparationRejects(std::filesystem::path(argv[2])/"evidence");ScopedSettings();SleeveAttachment();CapsuleIsolation();GravityIsolation();
     std::cout<<assertions<<" native function witness assertions passed; game_accessed=false; native_calls=0\n";return 0;
 }catch(const std::exception& error){std::cerr<<"unexpected exception: "<<error.what()<<'\n';return 1;}}

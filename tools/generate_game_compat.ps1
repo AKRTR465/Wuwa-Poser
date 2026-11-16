@@ -10,8 +10,10 @@ $outputDirectory = [IO.Path]::GetFullPath($OutputRoot)
 $source = Get-Content -LiteralPath $sourceFile -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
 if ($source.schema -ne 1 -or $source.profile_id -notmatch '^[a-zA-Z0-9_.-]+$') { throw 'Invalid game compatibility profile identity.' }
 $digest = (Get-FileHash -LiteralPath $sourceFile -Algorithm SHA256).Hash.ToLowerInvariant()
+# native compiles into C++, managed into C#, and shared into both.
 $entries = [ordered]@{}
-foreach ($section in @('native', 'managed')) {
+$sectionOf = @{}
+foreach ($section in @('native', 'managed', 'shared')) {
     if (-not $source.Contains($section)) { throw ('Missing compatibility section: ' + $section) }
     [string[]]$names = @($source[$section].Keys)
     [Array]::Sort($names, [StringComparer]::Ordinal)
@@ -20,6 +22,7 @@ foreach ($section in @('native', 'managed')) {
         $entry = $source[$section][$name]
         if ($entry.Keys.Count -ne 2 -or -not $entry.Contains('type') -or -not $entry.Contains('value')) { throw ('Invalid compatibility constant shape: ' + $name) }
         $entries[$name] = $entry
+        $sectionOf[$name] = $section
     }
 }
 function Quoted([string]$Value) { return ConvertTo-Json -InputObject $Value -Compress -EscapeHandling EscapeNonAscii }
@@ -39,7 +42,7 @@ function Literals([string]$Name, [Collections.IDictionary]$Entry) {
         'hexref' {
             if ($value -isnot [string] -or -not $value.StartsWith('@') -or -not $entries.Contains($value.Substring(1))) { throw ('Invalid hexadecimal alias: ' + $Name) }
             $target = $entries[$value.Substring(1)]
-            if ($target.type -notin @('u8', 'u16', 'u32', 'u64')) { throw ('Hexadecimal aliases must reference an unsigned constant: ' + $Name) }
+            if ($target.type -notin @('u32', 'u64')) { throw ('Hexadecimal aliases must reference an unsigned constant: ' + $Name) }
             $text = '0x' + (Number $target.value).ToString('x', [Globalization.CultureInfo]::InvariantCulture)
             return @('const char*', (Quoted $text), 'string', (Quoted $text))
         }
@@ -49,20 +52,15 @@ function Literals([string]$Name, [Collections.IDictionary]$Entry) {
             $literal = $integer.ToString([Globalization.CultureInfo]::InvariantCulture)
             return @('int32_t', $literal, 'int', $literal)
         }
-        'f32' {
-            $scalar = [Convert]::ToSingle($value, [Globalization.CultureInfo]::InvariantCulture)
-            if (-not [float]::IsFinite($scalar)) { throw ('Expected finite float: ' + $Name) }
-            $literal = $scalar.ToString('R', [Globalization.CultureInfo]::InvariantCulture)
-            if ($literal -notmatch '[.eE]') { $literal += '.0' }
-            return @('float', ($literal + 'f'), 'float', ($literal + 'f'))
-        }
-        { $_ -in @('u8', 'u16', 'u32', 'u64') } {
+        'u32' {
             $integer = Number $value
-            $max = switch ($Entry.type) { 'u8' { [byte]::MaxValue }; 'u16' { [uint16]::MaxValue }; 'u32' { [uint32]::MaxValue }; 'u64' { [uint64]::MaxValue } }
-            if ($integer -gt $max) { throw ('Unsigned constant overflow: ' + $Name) }
+            if ($integer -gt [uint32]::MaxValue) { throw ('Unsigned constant overflow: ' + $Name) }
             $literal = '0x' + $integer.ToString('x', [Globalization.CultureInfo]::InvariantCulture)
-            if ($Entry.type -eq 'u64') { return @('uint64_t', ($literal + 'ull'), 'ulong', ($literal + 'UL')) }
-            return @(('uint' + $Entry.type.Substring(1) + '_t'), ($literal + 'u'), 'uint', ($literal + 'U'))
+            return @('uint32_t', ($literal + 'u'), 'uint', ($literal + 'U'))
+        }
+        'u64' {
+            $literal = '0x' + (Number $value).ToString('x', [Globalization.CultureInfo]::InvariantCulture)
+            return @('uint64_t', ($literal + 'ull'), 'ulong', ($literal + 'UL'))
         }
         default { throw ('Unsupported constant type for ' + $Name + ': ' + $Entry.type) }
     }
@@ -77,31 +75,16 @@ $csConstants.Add('    internal const string ProfileId = ' + (Quoted $source.prof
 $csConstants.Add('    internal const string SourceSha256 = ' + (Quoted $digest) + ';')
 foreach ($name in $entries.Keys) {
     $literal = Literals $name $entries[$name]
-    $cpp.Add('inline constexpr ' + $literal[0] + ' ' + $name + ' = ' + $literal[1] + ';')
-    $csConstants.Add('    internal const ' + $literal[2] + ' ' + $name + ' = ' + $literal[3] + ';')
+    if ($sectionOf[$name] -ne 'managed') { $cpp.Add('inline constexpr ' + $literal[0] + ' ' + $name + ' = ' + $literal[1] + ';') }
+    if ($sectionOf[$name] -ne 'native') { $csConstants.Add('    internal const ' + $literal[2] + ' ' + $name + ' = ' + $literal[3] + ';') }
 }
 $cpp.Add('} // namespace ww_game_compat')
-function ManagedSource([string]$Namespace) {
-    return (@($banner, ('namespace ' + $Namespace), '{', 'internal static class GameCompat', '{') + $csConstants.ToArray() + @(
-        '    internal static string AddressHex(ulong value) => "0x" + value.ToString("x", System.Globalization.CultureInfo.InvariantCulture);', '}', '}')) -join "`n"
-}
-$runtime = [ordered]@{ schema = 2; compatibility_profile = $source.profile_id; compatibility_source_sha256 = $digest }
-foreach ($key in $source.runtime_layout.Keys) {
-    if ($runtime.Contains($key)) { throw ('Reserved runtime layout key: ' + $key) }
-    $value = $source.runtime_layout[$key]
-    if ($value -is [string] -and $value.StartsWith('@')) {
-        $name = $value.Substring(1)
-        if (-not $entries.Contains($name)) { throw ('Unknown runtime layout reference: ' + $name) }
-        $entry = $entries[$name]
-        $value = if ($entry.type -in @('string', 'wstr')) { $entry.value } else { '0x' + (Number $entry.value).ToString('x', [Globalization.CultureInfo]::InvariantCulture) }
-    }
-    $runtime[$key] = $value
-}
+# The desktop and the in-game managed helper compile this same file.
+$cs = @($banner, 'namespace WwPoser.Compat', '{', 'internal static class GameCompat', '{') + $csConstants.ToArray() + @(
+    '    internal static string AddressHex(ulong value) => "0x" + value.ToString("x", System.Globalization.CultureInfo.InvariantCulture);', '}', '}')
 $outputs = [ordered]@{
     'runtime/generated/GameCompat.generated.h' = ($cpp -join "`n")
-    'runtime/generated/ManagedCompat.generated.cs' = (ManagedSource 'WwPoser.ColdLoad')
-    'desktop/WWPoser/Generated/GameCompat.generated.cs' = (ManagedSource 'WWPoser.Services')
-    'runtime/owned_mmd/native/owned_mmd_layout.json' = ($runtime | ConvertTo-Json -Depth 12)
+    'runtime/generated/GameCompat.generated.cs' = ($cs -join "`n")
 }
 foreach ($relative in $outputs.Keys) {
     $path = Join-Path $outputDirectory $relative

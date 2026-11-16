@@ -108,9 +108,7 @@ public sealed class NativeTargetSession
             graph.PrepareDiscovery(promotedPath, discovery, pid);
             await Observe(discovery, "native_graph_discovery.json", pid, token);
             var playback = JsonData.ReadObject(Path.Combine(discovery, "observe_target.json"));
-            graph.AttachPlaybackBinding(playback, graph.Bind(discovery), pid);
-            File.Copy(Path.Combine(discovery, "native_graph_discovery.json"), Path.Combine(outputDirectory, "native_graph_discovery.json"));
-            File.Copy(Path.Combine(discovery, "observe_target.json"), Path.Combine(outputDirectory, "native_graph_source_config.json"));
+            graph.AttachPlaybackBinding(playback, graph.Bind(discovery));
             JsonData.Write(Path.Combine(outputDirectory, "native_playback.json"), playback);
             return playback;
         }, cancellation);

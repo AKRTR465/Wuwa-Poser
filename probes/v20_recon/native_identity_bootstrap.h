@@ -22,46 +22,48 @@ template<class Read>bool CaptureContext(Read&& read,const Basis& b,uint64_t addr
         !ng::OwnsMainAnimation(read,b.mesh.address,value.main_owner))return false;
     if(value.owner==value.main_owner)return ng::ResolveMainProxy(read,value.proxy,value.owner,value.main_owner,b.mesh.address,b.skeleton_asset.address,value.main_proxy);
     ng::Token owner;
-    return ng::CaptureToken(read,b.go,value.owner,owner,false)&&ng::Get<uint64_t>(owner.header.data(),ww_game_compat::ObjectOuterOffset)==b.mesh.address;
+    return ng::CaptureToken(read,b.go,value.owner,owner,false)&&ng::At<uint64_t>(owner.header.data(),ww_game_compat::ObjectOuterOffset)==b.mesh.address;
 }
 struct Candidate {ng::Token object,klass;};
 template<class Read,class ClassAllowed>bool CaptureCandidate(Read&& read,const Basis& b,uint64_t address,Candidate& value,ClassAllowed&& allowed){
     if(!ng::CaptureToken(read,b.go,address,value.object,false)||!ng::CaptureToken(read,b.go,ng::Class(value.object),value.klass,false))return false;
-    return ng::Get<uint64_t>(value.object.header.data(),ww_game_compat::ObjectOuterOffset)==b.mesh.address&&ng::Get<uint32_t>(value.object.header.data(),ww_game_compat::ObjectNameOffset)!=0&&
-        ng::Get<uint32_t>(value.object.header.data(),ww_game_compat::ObjectNameOffset+ww_game_compat::NameWordBytes)!=0&&allowed(value.klass);
+    return ng::At<uint64_t>(value.object.header.data(),ww_game_compat::ObjectOuterOffset)==b.mesh.address&&ng::At<uint32_t>(value.object.header.data(),ww_game_compat::ObjectNameOffset)!=0&&
+        ng::At<uint32_t>(value.object.header.data(),ww_game_compat::ObjectNameOffset+ww_game_compat::NameWordBytes)!=0&&allowed(value.klass);
 }
 struct NativeResult {int32_t serial=0;bool called=false;Code code=Code::NativeRejected;};
 struct Owner {ng::Token before,after,klass;bool main=false,allocator_called=false;int32_t returned_serial=0;Code code=Code::None;
     unsigned thread=0;uint64_t tick=0;bool accepted=false;};
 struct Rejection {uint64_t owner=0;Code code=Code::None;unsigned thread=0;};
-struct ContextWitness {
-    uint64_t vtable=0,proxy=0;unsigned hook=0;
-    std::array<uint64_t,64> proxy_words{};
-    ng::Token owner{},alternate_owner{};
-    bool readable=false;
-};
 struct State {
     Basis basis;std::atomic_flag gate=ATOMIC_FLAG_INIT;std::atomic<bool> failed{false};
     std::atomic<uint64_t> busy_callbacks{0},target_callbacks{0},rejected_callbacks{0};
     std::array<Owner,kOwners> owners{};std::array<Rejection,kRejections> rejections{};
-    std::array<Owner,2> supports{};unsigned support_count=0;ContextWitness context_witness{};
+    std::array<Owner,2> supports{};unsigned support_count=0;
     unsigned owner_limit=kOwners,owner_count=0,rejection_count=0,native_calls=0;bool truncated=false,main_confirmed=false;
     void Reject(uint64_t owner,Code code,unsigned thread){failed.store(true);++rejected_callbacks;
         if(rejection_count<kRejections)rejections[rejection_count++]={owner,code,thread};else truncated=true;}
 };
+// Lets the engine allocator assign a missing serial to the captured object,
+// then requires the recaptured strong identity.
+template<class Read,class Allocate>
+bool Assign(State& state,Owner& record,Read&& read,Allocate&& allocate){
+    const auto address=record.before.address;
+    if(!ng::Serial(record.before)){const auto returned=allocate(ng::Index(record.before));record.allocator_called=returned.called;record.returned_serial=returned.serial;
+        if(returned.called)++state.native_calls;
+        if(returned.code!=Code::None){record.code=returned.code;state.Reject(address,record.code,record.thread);return false;}}
+    else record.returned_serial=int32_t(ng::Serial(record.before));
+    if(!ng::CaptureToken(read,state.basis.go,address,record.after)){record.code=Code::IdentityChanged;state.Reject(address,record.code,record.thread);return false;}
+    record.accepted=true;return true;
+}
 template<class Read,class Allocate>
 bool RegisterSupport(State& state,Read&& read,Allocate&& allocate,ng::Token& expected,unsigned thread,uint64_t tick){
     for(unsigned i=0;i<state.support_count;++i)if(state.supports[i].before.address==expected.address)return state.supports[i].accepted;
     if(state.support_count==state.supports.size()){state.Reject(expected.address,Code::OwnerLimit,thread);return false;}
-    auto& record=state.supports[state.support_count++];record.thread=thread;record.tick=tick;
+    auto& record=state.supports[state.support_count++];record.thread=thread;record.tick=tick;record.before.address=expected.address;
     if(!ng::CaptureToken(read,state.basis.go,expected.address,record.before,false)||!ng::CaptureToken(read,state.basis.go,ng::Class(record.before),record.klass,false)){
         record.code=Code::IdentityChanged;state.Reject(expected.address,record.code,thread);return false;}
-    if(!ng::Serial(record.before)){const auto returned=allocate(ng::Index(record.before));record.allocator_called=returned.called;record.returned_serial=returned.serial;
-        if(returned.called)++state.native_calls;
-        if(returned.code!=Code::None){record.code=returned.code;state.Reject(expected.address,record.code,thread);return false;}}
-    else record.returned_serial=int32_t(ng::Serial(record.before));
-    if(!ng::CaptureToken(read,state.basis.go,expected.address,record.after)){record.code=Code::IdentityChanged;state.Reject(expected.address,record.code,thread);return false;}
-    record.accepted=true;expected=record.after;return true;
+    if(!Assign(state,record,read,allocate))return false;
+    expected=record.after;return true;
 }
 template<class Read,class ClassAllowed,class Allocate>
 bool Register(State& state,Read&& read,ClassAllowed&& allowed,Allocate&& allocate,uint64_t address,bool main,unsigned thread,uint64_t tick){
@@ -69,13 +71,8 @@ bool Register(State& state,Read&& read,ClassAllowed&& allowed,Allocate&& allocat
     if(state.owner_count>=state.owner_limit){state.truncated=true;state.Reject(address,Code::OwnerLimit,thread);return false;}
     Candidate before;if(!CaptureCandidate(read,state.basis,address,before,allowed)){state.Reject(address,Code::CandidateInvalid,thread);return false;}
     auto& record=state.owners[state.owner_count++];record.before=before.object;record.klass=before.klass;record.main=main;record.thread=thread;record.tick=tick;
-    if(!ng::Serial(before.object)){
-        const auto returned=allocate(ng::Index(before.object));record.allocator_called=returned.called;record.returned_serial=returned.serial;
-        if(returned.called)++state.native_calls;
-        if(returned.code!=Code::None){record.code=returned.code;state.Reject(address,record.code,thread);return false;}
-    }else record.returned_serial=int32_t(ng::Serial(before.object));
-    if(!ng::CaptureToken(read,state.basis.go,address,record.after)){record.code=Code::IdentityChanged;state.Reject(address,record.code,thread);return false;}
-    record.accepted=true;if(main)state.main_confirmed=true;return true;
+    if(!Assign(state,record,read,allocate))return false;
+    if(main)state.main_confirmed=true;return true;
 }
 template<class Read,class ClassAllowed,class Allocate>
 void Visit(State& state,Read&& read,ClassAllowed&& allowed,Allocate&& allocate,unsigned hook,uint64_t node,uint64_t context,unsigned thread,uint64_t tick){
@@ -86,10 +83,6 @@ void Visit(State& state,Read&& read,ClassAllowed&& allowed,Allocate&& allocate,u
     if(state.failed.load())return;
     Context before;uint64_t vtable=0;
     if(!read(node,&vtable,sizeof(uint64_t))||vtable!=state.basis.image+ng::kSpecs[hook].vtable_rva||!CaptureContext(read,state.basis,context,before)){
-        auto& witness=state.context_witness;witness.vtable=vtable;witness.hook=hook;witness.proxy=proxy;
-        witness.readable=read(proxy,witness.proxy_words.data(),sizeof(witness.proxy_words));
-        ng::CaptureToken(read,state.basis.go,before.owner,witness.owner,false);
-        ng::CaptureToken(read,state.basis.go,before.owner_alt,witness.alternate_owner,false);
         state.Reject(0,Code::ContextChanged,thread);return;}
     if(!RegisterSupport(state,read,allocate,state.basis.mesh_asset,thread,tick)||
        !RegisterSupport(state,read,allocate,state.basis.skeleton_asset,thread,tick))return;

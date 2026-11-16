@@ -31,7 +31,7 @@ struct Scratch {
 };
 inline bool Key(const std::array<uint32_t,ww_game_compat::NameWordCount>& a,const std::array<uint32_t,ww_game_compat::NameWordCount>& b){return a[0]==b[0]&&a[ww_game_compat::NameNumberOffset/ww_game_compat::NameWordBytes]==b[ww_game_compat::NameNumberOffset/ww_game_compat::NameWordBytes];}
 inline bool Close(float a,float b){return std::isfinite(a)&&std::isfinite(b)&&std::fabs(a-b)<=1e-5f;}
-inline bool Pending(const State& state){for(uint32_t i=0;i<state.count&&i<fs::kMaxMorphs;++i)if(state.backup[i].pending)return true;return false;}
+inline bool Pending(const State& state){for(uint32_t i=0;i<state.count;++i)if(state.backup[i].pending)return true;return false;}
 namespace detail {
 template<class Reader>bool Strong(Reader& r,const Prepared& p){
     const auto& m=p.snapshot;fs::Identity mesh,asset;uint64_t asset_pointer=0;

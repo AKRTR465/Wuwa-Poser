@@ -104,7 +104,7 @@ public sealed partial class MainWindow
     private (string Session, uint Slot)? DesiredModelSubscription()
     {
         if (closing || page != 3 || physicsModelView.Visibility != Visibility.Visible || !sessionControllable || session is not { } directory ||
-            player.Snapshot?.State["model_preview_supported"]?.GetValue<bool>() != true || SelectedLivePhysicsActor() is not { } actor) return null;
+            player.Snapshot is null || SelectedLivePhysicsActor() is not { } actor) return null;
         return (directory, actor.Slot);
     }
 

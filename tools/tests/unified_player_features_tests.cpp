@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <numeric>
+#include <sstream>
 
 namespace feature=unified_player_features;
 namespace play=wwp_playback;
@@ -60,7 +61,7 @@ static void DirectTest(Fixture& f){
     play::local_clip::Clip clip;clip.bone_count=1;clip.frame_count=1;clip.fps=60;clip.duration=1;clip.frames.resize(1);
     clip.frames[0].mask=3;clip.frames[0].translation_delta[0]=5;clip.frames[0].translation_delta[2]=2;
     wwp_ue::full_body::Topology topology;topology.count=1;topology.parents[0]=-1;wwp_ue::full_body::Request request;
-    Json cfg={{"native_physics",false},{"physics_enabled",false},{"expression_enabled",false},{"bone_names",{"root"}},{"parents",{-1}},{"physics_model_id","fixture"}};
+    Json cfg={{"native_physics",false},{"physics_enabled",false},{"expression_enabled",false},{"bone_names",{"root"}},{"bone_parents",{-1}},{"physics_model_id","fixture"}};
     auto first=std::make_unique<feature::ActorFeatures>(),second=std::make_unique<feature::ActorFeatures>();
     feature::PrepareActor(*first,f.reader,f.go,f.pool,cfg,{},f.Object(3),f.Object(5),clip,topology,request,42);
     feature::PrepareActor(*second,f.reader,f.go,f.pool,cfg,{},f.Object(4),f.Object(5),clip,topology,request,42);
@@ -105,17 +106,17 @@ static void FaceTest(Fixture& f){
     a->prepared=true;a->native_physics=true;
     Check(ww_object::ReadStable(f.reader,f.go,f.Object(3),&a->mesh)&&ww_object::ReadStable(f.reader,f.go,f.Object(5),&a->asset),"fault regression captures feature identities");
     Check(feature::FaceFrame(*a,f.reader,state,true)&&feature::ActorPending(*a),"native fault regression starts with an owned face override");
-    unsigned closes=0;std::atomic<unsigned> latched_native_error{11};
+    // The scene host closes the feed on a native fault and keeps restoring.
     Put(uint64_t(f.items[3].data())+16,uint32_t(999));
-    if(latched_native_error.load())Check(!feature::RestoreActorAfterFault(*a,f.reader,state,{},[&]{++closes;})&&feature::ActorPending(*a),"failed feature restore remains pending after native admission closes");
+    Check(!feature::FaceFrame(*a,f.reader,state,false)&&feature::ActorPending(*a),"failed feature restore remains pending after native admission closes");
     Put(uint64_t(f.items[3].data())+16,uint32_t(103));
-    if(latched_native_error.load())Check(feature::RestoreActorAfterFault(*a,f.reader,state,{},[&]{++closes;})&&!feature::ActorPending(*a)&&Near(Get<float>(uint64_t(f.weight_row.data())+12),.9),"latched native error permits the later face restore and drains pending ownership");
+    Check(feature::FaceFrame(*a,f.reader,state,false)&&!feature::ActorPending(*a)&&Near(Get<float>(uint64_t(f.weight_row.data())+12),.9),"latched native error permits the later face restore and drains pending ownership");
     const unsigned after_restore=morph_calls;
-    if(latched_native_error.load())Check(feature::RestoreActorAfterFault(*a,f.reader,state,{},[&]{++closes;})&&closes==3&&morph_calls==after_restore,"repeated permanent native errors remain restore-only and do not rewrite expressions");
+    Check(feature::FaceFrame(*a,f.reader,state,false)&&morph_calls==after_restore,"repeated permanent native errors remain restore-only and do not rewrite expressions");
 }
 static void CameraTest(Fixture& f){
     auto c=std::make_unique<feature::CameraFeatures>();Json cfg={{"camera_clip_enabled",false},{"camera_mode",0}};
-    feature::PrepareCamera(*c,f.reader,f.go,cfg,{},f.Object(0),f.Object(1),{f.Object(3)},{},{},42,GetCurrentThreadId(),0);
+    feature::PrepareCamera(*c,f.reader,f.go,cfg,{},f.Object(0),f.Object(1),{f.Object(3)},{},42,GetCurrentThreadId(),0);
     play::PlayerState state;state.mode=play::PlayerMode::Playing;state.placement_x=25;
     Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2)),"follow camera frame accepts the captured local chain");
     Check(Near(f.CameraPosition()[0],125)&&Near(f.CameraPosition()[1],10),"follow camera translates the native view to the selected actor and placement");
@@ -144,7 +145,7 @@ static bool SyntheticMaintenance(void* user){auto& value=*static_cast<CallbackFi
     value.ordered=value.ordered&&value.original==value.maintenance;return value.allow;}
 static void CameraCallbackTest(Fixture& f){
     auto c=std::make_unique<feature::CameraFeatures>();Json config={{"camera_clip_enabled",false},{"camera_mode",0}};
-    feature::PrepareCamera(*c,f.reader,f.go,config,{},f.Object(0),f.Object(1),{f.Object(3)},{},{},42,GetCurrentThreadId(),0);
+    feature::PrepareCamera(*c,f.reader,f.go,config,{},f.Object(0),f.Object(1),{f.Object(3)},{},42,GetCurrentThreadId(),0);
     CallbackFixture events{&f};callback_fixture=&events;c->original=&SyntheticCameraOriginal;c->on_game_frame=&SyntheticMaintenance;c->game_frame_user=&events;c->observing=true;
     auto* previous=feature::owned_camera;feature::owned_camera=c.get();
     play::PlayerState state;state.mode=play::PlayerMode::Playing;state.placement_x=25;feature::PublishCamera(*c,state,true);
@@ -162,11 +163,10 @@ static void CameraCallbackTest(Fixture& f){
 // Formation scenes must frame the group: the follow camera tracks the live
 // centroid of every stage mesh, and the VMD orbit anchors the shared stage
 // origin with the measured mesh basis orienting it.
-// Without a stage reference the orbit falls back to the first actor's spot.
+// A zero stage offset anchors the orbit on the first actor's mesh.
 static void FormationCameraTest(Fixture& f){
     auto c=std::make_unique<feature::CameraFeatures>();Json cfg={{"camera_clip_enabled",false},{"camera_mode",0}};
-    feature::PrepareCamera(*c,f.reader,f.go,cfg,{},f.Object(0),f.Object(1),{f.Object(3),f.Object(4)},
-        {Vec3{},Vec3{20.f,0.f,0.f}},{},42,GetCurrentThreadId(),0);
+    feature::PrepareCamera(*c,f.reader,f.go,cfg,{},f.Object(0),f.Object(1),{f.Object(3),f.Object(4)},{},42,GetCurrentThreadId(),0);
     play::PlayerState state;state.mode=play::PlayerMode::Playing;state.placement_x=25;
     f.NativeCamera({0,10,20});
     Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2)),"follow camera frame accepts the formation anchors");
@@ -175,7 +175,7 @@ static void FormationCameraTest(Fixture& f){
     c->clip_available=true;c->clip.duration=1;c->clip.source_keys.resize(1);c->clip.source_keys[0].distance=-10;c->clip.source_keys[0].fov=45;
     Check(feature::CameraFrame(*c,f.reader,state,true,f.Object(2)),"VMD mode samples a formation camera key");
     Check(Near(f.CameraPosition()[0],100)&&Near(f.CameraPosition()[2],-10)&&Near(Get<float>(f.Object(2)+(kCurrentPov+ww_game_compat::CameraFovOffset)),45),
-        "without a stage reference the VMD orbit falls back to the first actor's stage spot");
+        "a zero stage offset anchors the VMD orbit on the first actor's mesh");
     state.camera_mode=0;Put(uint64_t(f.items[4].data())+16,uint32_t(999));
     Check(!feature::CameraFrame(*c,f.reader,state,true,f.Object(2)),"any formation anchor identity replacement is rejected");
     Put(uint64_t(f.items[4].data())+16,uint32_t(104));
@@ -184,11 +184,11 @@ static void FormationCameraTest(Fixture& f){
 
     auto staged=std::make_unique<feature::CameraFeatures>();
     Json lifecycle={{"stage_reference_location",{-51520.,-562560.,36999.}},{"stage_reference_floor",36805.}};
-    Check(!feature::ReadStageReference(lifecycle).present,"legacy global stage positions must not be accepted as local camera anchors");
+    bool missingReference=false;try{feature::ReadStageReference(lifecycle);}catch(const std::exception&){missingReference=true;}
+    Check(missingReference,"global stage positions alone are never accepted as local camera anchors");
     lifecycle["stage_reference_camera_offset_from_mesh"]={-90.f,0.f,5.f};
     const auto reference=feature::ReadStageReference(lifecycle);
-    feature::PrepareCamera(*staged,f.reader,f.go,cfg,{},f.Object(0),f.Object(1),{f.Object(3),f.Object(4)},{Vec3{},Vec3{20.f,0.f,0.f}},
-        reference,42,GetCurrentThreadId(),0);
+    feature::PrepareCamera(*staged,f.reader,f.go,cfg,{},f.Object(0),f.Object(1),{f.Object(3),f.Object(4)},reference,42,GetCurrentThreadId(),0);
     staged->clip_available=true;staged->clip.duration=1;staged->clip.source_keys.resize(1);
     staged->clip.source_keys[0].distance=-10;staged->clip.source_keys[0].fov=45;staged->clip.source_keys[0].target={1.f,0.f,0.f};
     state.camera_mode=2;f.NativeCamera({0,10,20});
@@ -212,7 +212,7 @@ static void FormationCameraTest(Fixture& f){
 }
 static void CameraTrackHeightTest(Fixture& f){
     auto c=std::make_unique<feature::CameraFeatures>();Json cfg={{"camera_clip_enabled",false},{"camera_mode",0}};
-    feature::PrepareCamera(*c,f.reader,f.go,cfg,{},f.Object(0),f.Object(1),{f.Object(3)},{},{true,{20,30,-40}},42,GetCurrentThreadId(),0);
+    feature::PrepareCamera(*c,f.reader,f.go,cfg,{},f.Object(0),f.Object(1),{f.Object(3)},feature::StageReference{{20,30,-40}},42,GetCurrentThreadId(),0);
     c->clip_available=true;c->clip.duration=2;c->source_basis=Quat::AxisAngle({1,0,0},.4f);c->unit_scale=3;
     for(unsigned i=0;i<3;++i){mmd::CameraKey key;key.frame=i*30;key.target={float(i*2),float(i*3),float(i)};key.rotation={.1f*i,.2f*i,.3f*i};key.distance=-10.f-float(i*2);key.fov=35.f+float(i*10);c->clip.source_keys.push_back(key);}
     play::PlayerState state;state.mode=play::PlayerMode::Paused;state.camera_mode=2;
@@ -455,9 +455,10 @@ static void PartGravityCatalogTest(const std::filesystem::path& data) {
 }
 int wmain(int argc,wchar_t** argv){
     auto fixture=std::make_unique<Fixture>();DirectTest(*fixture);FaceTest(*fixture);GazeTest();CameraTest(*fixture);FormationCameraTest(*fixture);CameraCallbackTest(*fixture);CameraTrackHeightTest(*fixture);
-    Check(argc==2,"expected the repository data directory");
-    ClothingProfilesTest(argv[1]);
+    Check(argc==3,"expected the repository root and build directory");
+    const auto data=std::filesystem::path(argv[1])/L"data";
+    ClothingProfilesTest(data);
     PartContactTurnLimitTest();
-    SelectedPartGravityTest(argv[1]);
-    PartGravityCatalogTest(argv[1]);
+    SelectedPartGravityTest(data);
+    PartGravityCatalogTest(data);
     std::cout<<assertions<<" feature assertions passed; game_accessed=false; hooks_installed=false\n";}

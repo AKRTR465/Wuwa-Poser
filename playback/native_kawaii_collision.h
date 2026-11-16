@@ -4,10 +4,12 @@
 
 namespace wwp_playback::kawaii_collision {
 namespace parameters=kawaii_parameters;
-inline constexpr size_t kCapsuleArrays[]={0x180,0x1b8};
-inline constexpr size_t kCapsuleIdentity=0x0c,kCapsuleBytes=0x60;
-// Verified in GroupUpdateCapsuleLimits and the 3.8 capsule contact functions.
-inline constexpr size_t kOffsetLocation=0x14,kOffsetRotation=0x20,kRadius=0x50,kLength=0x54;
+namespace compat=ww_game_compat;
+inline constexpr size_t kCapsuleArrays[]={compat::KawaiiCapsulesAOffset,compat::KawaiiCapsulesBOffset};
+inline constexpr size_t kCapsuleIdentity=compat::KawaiiCapsuleIdentityOffset,kCapsuleBytes=compat::KawaiiCapsuleBytes;
+// Verified in GroupUpdateCapsuleLimits and the capsule contact functions.
+inline constexpr size_t kOffsetLocation=compat::KawaiiCapsuleLocationOffset,kOffsetRotation=compat::KawaiiCapsuleRotationOffset,
+    kRadius=compat::KawaiiCapsuleRadiusOffset,kLength=compat::KawaiiCapsuleLengthOffset;
 enum Field : unsigned {Radius, Length, OffsetX, OffsetY, OffsetZ, Fields};
 struct alignas(16) Capsule {
     std::array<uint8_t,kCapsuleBytes> bytes;
@@ -83,7 +85,7 @@ void EvaluateCapsules(State& state,uintptr_t node,const Access& access,bool feed
     }
     parameters::Array simulation{};
     std::array<int32_t,1024> compact_to_skeleton{};
-    if(!access.Get(node+parameters::kBoneArray,simulation)||!parameters::ValidArray(simulation)||!simulation.count||!map(compact_to_skeleton)){
+    if(!access.Get(node+parameters::kBoneArray,simulation)||!parameters::ValidArray(simulation)||!simulation.num||!map(compact_to_skeleton)){
         evaluate();return;
     }
     std::vector<Driver> observed;
@@ -92,8 +94,8 @@ void EvaluateCapsules(State& state,uintptr_t node,const Access& access,bool feed
     for(unsigned i=0;i<state.buffers.size();++i){
         auto& buffer=state.buffers[i];buffer.records.clear();
         if(!access.Get(node+kCapsuleArrays[i],buffer.original)||!parameters::ValidArray(buffer.original)){evaluate();return;}
-        if(edits)buffer.records.reserve(size_t(buffer.original.count));
-        for(int32_t index=0;index<buffer.original.count;++index){
+        if(edits)buffer.records.reserve(size_t(buffer.original.num));
+        for(int32_t index=0;index<buffer.original.num;++index){
             Capsule record{};
             if(!access.Get(buffer.original.data+size_t(index)*kCapsuleBytes,record)){evaluate();return;}
             std::array<int32_t,2> identity{};
@@ -123,7 +125,7 @@ void EvaluateCapsules(State& state,uintptr_t node,const Access& access,bool feed
     }
     for(unsigned i=0;edits&&i<state.buffers.size();++i){
         auto& buffer=state.buffers[i];
-        if(!changed[i]&&buffer.records.size()==size_t(buffer.original.count))continue;
+        if(!changed[i]&&buffer.records.size()==size_t(buffer.original.num))continue;
         const auto address=node+kCapsuleArrays[i];parameters::Array current{};
         if(!access.Get(address,current)||!parameters::SameArray(current,buffer.original)||!access.writable(access.user,address,sizeof(current))){Restore(state,node,access);fault();evaluate();return;}
         const auto count=int32_t(buffer.records.size());

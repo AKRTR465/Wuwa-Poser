@@ -7,7 +7,7 @@ namespace mmd {
 // appears in Sasye/EIEM's DirectVmd phase-6 twist mapping (AGPL-3.0).
 // Never distribute the elbow's bend or the wrist's own FK rotation as twist.
 struct ArmTwistBinding {
-  int sourceStart=-1, sourceEndParent=-1, start=-1, end=-1, endRole=-1;
+  int sourceStart=-1, sourceEndParent=-1, start=-1, end=-1;
   std::array<int,2> helpers{-1,-1};
   Vec3 sourceAxis;
   std::array<Vec3,2> axes;
@@ -34,15 +34,12 @@ template<class Profile>
 std::vector<ArmTwistBinding> BindArmTwists(const RigDefinition &source,
     const std::array<int,55> &roles,const Profile &target) {
   std::vector<ArmTwistBinding> out;
-  auto below=[&](int child,int ancestor) {
-    for(int n=0;child>=0&&n<128;++n,child=target.bones[child].parent)if(child==ancestor)return true;
-    return false;
-  };
+  auto below=[&](int child,int ancestor){return Reaches(target.bones,child,ancestor);};
   for(int side=0;side<2;++side)for(int wrist=0;wrist<2;++wrist) {
     const int startRole=13+side+wrist*2,endRole=startRole+2;
     const int ss=roles[startRole],se=roles[endRole];
     ArmTwistBinding b;b.sourceStart=ss;b.start=target.roles[startRole];
-    b.end=target.roles[endRole];b.endRole=endRole;
+    b.end=target.roles[endRole];
     if(ss<0||se<0||b.start<0||b.end<0||!below(b.end,b.start))continue;
     b.sourceAxis=Norm(source.bones[se].rest-source.bones[ss].rest);
     if(Len(b.sourceAxis)<.9f)continue;

@@ -227,7 +227,6 @@ struct SampledPose {
 };
 class Retargeter {
   const RigDefinition *source_ = nullptr;
-  const MotionClip *clip_ = nullptr;
   const RetargetProfile *target_ = nullptr;
   RigEvaluator eval_;
   std::array<int, 55> sourceRole_;
@@ -280,7 +279,6 @@ public:
   void bind(const RigDefinition &source, const MotionClip &clip,
             const RetargetProfile &target) {
     source_ = &source;
-    clip_ = &clip;
     target_ = &target;
     worldDirty_.resize(target.bones.size());
     sourceRole_.fill(-1);
@@ -319,9 +317,7 @@ public:
     basis_ = NormQ(BodyBasis(tp(13), tp(14), tp(0), tp(10)) * Conj(sourceBody));
     nativeFingers_.fill(false);
     auto descendant = [](const auto &bones, int child, int ancestor) {
-      if(child==ancestor)return false;
-      while (child >= 0 && child != ancestor) child = bones[child].parent;
-      return child == ancestor;
+      return child != ancestor && Reaches(bones, child, ancestor);
     };
     for(int side=0;side<2;++side) {
       const int hand=17+side;
@@ -395,17 +391,12 @@ public:
       bool terminalFinger = !nativeFinger && r >= 24 && r <= 53 && (r - 24) % 3 != 0 &&
           (cr < 0 || sourceRole_[cr] < 0 || target.roles[cr] < 0);
       if (terminalFinger && sourceRole_[r - 1] >= 0 && target.roles[r - 1] >= 0) {
-        int sourceParent = source.bones[si].parent;
-        while (sourceParent >= 0 && sourceParent != sourceRole_[r - 1])
-          sourceParent = source.bones[sourceParent].parent;
-        int targetParent = target.bones[ti].parent;
-        while (targetParent >= 0 && targetParent != target.roles[r - 1])
-          targetParent = target.bones[targetParent].parent;
         // Explicit mappings can point at unrelated bones. Do not treat such
         // mappings as an anatomical finger chain or guess from child names.
-        if (sourceParent >= 0 && targetParent >= 0)
+        if (Reaches(source.bones, source.bones[si].parent, sourceRole_[r - 1]) &&
+            Reaches(target.bones, target.bones[ti].parent, target.roles[r - 1]))
           rest = NormQ(alignedRest_[r - 1] *
-                       Conj(target.bones[targetParent].restRot) * rest);
+                       Conj(target.bones[target.roles[r - 1]].restRot) * rest);
       }
       alignedRest_[r] = rest;
       std::set<int> seen;

@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace WWPoser.Services;
 
 // A stage preview stands the chosen characters at their start positions with no
@@ -33,21 +31,10 @@ public sealed partial class OwnedMmdPlaybackService
         LaunchStage = "runtime_preparation";
         var game = GameProcess.Current();
         var directory = Path.Combine(root, "playback", "stage_previews", "preview_" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
-        foreach (var filename in RuntimeFiles) File.Copy(Path.Combine(NativePackageDirectory, filename), Path.Combine(directory, filename));
+        StageRuntime(directory, game);
         JsonData.Write(Path.Combine(directory, "owned_mmd_config.json"), config);
         WriteActorsFile(directory, config);
-        JsonData.Write(Path.Combine(directory, "session_config.json"), new JsonObject
-        {
-            ["session_id"] = Guid.NewGuid().ToString("N"), ["expected_pid"] = game.Pid,
-            ["window_handle"] = game.WindowHandle, ["window_thread_id"] = game.WindowThread, ["expected_process_creation_filetime"] = game.CreationFileTime
-        });
-        await GameProcess.WaitForForegroundAsync(game, cancellation);
-        Progress?.Invoke("正在请演员上台预览站位");
-        var info = new ProcessStartInfo(Path.Combine(directory, "ownedmmd_lite_installer.exe")) { WorkingDirectory = directory, UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden };
-        info.ArgumentList.Add("--run-session"); info.ArgumentList.Add(directory);
-        LaunchStage = "owned_installer_launch";
-        installer = Process.Start(info)!;
-        ActiveSession = directory;
+        installer = await StartInstallerAsync(directory, game, "正在请演员上台预览站位", cancellation);
         try
         {
             while (true)

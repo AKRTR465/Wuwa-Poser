@@ -16,7 +16,7 @@ the full duration 166.633333 seconds. Thirteen nonstandard extension names are
 invalid CP932; the CLI preserves their raw bytes in distinct placeholder names
 and reports them instead of dropping tracks or guessing their spelling.
 
-Build `tools/mmd_build_vmd_cli.bat`; use:
+Build with `tools/build_compilers.bat`; use:
 
 ```
 mmd_outputs/mmd_vmd_cli.exe --source <VMD> --output <new report.json> --frames <new source_frames.jsonl> --start 0 --step 0.0166666666667 --count 60

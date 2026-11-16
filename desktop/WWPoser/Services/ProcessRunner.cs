@@ -23,22 +23,14 @@ public static class ProcessRunner
     }
 }
 
-public sealed record GameIdentity(int Pid, long CreationFileTime, string WindowHandle, uint WindowThread);
+public sealed record GameIdentity(int Pid, string WindowHandle, uint WindowThread);
 public static class GameProcess
 {
     [DllImport("kernel32.dll", SetLastError = true)] private static extern nint OpenProcess(uint access, bool inherit, uint pid);
-    [DllImport("kernel32.dll", SetLastError = true)] private static extern bool GetProcessTimes(nint handle, out long created, out long exited, out long kernel, out long user);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern uint WaitForSingleObject(nint process, uint milliseconds);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern bool CloseHandle(nint process);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hwnd, out uint pid);
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
-    public static long CreationFileTime(int pid)
-    {
-        var handle = OpenProcess(0x1000, false, checked((uint)pid));
-        if (handle == 0) throw new Win32Exception(Marshal.GetLastWin32Error(), "无法查询进程身份（PID " + pid + "）");
-        try { return GetProcessTimes(handle, out var birth, out _, out _, out _) ? birth : throw new Win32Exception(Marshal.GetLastWin32Error(), "无法读取进程创建时间"); }
-        finally { CloseHandle(handle); }
-    }
     public static GameIdentity Current()
     {
         var games = Process.GetProcessesByName("Client-Win64-Shipping");
@@ -48,7 +40,7 @@ public static class GameProcess
             var game = games[0]; var hwnd = game.MainWindowHandle;
             if (hwnd == 0) throw new InvalidOperationException("鸣潮主窗口不可见");
             var thread = GetWindowThreadProcessId(hwnd, out _);
-            return new(game.Id, CreationFileTime(game.Id), "0x" + hwnd.ToInt64().ToString("x"), thread);
+            return new(game.Id, "0x" + hwnd.ToInt64().ToString("x"), thread);
         }
         finally { foreach (var game in games) game.Dispose(); }
     }

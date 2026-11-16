@@ -19,6 +19,7 @@
 #include <array>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -27,11 +28,12 @@ namespace owned_mmd_body {
 namespace ob=v20_publish_observer;
 namespace id=ww_object;
 namespace fb=wwp_ue::full_body;
-namespace sub=wwp_ue::subtree_rotation;
 namespace clip=wwp_playback::local_clip;
 namespace play=wwp_playback;
 namespace vmt=v20_vmt_slot_patch;
 namespace features=unified_player_features;
+namespace native=v20_shared_native_physics;
+using ue_memory::Require;
 enum Object:uint32_t {Actor,Mesh,Asset,Skeleton,MainAnim,Objects};
 constexpr const char* kObjectKeys[Objects]={"actor","mesh","asset","skeleton","main_anim"};
 enum class Error:uint32_t {None,Arguments,Plan,Install};
@@ -44,16 +46,16 @@ struct ActorRuntime {
     std::vector<std::array<float,3>> positions;std::vector<std::array<float,4>> rotations;
     std::vector<uint8_t> positionMask,rotationMask;
     clip::Clip motion;fb::Topology topology;fb::Request request;play::placement::Settings placement;
-    features::ActorFeatures features;v20_shared_native_physics::Actor native;
+    features::ActorFeatures features;native::Actor native;
     native_animation_target::AuthoritySnapshot authority{};
     std::atomic<bool> nativePrepared{false};std::atomic<uint64_t> writes{0};
 };
 struct Runtime {
-    bool initialized=false,multiActor=false,startPaused=false,payloadReleased=false;
+    bool initialized=false,startPaused=false,payloadReleased=false;
     Json terminalStatus;
-    std::atomic<double> formationHeightCorrection{0};
+    std::atomic<double> groundHeight{0};
     std::filesystem::path directory;
-    uint64_t host=0,publishRva=0,slotRva=0,epoch=0,durationMs=0,frameRva=ww_game_compat::EngineFrameRva,lastEngineFrame=0;
+    uint64_t host=0,epoch=0,lastEngineFrame=0;
     play::Transport transport;play::SpscCommandQueue<64> commands;
     uint64_t initialSequence=0,lastWireSequence=0,lastControlSequence=0;DWORD gameThread=0;
     play::model_preview::Frame modelPreview{};
@@ -66,18 +68,14 @@ struct Runtime {
     std::atomic<bool> observing{false},writing{false},closing{false},closed{false},deadlineExpired{false},nativeInstalled{false};
     std::mutex publicationMutex;
     std::atomic<uint32_t> error{0},active{0},work{0},lastControlCode{0};
-    std::atomic<uint64_t> rejectedCommands{0},playStart{0},actualPlayStart{0};
+    std::atomic<uint64_t> rejectedCommands{0},actualPlayStart{0};
 };
 inline Runtime runtime;
-inline void Require(bool value,const char* message){if(!value)throw std::runtime_error(message);}
 inline void Fail(Error error) noexcept {
     uint32_t empty=0;runtime.error.compare_exchange_strong(empty,uint32_t(error));
     runtime.writing.store(false,std::memory_order_release);runtime.closing.store(true,std::memory_order_release);
 }
-struct Reader {
-    bool Read(uint64_t address,void* out,size_t size){SIZE_T count=0;return address&&ReadProcessMemory(GetCurrentProcess(),(LPCVOID)address,out,size,&count)&&count==size;}
-    template<class T>bool Get(uint64_t address,T& out){return Read(address,&out,sizeof(out));}
-};
+inline ::Reader CurrentProcess(){return ::Reader{GetCurrentProcess()};}
 inline ActorRuntime* FindSlot(uint32_t slot) noexcept {
     const auto& list=runtime.bySlot;const auto at=std::lower_bound(list.begin(),list.end(),slot,[](const ActorRuntime* a,uint32_t key){return a->slot<key;});
     return at!=list.end()&&(*at)->slot==slot?*at:nullptr;
@@ -106,6 +104,88 @@ inline void ApplyActorCommand(ActorRuntime& actor,const play::Command& command){
     case play::CommandKind::ResetPlacement:actor.placement={};break;
     default:break;
 }}
+// The targeted actor when it has prepared native physics and, for group
+// commands, a verified group (and chain) to edit.
+inline ActorRuntime* NativeTarget(const play::Command& command,bool group,unsigned chain=0){
+    auto* actor=FindSlot(command.target_slot);
+    if(!actor||!actor->nativePrepared)return nullptr;
+    return !group||native::CanSetParameter(actor->native,command.target_group,chain)?actor:nullptr;
+}
+inline play::ControlCode ApplyNativeCommand(const play::Command& command,double now){auto& r=runtime;
+    const auto accept=[&]{return r.transport.AcceptRoutedCommand(command,now);};
+    constexpr auto invalid=play::ControlCode::InvalidCommand,ok=play::ControlCode::Ok;
+    if(play::NativeCapsuleCommand(command.kind)){
+        auto* actor=NativeTarget(command,true);if(!actor||!actor->native.capsules_verified)return invalid;
+        auto& capsules=actor->native.capsules[command.target_group-1];
+        std::lock_guard<std::mutex> lock(capsules.edit);
+        const auto shape=std::find_if(capsules.shapes.begin(),capsules.shapes.end(),[&](const auto& s){return s.id==command.target_chain;});
+        if(shape==capsules.shapes.end()||(!shape->geometry_available&&command.kind<play::CommandKind::ResetNativeCapsule))return invalid;
+        const auto code=accept();if(code!=ok)return code;
+        if(command.kind==play::CommandKind::SetNativeCapsuleActive)shape->enabled=command.value!=0;
+        else if(command.kind==play::CommandKind::ResetNativeCapsule){shape->enabled=true;shape->edited=0;}
+        else{
+            const auto field=unsigned(command.kind)-unsigned(play::CommandKind::SetNativeCapsuleRadius);
+            shape->requested[field]=float(command.value);shape->edited|=1u<<field;
+        }
+        return code;
+    }
+    switch(command.kind){
+    case play::CommandKind::SetNativeCapsuleCollision:{
+        auto* actor=NativeTarget(command,true);if(!actor||!actor->native.capsules_verified)return invalid;
+        auto& capsule=actor->native.capsules[command.target_group-1];
+        std::lock_guard<std::mutex> lock(capsule.edit);
+        const auto driver=std::find_if(capsule.drivers.begin(),capsule.drivers.end(),[&](const auto& d){return d.bone+1==command.target_chain;});
+        if(driver==capsule.drivers.end())return invalid;
+        const auto code=accept();if(code==ok)driver->enabled=command.value!=0;
+        return code;
+    }
+    case play::CommandKind::SetNativeGravity:{
+        auto* actor=NativeTarget(command,true);if(!actor||!actor->native.gravity_verified)return invalid;
+        const auto code=accept();if(code!=ok)return code;
+        auto& gravity=actor->native.gravity[command.target_group-1];
+        std::lock_guard<std::mutex> lock(gravity.edit);
+        gravity.requested=float(command.value);gravity.revision=command.sequence;return code;
+    }
+    case play::CommandKind::SetPartGravity:{
+        auto* actor=NativeTarget(command,false);if(!actor)return invalid;
+        auto& parts=actor->features.gravity_parts;
+        const auto part=std::find_if(parts.begin(),parts.end(),[&](const auto& item){return item.id==command.target_chain;});
+        if(part==parts.end())return invalid;
+        const auto code=accept();if(code!=ok)return code;
+        part->strength=float(command.value);part->sequence=command.sequence;
+        unsigned covered=0;
+        for(unsigned i=0;i<actor->native.binding.group_count;++i)
+            if(play::part_gravity::CoversGroup(parts,actor->native.settings[i].chains,actor->native.binding.groups[i].root_bones.size()))covered|=1u<<i;
+        actor->native.part_gravity_group_mask.store(covered);
+        return code;
+    }
+    case play::CommandKind::SetNativePreview:{
+        auto* actor=NativeTarget(command,true);if(!actor)return invalid;
+        const auto code=accept();if(code!=ok)return code;
+        native::SetPreview(actor->native,command.target_group,command.value!=0);return code;
+    }
+    case play::CommandKind::SetNativeShoulderFollow:{
+        auto* actor=NativeTarget(command,false);if(!actor)return invalid;
+        auto& state=actor->native;const auto sleeve=native::FindSleeve(state,command.target_group,command.target_chain);
+        if(sleeve==state.sleeves.end())return invalid;
+        const auto code=accept();if(code!=ok)return code;
+        std::lock_guard<std::mutex> lock(state.sleeve_edit);
+        sleeve->follow=float(command.value);sleeve->applied_frames=0;sleeve->peak_correction_degrees=0;return code;
+    }
+    default:{ // Native damping, stiffness and limit angle.
+        auto* actor=NativeTarget(command,true,command.target_chain);if(!actor)return invalid;
+        const auto code=accept();if(code!=ok)return code;
+        const unsigned parameter=command.kind==play::CommandKind::SetNativeDamping?0:command.kind==play::CommandKind::SetNativeStiffness?1:2;
+        native::SetParameter(actor->native,command.target_group,command.target_chain,parameter,float(command.value),command.sequence);
+        return code;
+    }
+    }
+}
+inline bool NativeCommand(play::CommandKind kind){
+    using K=play::CommandKind;
+    return play::NativeCapsuleCommand(kind)||play::NativeSettingsCommand(kind)||kind==K::SetNativeCapsuleCollision||kind==K::SetNativeGravity||
+        kind==K::SetPartGravity||kind==K::SetNativePreview||kind==K::SetNativeShoulderFollow;
+}
 inline play::ControlCode ApplyCommand(const play::Command& command,double now){auto& r=runtime;
     if(command.target_slot&&!FindSlot(command.target_slot))return play::ControlCode::InvalidCommand;
     if(command.kind==play::CommandKind::SetModelPreview){
@@ -117,90 +197,14 @@ inline play::ControlCode ApplyCommand(const play::Command& command,double now){a
         }
         return code;
     }
-    if(play::NativeCapsuleCommand(command.kind)){
-        auto* actor=FindSlot(command.target_slot);
-        if(!actor||!actor->nativePrepared||!actor->native.capsules_verified||
-            !v20_shared_native_physics::CanSetParameter(actor->native,command.target_group,0))return play::ControlCode::InvalidCommand;
-        auto& capsules=actor->native.capsules[command.target_group-1];
-        std::lock_guard<std::mutex> lock(capsules.edit);
-        const auto shape=std::find_if(capsules.shapes.begin(),capsules.shapes.end(),[&](const auto& s){return s.id==command.target_chain;});
-        if(shape==capsules.shapes.end()||(!shape->geometry_available&&command.kind<play::CommandKind::ResetNativeCapsule))
-            return play::ControlCode::InvalidCommand;
-        const auto code=r.transport.AcceptRoutedCommand(command,now);
-        if(code!=play::ControlCode::Ok)return code;
-        if(command.kind==play::CommandKind::SetNativeCapsuleActive)shape->enabled=command.value!=0;
-        else if(command.kind==play::CommandKind::ResetNativeCapsule){shape->enabled=true;shape->edited=0;}
-        else{
-            const auto field=unsigned(command.kind)-unsigned(play::CommandKind::SetNativeCapsuleRadius);
-            shape->requested[field]=float(command.value);shape->edited|=1u<<field;
-        }
-        return code;
-    }
-    if(command.kind==play::CommandKind::SetNativeCapsuleCollision){
-        auto* actor=FindSlot(command.target_slot);
-        if(!actor||!actor->nativePrepared||!actor->native.capsules_verified||!command.target_chain||
-           !v20_shared_native_physics::CanSetParameter(actor->native,command.target_group,0))return play::ControlCode::InvalidCommand;
-        auto& capsule=actor->native.capsules[command.target_group-1];
-        std::lock_guard<std::mutex> lock(capsule.edit);
-        const auto driver=std::find_if(capsule.drivers.begin(),capsule.drivers.end(),[&](const auto& d){return d.bone+1==command.target_chain;});
-        if(driver==capsule.drivers.end())return play::ControlCode::InvalidCommand;
-        const auto code=r.transport.AcceptRoutedCommand(command,now);if(code==play::ControlCode::Ok)driver->enabled=command.value!=0;
-        return code;
-    }
-    if(command.kind==play::CommandKind::SetNativeGravity){
-        auto* actor=FindSlot(command.target_slot);
-        if(!actor||!actor->nativePrepared||!actor->native.gravity_verified||
-           !v20_shared_native_physics::CanSetParameter(actor->native,command.target_group,0))return play::ControlCode::InvalidCommand;
-        const auto code=r.transport.AcceptRoutedCommand(command,now);if(code!=play::ControlCode::Ok)return code;
-        auto& gravity=actor->native.gravity[command.target_group-1];
-        std::lock_guard<std::mutex> lock(gravity.edit);
-        gravity.requested=float(command.value);gravity.revision=command.sequence;return code;
-    }
-    if(command.kind==play::CommandKind::SetPartGravity){
-        auto* actor=FindSlot(command.target_slot);
-        if(!actor||!actor->nativePrepared)return play::ControlCode::InvalidCommand;
-        auto& parts=actor->features.gravity_parts;
-        const auto part=std::find_if(parts.begin(),parts.end(),[&](const auto& item){return item.id==command.target_chain;});
-        if(part==parts.end())return play::ControlCode::InvalidCommand;
-        const auto code=r.transport.AcceptRoutedCommand(command,now);
-        if(code==play::ControlCode::Ok){
-            part->strength=float(command.value);part->sequence=command.sequence;
-            unsigned covered=0;
-            for(unsigned i=0;i<actor->native.binding.group_count;++i)
-                if(play::part_gravity::CoversGroup(parts,actor->native.settings[i].chains,actor->native.binding.groups[i].root_bones.size()))
-                    covered|=1u<<i;
-            actor->native.part_gravity_group_mask.store(covered);
-        }
-        return code;
-    }
-    if(command.kind==play::CommandKind::SetNativePreview){
-        auto* actor=FindSlot(command.target_slot);
-        if(!actor||!actor->nativePrepared||!v20_shared_native_physics::CanSetParameter(actor->native,command.target_group,0))return play::ControlCode::InvalidCommand;
-        const auto code=r.transport.AcceptRoutedCommand(command,now);if(code!=play::ControlCode::Ok)return code;
-        v20_shared_native_physics::SetPreview(actor->native,command.target_group,command.value!=0);return code;
-    }
-    if(command.kind==play::CommandKind::SetNativeShoulderFollow){
-        auto* actor=FindSlot(command.target_slot);if(!actor||!actor->nativePrepared)return play::ControlCode::InvalidCommand;
-        auto& native=actor->native;auto sleeve=v20_shared_native_physics::FindSleeve(native,command.target_group,command.target_chain);
-        if(sleeve==native.sleeves.end())return play::ControlCode::InvalidCommand;
-        const auto code=r.transport.AcceptRoutedCommand(command,now);if(code!=play::ControlCode::Ok)return code;
-        std::lock_guard<std::mutex> lock(native.sleeve_edit);
-        sleeve->follow=float(command.value);sleeve->applied_frames=0;sleeve->peak_correction_degrees=0;return code;
-    }
-    if(play::NativeSettingsCommand(command.kind)){
-        auto* actor=FindSlot(command.target_slot);
-        if(!actor||!actor->nativePrepared||!v20_shared_native_physics::CanSetParameter(actor->native,command.target_group,command.target_chain))return play::ControlCode::InvalidCommand;
-        const auto code=r.transport.AcceptRoutedCommand(command,now);if(code!=play::ControlCode::Ok)return code;
-        const unsigned parameter=command.kind==play::CommandKind::SetNativeDamping?0:command.kind==play::CommandKind::SetNativeStiffness?1:2;
-        v20_shared_native_physics::SetParameter(actor->native,command.target_group,command.target_chain,parameter,float(command.value),command.sequence);
-        return code;
-    }
+    if(NativeCommand(command.kind))return ApplyNativeCommand(command,now);
     if(command.kind==play::CommandKind::SetCameraMode&&command.value==2&&!r.cameraFeatures.clip_available)return play::ControlCode::InvalidCommand;
     if(command.kind==play::CommandKind::SetPhysics&&command.value==1)
-        for(const auto& actor:r.actors)if((!command.target_slot||actor->slot==command.target_slot)&&(actor->nativePhysics||!actor->features.physics_available))return play::ControlCode::InvalidCommand;
+        for(const auto& actor:r.actors)
+            if((!command.target_slot||actor->slot==command.target_slot)&&(actor->nativePhysics||!actor->features.physics_available))return play::ControlCode::InvalidCommand;
     if(Routed(command.kind)){
         const auto code=r.transport.AcceptRoutedCommand(command,now);if(code!=play::ControlCode::Ok)return code;
-        if(command.kind==play::CommandKind::SetGroundHeight){r.formationHeightCorrection=command.value;return code;}
+        if(command.kind==play::CommandKind::SetGroundHeight){r.groundHeight=command.value;return code;}
         if(command.target_slot)ApplyActorCommand(*FindSlot(command.target_slot),command);
         else for(auto& actor:r.actors)ApplyActorCommand(*actor,command);
         return code;
@@ -209,38 +213,40 @@ inline play::ControlCode ApplyCommand(const play::Command& command,double now){a
 }
 inline bool Advance(uint64_t engineFrame,double now){auto& r=runtime;if(engineFrame==r.lastEngineFrame)return true;
     r.lastEngineFrame=engineFrame;play::Command command;
-    while(r.commands.Pop(&command)){const auto code=ApplyCommand(command,now);r.lastControlCode.store(uint32_t(code));r.lastControlSequence=command.sequence;
+    while(r.commands.Pop(command)){
+        const auto code=ApplyCommand(command,now);r.lastControlCode.store(uint32_t(code));r.lastControlSequence=command.sequence;
         if(code!=play::ControlCode::Ok)r.rejectedCommands.fetch_add(1);
-        else if(command.kind==play::CommandKind::Play&&!r.actualPlayStart.load())r.actualPlayStart.store(GetTickCount64());}
+        else if(command.kind==play::CommandKind::Play&&!r.actualPlayStart.load())r.actualPlayStart.store(GetTickCount64());
+    }
     if(r.transport.Tick(now)!=play::ControlCode::Ok){Fail(Error::Plan);return false;}
     if(r.transport.State().restore_requested){r.writing.store(false);r.closing.store(true);}return true;
 }
-inline play::placement::Settings EffectivePlacement(const ActorRuntime& actor){auto placed=actor.placement;placed.height+=runtime.formationHeightCorrection.load();return placed;}
-inline double FormationHeightCorrection(const Json& config,const Json&){
+inline play::placement::Settings EffectivePlacement(const ActorRuntime& actor){auto placed=actor.placement;placed.height+=runtime.groundHeight.load();return placed;}
+inline double GroundHeight(const Json& config){
     // One explicit offset for both formation modes. Do not additionally apply
     // the previous capsule-gap correction, which would lower native formation twice.
-    const auto correction=config.value("ground_height_cm",-2.0);
-    Require(std::isfinite(correction)&&correction>=-1000&&correction<=1000,"invalid standing height");return correction;
+    const auto height=config.value("ground_height_cm",-2.0);
+    Require(std::isfinite(height)&&height>=-1000&&height<=1000,"invalid standing height");return height;
 }
 inline play::PlayerState CameraState(const play::PlayerState& timeline){auto state=timeline;if(const auto* actor=runtime.cameraAnchor){
     state.placement_x=actor->placement.x;state.placement_y=actor->placement.y;state.placement_height=EffectivePlacement(*actor).height;
     state.placement_yaw_degrees=actor->placement.yaw_degrees;state.placement_in_place=actor->placement.in_place;}return state;}
 inline void CapturePublishedPreview(ActorRuntime& actor,::Reader& read){
-    namespace observation=v20_publish_observer;
-    auto& native=actor.native;
-    const auto group=native.preview_group.load(std::memory_order_acquire);
+    auto& state=actor.native;
+    const auto group=state.preview_group.load(std::memory_order_acquire);
     auto& model=runtime.modelPreview;
     const bool model_requested=model.slot==actor.slot&&model.frame!=runtime.lastEngineFrame;
     if(!group&&!model_requested)return;
-    observation::Metadata before,after;
+    ob::Metadata before,after;
     const auto mesh=actor.features.mesh.object;
-    if(!observation::ReadMetadata(read,mesh,observation::kVerifiedLayout,before)||before.previous_index<0||before.previous_index>1)return;
+    if(!ob::ReadMetadata(read,mesh,before)||before.previous_index<0||before.previous_index>1)return;
     const auto index=unsigned(before.previous_index);
     const auto& head=before.heads[index];
-    if(head.num!=int32_t(actor.topology.count)||!observation::ValidHead(head,observation::kVerifiedLayout.max_bones)||
-       !read.Read(head.data,actor.features.pose.data(),size_t(head.num)*ww_game_compat::TransformBytes)||
-       !observation::ReadMetadata(read,mesh,observation::kVerifiedLayout,after)||after.previous_index!=before.previous_index||
-       after.generation!=before.generation||after.heads[index].data!=head.data||after.heads[index].num!=head.num)return;
+    if(head.num!=int32_t(actor.topology.count)||!ob::ValidHead(head)||
+       !read.Read(head.data,actor.features.pose.data(),size_t(head.num)*ww_game_compat::TransformBytes))return;
+    // The buffer must not have been republished while it was copied.
+    if(!ob::ReadMetadata(read,mesh,after)||after.previous_index!=before.previous_index||after.generation!=before.generation||
+       after.heads[index].data!=head.data||after.heads[index].num!=head.num)return;
     if(model_requested&&unsigned(head.num)<=play::model_preview::kMaxBones){
         model.count=0;
         for(int i=0;i<head.num;++i)
@@ -248,17 +254,17 @@ inline void CapturePublishedPreview(ActorRuntime& actor,::Reader& read){
         model.count=unsigned(head.num);model.frame=runtime.lastEngineFrame;
     }
     if(!group)return;
-    std::lock_guard<std::mutex> lock(native.preview_lock);
-    if(native.preview_group.load(std::memory_order_relaxed)!=group)return;
-    const auto count=native.topology.count;
-    native.preview_pose.resize(count);native.preview_frame=runtime.lastEngineFrame;
-    const auto& chain=native.settings[group-1].skeleton_chain;
-    native.preview_solved_bones=0;
+    std::lock_guard<std::mutex> lock(state.preview_lock);
+    if(state.preview_group.load(std::memory_order_relaxed)!=group)return;
+    const auto count=state.topology.count;
+    state.preview_pose.resize(count);state.preview_frame=runtime.lastEngineFrame;
+    const auto& chain=state.settings[group-1].skeleton_chain;
+    state.preview_solved_bones=0;
     for(unsigned i=0;i<count;++i){
         const auto value=wwp_ue::subtree_rotation::detail::Position(actor.features.pose[i]);
-        native.preview_pose[i]={float(value[0]),float(value[1]),float(value[2])};
-        if(!wwp_playback::kawaii_parameters::Finite(native.preview_pose[i])){native.preview_pose.clear();native.preview_solved_bones=0;return;}
-        if(i<chain.size()&&chain[i])++native.preview_solved_bones;
+        state.preview_pose[i]={float(value[0]),float(value[1]),float(value[2])};
+        if(!wwp_playback::kawaii_parameters::Finite(state.preview_pose[i])){state.preview_pose.clear();state.preview_solved_bones=0;return;}
+        if(i<chain.size()&&chain[i])++state.preview_solved_bones;
     }
 }
 inline void Detour(void* object){auto& r=runtime;r.active.fetch_add(1,std::memory_order_acq_rel);
@@ -275,40 +281,39 @@ inline void Detour(void* object){auto& r=runtime;r.active.fetch_add(1,std::memor
     r.work.fetch_add(1,std::memory_order_acq_rel);
     struct Work {~Work(){runtime.work.fetch_sub(1,std::memory_order_release);}} work;
     if(actor->native.error.load()||r.cameraFeatures.failed.load())Fail(Error::Plan);
-    Reader read;uint64_t frame=0;const auto now=GetTickCount64()/1000.0;
-    if(!read.Get(r.host+r.frameRva,frame)||!frame)Fail(Error::Plan);else Advance(frame,now);
+    auto read=CurrentProcess();uint64_t frame=0;const auto now=GetTickCount64()/1000.0;
+    if(!read.Get(r.host+ww_game_compat::EngineFrameRva,frame)||!frame)Fail(Error::Plan);else Advance(frame,now);
     auto state=r.transport.State();state.physics_enabled=actor->physicsEnabled;
     const bool feed=r.writing.load()&&!r.closing.load()&&state.mode!=play::PlayerMode::Stopped&&state.mode!=play::PlayerMode::Empty;
-    ::Reader featureReader{GetCurrentProcess()};
-    if(actor->nativePhysics&&(!features::ActorAlive(actor->features,featureReader)||
-        !features::GravityPartFrame(actor->features,featureReader,state,feed,now,true)))Fail(Error::Plan);
+    if(actor->nativePhysics&&(!features::ActorAlive(actor->features,read)||
+        !features::GravityPartFrame(actor->features,read,state,feed,now,true)))Fail(Error::Plan);
     r.original(object);
     const auto placement=EffectivePlacement(*actor);
+    const bool open=feed&&!r.closing.load();
     if(actor->nativePhysics){
-        if(!features::FaceFrame(actor->features,featureReader,state,feed&&!r.closing.load()))Fail(Error::Plan);
-    }else if(!features::ActorFrame(actor->features,featureReader,state,placement,feed))Fail(Error::Plan);
-    if(actor->nativePhysics)v20_shared_native_physics::Publish(actor->native,state.seconds,placement,feed&&!r.closing.load());
-    if(feed&&!r.closing.load())CapturePublishedPreview(*actor,featureReader);
-    features::PublishCamera(r.cameraFeatures,CameraState(state),feed&&!r.closing.load());
+        if(!features::FaceFrame(actor->features,read,state,open))Fail(Error::Plan);
+        native::Publish(actor->native,state.seconds,placement,open);
+    }else if(!features::ActorFrame(actor->features,read,state,placement,feed))Fail(Error::Plan);
+    if(open)CapturePublishedPreview(*actor,read);
+    features::PublishCamera(r.cameraFeatures,CameraState(state),open);
 }
-inline bool NativeAuthority(void* user,const v20_shared_native_physics::Access& access){
-    const auto& a=*static_cast<ActorRuntime*>(user);uint64_t owner=0,asset=0,skeleton=0,main=0;
-    return access.Get(a.tokens[Mesh].object+ww_game_compat::ComponentOwnerOffset,owner)&&owner==a.tokens[Actor].object&&access.Get(a.tokens[Mesh].object+ww_game_compat::ComponentAssetOffset,asset)&&asset==a.tokens[Asset].object&&
-        access.Get(asset+ww_game_compat::AssetSkeletonOffset,skeleton)&&skeleton==a.tokens[Skeleton].object&&access.Get(a.tokens[Mesh].object+ww_game_compat::ComponentMainAnimOffset,main)&&main==a.tokens[MainAnim].object;
+inline bool NativeAuthority(void* user,const native::Access& access){
+    const auto& a=*static_cast<ActorRuntime*>(user);const auto mesh=a.tokens[Mesh].object;uint64_t owner=0,asset=0,skeleton=0,main=0;
+    return access.Get(mesh+ww_game_compat::ComponentOwnerOffset,owner)&&owner==a.tokens[Actor].object&&
+        access.Get(mesh+ww_game_compat::ComponentAssetOffset,asset)&&asset==a.tokens[Asset].object&&
+        access.Get(asset+ww_game_compat::AssetSkeletonOffset,skeleton)&&skeleton==a.tokens[Skeleton].object&&
+        access.Get(mesh+ww_game_compat::ComponentMainAnimOffset,main)&&main==a.tokens[MainAnim].object;
 }
 inline void NativeCommitted(void* user,uint32_t count){static_cast<ActorRuntime*>(user)->writes.fetch_add(count);}
 inline bool NeedsNative(){for(const auto& actor:runtime.actors)if(actor->nativePhysics)return true;return false;}
-inline void PrepareNative(){auto& r=runtime;Reader reader;
+inline void PrepareNative(){auto& r=runtime;auto reader=CurrentProcess();
     for(auto& actor:r.actors){auto& a=*actor;if(!a.nativePhysics)continue;
-        const auto directory=r.multiActor?r.directory/L"native_inputs"/std::to_string(a.slot):r.directory/L"native_input";
+        const auto directory=r.directory/L"native_inputs"/std::to_string(a.slot);
         std::ifstream input(directory/L"native_playback.json");Require(bool(input),"actor native playback input missing");const auto config=Json::parse(input);
-        v20_shared_native_physics::PrepareFromConfig(a.native,reader,config,config.at("character_profile_id"),directory,a.motion,a.topology,a.request,r.epoch,&NativeAuthority,&a);
+        native::PrepareFromConfig(a.native,reader,config,directory,a.motion,a.topology,a.request,r.epoch,&NativeAuthority,&a);
         a.native.on_commit=&NativeCommitted;a.native.external_writing=&r.writing;
-        Require(v20_shared_native_physics::RegisterActor(a.native),"actor native registration failed");a.nativeRegistered=true;a.nativePrepared=true;
+        Require(native::RegisterActor(a.native),"actor native registration failed");a.nativeRegistered=true;a.nativePrepared=true;
     }
-}
-inline clip::Clip ReadClip(const std::filesystem::path& path){
-    return clip::ReadFile(path);
 }
 inline void ValidateCanonicalPose(const ActorRuntime& a){
     const auto count=a.topology.count;
@@ -321,251 +326,90 @@ inline void ValidateCanonicalPose(const ActorRuntime& a){
         Require(!a.rotationMask[i]||std::fabs(norm-1)<=.001,"actor canonical rotation is not normalized");
     }
 }
-inline Json ReferenceLayoutCandidates(Reader& reader,const ActorRuntime& actor,const Pool& pool,const Go& objects,uint64_t controller){
-    const auto asset=actor.tokens[Asset].object;
-    const auto count=actor.boneNames.size();
-    Json result={{"slot",actor.slot},{"expected_count",count},{"execution_authorized",false},
-        {"reference_candidates",Json::array()},{"skeleton_pointer_offsets",Json::array()},
-        {"component_asset_offsets",Json::array()},{"component_anim_offsets",Json::array()},
-        {"morph_catalog_offsets",Json::array()}};
-    if(!count||count>fb::kLimit||actor.parents.size()!=count)return result;
-    for(uint64_t offset=ww_game_compat::ObjectHeaderBytes;offset<0x1200;offset+=8){
-        uint64_t pointer=0;
-        if(!reader.Get(actor.tokens[Mesh].object+offset,pointer))continue;
-        if(pointer==asset)result["component_asset_offsets"].push_back(Hex(offset));
-        if(pointer==actor.tokens[MainAnim].object)result["component_anim_offsets"].push_back(Hex(offset));
+// The live reference skeleton must match the prepared names (ignoring ASCII
+// case) and parent table exactly.
+inline void VerifyReferenceSkeleton(ActorRuntime& a,::Reader& reader){
+    ob::ArrayHead ref;std::array<unsigned char,fb::kLimit*ww_game_compat::ReferenceBoneInfoBytes> reference{};
+    Require(reader.Get(a.tokens[Asset].object+ww_game_compat::AssetRefBoneInfoOffset,ref)&&ref.num>0&&ref.num==int32_t(a.boneNames.size())&&
+        ref.num<=int32_t(fb::kLimit)&&reader.Read(ref.data,reference.data(),size_t(ref.num)*ww_game_compat::ReferenceBoneInfoBytes),"actor reference skeleton unreadable");
+    std::vector<std::string> names;std::vector<int32_t> parents;
+    for(int32_t i=0;i<ref.num;++i){
+        const auto* row=reference.data()+size_t(i)*ww_game_compat::ReferenceBoneInfoBytes;std::string name;
+        Require(FullName(reader,runtime.pool,At<uint32_t>(row,0),At<uint32_t>(row,ww_game_compat::NameNumberOffset),name),"actor bone name unavailable");
+        const auto& expected=a.boneNames[size_t(i)];
+        names.push_back(id::SameName(name,expected)?expected:std::move(name));
+        parents.push_back(At<int32_t>(row,ww_game_compat::ReferenceBoneParentOffset));
     }
-    const auto expressions=actor.config.value("expression_target_names",std::vector<std::string>{});
-    for(uint64_t offset=ww_game_compat::ObjectHeaderBytes;offset<0x700;offset+=8){
-        uint64_t pointer=0;
-        if(reader.Get(asset+offset,pointer)&&pointer==actor.tokens[Skeleton].object)
-            result["skeleton_pointer_offsets"].push_back(Hex(offset));
-        ob::ArrayHead head;
-        if(!reader.Get(asset+offset,head)||!Pointer(head.data)||head.num<=0||head.max<head.num||head.max>int32_t(fb::kLimit)*2)continue;
-        if(size_t(head.num)==expressions.size()){
-            std::vector<uint64_t> pointers(expressions.size());
-            if(reader.Read(head.data,pointers.data(),pointers.size()*sizeof(uint64_t))){
-                std::vector<std::string> names;
-                for(const auto value:pointers){
-                    id::Identity morph;
-                    if(!id::ReadStable(reader,objects,value,&morph)||id::ClassName(reader,objects,pool,morph.cls)!="MorphTarget")break;
-                    names.push_back(id::Name(reader,pool,morph));
-                }
-                if(names.size()==expressions.size()&&std::is_permutation(names.begin(),names.end(),expressions.begin()))
-                    result["morph_catalog_offsets"].push_back(Hex(offset));
-            }
-        }
-        if(size_t(head.num)!=count)continue;
-        for(const size_t stride:{12u,16u,24u}){
-            std::vector<uint8_t> rows(count*stride);
-            if(!reader.Read(head.data,rows.data(),rows.size()))continue;
-            size_t matched=0;
-            for(;matched<count;++matched){
-                const auto* row=rows.data()+matched*stride;
-                if(At<int32_t>(row,stride==12?8:12)!=actor.parents[matched])break;
-                std::string name;
-                if(!id::DecodeName(reader,pool,At<uint32_t>(row,0),name))break;
-                const auto number=At<uint32_t>(row,stride==12?4:ww_game_compat::NameNumberOffset);
-                if(number)name+="_"+std::to_string(number-1);
-                if(!id::SameName(name,actor.boneNames[matched]))break;
-            }
-            ob::ArrayHead checked;
-            if(matched==count&&reader.Get(asset+offset,checked)&&checked.data==head.data&&checked.num==head.num&&checked.max==head.max)
-                result["reference_candidates"].push_back({{"offset",Hex(offset)},{"stride",stride},{"bone_count",count}});
-        }
-    }
-    namespace res=ww_game_compat_resolution;
-    MODULEINFO image{};
-    const auto module=GetModuleHandleW(nullptr);
-    if(!GetModuleInformation(GetCurrentProcess(),module,&image,sizeof(image)))return result;
-    const auto base=uint64_t(module);
-    const auto read=[&](uint64_t address,void* bytes,size_t size){return reader.Read(address,bytes,size);};
-    std::vector<res::Range> code;
-    std::string error;
-    if(!res::ExecutableRanges(read,base,image.SizeOfImage,code,error))return result;
-    // The archived GetBoneName loads the mesh pointer, bounds-checks
-    // the reference array, then reads a 16-byte bone entry.
-    const auto locate=[&](const char* hex,std::initializer_list<size_t> offsets,uint64_t& address){
-        res::Pattern pattern;
-        if(!res::ParsePattern(hex,"",pattern,error))throw std::logic_error(error);
-        for(const auto i:offsets)pattern.mask.at(i)=0;
-        const auto hit=res::FindUnique(read,code,pattern);
-        std::vector<uint8_t> actual(pattern.bytes.size());
-        address=0;
-        if(hit.status!=res::ScanStatus::Unique||!read(hit.address,actual.data(),actual.size())||!res::Matches(actual.data(),pattern))return std::vector<uint8_t>{};
-        address=hit.address;
-        return actual;
-    };
-    uint64_t address=0;
-    const auto boneName=locate("488b81d00500004885c0742b4585c07826443b80000000007d1d488b80000000004963c84803c9f20f1004c88b44c808",
-        {20,21,22,23,29,30,31,32},address);
-    if(!boneName.empty()){
-        const auto info=res::U32(boneName.data()+29);
-        const auto nameCount=res::U32(boneName.data()+20);
-        result["accessor_reference_offset"]=Hex(info);
-        result["accessor_count_matches"]=uint64_t(info)+8==nameCount;
-    }
-    const auto publication=locate("48895c2418555657488bec4883ec60488bf1e800000000488bcee800000000488d8e600f000033d2e800000000803d0000000000488b3d000000007415ff150000000033db3b05000000008bcb0f95c1",
-        {19,20,21,22,27,28,29,30,41,42,43,44,47,48,49,50,55,56,57,58,63,64,65,66,71,72,73,74},address);
-    if(!publication.empty()){
-        result["publication_candidate_rva"]=Hex(address-base);
-        result["mesh_vtable_rva"]=actor.tokens[Mesh].vtable>=base?Json(Hex(actor.tokens[Mesh].vtable-base)):Json(nullptr);
-        result["matching_publication_slots"]=Json::array();
-        for(uint64_t slot=0;slot<0x1000;slot+=8){
-            uint64_t target=0;
-            if(reader.Get(actor.tokens[Mesh].vtable+slot,target)&&target==address)
-                result["matching_publication_slots"].push_back(Hex(slot));
-        }
-    }
-    const auto morph=locate("48895c24084889742410f30f11542418574883ec20488d99f00e0000488bfa4c8bc2488bcb488d542448410fb6f1e82d43a3fb48634424484533c083",
-        {24,25,26,27,47,48,49,50},address);
-    if(!morph.empty()){
-        result["morph_candidate_rva"]=Hex(address-base);
-        result["morph_map_offset"]=Hex(res::U32(morph.data()+24));
-    }
-    const auto camera=locate("48895c242055488dac2420ebffffb8e0150000e8a8b7e201482be00f29b424d0150000488b057e1f25044833c448898570140000488bd90f28f1488b89b00200004883b938030000007416f6812c03000002740d488b01ff90c807000084c0",
-        {9,10,11,12,15,16,17,18,20,21,22,23,31,32,33,34,38,39,40,41,48,49,50,51,61,62,63,64,68,69,70,71,74,77,78,79,80,83,89,90,91,92},address);
-    if(!camera.empty())result["camera_candidate_rva"]=Hex(address-base);
-    uint64_t manager=0,cameraTarget=0;
-    id::Identity cameraIdentity;
-    if(controller&&reader.Get(controller+ww_game_compat::ControllerCameraManagerOffset,manager)&&id::ReadStable(reader,objects,manager,&cameraIdentity)&&
-        reader.Get(cameraIdentity.vtable+ww_game_compat::SlotUpdateCamera,cameraTarget)&&cameraTarget>=base&&cameraTarget-base<image.SizeOfImage){
-        result["camera_manager_class"]=id::ClassName(reader,objects,pool,cameraIdentity.cls);
-        result["camera_slot_target_rva"]=Hex(cameraTarget-base);
-    }
-    const auto frameTarget=[&](const std::vector<uint8_t>& bytes,uint64_t codeAddress,size_t offset){
-        if(bytes.empty())return uint64_t(0);
-        const auto displacement=At<int32_t>(bytes.data(),offset);
-        const auto target=int64_t(codeAddress-base)+int64_t(offset+4)+displacement;
-        if(target<0||uint64_t(target)>=image.SizeOfImage)return uint64_t(0);
-        return uint64_t(target);
-    };
-    const auto frameIncrement=locate("488b1dd6f1f20848ffc348891dccf1f208e8dfb86e0284c00f857e0000004038355dba1209751c40",
-        {3,4,5,6,13,14,15,16,18,19,20,21,26,27,28,29,33,34,35,36,38},address);
-    const auto loadFrame=frameTarget(frameIncrement,address,3);
-    const auto storeFrame=frameTarget(frameIncrement,address,13);
-    const auto frameTick=locate("488b038bd7488bcbff5008eb06488b01ff503048ff05ccea23050f28742420488b7c24484883c4305bc3",
-        {22,23,24,25},address);
-    const auto tickFrame=frameTarget(frameTick,address,22);
-    const auto frameLoop=locate("440f29842410010000f2440f1005a55f2c0348ff051e0f2605e851359dfeba03000000488bc84c8b0041ff5030",
-        {14,15,16,17,21,22,23,24,26,27,28,29},address);
-    const auto loopFrame=frameTarget(frameLoop,address,21);
-    result["frame_reference_rvas"]={Hex(loadFrame),Hex(storeFrame),Hex(tickFrame),Hex(loopFrame)};
-    const auto frame=loadFrame&&loadFrame==storeFrame?loadFrame:tickFrame;
-    if(frame&&(tickFrame==frame||loopFrame==frame)&&((loadFrame==frame&&storeFrame==frame)||(tickFrame==frame&&loopFrame==frame))){
-        uint64_t first=0,last=0;
-        if(reader.Get(base+frame,first)){
-            Sleep(100);
-            if(reader.Get(base+frame,last))result["frame_samples"]={first,last};
-        }
-        result["frame_candidate_rva"]=Hex(frame);
-    }
-    return result;
+    Require(names==a.boneNames&&parents==a.parents&&fb::PrepareTopology(a.parents,&a.topology),"actor reference skeleton differs");
 }
-inline void InitializeActor(ActorRuntime& a,const Json& graph,const Json& profile,uint64_t window,uint64_t controller){auto& r=runtime;const auto& config=a.config;Reader reader;
+inline void InitializeActor(ActorRuntime& a,const Json& graph,const Json& profile){auto& r=runtime;const auto& config=a.config;auto reader=CurrentProcess();
     for(uint32_t i=0;i<Objects;++i)Require(id::ReadStable(reader,r.go,id::Rva(graph.at(kObjectKeys[i])),&a.tokens[i]),"actor graph unreadable");
-    const auto ownership=graph.value("ownership",config.value("ownership",std::string("created")));
+    const auto ownership=graph.at("ownership").get<std::string>();
     Require(ownership=="borrowed"||ownership=="created","unknown actor ownership");
     a.ownership=ownership=="borrowed"?native_animation_target::OwnerPolicy::SceneTeamMember:native_animation_target::OwnerPolicy::OwnedUiActor;
     a.boneNames=config.at("bone_names").get<std::vector<std::string>>();a.parents=config.at("bone_parents").get<std::vector<int32_t>>();
-    ob::ArrayHead ref;std::array<unsigned char,fb::kLimit*ww_game_compat::ReferenceBoneInfoBytes> reference{};
-    const bool refRead=reader.Get(a.tokens[Asset].object+ww_game_compat::AssetRefBoneInfoOffset,ref);
-    const auto reportReference=[&](const std::vector<std::string>* names=nullptr,const std::vector<int32_t>* parents=nullptr){
-        try{
-            auto diagnostic=ReferenceLayoutCandidates(reader,a,r.pool,r.go,controller);
-            diagnostic["configured_offset"]=Hex(ww_game_compat::AssetRefBoneInfoOffset);
-            diagnostic["configured_count"]=refRead?Json(ref.num):Json(nullptr);
-            if(names&&parents&&names->size()==a.boneNames.size()&&parents->size()==a.parents.size()){
-                diagnostic["bone_differences"]=Json::array();
-                for(size_t i=0;i<names->size();++i){
-                    if((*names)[i]==a.boneNames[i]&&(*parents)[i]==a.parents[i])continue;
-                    diagnostic["bone_differences"].push_back({{"index",i},{"expected_name",a.boneNames[i]},{"actual_name",(*names)[i]},
-                        {"expected_parent",a.parents[i]},{"actual_parent",(*parents)[i]}});
-                }
-            }
-            ww_report::Save(r.directory/L"reference_skeleton_diagnostic.json",diagnostic);
-        }catch(const std::exception&){/* Keep the original playback failure. */}
-    };
-    if(!refRead||ref.num<=0||ref.num!=int32_t(a.boneNames.size())||ref.num>int32_t(fb::kLimit)||
-        !reader.Read(ref.data,reference.data(),size_t(ref.num)*ww_game_compat::ReferenceBoneInfoBytes)){
-        reportReference();
-        throw std::runtime_error("actor reference skeleton unreadable");
-    }
-    std::vector<std::string> names;std::vector<int32_t> parents;
-    for(int32_t i=0;i<ref.num;++i){const auto* row=reference.data()+size_t(i)*ww_game_compat::ReferenceBoneInfoBytes;std::string name;
-        if(!id::DecodeName(reader,r.pool,At<uint32_t>(row,0),name)){
-            reportReference();
-            throw std::runtime_error("actor bone name unavailable");
-        }
-        const auto number=At<uint32_t>(row,ww_game_compat::NameNumberOffset);if(number)name+="_"+std::to_string(number-1);
-        const auto& expected=a.boneNames[size_t(i)];
-        names.push_back(id::SameName(name,expected)?expected:std::move(name));
-        parents.push_back(At<int32_t>(row,ww_game_compat::ReferenceBoneParentOffset));}
-    sub::Manifest manifest;manifest.expected_count=uint32_t(a.boneNames.size());manifest.expected_names=a.boneNames;manifest.expected_parents=a.parents;
-    if(!fb::PrepareTopology(manifest,names,parents,&a.topology)){
-        reportReference(&names,&parents);
-        throw std::runtime_error("actor reference skeleton differs");
-    }
-    a.motion=ReadClip(a.directory/config.at("local_clip_file").get<std::string>());
+    VerifyReferenceSkeleton(a,reader);
+    a.motion=clip::ReadFile(a.directory/config.at("local_clip_file").get<std::string>());
     a.positions=config.at("canonical_local_positions").get<std::vector<std::array<float,3>>>();a.rotations=config.at("canonical_local_rotations").get<std::vector<std::array<float,4>>>();
     a.positionMask=config.at("canonical_position_mask").get<std::vector<uint8_t>>();a.rotationMask=config.at("canonical_rotation_mask").get<std::vector<uint8_t>>();
     ValidateCanonicalPose(a);
-    a.request.canonical_local_positions=a.positions.data();a.request.canonical_position_mask=a.positionMask.data();a.request.canonical_local_rotations=a.rotations.data();a.request.canonical_rotation_mask=a.rotationMask.data();
+    a.request.canonical_local_positions=a.positions.data();a.request.canonical_position_mask=a.positionMask.data();
+    a.request.canonical_local_rotations=a.rotations.data();a.request.canonical_rotation_mask=a.rotationMask.data();
     a.nativePhysics=config.value("native_physics",true);a.physicsEnabled=config.value("physics_enabled",false)&&!a.nativePhysics;
-    const auto p=config.value("placement",Json::object());a.placement={p.value("offset_x_cm",0.0),p.value("offset_y_cm",0.0),p.value("height_cm",0.0),p.value("yaw_degrees",0.0),p.value("in_place",false)};
-    auto featureConfig=config;featureConfig["expected_bone_parents"]=a.parents;::Reader featureReader{GetCurrentProcess()};
-    features::PrepareActor(a.features,featureReader,r.go,r.pool,featureConfig,a.directory,a.tokens[Mesh].object,a.tokens[Asset].object,a.motion,a.topology,a.request,r.epoch);
-    if(a.nativePhysics){Json targetConfig={{"character_profile_id",config.at("profile_id")},{"character_profile_sha256",config.at("character_profile_sha256")},
-        {"expected_bone_count",a.motion.bone_count},{"expected_bone_names",a.boneNames},{"expected_bone_parents",a.parents},{"expected_skeleton_sha256",profile.at("skeleton_sha256")},
-        {"expected_mesh_asset_name",config.at("mesh_asset_name")},{"expected_mesh_asset_names",profile.at("mesh_asset_names")},{"expected_skeleton_asset_name",profile.at("skeleton_asset_name")},{"game_window_handle",Hex(window)}};
-        auto target=native_target_publication::Export(reader,r.go,r.pool,targetConfig,a.tokens[Actor],a.tokens[Mesh],a.tokens[Asset],a.tokens[Skeleton],a.tokens[MainAnim],a.authority,a.ownership,r.epoch);
-        const auto out=r.multiActor?r.directory/L"native_targets"/std::to_string(a.slot):r.directory;std::filesystem::create_directories(out);ww_report::Save(out/L"native_target.json",target);
-    }
+    const auto p=config.value("placement",Json::object());
+    a.placement={p.value("offset_x_cm",0.0),p.value("offset_y_cm",0.0),p.value("height_cm",0.0),p.value("yaw_degrees",0.0),p.value("in_place",false)};
+    features::PrepareActor(a.features,reader,r.go,r.pool,config,a.directory,a.tokens[Mesh].object,a.tokens[Asset].object,a.motion,a.topology,a.request,r.epoch);
+    if(!a.nativePhysics)return;
+    Json targetConfig={{"character_profile_id",config.at("profile_id")},{"character_profile_sha256",config.at("character_profile_sha256")},
+        {"expected_bone_count",a.motion.bone_count},{"expected_bone_names",a.boneNames},{"expected_bone_parents",a.parents},
+        {"expected_skeleton_sha256",profile.at("skeleton_sha256")},{"expected_mesh_asset_name",config.at("mesh_asset_name")}};
+    auto target=native_target_publication::Export(reader,r.go,r.pool,targetConfig,a.tokens[Actor],a.tokens[Mesh],a.tokens[Asset],a.tokens[Skeleton],a.tokens[MainAnim],a.authority,a.ownership,r.epoch);
+    const auto out=r.directory/L"native_targets"/std::to_string(a.slot);std::filesystem::create_directories(out);ww_report::Save(out/L"native_target.json",target);
 }
-inline void Initialize(const std::filesystem::path& directory,const Json& graph,const Json& config,const Json& legacyProfile,const Json& layout,uint64_t host,uint64_t window){auto& r=runtime;r.initialized=true;
+inline void Initialize(const std::filesystem::path& directory,const Json& graph,const Json& config,uint64_t host,uint64_t window){auto& r=runtime;r.initialized=true;
     try{
         r.host=host;r.directory=directory;r.gameThread=GetWindowThreadProcessId(reinterpret_cast<HWND>(window),nullptr);Require(r.gameThread!=0,"game window thread unavailable");
-        r.publishRva=id::Rva(layout.at("publish_rva"));r.slotRva=id::Rva(layout.at("slot_rva"));r.frameRva=layout.contains("engine_frame_rva")?id::Rva(layout.at("engine_frame_rva")):ww_game_compat::EngineFrameRva;
-        r.epoch=config.at("session_epoch");r.durationMs=config.value("duration_ms",uint64_t(0));r.multiActor=config.contains("actors");
-        ::Reader anchorReader{GetCurrentProcess()};
-        const auto anchors=ww_game_object_anchors::Resolve(anchorReader,host,id::Rva(layout.at("gobjects_rva")),id::Rva(layout.at("name_pool_rva")),r.go,r.pool);
+        r.epoch=config.at("session_epoch");
+        auto reader=CurrentProcess();
+        const auto anchors=ww_game_object_anchors::Resolve(reader,host,ww_game_compat::GObjectsRva,ww_game_compat::NamePoolRva,r.go,r.pool);
         ww_report::Save(directory/L"game_compatibility.json",anchors);
         Require(anchors.value("status",std::string())=="anchors_cross_validated","current object/name anchors unresolved; see game_compatibility.json");
-        const auto configs=r.multiActor?config.at("actors"):Json::array({config});Require(configs.is_array()&&!configs.empty(),"scene has no actors");
-        const auto controller=id::Rva(graph.contains("player_controller")?graph.at("player_controller"):config.at("camera_controller_address"));
+        const auto& configs=config.at("actors");Require(configs.is_array()&&!configs.empty(),"scene has no actors");
+        const auto controller=id::Rva(graph.at("player_controller")),pawn=id::Rva(graph.at("player_pawn"));
         double duration=0;r.actors.reserve(configs.size());Json targets=Json::array();
-        for(const auto& actorConfig:configs){if(!actorConfig.value("enabled",true))continue;auto actor=std::make_unique<ActorRuntime>();auto& a=*actor;a.config=actorConfig;a.slot=actorConfig.value("slot",actorConfig.value("target_slot",uint32_t(1)));
-            a.directory=r.multiActor?directory/std::filesystem::u8path(actorConfig.value("actor_directory",std::string("actors/")+std::to_string(a.slot))):directory;
-            const Json* actorGraph=&graph;if(r.multiActor){actorGraph=nullptr;for(const auto& row:graph.at("actors"))if(row.at("slot").get<uint32_t>()==a.slot){Require(!actorGraph,"duplicate graph actor slot");actorGraph=&row;}Require(actorGraph,"actor graph slot missing");}
-            Json profile=legacyProfile;if(r.multiActor){std::ifstream file(a.directory/std::filesystem::u8path(actorConfig.value("character_profile_file",std::string("character_profile.json"))));Require(bool(file),"actor profile missing");profile=Json::parse(file);}
-            r.actors.push_back(std::move(actor));InitializeActor(a,*actorGraph,profile,window,controller);duration=(std::max)(duration,a.motion.duration);
+        for(const auto& actorConfig:configs){
+            if(!actorConfig.at("enabled").get<bool>())continue;
+            auto actor=std::make_unique<ActorRuntime>();auto& a=*actor;a.config=actorConfig;a.slot=actorConfig.at("slot");
+            a.directory=directory/std::filesystem::u8path(actorConfig.at("actor_directory").get<std::string>());
+            const Json* actorGraph=nullptr;
+            for(const auto& row:graph.at("actors"))if(row.at("slot").get<uint32_t>()==a.slot){Require(!actorGraph,"duplicate graph actor slot");actorGraph=&row;}
+            Require(actorGraph,"actor graph slot missing");
+            std::ifstream file(a.directory/std::filesystem::u8path(actorConfig.at("character_profile_file").get<std::string>()));Require(bool(file),"actor profile missing");
+            const auto profile=Json::parse(file);
+            r.actors.push_back(std::move(actor));InitializeActor(a,*actorGraph,profile);duration=(std::max)(duration,a.motion.duration);
             if(a.features.face_enabled)duration=(std::max)(duration,a.features.face_clip.duration);
-            if(a.nativePhysics)targets.push_back({{"slot",a.slot},{"native_target_file",std::string("native_targets/")+std::to_string(a.slot)+"/native_target.json"},{"native_input_directory",std::string("native_inputs/")+std::to_string(a.slot)}});
+            if(a.nativePhysics)targets.push_back({{"slot",a.slot},{"native_target_file",std::string("native_targets/")+std::to_string(a.slot)+"/native_target.json"},
+                {"native_input_directory",std::string("native_inputs/")+std::to_string(a.slot)}});
         }
-        Require(!r.actors.empty(),"scene has no enabled actors");FreezeActorIndices();r.cameraAnchor=FindSlot(config.value("camera_anchor_slot",r.actors.front()->slot));Require(r.cameraAnchor,"camera anchor slot missing");
-        ::Reader featureReader{GetCurrentProcess()};
-        const auto pawn=id::Rva(graph.contains("player_pawn")?graph.at("player_pawn"):config.at("camera_pawn_address"));
+        Require(!r.actors.empty(),"scene has no enabled actors");FreezeActorIndices();
+        r.cameraAnchor=FindSlot(config.at("camera_anchor_slot"));Require(r.cameraAnchor,"camera anchor slot missing");
         // Every actor anchors the camera so the follow target tracks the live
-        // formation centroid. The VMD orbit prefers the managed stage origin
-        // (the shared world reference written when actors were placed); each
-        // clip's frame-0 root shift backs the first-actor fallback spot.
-        std::vector<uint64_t> cameraMeshes;std::vector<Vec3> cameraRootStarts;cameraMeshes.reserve(r.actors.size());cameraRootStarts.reserve(r.actors.size());
-        for(const auto& actor:r.actors){const auto& root=actor->motion.frames.empty()?clip::BoneCommand{}:actor->motion.frames[0];
-            cameraMeshes.push_back(actor->tokens[Mesh].object);cameraRootStarts.push_back({root.translation_delta[0],root.translation_delta[1],root.translation_delta[2]});}
-        features::StageReference stageReference;
-        std::ifstream lifecycleFile(directory/L"managed_actor_lifecycle.json");
-        const auto lifecycle=lifecycleFile?Json::parse(lifecycleFile):Json::object();
-        stageReference=features::ReadStageReference(lifecycle);r.formationHeightCorrection=FormationHeightCorrection(config,lifecycle);
-        features::PrepareCamera(r.cameraFeatures,featureReader,r.go,config,directory,controller,pawn,cameraMeshes,cameraRootStarts,stageReference,r.epoch,r.gameThread,window);
+        // formation centroid; the VMD orbit uses the managed stage origin.
+        std::vector<uint64_t> cameraMeshes;cameraMeshes.reserve(r.actors.size());
+        for(const auto& actor:r.actors)cameraMeshes.push_back(actor->tokens[Mesh].object);
+        std::ifstream lifecycleFile(directory/L"managed_actor_lifecycle.json");Require(bool(lifecycleFile),"managed actor lifecycle missing");
+        const auto stage=features::ReadStageReference(Json::parse(lifecycleFile));r.groundHeight=GroundHeight(config);
+        features::PrepareCamera(r.cameraFeatures,reader,r.go,config,directory,controller,pawn,cameraMeshes,stage,r.epoch,r.gameThread,window);
         if(r.cameraFeatures.clip_available)duration=(std::max)(duration,r.cameraFeatures.clip.duration);
         Require(r.transport.SetClip(r.epoch,duration),"scene timeline configuration failed");
         const auto setting=[&](play::CommandKind kind,double value){Require(r.transport.Apply({r.epoch,++r.initialSequence,kind,value},0)==play::ControlCode::Ok,"scene playback setting invalid");};
         setting(play::CommandKind::SetSpeed,config.value("speed",1.0));setting(play::CommandKind::SetLoop,config.value("loop",false)?1:0);
-        setting(play::CommandKind::SetTimeLimit,double(r.durationMs)/1000.0);setting(play::CommandKind::SetCameraMode,config.value("camera_mode",0));r.original=reinterpret_cast<Runtime::Publish>(host+r.publishRva);
+        setting(play::CommandKind::SetTimeLimit,config.value("duration_ms",0.0)/1000.0);setting(play::CommandKind::SetCameraMode,config.value("camera_mode",0));
         setting(play::CommandKind::SetCameraTrackHeight,config.value("camera_track_height_cm",0.0));
+        r.original=reinterpret_cast<Runtime::Publish>(host+ww_game_compat::FunctionPublishRva);
         r.startPaused=config.value("start_paused",false);
         if(r.startPaused)Require(r.transport.PreparePausedStart(),"scene paused startup configuration failed");
-        if(r.multiActor)ww_report::Save(directory/L"native_targets.json",{{"session_epoch",r.epoch},{"actors",targets}});
+        ww_report::Save(directory/L"native_targets.json",{{"session_epoch",r.epoch},{"actors",targets}});
     }catch(...){Fail(Error::Arguments);throw;}
 }
 inline bool MaintainSceneFrame(void*){auto& r=runtime;if(!r.maintenanceEnabled.load(std::memory_order_acquire)||!r.maintainScene)return true;
@@ -581,17 +425,22 @@ inline bool InstallSceneMaintenance(bool(*callback)(void*),void* user) noexcept 
     return features::InstallCamera(r.cameraFeatures);
 }
 inline bool Install() noexcept {auto& r=runtime;r.observing.store(true);r.writing.store(false);
-    if(vmt::Install(r.hook,reinterpret_cast<void**>(r.host+r.slotRva),reinterpret_cast<void*>(r.original),reinterpret_cast<void*>(&Detour)).code!=vmt::Code::Ok){Fail(Error::Install);return false;}
-    try{if(NeedsNative()){Json report;v20_shared_native_physics::Install(report);r.nativeInstalled.store(true);}if(!r.cameraFeatures.hook.changed&&!features::InstallCamera(r.cameraFeatures)){Fail(Error::Install);return false;}}
-    catch(...){Fail(Error::Install);return false;}return true;
+    const auto slot=reinterpret_cast<void**>(r.host+ww_game_compat::SlotComponentPublishRva);
+    if(vmt::Install(r.hook,slot,reinterpret_cast<void*>(r.original),reinterpret_cast<void*>(&Detour)).code!=vmt::Code::Ok){Fail(Error::Install);return false;}
+    try{
+        if(NeedsNative()){native::Install();r.nativeInstalled.store(true);}
+        if(!r.cameraFeatures.hook.changed&&!features::InstallCamera(r.cameraFeatures)){Fail(Error::Install);return false;}
+    }catch(...){Fail(Error::Install);return false;}
+    return true;
 }
 inline bool Failed() noexcept {const auto& r=runtime;if(r.error.load()||r.cameraFeatures.failed.load())return true;for(const auto& actor:r.actors)if(actor->native.error.load())return true;return false;}
 inline bool Ready() noexcept {const auto& r=runtime;if(!r.observing.load()||r.closing.load()||r.actors.empty()||Failed())return false;
     for(const auto& actor:r.actors)if(!actor->features.prepared||(actor->nativePhysics&&(!r.nativeInstalled.load()||!actor->native.ready.load())))return false;return true;}
-inline void Start(uint64_t now) noexcept {auto& r=runtime;r.lastWireSequence=++r.initialSequence;
-    if(!r.startPaused&&!r.commands.Push({r.epoch,r.initialSequence,play::CommandKind::Play,0})){Fail(Error::Plan);return;}r.playStart.store(now);r.writing.store(true);}
+inline void Start() noexcept {auto& r=runtime;r.lastWireSequence=++r.initialSequence;
+    if(!r.startPaused&&!r.commands.Push({r.epoch,r.initialSequence,play::CommandKind::Play,0})){Fail(Error::Plan);return;}r.writing.store(true);}
 inline void PollCommands(){auto& r=runtime;std::ifstream stream(r.directory/L"control.dat",std::ios::binary);play::CommandWire wire{};play::Command command;
-    if(stream&&stream.read(reinterpret_cast<char*>(wire.data()),wire.size())&&play::DecodeCommandFrame(wire,&command)&&command.sequence>r.lastWireSequence&&r.commands.Push(command))r.lastWireSequence=command.sequence;}
+    if(stream&&stream.read(reinterpret_cast<char*>(wire.data()),wire.size())&&play::DecodeCommandFrame(wire,command)&&command.sequence>r.lastWireSequence&&r.commands.Push(command))
+        r.lastWireSequence=command.sequence;}
 struct WorkerLock {std::lock_guard<std::mutex> lock{runtime.publicationMutex};};
 inline void SaveModelPreview(const std::filesystem::path& path,uint64_t& revision,uint64_t& frame){
     play::model_preview::Frame snapshot;
@@ -609,62 +458,76 @@ inline void SaveModelPreview(const std::filesystem::path& path,uint64_t& revisio
 }
 inline play::PlayerState Snapshot(){WorkerLock lock;return runtime.transport.State();}
 inline bool FeaturePending(){WorkerLock lock;for(const auto& actor:runtime.actors)if(features::ActorPending(actor->features))return true;return features::CameraPending(runtime.cameraFeatures);}
-inline bool NativePending(){for(const auto& actor:runtime.actors)if(actor->nativePrepared&&!v20_shared_native_physics::Restored(actor->native))return true;return false;}
+inline bool NativePending(){for(const auto& actor:runtime.actors)if(actor->nativePrepared&&!native::Restored(actor->native))return true;return false;}
 inline void RevokeTargets(){for(auto& actor:runtime.actors)native_target_publication::Revoke(actor->authority);}
+// The transport enforces the limit on the game-thread clock, which only
+// advances while the actors publish. This wall-clock check still closes a
+// session whose publications stalled.
+// The transport clock advances only inside the mesh-publish detour. If every
+// actor stops publishing (culled or hidden), this worker deadline still ends
+// the session at the user-selected residency limit.
 inline void CheckTimeLimit(){auto& r=runtime;const auto started=r.actualPlayStart.load();if(!started||r.closing.load())return;const auto state=Snapshot();
     if(state.time_limit_seconds>0&&double(GetTickCount64()-started)/1000.0>=state.time_limit_seconds){r.deadlineExpired.store(true);r.writing.store(false);r.closing.store(true);}}
 inline const char* ModeName(play::PlayerMode mode){switch(mode){case play::PlayerMode::Empty:return "empty";case play::PlayerMode::Stopped:return "stopped";
     case play::PlayerMode::Playing:return "playing";case play::PlayerMode::Paused:return "paused";case play::PlayerMode::Ended:return "ended";}return "empty";}
 inline bool Finished() noexcept {return runtime.closing.load();}
-inline Json Status(){auto& r=runtime;WorkerLock lock;if(r.payloadReleased)return r.terminalStatus;const auto state=r.transport.State();const auto& hub=v20_shared_native_physics::hub;
-    Json members=Json::array();uint64_t frames=0,writes=0,nativeFrames=0;size_t borrowed=0,created=0;uint32_t nativeError=0;bool allObserved=!r.actors.empty(),face=false,allPhysics=true,anyNative=false,actorPending=false;
-    for(const auto& entry:r.actors){const auto& a=*entry;const auto count=a.nativePhysics?a.native.frames.load():a.features.frames;const auto writeCount=a.nativePhysics?a.writes.load():a.features.writes;
+inline Json ActorStatus(const ActorRuntime& a,bool pending,uint64_t frames,uint64_t writes){
+    Json actor={{"slot",a.slot},{"ownership",a.ownership==native_animation_target::OwnerPolicy::SceneTeamMember?"borrowed":"created"},
+        {"character_display_name",a.config.value("character_display_name",std::string())},
+        {"frames",frames},{"writes",writes},{"native_physics",a.nativePhysics},{"physics_enabled",a.physicsEnabled},{"physics_available",a.features.physics_available},
+        {"expression_enabled",a.features.face_enabled},{"restoration_complete",!pending},
+        {"placement",{{"offset_x_cm",a.placement.x},{"offset_y_cm",a.placement.y},{"height_cm",a.placement.height},{"yaw_degrees",a.placement.yaw_degrees},{"in_place",a.placement.in_place}}}};
+    if(a.nativePrepared)native::Stats(a.native,actor);
+    actor["gravity_parts"]=Json::array();
+    for(const auto& part:a.features.gravity_parts)
+        actor["gravity_parts"].push_back({{"id",part.id},{"root",part.root},{"strength",part.strength},{"sampled_revision",part.sampled},{"moved_bones",part.moved_bones}});
+    return actor;
+}
+inline bool HooksRestored(){const auto& r=runtime;const auto& hub=native::hub;
+    for(const auto* patch:{&r.hook,&r.cameraFeatures.hook,&hub.converter_patch,&hub.group_patch,&hub.settings_patch})if(patch->changed||patch->protection_pending)return false;
+    return true;
+}
+inline Json Status(){auto& r=runtime;WorkerLock lock;if(r.payloadReleased)return r.terminalStatus;const auto state=r.transport.State();const auto& hub=native::hub;
+    Json actors=Json::array();uint64_t frames=0,writes=0,nativeFrames=0;size_t borrowed=0;uint32_t nativeError=0;
+    bool allObserved=!r.actors.empty(),face=false,allPhysics=true,anyNative=false,actorPending=false;
+    for(const auto& entry:r.actors){const auto& a=*entry;
+        const auto count=a.nativePhysics?a.native.frames.load():a.features.frames;const auto writeCount=a.nativePhysics?a.writes.load():a.features.writes;
         frames+=count;writes+=writeCount;face=face||a.features.face_enabled;allPhysics=allPhysics&&a.features.physics_available;anyNative=anyNative||a.nativePhysics;allObserved=allObserved&&count>0;
-        const bool pending=features::ActorPending(a.features)||(a.nativePrepared&&!v20_shared_native_physics::Restored(a.native));actorPending=actorPending||pending;
-        if(a.ownership==native_animation_target::OwnerPolicy::SceneTeamMember)++borrowed;else ++created;
-        Json actor={{"slot",a.slot},{"target_slot",a.slot},{"ownership",a.ownership==native_animation_target::OwnerPolicy::SceneTeamMember?"borrowed":"created"},
-            {"character_display_name",a.config.value("character_display_name",a.config.value("character",std::string()))},
-            {"frames",count},{"writes",writeCount},{"native_physics",a.nativePhysics},{"physics_enabled",a.physicsEnabled},{"physics_available",a.features.physics_available},
-            {"expression_enabled",a.features.face_enabled},{"restoration_complete",!pending},{"pose_pending_restore",pending},
-            {"placement",{{"offset_x_cm",a.placement.x},{"offset_y_cm",a.placement.y},{"height_cm",a.placement.height},{"yaw_degrees",a.placement.yaw_degrees},{"in_place",a.placement.in_place}}}};
-        if(a.nativePrepared){v20_shared_native_physics::Stats(a.native,actor);nativeFrames+=actor.value("native_input_frames",uint64_t(0));if(a.native.error.load())nativeError=a.native.error.load();}
-        actor["gravity_parts"]=Json::array();
-        for(const auto& part:a.features.gravity_parts)
-            actor["gravity_parts"].push_back({{"id",part.id},{"root",part.root},{"strength",part.strength},
-                {"sampled_revision",part.sampled},{"moved_bones",part.moved_bones}});
-        members.push_back(std::move(actor));
+        const bool pending=features::ActorPending(a.features)||(a.nativePrepared&&!native::Restored(a.native));actorPending=actorPending||pending;
+        if(a.ownership==native_animation_target::OwnerPolicy::SceneTeamMember)++borrowed;
+        if(a.nativePrepared){nativeFrames+=a.native.frames.load();if(a.native.error.load())nativeError=a.native.error.load();}
+        actors.push_back(ActorStatus(a,pending,count,writeCount));
     }
-    const bool initialPoseReady=allObserved&&(!r.cameraFeatures.available||r.cameraFeatures.applied_frames.load()!=0);
-    Json value={{"schema",3},{"actor_count",r.actors.size()},{"borrowed_count",borrowed},{"created_count",created},{"actors",members},{"members",members},{"all_actors_observed",allObserved},{"body_only",!face},
-        {"initialized",r.initialized},{"ready",Ready()&&(!r.startPaused||initialPoseReady)},{"start_paused",r.startPaused},{"initial_pose_ready",initialPoseReady},{"failed",Failed()},{"error_code",r.error.load()?r.error.load():nativeError},
-        {"closing",r.closing.load()},{"writing",r.writing.load()&&!r.closing.load()},{"write_gate_closed",!r.writing.load()||r.closing.load()},
-        {"restoration_complete",r.closed.load()&&!actorPending&&!features::CameraPending(r.cameraFeatures)},
-        {"hooks_restored",!r.hook.changed&&!r.hook.protection_pending&&!r.cameraFeatures.hook.changed&&!r.cameraFeatures.hook.protection_pending&&!hub.converter_patch.changed&&!hub.group_patch.changed&&!hub.converter_patch.protection_pending&&!hub.group_patch.protection_pending},
-        {"callbacks_quiescent",!r.active.load()&&!r.work.load()&&!r.observing.load()&&!r.cameraFeatures.callbacks.load()&&!r.cameraFeatures.work.load()&&!r.cameraFeatures.observing.load()&&!hub.active.load()&&!hub.group_active.load()},
-        {"session_epoch",r.epoch},{"clip_epoch",r.epoch},{"frames",frames},{"body_frames",frames},{"writes",writes},{"duration_ms",r.durationMs},
+    const auto& camera=r.cameraFeatures;
+    const bool initialPoseReady=allObserved&&(!camera.available||camera.applied_frames.load()!=0);
+    const bool active=r.writing.load()&&!r.closing.load();
+    Json value={{"schema",3},{"actor_count",r.actors.size()},{"borrowed_count",borrowed},{"created_count",r.actors.size()-borrowed},{"actors",actors},
+        {"all_actors_observed",allObserved},{"initialized",r.initialized},{"ready",Ready()&&(!r.startPaused||initialPoseReady)},{"start_paused",r.startPaused},
+        {"initial_pose_ready",initialPoseReady},{"failed",Failed()},{"error_code",r.error.load()?r.error.load():nativeError},
+        {"restoration_complete",r.closed.load()&&!actorPending&&!features::CameraPending(camera)},{"hooks_restored",HooksRestored()},
+        {"callbacks_quiescent",!r.active.load()&&!r.work.load()&&!r.observing.load()&&!camera.callbacks.load()&&!camera.work.load()&&!camera.observing.load()&&
+            !hub.active.load()&&!hub.group_active.load()},
+        {"clip_epoch",r.epoch},{"frames",frames},{"writes",writes},
         {"seconds",state.seconds},{"duration_seconds",state.duration_seconds},{"speed",state.speed},{"loop",state.loop},
         {"preview_loop_start",state.preview_begin},{"preview_loop_end",state.preview_end},{"mode",r.closed.load()?"closed":ModeName(state.mode)},
-        {"model_preview_supported",true},{"model_preview_slot",r.modelPreview.slot},{"model_preview_revision",r.modelPreview.revision},
-        {"last_sequence",state.last_sequence},{"revision",state.revision},{"restore_requested",state.restore_requested||r.closing.load()},{"session_active",r.writing.load()&&!r.closing.load()},
+        {"model_preview_slot",r.modelPreview.slot},{"model_preview_revision",r.modelPreview.revision},
+        {"last_sequence",state.last_sequence},{"revision",state.revision},{"restore_requested",state.restore_requested||r.closing.load()},{"session_active",active},
         {"time_limit_seconds",state.time_limit_seconds},{"session_elapsed_seconds",state.session_elapsed_seconds},{"time_limit_reached",state.time_limit_reached||r.deadlineExpired.load()},
-        {"camera_mode",state.camera_mode},{"camera_track_height_cm",state.camera_track_height_cm},{"camera_anchor_slot",r.cameraAnchor?r.cameraAnchor->slot:0},{"camera_available",r.cameraFeatures.available},{"camera_clip_available",r.cameraFeatures.clip_available},{"camera_applied_frames",r.cameraFeatures.applied_frames.load()},{"camera_failed",r.cameraFeatures.failed.load()},
-        {"camera_stage_reference_used",r.cameraFeatures.stage.present},{"camera_stage_floor_used",r.cameraFeatures.stage.present},
-        {"formation_height_correction_cm",r.formationHeightCorrection.load()},{"ground_height_cm",r.formationHeightCorrection.load()},
-        {"camera_anchor_coordinate_frame","world_local"},
-        {"borrowed_stage_maintenance",r.maintenanceEnabled.load()&&borrowed!=0},{"scene_maintenance",r.maintenanceEnabled.load()},
-        {"native_physics",anyNative},{"body_backend","per_actor"},{"native_input_frames",nativeFrames},{"native_input_error",nativeError},{"physics_available",allPhysics},{"expression_enabled",face},
-        {"last_control_sequence",r.lastControlSequence},{"last_control_code",r.lastControlCode.load()},{"rejected_commands",r.rejectedCommands.load()},{"play_started_tick_ms",r.playStart.load()},{"actual_play_started_tick_ms",r.actualPlayStart.load()},{"body_elapsed_ms",r.playStart.load()?GetTickCount64()-r.playStart.load():0}};
-    if(!members.empty()){value["placement"]=members[0]["placement"];value["physics_enabled"]=members[0]["physics_enabled"];}
-    play::camera_diagnostics::Snapshot camera;
-    if(r.cameraFeatures.diagnostics.TryRead(camera)&&camera.anchor_captured){
-        value["camera_anchor_position"]=camera.anchor;
-        value["camera_source_to_ue_xyzw"]=camera.source_to_ue;
-        value["camera_source_unit_scale"]=camera.source_unit_scale;}
+        {"camera_mode",state.camera_mode},{"camera_track_height_cm",state.camera_track_height_cm},{"camera_anchor_slot",r.cameraAnchor?r.cameraAnchor->slot:0},
+        {"camera_available",camera.available},{"camera_clip_available",camera.clip_available},{"camera_applied_frames",camera.applied_frames.load()},{"camera_failed",camera.failed.load()},
+        {"ground_height_cm",r.groundHeight.load()},{"scene_maintenance",r.maintenanceEnabled.load()},
+        {"native_physics",anyNative},{"native_input_frames",nativeFrames},{"native_input_error",nativeError},{"physics_available",allPhysics},{"expression_enabled",face},
+        {"last_control_sequence",r.lastControlSequence},{"last_control_code",r.lastControlCode.load()},{"rejected_commands",r.rejectedCommands.load()}};
+    play::camera_diagnostics::Snapshot diagnostic;
+    if(camera.diagnostics.TryRead(diagnostic)&&diagnostic.anchor_captured){
+        value["camera_anchor_position"]=diagnostic.anchor;
+        value["camera_source_to_ue_xyzw"]=diagnostic.source_to_ue;
+        value["camera_source_unit_scale"]=diagnostic.source_unit_scale;}
     return value;
 }
 inline bool CloseAndRestore(uint64_t deadline) noexcept {auto& r=runtime;r.writing.store(false);r.closing.store(true);r.nativeInstalled.store(false);
     {WorkerLock lock;auto state=CameraState(r.transport.State());state.restore_requested=true;features::PublishCamera(r.cameraFeatures,state,false);}
-    for(auto& actor:r.actors)if(actor->nativePrepared)v20_shared_native_physics::CloseAdmission(actor->native);
+    for(auto& actor:r.actors)if(actor->nativePrepared)native::CloseAdmission(actor->native);
     while((FeaturePending()||NativePending())&&GetTickCount64()<deadline)Sleep(10);if(FeaturePending()||NativePending())return false;
     // Keep borrowed actors visible/evaluable until their input and expression
     // ownership has drained. Keep non-performing player visibility leased until
@@ -674,8 +537,11 @@ inline bool CloseAndRestore(uint64_t deadline) noexcept {auto& r=runtime;r.writi
     while(!features::UninstallCamera(r.cameraFeatures)&&GetTickCount64()<deadline)Sleep(10);
     if(r.cameraFeatures.hook.changed||r.cameraFeatures.hook.protection_pending||r.cameraFeatures.observing.load()||
         r.cameraFeatures.work.load()||features::CameraPending(r.cameraFeatures))return false;
-    bool registered=false;for(const auto& actor:r.actors)registered=registered||actor->nativeRegistered;
-    if(registered){Json report;if(!v20_shared_native_physics::Uninstall(report))return false;for(auto& actor:r.actors)if(actor->nativeRegistered){if(!v20_shared_native_physics::UnregisterActor(actor->native))return false;actor->nativeRegistered=false;}}
+    const bool registered=std::any_of(r.actors.begin(),r.actors.end(),[](const auto& actor){return actor->nativeRegistered;});
+    if(registered){
+        if(!native::Uninstall())return false;
+        for(auto& actor:r.actors)if(actor->nativeRegistered){if(!native::UnregisterActor(actor->native))return false;actor->nativeRegistered=false;}
+    }
     while(r.work.load()&&GetTickCount64()<deadline)Sleep(10);if(r.work.load())return false;r.observing.store(false);
     if(r.hook.changed||r.hook.protection_pending){if(vmt::Restore(r.hook).code!=vmt::Code::Ok)return false;}
     while((r.active.load()||r.work.load())&&GetTickCount64()<deadline)Sleep(10);
@@ -684,16 +550,15 @@ inline bool CloseAndRestore(uint64_t deadline) noexcept {auto& r=runtime;r.writi
 // Called only after native and managed recovery have completed and the final
 // report has been materialized. Keep the pinned forwarding objects/originals:
 // a thread can still hold an old detour address after its slot was restored.
-inline bool ReleaseRetiredPayload(Json& terminal){auto& r=runtime;WorkerLock lock;auto& hub=v20_shared_native_physics::hub;
+inline bool ReleaseRetiredPayload(Json& terminal){auto& r=runtime;WorkerLock lock;auto& hub=native::hub;
     if(r.payloadReleased){terminal=r.terminalStatus;return true;}
     if(!terminal.value("cleanup_complete",false)||!terminal.value("managed_owner_retirement_checked",false))return false;
-    if(!r.closed.load()||r.observing.load()||r.writing.load()||r.work.load()||r.maintenanceEnabled.load()||
-        r.hook.changed||r.hook.protection_pending||r.cameraFeatures.observing.load()||r.cameraFeatures.work.load()||
-        r.cameraFeatures.hook.changed||r.cameraFeatures.hook.protection_pending||features::CameraPending(r.cameraFeatures)||
-        hub.observing.load()||hub.group_observing.load()||hub.dispatch_active.load()||
-        hub.converter_patch.changed||hub.converter_patch.protection_pending||hub.group_patch.changed||hub.group_patch.protection_pending)return false;
+    const bool idle=r.closed.load()&&!r.observing.load()&&!r.writing.load()&&!r.work.load()&&!r.maintenanceEnabled.load();
+    const bool cameraIdle=!r.cameraFeatures.observing.load()&&!r.cameraFeatures.work.load()&&!features::CameraPending(r.cameraFeatures);
+    const bool hubIdle=!hub.observing.load()&&!hub.group_observing.load()&&!hub.dispatch_active.load();
+    if(!idle||!cameraIdle||!hubIdle||!HooksRestored())return false;
     for(const auto& actor:r.actors)if(actor->nativeRegistered||features::ActorPending(actor->features)||
-        (actor->nativePrepared&&!v20_shared_native_physics::Restored(actor->native)))return false;
+        (actor->nativePrepared&&!native::Restored(actor->native)))return false;
     std::lock_guard<std::mutex> registryLock(hub.registry.operations);
     if(hub.registry.count.load()||hub.registry.frozen.load())return false;
     terminal["retired_payload_released"]=true;r.terminalStatus=terminal;
@@ -702,7 +567,7 @@ inline bool ReleaseRetiredPayload(Json& terminal){auto& r=runtime;WorkerLock loc
     decltype(hub.registry.actors){}.swap(hub.registry.actors);
     auto& camera=r.cameraFeatures;
     decltype(camera.anchor_meshes){}.swap(camera.anchor_meshes);decltype(camera.anchor_identities){}.swap(camera.anchor_identities);
-    decltype(camera.anchor_clip_starts){}.swap(camera.anchor_clip_starts);decltype(camera.clip.source_keys){}.swap(camera.clip.source_keys);
+    decltype(camera.clip.source_keys){}.swap(camera.clip.source_keys);
     r.payloadReleased=true;return true;
 }
 } // namespace owned_mmd_body

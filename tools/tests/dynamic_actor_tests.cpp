@@ -49,7 +49,7 @@ int main(){
     Check(registry.Freeze(),"native registry freezes once all actors are registered");
     auto* const registryStorage=registry.actors.data();const auto registryCapacity=registry.actors.capacity();
     bool found=true;for(unsigned pass=0;pass<100;++pass)for(auto& actor:runtime.actors){unsigned group=99;
-        found=found&&registry.Input(actor->native.node)==&actor->native&&registry.Group(actor->native.target.main_anim+0x80,&group)==&actor->native&&group==0;}
+        found=found&&registry.Input(actor->native.node)==&actor->native&&registry.Group(actor->native.target.main_anim+0x80,group)==&actor->native&&group==0;}
     Check(found,"frozen input and physics-group dispatch finds every actor");
     Check(registry.actors.data()==registryStorage&&registry.actors.capacity()==registryCapacity,"callback lookup never reallocates registry storage");
     Check(!registry.Remove(runtime.actors[0]->native)&&!registry.Add(runtime.actors[0]->native),"live registry membership stays frozen");
@@ -83,13 +83,12 @@ int main(){
         "secondary physics broadcast rejects a native actor before changing any actor or accepting its sequence");
     runtime.actors.front()->nativePhysics=true;runtime.actors.front()->features.physics_available=false;
     const Json originalFormation={{"formation_native",true},{"formation_floor_fallback_cm",2.5}};
-    Check(Near(scene::FormationHeightCorrection(originalFormation,{{"stage_height_correction_cm",-2.15}}),-2),"native formation defaults to -2cm without doubling the capsule gap");
-    Check(Near(scene::FormationHeightCorrection(originalFormation,Json::object()),-2),"missing legacy floor metadata keeps the same default height");
-    Check(Near(scene::FormationHeightCorrection({{"formation_native",false}},{{"stage_height_correction_cm",-2.15}}),-2),"manual stage shares the -2cm default");
-    Check(Near(scene::FormationHeightCorrection({{"formation_native",true},{"ground_height_cm",0}},Json::object()),0),"explicit zero height disables the shared offset");
-    bool badCorrection=false;try{scene::FormationHeightCorrection({{"ground_height_cm",-1001}},Json::object());}catch(const std::runtime_error&){badCorrection=true;}
+    Check(Near(scene::GroundHeight(originalFormation),-2),"native formation defaults to -2cm without doubling the capsule gap");
+    Check(Near(scene::GroundHeight({{"formation_native",false}}),-2),"manual stage shares the -2cm default");
+    Check(Near(scene::GroundHeight({{"formation_native",true},{"ground_height_cm",0}}),0),"explicit zero height disables the shared offset");
+    bool badCorrection=false;try{scene::GroundHeight({{"ground_height_cm",-1001}});}catch(const std::runtime_error&){badCorrection=true;}
     Check(badCorrection,"shared height rejects out-of-range values");
-    runtime.formationHeightCorrection=-2.15;runtime.cameraAnchor=runtime.actors.front().get();
+    runtime.groundHeight=-2.15;runtime.cameraAnchor=runtime.actors.front().get();
     const auto effective=scene::EffectivePlacement(*runtime.cameraAnchor);
     Check(Near(effective.height,17.85)&&Near(runtime.cameraAnchor->placement.height,20),"floor correction is additive to manual height without mutating it");
     bool stableHeight=true;for(unsigned i=0;i<100;++i)stableHeight=stableHeight&&Near(scene::EffectivePlacement(*runtime.cameraAnchor).height,17.85);
@@ -98,7 +97,7 @@ int main(){
     scene::ApplyActorCommand(*runtime.cameraAnchor,{77,0,play::CommandKind::ResetPlacement,0});
     Check(Near(scene::EffectivePlacement(*runtime.cameraAnchor).height,-2.15),"resetting manual placement preserves the stage floor correction");
     scene::ApplyActorCommand(*runtime.cameraAnchor,{77,0,play::CommandKind::SetPlacementHeight,20});
-    runtime.formationHeightCorrection=0;
+    runtime.groundHeight=0;
     Check(scene::ApplyCommand({77,4,play::CommandKind::SetPlacementX,1,41},101)==play::ControlCode::InvalidCommand,"unknown slot rejects without falsely acknowledging");
     Check(runtime.transport.State().last_sequence==3,"rejected actor command preserves shared command sequence");
     scene::ApplyCommand({77,4,play::CommandKind::Pause,0},101);scene::Advance(3,500);
@@ -140,9 +139,9 @@ int main(){
     for(auto& actor:runtime.actors)actor->ownership=native_animation_target::OwnerPolicy::OwnedUiActor;
     Check(scene::InstallSceneMaintenance(maintenance,&maintenanceCalls)&&runtime.maintenanceEnabled.load(),"created-only scenes enable player visibility maintenance");
     Check(scene::MaintainSceneFrame(nullptr)&&maintenanceCalls==1,"created-only visibility maintenance reaches the configured game-thread action");
-    report=scene::Status();Check(report.at("scene_maintenance")==true&&report.at("borrowed_stage_maintenance")==false,"created-only maintenance is not reported as borrowed-actor maintenance");
+    report=scene::Status();Check(report.at("scene_maintenance")==true&&report.at("borrowed_count")==0,"created-only scenes report maintenance without borrowed actors");
     for(unsigned i=0;i<3;++i)runtime.actors[i]->ownership=native_animation_target::OwnerPolicy::SceneTeamMember;
-    report=scene::Status();Check(report.at("borrowed_stage_maintenance")==true,"mixed scene continues to report borrowed stage maintenance");
+    report=scene::Status();Check(report.at("scene_maintenance")==true&&report.at("borrowed_count")==3,"mixed scene continues to maintain its borrowed actors");
     runtime.actors[37]->features.face_state.backup[0].pending=true;
     Check(!scene::CloseAndRestore(GetTickCount64())&&runtime.maintenanceEnabled.load(),"borrowed evaluation maintenance stays active while late-actor restoration is pending");
     runtime.actors[37]->features.face_state.backup[0].pending=false;

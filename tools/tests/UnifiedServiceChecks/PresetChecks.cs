@@ -95,19 +95,6 @@ internal static class PresetChecks
         await Rejected(() => service.SaveAsync(draftPath, draft with { Playback = draft.Playback with { Speed = double.NaN } }), "nonfinite settings accepted");
         var resave = Path.Combine(directory, "resaved.wwpreset"); await service.SaveAsync(resave, restored);
         Check((await service.LoadAsync(resave)).Preset.Playback.Actors.Count == 3, "loaded resources can be resaved without originals");
-        var legacyDirectory = Path.Combine(directory, "legacy-single"); Directory.CreateDirectory(legacyDirectory);
-        foreach (var source in new[] { "source.vmd", "face_source.vmd", "gaze_source.vmd", "camera_source.vmd" }) File.WriteAllText(Path.Combine(legacyDirectory, source), source);
-        JsonData.Write(Path.Combine(legacyDirectory, "owned_mmd_config.json"), new JsonObject {
-            ["character_id"] = actors[0].CharacterId, ["speed"] = 1.25, ["loop"] = true, ["duration_ms"] = 120000, ["camera_mode"] = 2,
-            ["gaze_strength"] = .75, ["camera_track_height_cm"] = -50, ["placement"] = new JsonObject {
-                ["offset_x_cm"] = 12, ["offset_y_cm"] = -23, ["height_cm"] = 4.5, ["yaw_degrees"] = -90, ["in_place"] = false } });
-        JsonData.Write(Path.Combine(legacyDirectory, "compiled_report.json"), new JsonObject { ["compiled_target_clip"] = new JsonObject {
-            ["translation_scale_source"] = "explicit CLI --scale override", ["source_to_target_scale"] = .875 } });
-        var old = new PlaybackSessionService(directory).ReadPreparation(legacyDirectory);
-        Check(old.Actors[0].Scale == .875 && old.Actors[0].Placement == request.Actors[0].Placement && old.Actors[0].GazeStrength == .75,
-            "legacy single preparation retains explicit scale, placement and gaze strength");
-        Check(File.Exists(old.Actors[0].FaceSource) && File.Exists(old.Actors[0].GazeSource) && File.Exists(old.CameraSource) && old.CameraTrackHeightCm == -50,
-            "legacy single preparation restores independent face, gaze and camera source snapshots");
         Console.WriteLine($"PASS {checks} portable show-preset checks.");
         return checks;
     }

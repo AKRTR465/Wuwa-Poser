@@ -24,18 +24,36 @@ inline std::string Sha256(const std::filesystem::path& path) {
     BCryptDestroyHash(hash);BCryptCloseAlgorithmProvider(algorithm,0);std::string text;static const char hex[]="0123456789abcdef";
     for(auto byte:digest){text+=hex[byte>>4];text+=hex[byte&15];}return text;
 }
-inline std::string Decode(const std::string& bytes,unsigned codepage){
+// A full-width VMD name may end in a cut-off CP932 lead byte; it is kept as a
+// distinct name instead of failing the whole motion.
+inline std::string Decode(const std::string& bytes,unsigned codepage,bool fullWidth){
     if(bytes.empty())return {};
-    const int count=MultiByteToWideChar(codepage,MB_ERR_INVALID_CHARS,bytes.data(),int(bytes.size()),nullptr,0);
+    int length=int(bytes.size());
+    int count=MultiByteToWideChar(codepage,MB_ERR_INVALID_CHARS,bytes.data(),length,nullptr,0);
+    const auto tail=static_cast<unsigned char>(bytes.back());
+    bool truncated=false;
+    if(!count&&fullWidth&&codepage==932&&length>1&&IsDBCSLeadByteEx(codepage,tail)){
+        --length;
+        count=MultiByteToWideChar(codepage,MB_ERR_INVALID_CHARS,bytes.data(),length,nullptr,0);
+        truncated=count!=0;
+    }
     if(!count)throw std::runtime_error("invalid encoded motion name; expected complete CP932 bytes");
     std::wstring wide(size_t(count),L'\0');
-    if(MultiByteToWideChar(codepage,MB_ERR_INVALID_CHARS,bytes.data(),int(bytes.size()),wide.data(),count)!=count)
+    if(MultiByteToWideChar(codepage,MB_ERR_INVALID_CHARS,bytes.data(),length,wide.data(),count)!=count)
         throw std::runtime_error("motion name decoding failed");
     const int size=WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,wide.data(),count,nullptr,0,nullptr,nullptr);
     if(!size)throw std::runtime_error("motion name UTF8 conversion failed");
     std::string result(size_t(size),'\0');
     if(WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,wide.data(),count,result.data(),size,nullptr,nullptr)!=size)
         throw std::runtime_error("motion name UTF8 conversion failed");
+    if(truncated){
+        // Preserve the incomplete name as a distinct track, including its final byte.
+        // Dropping the byte could redirect keys to an existing, shorter name.
+        static constexpr char hex[]="0123456789ABCDEF";
+        result+=u8"\uFFFD";
+        result+=hex[tail>>4];
+        result+=hex[tail&15];
+    }
     return result;
 }
 inline double Number(const wchar_t* text){

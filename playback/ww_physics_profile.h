@@ -8,12 +8,11 @@
 #include <map>
 
 namespace wwp_playback { namespace ww_secondary {
-struct Unavailable:std::runtime_error {using std::runtime_error::runtime_error;};
 inline Prepared ReadCharacterProfile(const std::filesystem::path& chains_path,const std::vector<std::string>& names,
     const std::vector<int32_t>& parents,const std::string& model_id) {
     std::ifstream file(chains_path,std::ios::binary);nlohmann::json root;file>>root;
     const nlohmann::json* character=nullptr;for(const auto& c:root.at("characters"))if(c.value("model_id","")==model_id)character=&c;
-    if(!character)throw Unavailable("requested character chain profile missing");
+    if(!character)throw std::runtime_error("requested character chain profile missing");
     std::map<std::string,uint32_t> indices;for(uint32_t i=0;i<names.size();++i)indices.emplace(names[i],i);
     Prepared output;output.bone_count=uint32_t(names.size());for(uint32_t i=0;i<parents.size();++i)output.parents[i]=parents[i];
     std::map<uint32_t,Chain::Settings> settings;
@@ -30,7 +29,7 @@ inline Prepared ReadCharacterProfile(const std::filesystem::path& chains_path,co
         if(nested||output.chain_count>=kMaxChains)continue;
         auto& chain=output.chains[output.chain_count++];chain.root=pair.first;chain.anchor=uint32_t(parents[pair.first]);chain.settings=pair.second;
         for(uint32_t i=0;i<output.bone_count;++i)chain.descendant_mask[i]=uint8_t(i==chain.root||(parents[i]>=0&&chain.descendant_mask[uint32_t(parents[i])]));}
-    if(!output.chain_count)throw Unavailable("no observed physics chains are available");
+    if(!output.chain_count)throw std::runtime_error("no observed physics chains are available");
     return output;
 }
 }} // namespace wwp_playback::ww_secondary

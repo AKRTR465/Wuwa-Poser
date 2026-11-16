@@ -1,5 +1,5 @@
 #pragma once
-
+#include "../runtime/generated/GameCompat.generated.h"
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -9,22 +9,22 @@
 #include <mutex>
 #include <algorithm>
 #include <vector>
+#include "ue_memory.h"
 
 namespace wwp_playback::kawaii_parameters {
-// Layout from the 3.8.0 settings updater and solver. The host verifies both
+// Layout from the settings updater and solver. The host verifies both
 // functions and the calling evaluator before exposing the parameter controls.
-inline constexpr uint32_t kUpdateRva=0xa5d990, kUpdateBytes=0x471;
-inline constexpr uint32_t kSimulateRva=0xa5b750, kSimulateBytes=0x18fe;
-inline constexpr uint32_t kApplyResultRva=0xa51030, kApplyResultBytes=0x6af;
-inline constexpr size_t kNodeSettings=0x108, kRefresh=0x160, kInitialized=0x260;
-inline constexpr size_t kBoneArray=0x1f8, kBoneStride=0x1b0, kBoneSettings=0x28;
-inline constexpr size_t kBoneIdentity=0x0c;
+namespace compat=ww_game_compat;
+inline constexpr uint64_t kUpdateRva=compat::FunctionGroupUpdatePhysicsSettingsRva,kSimulateRva=compat::FunctionGroupSimulateRva,kApplyResultRva=compat::FunctionGroupApplyResultRva;
+inline constexpr uint32_t kUpdateBytes=compat::FunctionGroupUpdatePhysicsSettingsBytes,kSimulateBytes=compat::FunctionGroupSimulateBytes,kApplyResultBytes=compat::FunctionGroupApplyResultBytes;
+inline constexpr size_t kNodeSettings=compat::KawaiiSettingsOffset,kRefresh=compat::KawaiiSettingsRefreshOffset,kInitialized=compat::KawaiiSettingsInitializedOffset;
+inline constexpr size_t kBoneArray=compat::KawaiiSimulatedBonesOffset,kBoneStride=compat::KawaiiSimulatedBoneBytes,kBoneSettings=compat::KawaiiSimulatedBoneSettingsOffset;
+inline constexpr size_t kBoneIdentity=compat::KawaiiSimulatedBoneIdentityOffset;
 inline constexpr std::array<unsigned,3> kFields={0,3,5};
 inline constexpr unsigned kNoChain=UINT32_MAX;
 using Settings=std::array<float,7>;
 using Values=std::array<float,3>;
-struct Array {uintptr_t data=0;int32_t count=0,capacity=0;};
-static_assert(sizeof(Array)==16,"expected x64 TArray header");
+using Array=ue_memory::ArrayHead;
 struct Sample {
     Values original{},effective_first{},effective_last{};
     uint64_t revision=0;
@@ -64,10 +64,10 @@ inline bool Finite(const Values& values) {
     return true;
 }
 inline bool ValidArray(const Array& a) {
-    return a.count>=0&&a.count<=1024&&a.capacity>=a.count&&a.capacity<=8192&&(!a.count||a.data>0x10000);
+    return a.num>=0&&a.num<=1024&&a.max>=a.num&&a.max<=8192&&(!a.num||a.data>0x10000);
 }
 inline bool SameArray(const Array& a,const Array& b) {
-    return a.data==b.data&&a.count==b.count&&a.capacity==b.capacity;
+    return a.data==b.data&&a.num==b.num&&a.max==b.max;
 }
 inline bool HasOverride(const Values& values) {
     return std::any_of(values.begin(),values.end(),[](float value){return value>=0;});
@@ -88,9 +88,9 @@ template<class Access>
 bool MapChains(Group& group,uintptr_t node,const Access& access,const std::array<int32_t,1024>& compact_to_skeleton) {
     Array bones{},after{};uint8_t initialized=0;
     group.patches.clear();
-    if(!access.Get(node+kInitialized,initialized)||initialized!=1||!access.Get(node+kBoneArray,bones)||!ValidArray(bones)||!bones.count)return false;
+    if(!access.Get(node+kInitialized,initialized)||initialized!=1||!access.Get(node+kBoneArray,bones)||!ValidArray(bones)||!bones.num)return false;
     bool matched=false;
-    for(int32_t i=0;i<bones.count;++i){
+    for(int32_t i=0;i<bones.num;++i){
         const auto record=bones.data+size_t(i)*kBoneStride;
         std::array<int32_t,2> identity{};
         if(!access.Get(record+kBoneIdentity,identity))return false;
@@ -104,12 +104,12 @@ bool MapChains(Group& group,uintptr_t node,const Access& access,const std::array
 template<class Access> bool ReadSettingsCache(const Access& access,uintptr_t node,Sample& sample) {
     Array bones{},after{};uint8_t initialized=0;
     if(!access.Get(node+kInitialized,initialized)||initialized!=1||!access.Get(node+kBoneArray,bones)||
-       !ValidArray(bones)||!bones.count)return false;
+       !ValidArray(bones)||!bones.num)return false;
     Settings first{},last{};
     if(!access.Get(bones.data+kBoneSettings,first)||
-       !access.Get(bones.data+kBoneSettings+size_t(bones.count-1)*kBoneStride,last)||
+       !access.Get(bones.data+kBoneSettings+size_t(bones.num-1)*kBoneStride,last)||
        !access.Get(node+kBoneArray,after)||!SameArray(bones,after))return false;
-    sample.bones=unsigned(bones.count);sample.effective_first=Select(first);sample.effective_last=Select(last);
+    sample.bones=unsigned(bones.num);sample.effective_first=Select(first);sample.effective_last=Select(last);
     return Finite(sample.effective_first)&&Finite(sample.effective_last);
 }
 template<class Access,class Refresh> bool Restore(Group& group,uintptr_t node,const Access& access,Refresh&& refresh) {
@@ -118,7 +118,7 @@ template<class Access,class Refresh> bool Restore(Group& group,uintptr_t node,co
        !access.write(access.user,node+kRefresh,&group.restore_refresh,1)||
        !access.Get(node+kNodeSettings,actual)||std::memcmp(actual.data(),group.restore_settings.data(),sizeof(Settings))||
        !access.Get(node+kRefresh,actual_refresh)||actual_refresh!=group.restore_refresh||
-       !access.Get(node+kBoneArray,bones)||!ValidArray(bones)||(bones.count&&!refresh(node)))return false;
+       !access.Get(node+kBoneArray,bones)||!ValidArray(bones)||(bones.num&&!refresh(node)))return false;
     group.restore_pending.store(false,std::memory_order_release);return true;
 }
 
@@ -195,10 +195,5 @@ void EvaluateGroup(Group& group,uintptr_t node,const Access& access,bool feed,Ev
     {std::lock_guard<std::mutex> edit(group.edit);group.sampled=sample;
         for(unsigned i=0;i<chains.size();++i)if(chains[i].sample.effective_read)group.chains[i].sampled=chains[i].sample;
     }
-}
-
-template<class Access,class Evaluate,class Refresh,class Fault>
-void EvaluateGroup(Group& group,uintptr_t node,const Access& access,bool feed,Evaluate&& evaluate,Refresh&& refresh,Fault&& fault) {
-    EvaluateGroup(group,node,access,feed,evaluate,refresh,fault,[]{return false;});
 }
 }

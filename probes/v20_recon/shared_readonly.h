@@ -11,53 +11,46 @@
 #include <cstdio>
 #include <vector>
 #include <string>
-#include <map>
-#include <set>
 #include <algorithm>
 #include <stdexcept>
-#include <cwctype>
-#include <functional>
-#include <cctype>
-#include <limits>
 #include "../../core_math/third_party/nlohmann/json.hpp"
+#include "../../playback/ue_memory.h"
 #include "json_report.h"
 #pragma comment(lib,"Psapi.lib")
 
 using Json = nlohmann::json;
-static std::string Hex(uint64_t n) { char b[32]; sprintf_s(b,"0x%llx",(unsigned long long)n); return b; }
-template<class T> static T At(const unsigned char* p,size_t off) { T v; memcpy(&v,p+off,sizeof(v));return v; }
-static bool Pointer(uint64_t p) { return p>=ww_game_compat::PointerMinimum && p<ww_game_compat::PointerMaximum && !(p&(ww_game_compat::PointerBytes-1)); }
-static bool Readable(DWORD p) {
+using ue_memory::At;
+using ue_memory::Hex;
+using ue_memory::Pointer;
+inline bool Readable(DWORD p) {
     if(p&(PAGE_GUARD|PAGE_NOACCESS))return false;
     p &= 0xff;
     return p==PAGE_READONLY||p==PAGE_READWRITE||p==PAGE_WRITECOPY||
            p==PAGE_EXECUTE_READ||p==PAGE_EXECUTE_READWRITE||p==PAGE_EXECUTE_WRITECOPY;
 }
-static std::wstring FileName(const std::wstring& path) {
-    size_t at=path.find_last_of(L"\\/");return at==std::wstring::npos?path:path.substr(at+1);
-}
 struct Reader {
-    HANDLE process; uint64_t bytes=0;
+    HANDLE process;
     bool Read(uint64_t address,void* out,size_t size) {
         if(!size||!address)return false;
-        SIZE_T got=0;BOOL ok=ReadProcessMemory(process,(LPCVOID)address,out,size,&got);bytes+=got;
-        return ok&&got==size;
+        SIZE_T got=0;return ReadProcessMemory(process,(LPCVOID)address,out,size,&got)&&got==size;
     }
     template<class T> bool Get(uint64_t address,T& out) { return Read(address,&out,sizeof(out)); }
 };
 struct Go {uint64_t address=0,table=0;uint32_t count=0;};
 struct Pool {uint64_t address=0,blocks=0;uint32_t current=0,cursor=0;};
-static bool GoShape(const unsigned char* b) {
+inline bool GoShape(const unsigned char* b) {
     uint32_t max=At<uint32_t>(b,ww_game_compat::ObjectArrayMaxElementsOffset),n=At<uint32_t>(b,ww_game_compat::ObjectArrayCountOffset),cap=At<uint32_t>(b,ww_game_compat::ObjectArrayMaxChunksOffset),used=At<uint32_t>(b,ww_game_compat::ObjectArrayNumChunksOffset);
     return Pointer(At<uint64_t>(b,ww_game_compat::ObjectArrayTableOffset))&&cap&&cap<=ww_game_compat::ObjectArrayMaximumChunks&&used&&used<=cap&&
         (uint64_t)max==(uint64_t)cap*ww_game_compat::ObjectArrayElementsPerChunk&&n>=4&&n<=max&&used>=(n+uint64_t(ww_game_compat::ObjectArrayChunkMask))/ww_game_compat::ObjectArrayElementsPerChunk;
 }
-static bool Object(Reader& r,const Go& go,uint32_t index,uint64_t& object) {
-    uint64_t chunk=0;
-    return index<go.count&&r.Get(go.table+(uint64_t)(index>>ww_game_compat::ObjectArrayChunkShift)*ww_game_compat::PointerBytes,chunk)&&Pointer(chunk)&&
-        r.Get(chunk+(uint64_t)(index&ww_game_compat::ObjectArrayChunkMask)*ww_game_compat::ObjectItemBytes,object)&&Pointer(object);
+template<class R> bool ObjectItem(R& r,const Go& go,uint32_t index,uint64_t& item) {
+    return ue_memory::ObjectItem([&](uint64_t address,void* out,size_t size){return r.Read(address,out,size);},go.table,go.count,index,item);
 }
-static bool ValidateGo(Reader& r,uint64_t address,Go& out) {
+inline bool Object(Reader& r,const Go& go,uint32_t index,uint64_t& object) {
+    uint64_t item=0;
+    return ObjectItem(r,go,index,item)&&r.Get(item+ww_game_compat::ObjectItemObjectOffset,object)&&Pointer(object);
+}
+inline bool ValidateGo(Reader& r,uint64_t address,Go& out) {
     unsigned char b[ww_game_compat::ObjectArrayHeaderBytes];if(!r.Read(address,b,sizeof(b))||!GoShape(b))return false;
     Go g{address,At<uint64_t>(b,ww_game_compat::ObjectArrayTableOffset),At<uint32_t>(b,ww_game_compat::ObjectArrayCountOffset)};int valid=0;
     for(uint32_t i=0;i<(std::min)(g.count,32u);++i) {
@@ -66,14 +59,22 @@ static bool ValidateGo(Reader& r,uint64_t address,Go& out) {
     }
     if(valid<3)return false;out=g;return true;
 }
-static bool Decode(Reader& r,const Pool& pool,uint32_t tagged,std::string& out) {
-    uint32_t id=tagged&ww_game_compat::NameTaggedIndexMask,block=id>>ww_game_compat::NameBlockShift;
+// Current-build FName entry: its address, length and narrow/wide encoding.
+struct NameEntry {uint64_t address=0;uint32_t length=0;bool wide=false;};
+template<class R> bool FindName(R& r,const Pool& pool,uint32_t tagged,NameEntry& out) {
+    const uint32_t id=tagged&ww_game_compat::NameTaggedIndexMask,block=id>>ww_game_compat::NameBlockShift;
     if(block>pool.current||block>=ww_game_compat::NamePoolMaximumBlocks)return false;
     uint64_t data=0;if(!r.Get(pool.blocks+(uint64_t)block*ww_game_compat::PointerBytes,data)||!Pointer(data))return false;
-    uint64_t entry=data+(uint64_t)(id&ww_game_compat::NameBlockMask)*ww_game_compat::NameEntryStride;
-    uint16_t header=0;if(!r.Get(entry+ww_game_compat::NameEntryHeaderOffset,header))return false;
-    uint32_t length=header>>1;if(!length||length>ww_game_compat::NameMaximumCharacters)return false;
-    if(!(header&1)) {
+    out.address=data+(uint64_t)(id&ww_game_compat::NameBlockMask)*ww_game_compat::NameEntryStride;
+    uint16_t header=0;if(!r.Get(out.address+ww_game_compat::NameEntryHeaderOffset,header))return false;
+    out.length=header>>ww_game_compat::NameEntryLengthShift;out.wide=(header&ww_game_compat::NameEntryWideFlagMask)!=0;
+    return out.length&&out.length<=ww_game_compat::NameMaximumCharacters;
+}
+// Stable reads reject failed or changing evidence.
+template<class R> bool Decode(R& r,const Pool& pool,uint32_t tagged,std::string& out) {
+    NameEntry name;if(!FindName(r,pool,tagged,name))return false;
+    const uint64_t entry=name.address;const uint32_t length=name.length;
+    if(!name.wide) {
         char text[512];if(!r.Read(entry+ww_game_compat::NameEntryTextOffset,text,length))return false;
         for(uint32_t i=0;i<length;++i)if((unsigned char)text[i]<32||(unsigned char)text[i]>126)return false;
         out.assign(text,length);return true;
@@ -83,18 +84,22 @@ static bool Decode(Reader& r,const Pool& pool,uint32_t tagged,std::string& out) 
     int n=WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,wide,length,utf8,sizeof(utf8),nullptr,nullptr);
     if(n<=0)return false;out.assign(utf8,n);return true;
 }
-static bool PoolShape(const unsigned char* b) {
+// FName index plus its instance number, e.g. "Bone_2".
+template<class R> bool FullName(R& r,const Pool& pool,uint32_t tagged,uint32_t number,std::string& out) {
+    if(!Decode(r,pool,tagged,out))return false;ue_memory::AppendNameNumber(out,number);return true;
+}
+inline bool PoolShape(const unsigned char* b) {
     uint32_t current=At<uint32_t>(b,ww_game_compat::NamePoolCurrentBlockOffset),cursor=At<uint32_t>(b,ww_game_compat::NamePoolCursorOffset);
     return current<ww_game_compat::NamePoolMaximumBlocks&&cursor>=ww_game_compat::NamePoolBlocksOffset&&cursor<=ww_game_compat::NamePoolMaximumCursor&&Pointer(At<uint64_t>(b,ww_game_compat::NamePoolBlocksOffset));
 }
-static bool ValidatePool(Reader& r,uint64_t address,Pool& out) {
+inline bool ValidatePool(Reader& r,uint64_t address,Pool& out) {
     unsigned char b[ww_game_compat::NamePoolHeaderBytes];if(!r.Read(address,b,sizeof(b))||!PoolShape(b))return false;
     Pool p{address,address+ww_game_compat::NamePoolBlocksOffset,At<uint32_t>(b,ww_game_compat::NamePoolCurrentBlockOffset),At<uint32_t>(b,ww_game_compat::NamePoolCursorOffset)};std::string name;
     if(!Decode(r,p,0,name)||name!="None")return false;out=p;return true;
 }
 // A GObjects/name-pool pair is the real one when sampled objects decode to
 // names and classes, including at least one UE metaclass.
-static bool Consistent(Reader& r,const Go& go,const Pool& pool) {
+inline bool Consistent(Reader& r,const Go& go,const Pool& pool) {
     unsigned checked=0,decoded=0,metaClasses=0;
     for(uint32_t i=0;i<(std::min)(go.count,1024u)&&checked<64;++i) {
         uint64_t obj=0;unsigned char h[ww_game_compat::ObjectHeaderBytes];
@@ -105,15 +110,10 @@ static bool Consistent(Reader& r,const Go& go,const Pool& pool) {
     }
     return checked>=4&&decoded*10>=checked*9&&metaClasses>0;
 }
-static std::string BytesHex(const unsigned char* bytes,size_t n) {
-    static const char digits[]="0123456789abcdef";std::string text(n*2,'0');
-    for(size_t i=0;i<n;++i){text[i*2]=digits[bytes[i]>>4];text[i*2+1]=digits[bytes[i]&15];}return text;
-}
-static void Save(const wchar_t* path,const Json& result) { ww_report::Save(path,result); }
 
 // Scans the host image's readable, writable sections for the GObjects table and
 // name pool. The chosen pair is reported as the single candidate of each kind.
-static Json ReconProcess(uint64_t image,Go* chosenGo,Pool* chosenPool) {
+inline Json ReconProcess(uint64_t image,Go* chosenGo,Pool* chosenPool) {
     Json result={{"pid",GetCurrentProcessId()},{"status","unresolved"}};Reader r{GetCurrentProcess()};
     IMAGE_DOS_HEADER dos;IMAGE_NT_HEADERS64 nt;
     if(!r.Get(image,dos)||!r.Get(image+(uint32_t)dos.e_lfanew,nt))throw std::runtime_error("main PE headers unreadable");

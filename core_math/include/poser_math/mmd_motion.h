@@ -14,7 +14,9 @@
 #include <vector>
 
 namespace mmd {
-using Decoder = std::function<std::string(const std::string &, unsigned)>;
+// Decodes raw name bytes in a code page. The flag marks a name that fills its
+// whole field, so its final double-byte character may have been cut off.
+using Decoder = std::function<std::string(const std::string &, unsigned, bool)>;
 inline float Clamp(float v, float a, float b) {
   return (std::max)(a, (std::min)(b, v));
 }
@@ -79,7 +81,6 @@ struct Reader {
             float(w / quaternionLength)};
   }
   std::string raw(size_t n) {
-    require(n);
     std::string s(n, '\0');
     copy(s.data(), n);
     return s;
@@ -194,14 +195,19 @@ inline void Recount(MotionClip &c) {
 inline MotionClip ReadVmd(Reader &r, const Decoder &decode) {
   MotionClip c;
   // Dense, baked motions repeat a few hundred CP932 names millions of times.
+  // The same bytes decode differently when they fill the whole field.
   std::unordered_map<std::string, std::string> names;
+  std::unordered_map<std::string, std::string> fullNames;
   auto trackName = [&](size_t width) -> const std::string & {
-    auto raw = r.raw(width);auto zero = raw.find('\0');
-    if (zero != raw.npos) raw.resize(zero);
-    auto it = names.find(raw);
-    if (it != names.end()) return it->second;
-    auto name = Name(decode(raw, 932));
-    return names.emplace(std::move(raw), std::move(name)).first->second;
+    auto raw = r.raw(width);
+    const auto zero = raw.find('\0');
+    const bool full = zero == raw.npos;
+    if (!full) raw.resize(zero);
+    auto &cache = full ? fullNames : names;
+    auto it = cache.find(raw);
+    if (it != cache.end()) return it->second;
+    auto name = Name(decode(raw, 932, full));
+    return cache.emplace(std::move(raw), std::move(name)).first->second;
   };
   auto signature = r.raw(30);
   if (signature.compare(0, 25, "Vocaloid Motion Data 0002") != 0)
@@ -214,12 +220,11 @@ inline MotionClip ReadVmd(Reader &r, const Decoder &decode) {
     k.frame = r.read<uint32_t>();
     k.position = r.vec();
     k.rotation = r.quat();
-    uint8_t curve[64];r.copy(curve, sizeof(curve));
+    uint8_t curve[64];
+    r.copy(curve, sizeof(curve));
     for (int j = 0; j < 4; j++)
-      k.curves[j] = {Clamp(uint8_t(curve[j]) / 127.f, 0, 1),
-                     Clamp(uint8_t(curve[j + 4]) / 127.f, 0, 1),
-                     Clamp(uint8_t(curve[j + 8]) / 127.f, 0, 1),
-                     Clamp(uint8_t(curve[j + 12]) / 127.f, 0, 1)};
+      k.curves[j] = {Clamp(curve[j] / 127.f, 0, 1), Clamp(curve[j + 4] / 127.f, 0, 1),
+                     Clamp(curve[j + 8] / 127.f, 0, 1), Clamp(curve[j + 12] / 127.f, 0, 1)};
     if (!name.empty())
       c.bones[name].push_back(k);
   }

@@ -26,6 +26,12 @@ try{
  & $generator -SourcePath $source -OutputRoot $fixture | Out-Null
  if([IO.File]::ReadAllText($header) -cne $before){throw 'Compatibility generation is nondeterministic.'}
  $script:compatChecks++
+ # native reaches only C++, managed only C#, and shared both.
+ $binding=[IO.File]::ReadAllText((Join-Path $fixture 'runtime/generated/GameCompat.generated.cs'))
+ if($before -notmatch ' GObjectsRva = ' -or $binding -match ' GObjectsRva = '){throw 'A native constant was routed to C#.'}
+ if($binding -notmatch ' EntityFlagRegistered = ' -or $before -match ' EntityFlagRegistered = '){throw 'A managed constant was routed to C++.'}
+ if($before -notmatch ' SourceBuildSha256 = ' -or $binding -notmatch ' SourceBuildSha256 = '){throw 'A shared constant is missing from one binding.'}
+ $script:compatChecks++
  [IO.File]::AppendAllText($header,'stale')
  Reject { & $generator -SourcePath $source -OutputRoot $fixture -Check } 'a stale language binding'
  & $generator -SourcePath $source -OutputRoot $fixture | Out-Null
@@ -39,9 +45,9 @@ try{
  $profile.managed.GObjectsRva=@{type='u64';value=1};Save-Profile $profile
  Reject { & $generator -SourcePath $source -OutputRoot $fixture } 'duplicate cross-language constant names'
  $profile.managed.Remove('GObjectsRva')
- $profile.runtime_layout.bad_reference='@MissingConstant';Save-Profile $profile
- Reject { & $generator -SourcePath $source -OutputRoot $fixture } 'an unresolved deployment reference'
- $profile.runtime_layout.Remove('bad_reference')
+ $profile.native.TestAlias=@{type='hexref';value='@MissingConstant'};Save-Profile $profile
+ Reject { & $generator -SourcePath $source -OutputRoot $fixture } 'an unresolved hexadecimal alias'
+ $profile.native.Remove('TestAlias')
  $profile.native['Bad;Injected']=@{type='u32';value=1};Save-Profile $profile
  Reject { & $generator -SourcePath $source -OutputRoot $fixture } 'a code-injecting constant name'
  Write-Output ('PASS: {0} compatibility generation checks; no game access.' -f $script:compatChecks)

@@ -29,7 +29,7 @@ inline Vec3 Rotator(Quat optical){
     const float roll=std::atan2(Dot(up,no_roll_right),Dot(up,no_roll_up));
     return {pitch*57.2957795131f,yaw*57.2957795131f,roll*57.2957795131f};
 }
-inline bool Place(const mmd::CameraKey& key,double,const Settings& settings,Frame* out){
+inline bool Place(const mmd::CameraKey& key,const Settings& settings,Frame* out){
     const float scale=settings.source_unit_scale;
     const Vec3 focus=settings.anchor+settings.source_to_ue*(key.target*scale);
     const Quat optical=NormQ(settings.source_to_ue*mmd::CameraOrbit(key.rotation));

@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using UnrealEngine;
 using WwPoser.ColdLoad;
+using WwPoser.Compat;
 
 var assertions = 0;
 void Check(bool condition, string label) { if (!condition) throw new Exception(label); assertions++; }
@@ -30,7 +31,7 @@ var first = TeamActor(10, 100, new(1000, 2000, 90)); var second = TeamActor(20, 
 UGameplayStatics.Pawn = first.Actor; first.Actor.bHidden = false;
 var slots = new uint[] { 5, 2, 900, 17, 80000, 70000, 30, 45 };
 var requested = new (int Role, int Skin)[] { (10,100), (10,100), (20,200), (30,999), (40,400), (40,400), (50,500), (60,600) };
-File.WriteAllLines(Path.Combine(root, "actors.tsv"), requested.Select((actor, i) => $"{slots[i]}\t{actor.Role}\t{actor.Skin}\t{(i + 1) * 100}\t0\t0\tRole{actor.Role}Skin{actor.Skin}\t0"));
+SessionFixture.Actors(root, requested.Select((actor, i) => $"{slots[i]}\t{actor.Role}\t{actor.Skin}\t{(i + 1) * 100}\t0\t0\tRole{actor.Role}Skin{actor.Skin}\t0"));
 Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", root); ManagedBridge.BindSession(); ManagedBridge.BeginTarget();
 var manager = UiSceneRoleActorManager._instance;
 Check(manager.Created.Count == 6, "eight actors should borrow two and create six");
@@ -64,24 +65,24 @@ Check(second.Actor.Location.X == 8000 && second.Actor.Location.Y == -5000 && sec
 Check(!second.Mesh.Tick && !second.Mesh.Active && second.Mesh.Interval == .7f && second.Mesh.bPauseAnims && second.Mesh.bNoSkeletonUpdate && second.Mesh.bEnableUpdateRateOptimizations && second.Mesh.bOnlyAllowAutonomousTickPose && second.Mesh.bRenderStatic && second.Mesh.VisibilityBasedAnimTickOption == EVisibilityBasedAnimTickOption.OnlyTickPoseWhenRendered && !second.Actor.Tick && second.Actor.Interval == .5f, "all animation and tick settings restore");
 Check(first.Actor.Valid && second.Actor.Valid && wrong.Actor.Valid && second.Handle.HoldEntityMap.Count == 0, "borrowed actors are never destroyed");
 first.Actor.Location = new(400, 500, 600); ManagedBridge.MaintainStage(); Check(first.Actor.Location.X == 400 && first.Actor.Location.Y == 500, "maintenance stays disabled after stop"); first.Actor.Location = new(1000, 2000, 90);
-var next = Path.Combine(root, "second"); Directory.CreateDirectory(next); File.WriteAllText(Path.Combine(next, "actors.tsv"), "123\t90\t900\t0\t0\t0\tRole90Skin900\t0\n");
+var next = Path.Combine(root, "second"); Directory.CreateDirectory(next); SessionFixture.Actors(next, "123\t90\t900\t0\t0\t0\tRole90Skin900\t0\n");
 Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", next); ManagedBridge.BindSession(); ManagedBridge.BeginTarget(); ManagedBridge.CheckLoaded(); ManagedBridge.ShowAtLocal(); ManagedBridge.CheckLoaded();
 manager.FailDestroys = 1; Throws(ManagedBridge.Stop, "created destroy failure must remain retryable"); Throws(ManagedBridge.CheckReleased, "created actor remains registered");
 ManagedBridge.Stop(); ManagedBridge.CheckReleased(); Check(manager.UiSceneRoleActorMap.Count == 0, "created actor destroy retry succeeds");
-var many = Path.Combine(root, "many"); Directory.CreateDirectory(many); File.WriteAllLines(Path.Combine(many, "actors.tsv"), Enumerable.Range(0, 70).Select(i => $"{i + 1}\t10\t100\t{i * 50}\t0\t0\tRole10Skin100\t0"));
+var many = Path.Combine(root, "many"); Directory.CreateDirectory(many); SessionFixture.Actors(many, Enumerable.Range(0, 70).Select(i => $"{i + 1}\t10\t100\t{i * 50}\t0\t0\tRole10Skin100\t0"));
 Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", many); ManagedBridge.BindSession(); ManagedBridge.BeginTarget(); ManagedBridge.CheckLoaded(); ManagedBridge.ShowAtLocal(); ManagedBridge.CheckLoaded();
 var manyGraph = JsonNode.Parse(File.ReadAllText(Path.Combine(many, "owned_mmd_graph.json")))!;
 Check(manyGraph["actors"]!.AsArray().Count == 70 && manyGraph["actors"]!.AsArray().Count(a => a!["ownership"]!.GetValue<string>() == "borrowed") == 1 && manager.UiSceneRoleActorMap.Count == 69, "70 duplicate selections borrow original once and create remaining actors");
 ManagedBridge.Stop(); ManagedBridge.CheckReleased(); Check(manager.UiSceneRoleActorMap.Count == 0 && first.Handle.HoldEntityMap.Count == 0, "large dynamic session returns all ownership");
-var conflict = Path.Combine(root, "factory-conflict"); Directory.CreateDirectory(conflict); File.WriteAllText(Path.Combine(conflict, "actors.tsv"), "1\t90\t900\t0\t0\t0\tRole90Skin900\t0\n");
+var conflict = Path.Combine(root, "factory-conflict"); Directory.CreateDirectory(conflict); SessionFixture.Actors(conflict, "1\t90\t900\t0\t0\t0\tRole90Skin900\t0\n");
 var foreign = manager.CreateUiSceneRoleActor(EUiModelUseWay.RoleInRoleView); manager.ReturnExisting = foreign;
 Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", conflict); ManagedBridge.BindSession(); Throws(ManagedBridge.BeginTarget, "factory reuse must be rejected before loading or moving it"); ManagedBridge.Stop(); ManagedBridge.CheckReleased();
 Check(manager.UiSceneRoleActorMap.ContainsKey(foreign.Index) && foreign.Valid && !manager.Destroyed.Contains(foreign), "rejected foreign factory actor is never destroyed"); manager.ReturnExisting = null; manager.DestroyUiSceneRoleActor(foreign.Index);
-var duplicate = Path.Combine(root, "factory-duplicate"); Directory.CreateDirectory(duplicate); File.WriteAllLines(Path.Combine(duplicate, "actors.tsv"), new[] { "1\t90\t900\t0\t0\t0\tRole90Skin900\t0", "2\t90\t900\t100\t0\t0\tRole90Skin900\t0" });
+var duplicate = Path.Combine(root, "factory-duplicate"); Directory.CreateDirectory(duplicate); SessionFixture.Actors(duplicate, new[] { "1\t90\t900\t0\t0\t0\tRole90Skin900\t0", "2\t90\t900\t100\t0\t0\tRole90Skin900\t0" });
 var destroyedBefore = manager.Destroyed.Count; manager.ReturnLatestAfter = manager.Created.Count + 1;
 Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", duplicate); ManagedBridge.BindSession(); Throws(ManagedBridge.BeginTarget, "repeated factory actor/index within the same session must be rejected"); ManagedBridge.Stop(); ManagedBridge.CheckReleased();
 Check(manager.Destroyed.Count == destroyedBefore + 1 && manager.UiSceneRoleActorMap.Count == 0, "factory duplicate cleanup destroys the actual owner exactly once"); manager.ReturnLatestAfter = int.MaxValue;
-var sessionA = Path.Combine(root, "race-a"); var sessionB = Path.Combine(root, "race-b"); Directory.CreateDirectory(sessionA); Directory.CreateDirectory(sessionB); File.WriteAllText(Path.Combine(sessionA, "actors.tsv"), "1\t90\t900\t0\t0\t0\tRole90Skin900\t0\n");
+var sessionA = Path.Combine(root, "race-a"); var sessionB = Path.Combine(root, "race-b"); Directory.CreateDirectory(sessionA); Directory.CreateDirectory(sessionB); SessionFixture.Actors(sessionA, "1\t90\t900\t0\t0\t0\tRole90Skin900\t0\n"); SessionFixture.Actors(sessionB, Array.Empty<string>());
 Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", sessionA); ManagedBridge.BindSession(); ManagedBridge.BeginTarget();
 Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", sessionB); Throws(ManagedBridge.BindSession, "new carrier cannot steal active session ownership"); Throws(ManagedBridge.Stop, "new carrier cannot stop another session");
 Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", sessionA); ManagedBridge.BindSession(); ManagedBridge.Stop(); ManagedBridge.CheckReleased();
@@ -96,7 +97,7 @@ foreach (var anchorYaw in new float[] { 37, 175, -179 })
     var initial = first.Actor.Location; var referenceMeshYaw = first.Mesh.K2_GetComponentRotation().Yaw;
     var headingRoot = Path.Combine(root, "heading-" + anchorYaw); Directory.CreateDirectory(headingRoot);
     var yaws = new double[] { 90, -150, 0, 90, 180, 150, -150 };
-    File.WriteAllLines(Path.Combine(headingRoot, "actors.tsv"), yaws.Select((yaw, i) => $"{i + 1}\t{(i == 0 ? 10 : i == 1 ? 20 : 90)}\t{(i == 0 ? 100 : i == 1 ? 200 : 900)}\t{(i - 3) * 125}\t217\t0\t{(i == 0 ? "Role10Skin100" : i == 1 ? "Role20Skin200" : "")}\t{yaw}"));
+    SessionFixture.Actors(headingRoot, yaws.Select((yaw, i) => $"{i + 1}\t{(i == 0 ? 10 : i == 1 ? 20 : 90)}\t{(i == 0 ? 100 : i == 1 ? 200 : 900)}\t{(i - 3) * 125}\t217\t0\t{(i == 0 ? "Role10Skin100" : i == 1 ? "Role20Skin200" : "")}\t{yaw}"));
     var createdStart = manager.Created.Count;
     Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", headingRoot); ManagedBridge.BindSession(); ManagedBridge.BeginTarget(); ManagedBridge.CheckLoaded();
     var headingActors = new AActor[] { first.Actor, second.Actor }.Concat(manager.Created.Skip(createdStart)).ToArray();
@@ -134,7 +135,7 @@ foreach (var borrowFirst in new[] { true, false })
     first.Actor.Rotation = new(); first.Mesh.RelativeRotation = new(); first.Mesh.RelativeLocation = new(0, 0, -77);
     var initial = first.Actor.Location;
     var cameraRoot = Path.Combine(root, "camera-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(cameraRoot);
-    File.WriteAllLines(Path.Combine(cameraRoot, "actors.tsv"), new[] {
+    SessionFixture.Actors(cameraRoot, new[] {
         $"1\t{(borrowFirst ? 10 : 90)}\t{(borrowFirst ? 100 : 900)}\t120\t30\t0\t{(borrowFirst ? "Role10Skin100" : "Role90Skin900")}\t0",
         "2\t90\t900\t-150\t-45\t0\tRole90Skin900\t0" });
     var createdStart = manager.Created.Count;
@@ -161,7 +162,7 @@ UGameplayStatics.WorldOrigin = new(); first.Mesh.RelativeLocation = new();
 string VisibilitySession(string name, params string[] rows)
 {
     var directory = Path.Combine(root, "visibility-" + name); Directory.CreateDirectory(directory);
-    File.WriteAllLines(Path.Combine(directory, "actors.tsv"), rows.Length == 0 ? new[] { "1\t90\t900\t0\t0\t0\tRole90Skin900\t0" } : rows);
+    SessionFixture.Actors(directory, rows.Length == 0 ? new[] { "1\t90\t900\t0\t0\t0\tRole90Skin900\t0" } : rows);
     Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", directory); ManagedBridge.BindSession(); ManagedBridge.BeginTarget(); ManagedBridge.CheckLoaded();
     return directory;
 }
@@ -242,7 +243,7 @@ UiRoleLoadComponent.Resources["/Game/Forms/Body.Body"] = new USkeletalMesh { Nam
 UiRoleLoadComponent.Resources["/Game/Forms/Anim.Anim_C"] = new UClass();
 string FormRow(int slot, int role, int skin, string mesh, string strategy = "role_skin", string children = "") =>
     $"{slot}\t{role}\t{skin}\t{slot * 100}\t0\t0\t{mesh}\t0\t{strategy}\t{strategy}\t{(strategy == "role_morph" ? 1 : 0)}\t1\t{(strategy == "mesh_parts" ? "/Game/Forms/Upper.Upper" : "")}\t{(strategy == "mesh_parts" ? "/Game/Forms/Anim.Anim_C" : "")}\t{children}\t1";
-File.WriteAllLines(Path.Combine(formsRoot, "actors.tsv"), new[] {
+SessionFixture.Actors(formsRoot, new[] {
     FormRow(1,10,100,"Role10Skin100"), FormRow(2,10,100,"Special10","role_morph"), FormRow(3,10,100,"Special10","role_morph"),
     FormRow(4,20,200,"Upper","mesh_parts","/Game/Forms/Body.Body"), FormRow(5,20,200,"Role20Skin200"), FormRow(6,20,200,"Upper","mesh_parts","/Game/Forms/Body.Body") });
 Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", formsRoot); ManagedBridge.BindSession();
@@ -267,7 +268,7 @@ foreach (var failure in new[] { "missing-resource", "wrong-skeleton", "missing-m
     var failedRoot = Path.Combine(root, failure); Directory.CreateDirectory(failedRoot);
     if (failure == "missing-resource") UiRoleLoadComponent.Resources.Remove("/Game/Forms/Body.Body");
     else UiRoleLoadComponent.Resources["/Game/Forms/Body.Body"] = new USkeletalMesh { Name = "Body", Skeleton = new() };
-    File.WriteAllText(Path.Combine(failedRoot,"actors.tsv"), failure == "missing-morph" ? FormRow(1,999,999,"Missing","role_morph") : FormRow(1,20,200,"Upper","mesh_parts","/Game/Forms/Body.Body"));
+    SessionFixture.Actors(failedRoot, failure == "missing-morph" ? FormRow(1,999,999,"Missing","role_morph") : FormRow(1,20,200,"Upper","mesh_parts","/Game/Forms/Body.Body"));
     Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", failedRoot); ManagedBridge.BindSession(); ManagedBridge.BeginTarget();
     Throws(ManagedBridge.CheckLoaded, "incomplete form resources must not silently use a default model: " + failure);
     ManagedBridge.Stop(); ManagedBridge.CheckReleased(); Check(manager.UiSceneRoleActorMap.Count == 0, "failed form creation remains recoverable: " + failure);
@@ -283,7 +284,7 @@ foreach (var sample in new[] {
     ("ordinary-stage", true, true, false, 2.15f, 0f, (byte)1, 0d, "capsule_bottom") })
 {
     var floorRoot = Path.Combine(root, "floor-"+sample.Item1); Directory.CreateDirectory(floorRoot);
-    File.WriteAllText(Path.Combine(floorRoot,"actors.tsv"), "1\t90\t900\t0\t0\t0\tRole90Skin900\t0\n");
+    SessionFixture.Actors(floorRoot, "1\t90\t900\t0\t0\t0\tRole90Skin900\t0\n");
     File.WriteAllText(Path.Combine(floorRoot,"stage_floor.tsv"), (sample.Item1 == "ordinary-stage" ? "capsule_bottom" : "walkable_floor")+"\t2.5\n");
     first.Actor.CharacterMovement.MovementMode = sample.Item7;
     first.Actor.CharacterMovement.CurrentFloor = new() { bBlockingHit=sample.Item2, bWalkableFloor=sample.Item3, bLineTrace=sample.Item4, FloorDist=sample.Item5, LineDist=sample.Item6 };

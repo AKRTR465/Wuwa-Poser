@@ -11,7 +11,7 @@
     <AssemblyName>WWPoser</AssemblyName>
     <RootNamespace>WWPoser</RootNamespace>
     <StartupObject>WWPoser.Program</StartupObject>
-    <Version>0.2.9</Version>
+    <Version>0.2.10</Version>
     <Product>Wuwa Poser</Product>
     <Description>鸣潮 MMD 播放器</Description>
     <RepositoryUrl>https://github.com/AKRTR465/Wuwa-Poser</RepositoryUrl>
@@ -20,6 +20,10 @@
   <ItemGroup>
     <Resource Include="Assets\WuwaPoser.ico" />
     <Resource Include="Assets\WuwaPoser.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- One generated compatibility class shared with the in-game managed helper. -->
+    <Compile Include="../../runtime/generated/GameCompat.generated.cs" Link="Generated/GameCompat.generated.cs" />
   </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="ServiceChecks" /><InternalsVisibleTo Include="UnifiedUiChecks" /></ItemGroup>
 </Project>

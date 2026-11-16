@@ -10,9 +10,10 @@
 #include <string>
 #include "owned_recovery.h"
 #include "../../generated/GameCompat.generated.h"
+#include "../../../playback/ue_memory.h"
 
 namespace mono_owned {
-inline void Require(bool value,const char* message){if(!value)throw std::runtime_error(message);}
+using ue_memory::Require;
 struct Assembly;struct Image;struct Klass;struct Method;struct Object;
 enum class Action:size_t {BeginTarget,CheckLoaded,ShowAtLocal,Stop,CheckReleased,MaintainStage};
 inline constexpr std::array<const char*,6> kActionNames={"BeginTarget","CheckLoaded","ShowAtLocal","Stop","CheckReleased","MaintainStage"};

@@ -2,50 +2,52 @@
 namespace WWPoser.Services;
 internal static class PlaybackCommands
 {
-    internal static uint Validate(string kind, double value, uint targetSlot)
+    internal static uint Validate(string kind, double value, uint targetSlot, uint targetGroup, uint targetChain)
     {
-        var (id, minimum, maximum, integral, scene) = kind switch
+        var (id, minimum, maximum, integral, restore, slot, group, chain) = kind switch
         {
-            "play" => (1U, 0d, 0d, false, false),
-            "pause" => (2U, 0d, 0d, false, false),
-            "seek" => (3U, 0d, double.PositiveInfinity, false, false),
-            "step" => (4U, -1000000d, 1000000d, true, false),
-            "loop" => (5U, 0d, 1d, true, false),
-            "speed" => (6U, 0.1d, 4d, false, false),
-            "stop" => (7U, 0d, 0d, false, false),
-            "physics" => (8U, 0d, 1d, true, false),
-            "camera" => (9U, 0d, 2d, true, false),
-            "offset_x" => (10U, -1000d, 1000d, false, false),
-            "offset_y" => (11U, -1000d, 1000d, false, false),
-            "height" => (12U, -1000d, 1000d, false, false),
-            "yaw" => (13U, -180d, 180d, false, false),
-            "in_place" => (14U, 0d, 1d, true, false),
-            "reset_placement" => (15U, 0d, 0d, false, false),
-            "time_limit" => (16U, 0d, 10000000d, false, false),
-            "ground_height" => (17U, -1000d, 1000d, false, true),
-            "camera_track_height" => (18U, -10000d, 10000d, false, true),
-            "native_damping" => (19U, -1d, 1d, false, false),
-            "native_stiffness" => (20U, -1d, 1d, false, false),
-            "native_limit_angle" => (21U, -1d, 180d, false, false),
-            "native_shoulder_follow" => (22U, 0d, 1d, false, false),
-            "preview_loop_start" => (23U, 0d, 10000000d, false, true),
-            "preview_loop_end" => (24U, 0d, 10000000d, false, true),
-            "native_preview" => (25U, 0d, 1d, true, false),
-            "native_capsule_collision" => (26U, 0d, 1d, true, false),
-            "model_preview" => (27U, 0d, 1d, true, false),
-            "native_gravity" => (28U, -1d, 1500d, false, false),
-            "part_gravity" => (29U, -1d, 1500d, false, false),
-            "native_capsule_radius" => (30U, 0d, 100d, false, false),
-            "native_capsule_length" => (31U, 0d, 300d, false, false),
-            "native_capsule_offset_x" => (32U, -300d, 300d, false, false),
-            "native_capsule_offset_y" => (33U, -300d, 300d, false, false),
-            "native_capsule_offset_z" => (34U, -300d, 300d, false, false),
-            "native_capsule_reset" => (35U, 0d, 0d, false, false),
-            "native_capsule_active" => (36U, 0d, 1d, true, false),
+            "play" => (1U, 0d, 0d, false, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "pause" => (2U, 0d, 0d, false, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "seek" => (3U, 0d, double.PositiveInfinity, false, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "step" => (4U, -1000000d, 1000000d, true, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "loop" => (5U, 0d, 1d, true, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "speed" => (6U, 0.1d, 4d, false, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "stop" => (7U, 0d, 0d, false, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "physics" => (8U, 0d, 1d, true, (double?)null, (bool?)null, (bool?)false, (bool?)false),
+            "camera" => (9U, 0d, 2d, true, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "offset_x" => (10U, -1000d, 1000d, false, (double?)null, (bool?)null, (bool?)false, (bool?)false),
+            "offset_y" => (11U, -1000d, 1000d, false, (double?)null, (bool?)null, (bool?)false, (bool?)false),
+            "height" => (12U, -1000d, 1000d, false, (double?)null, (bool?)null, (bool?)false, (bool?)false),
+            "yaw" => (13U, -180d, 180d, false, (double?)null, (bool?)null, (bool?)false, (bool?)false),
+            "in_place" => (14U, 0d, 1d, true, (double?)null, (bool?)null, (bool?)false, (bool?)false),
+            "reset_placement" => (15U, 0d, 0d, false, (double?)null, (bool?)null, (bool?)false, (bool?)false),
+            "time_limit" => (16U, 0d, 10000000d, false, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "ground_height" => (17U, -1000d, 1000d, false, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "camera_track_height" => (18U, -10000d, 10000d, false, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "native_damping" => (19U, -1d, 1d, false, (double?)-1d, (bool?)true, (bool?)true, (bool?)null),
+            "native_stiffness" => (20U, -1d, 1d, false, (double?)-1d, (bool?)true, (bool?)true, (bool?)null),
+            "native_limit_angle" => (21U, -1d, 180d, false, (double?)-1d, (bool?)true, (bool?)true, (bool?)null),
+            "native_shoulder_follow" => (22U, 0d, 1d, false, (double?)null, (bool?)true, (bool?)true, (bool?)true),
+            "preview_loop_start" => (23U, 0d, 10000000d, false, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "preview_loop_end" => (24U, 0d, 10000000d, false, (double?)null, (bool?)false, (bool?)false, (bool?)false),
+            "native_preview" => (25U, 0d, 1d, true, (double?)null, (bool?)true, (bool?)true, (bool?)false),
+            "native_capsule_collision" => (26U, 0d, 1d, true, (double?)null, (bool?)true, (bool?)true, (bool?)true),
+            "model_preview" => (27U, 0d, 1d, true, (double?)null, (bool?)true, (bool?)false, (bool?)false),
+            "native_gravity" => (28U, -1d, 1500d, false, (double?)-1d, (bool?)true, (bool?)true, (bool?)false),
+            "part_gravity" => (29U, -1d, 1500d, false, (double?)-1d, (bool?)true, (bool?)false, (bool?)true),
+            "native_capsule_radius" => (30U, 0d, 100d, false, (double?)null, (bool?)true, (bool?)true, (bool?)true),
+            "native_capsule_length" => (31U, 0d, 300d, false, (double?)null, (bool?)true, (bool?)true, (bool?)true),
+            "native_capsule_offset_x" => (32U, -300d, 300d, false, (double?)null, (bool?)true, (bool?)true, (bool?)true),
+            "native_capsule_offset_y" => (33U, -300d, 300d, false, (double?)null, (bool?)true, (bool?)true, (bool?)true),
+            "native_capsule_offset_z" => (34U, -300d, 300d, false, (double?)null, (bool?)true, (bool?)true, (bool?)true),
+            "native_capsule_reset" => (35U, 0d, 0d, false, (double?)null, (bool?)true, (bool?)true, (bool?)true),
+            "native_capsule_active" => (36U, 0d, 1d, true, (double?)null, (bool?)true, (bool?)true, (bool?)true),
             _ => throw new ArgumentException("未知控制命令：" + kind, nameof(kind))
         };
-        if (scene && targetSlot != 0) throw new ArgumentException("全场命令不接受演员槽位：" + kind, nameof(targetSlot));
-        if (!double.IsFinite(value) || value < minimum || value > maximum || (integral && Math.Truncate(value) != value))
+        static bool Matches(bool? required, uint value) => required is not { } need || need == (value != 0);
+        if (!Matches(slot, targetSlot) || !Matches(group, targetGroup) || !Matches(chain, targetChain))
+            throw new ArgumentException("控制命令的演员、物理组或部件目标无效：" + kind);
+        if (!double.IsFinite(value) || value < minimum || value > maximum || (integral && Math.Truncate(value) != value) || (restore is { } reset && value < 0 && value != reset))
             throw new ArgumentOutOfRangeException(nameof(value), $"{kind} 参数须为 [{minimum}, {maximum}] 内的{(integral ? "整数" : "有限数值")}");
         return id;
     }

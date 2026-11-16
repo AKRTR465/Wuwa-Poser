@@ -7,6 +7,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using UnrealEngine;
+using WwPoser.Compat;
 
 namespace WwPoser.ColdLoad
 {
@@ -81,23 +82,38 @@ namespace WwPoser.ColdLoad
             public string HoldReason;
             public bool ActorHidden, MeshVisible, MeshHidden, HoldAdded, Released;
         }
-        private sealed class SceneVisibility
+        // A scene actor hidden for the session; restores its own hidden flag.
+        private abstract class VisibilityLease
+        {
+            public AActor Actor;
+            public ulong ActorAddress;
+            public bool Hidden, Released, Expired;
+            public void Hide()
+            {
+                if (!Actor.bHidden) Actor.SetActorHiddenInGame(true);
+                if (!Actor.bHidden) throw new InvalidOperationException("Scene actor hide readback differs.");
+            }
+            // A replaced or unregistered actor is never modified; its lease expires.
+            public void Restore(bool current)
+            {
+                if (Released) return;
+                if (!current) { Expired = true; Released = true; return; }
+                if (Actor.bHidden != Hidden) Actor.SetActorHiddenInGame(Hidden);
+                if (Actor.bHidden != Hidden) throw new InvalidOperationException("Scene actor visibility readback differs.");
+                Released = true;
+            }
+        }
+        private sealed class SceneVisibility : VisibilityLease
         {
             public EntityHandle Handle;
             public WorldEntity Entity;
             public CharacterActorComponent Component;
             public CreatureDataComponent Data;
-            public AActor Actor;
-            public ulong ActorAddress;
             public int EntityId, EntityIndex;
-            public bool Hidden, Released, Expired;
         }
-        private sealed class SimpleSceneVisibility
+        private sealed class SimpleSceneVisibility : VisibilityLease
         {
-            public TsSimpleNpc Actor;
-            public ulong ActorAddress;
             public int InstanceId;
-            public bool Hidden, Released, Expired;
         }
         private sealed class Stage
         {
@@ -143,7 +159,8 @@ namespace WwPoser.ColdLoad
             var value = new Contract();
             value.Instance = Field(typeof(UiSceneRoleActorManager), GameCompat.ManagedFieldInstance); value.Map = Field(typeof(UiSceneRoleActorManager), GameCompat.ManagedFieldMap);
             value.LoadState = Field(typeof(UiModelDataComponent), GameCompat.ManagedFieldLoadState); value.NativePointer = Field(typeof(UnrealObject), GameCompat.ManagedFieldNativePointer);
-            value.Create = Method(typeof(UiSceneRoleActorManager), GameCompat.ManagedMethodCreateUiSceneRoleActor, typeof(EUiModelUseWay)); value.Destroy = Method(typeof(UiSceneRoleActorManager), GameCompat.ManagedMethodDestroyUiSceneRoleActor, typeof(int));
+            value.Create = Method(typeof(UiSceneRoleActorManager), GameCompat.ManagedMethodCreateUiSceneRoleActor, typeof(EUiModelUseWay));
+            value.Destroy = Method(typeof(UiSceneRoleActorManager), GameCompat.ManagedMethodDestroyUiSceneRoleActor, typeof(int));
             // Declared field scopes follow the verified SceneTeam business chain.
             value.PlayerInstance = Field(typeof(PlayerInfoModel), GameCompat.ManagedFieldPlayerInstance); value.PlayerId = Field(typeof(PlayerInfoModel), GameCompat.ManagedFieldPlayerId);
             value.TeamInstance = Field(typeof(SceneTeamModel), GameCompat.ManagedFieldTeamInstance); value.TeamPlayers = Field(typeof(SceneTeamModel), GameCompat.ManagedFieldTeamPlayers);
@@ -153,19 +170,29 @@ namespace WwPoser.ColdLoad
             value.ItemCreature = Field(typeof(SceneTeamItem), GameCompat.ManagedFieldItemCreature); value.ItemHandle = Field(typeof(SceneTeamItem), GameCompat.ManagedFieldItemHandle);
             value.ItemLocal = Field(typeof(SceneTeamItem), GameCompat.ManagedFieldItemLocal); value.ItemGroup = Field(typeof(SceneTeamItem), GameCompat.ManagedFieldItemGroup);
             value.ActorInternal = Field(typeof(BaseActorComponent), GameCompat.ManagedFieldActorInternal); value.SkinId = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldSkinId);
-            value.EntityFlags = Field(typeof(Entity), GameCompat.ManagedFieldEntityFlags); value.DataRole = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataRole); value.DataPlayer = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataPlayer); value.DataCreature = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataCreature);
+            value.EntityFlags = Field(typeof(Entity), GameCompat.ManagedFieldEntityFlags);
+            value.DataRole = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataRole);
+            value.DataPlayer = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataPlayer);
+            value.DataCreature = Field(typeof(CreatureDataComponent), GameCompat.ManagedFieldDataCreature);
             value.CharacterInstance = Field(typeof(CharacterModel), GameCompat.ManagedFieldCharacterInstance); value.CharacterHandles = Field(typeof(CharacterModel), GameCompat.ManagedFieldCharacterHandles);
             value.SimpleNpcElements = Field(typeof(SimpleNpcController), GameCompat.ManagedFieldSimpleNpcElements);
             value.SimpleNpcInstanceId = Field(typeof(TsSimpleNpc), GameCompat.ManagedFieldSimpleNpcInstanceId);
             var objectSystem = typeof(Entity).Assembly.GetType(GameCompat.ManagedTypeObjectSystem, true);
-            value.ObjectInstance = Field(objectSystem, GameCompat.ManagedFieldObjectInstance); value.ObjectList = Field(objectSystem, GameCompat.ManagedFieldObjectList); value.ObjectVersions = Field(objectSystem, GameCompat.ManagedFieldObjectVersions);
+            value.ObjectInstance = Field(objectSystem, GameCompat.ManagedFieldObjectInstance);
+            value.ObjectList = Field(objectSystem, GameCompat.ManagedFieldObjectList);
+            value.ObjectVersions = Field(objectSystem, GameCompat.ManagedFieldObjectVersions);
             s_contract = value; return value;
         }
         private static Dictionary<int, TsUiSceneRoleActor> Map(Owner owner) { return (Dictionary<int, TsUiSceneRoleActor>)Bind().Map.GetValue(owner.Manager); }
         private static bool Valid(UnrealObject value) { return !Object.ReferenceEquals(value, null) && value.IsValid(); }
         private static ulong Address(UnrealObject wrapper) { return (ulong)((IntPtr)Bind().NativePointer.GetValue(wrapper)).ToInt64(); }
-        private static bool AllReleased() { foreach (var owner in s_owners) if (!owner.Released) return false; foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) return false; foreach (var saved in s_simpleSceneVisibility.Values) if (!saved.Released) return false; return s_playerVisibility == null || s_playerVisibility.Released; }
-        public static void Probe() { Bind(); }
+        private static bool AllReleased()
+        {
+            foreach (var owner in s_owners) if (!owner.Released) return false;
+            foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) return false;
+            foreach (var saved in s_simpleSceneVisibility.Values) if (!saved.Released) return false;
+            return s_playerVisibility == null || s_playerVisibility.Released;
+        }
         public static void VerifyCompatibility()
         {
             if (!String.Equals(Environment.GetEnvironmentVariable("WWPOSER_EXPECTED_COMPAT_PROFILE"), GameCompat.ProfileId, StringComparison.Ordinal) ||
@@ -191,9 +218,7 @@ namespace WwPoser.ColdLoad
         private static double ReadSceneVisibility(string directory, out bool includeSimple)
         {
             includeSimple = false;
-            var path = Path.Combine(directory, "scene_visibility.tsv");
-            if (!File.Exists(path)) return 0; // Old preparations retain their behavior.
-            var fields = File.ReadAllText(path, Encoding.UTF8).Trim().Split('\t'); double radius;
+            var fields = File.ReadAllText(Path.Combine(directory, "scene_visibility.tsv"), Encoding.UTF8).Trim().Split('\t'); double radius;
             if (fields.Length != 2 || (fields[0] != "none" && fields[0] != "npc_monsters" && fields[0] != "scene_characters") ||
                 !Double.TryParse(fields[1], NumberStyles.Float, CultureInfo.InvariantCulture, out radius) ||
                 Double.IsNaN(radius) || Double.IsInfinity(radius) || radius <= 0 || radius > GameCompat.SceneVisibilityRadiusCm)
@@ -218,26 +243,24 @@ namespace WwPoser.ColdLoad
             return Valid(saved.Actor) && Address(saved.Actor) == saved.ActorAddress && actors.TryGetValue(saved.ActorAddress, out current) &&
                 Object.ReferenceEquals(current, saved.Actor) && (int)Bind().SimpleNpcInstanceId.GetValue(current) == saved.InstanceId;
         }
-        private static void RestoreSimpleSceneVisibility(SimpleSceneVisibility saved, Dictionary<ulong, TsSimpleNpc> actors)
+        // Restores leases that left range or became protected and keeps the rest hidden.
+        private static void MaintainLeases<T>(IEnumerable<T> leases, Func<T, bool> current, Func<T, bool> keepHidden, List<string> errors, string label) where T : VisibilityLease
         {
-            if (saved.Released) return;
-            if (!SimpleSceneIdentityCurrent(saved, actors)) { saved.Expired = true; saved.Released = true; return; }
-            if (saved.Actor.bHidden != saved.Hidden) saved.Actor.SetActorHiddenInGame(saved.Hidden);
-            if (saved.Actor.bHidden != saved.Hidden) throw new InvalidOperationException("Simple scene actor visibility readback differs.");
-            saved.Released = true;
+            foreach (var saved in leases)
+            {
+                if (saved.Released) continue;
+                if (!current(saved)) { saved.Expired = true; saved.Released = true; continue; }
+                var lease = saved;
+                if (keepHidden(lease)) Attempt(lease.Hide, errors, label + " hide");
+                else Attempt(delegate { lease.Restore(true); }, errors, label + " restore");
+            }
         }
         private static void UpdateSimpleSceneVisibility(HashSet<ulong> protectedActors, bool scan, List<string> errors)
         {
             if (!s_sceneIncludeSimple) return;
             var actors = SimpleSceneActors();
-            foreach (var saved in s_simpleSceneVisibility.Values)
-            {
-                if (saved.Released) continue;
-                if (!SimpleSceneIdentityCurrent(saved, actors)) { saved.Expired = true; saved.Released = true; continue; }
-                if (protectedActors.Contains(saved.ActorAddress) || !SceneInRange(saved.Actor))
-                    Attempt(delegate { RestoreSimpleSceneVisibility(saved, actors); }, errors, "simple scene visibility restore");
-                else Attempt(delegate { if (!saved.Actor.bHidden) saved.Actor.SetActorHiddenInGame(true); if (!saved.Actor.bHidden) throw new InvalidOperationException("Simple scene actor hide readback differs."); }, errors, "simple scene visibility hide");
-            }
+            MaintainLeases(s_simpleSceneVisibility.Values, saved => SimpleSceneIdentityCurrent(saved, actors),
+                saved => !protectedActors.Contains(saved.ActorAddress) && SceneInRange(saved.Actor), errors, "simple scene visibility");
             if (!scan) return;
             var seen = new HashSet<ulong>(protectedActors);
             foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) seen.Add(saved.ActorAddress);
@@ -250,7 +273,7 @@ namespace WwPoser.ColdLoad
                 if (previous == null && s_sceneVisibility.Count + s_simpleSceneVisibility.Count >= 4096) { s_sceneLimitReached = true; break; }
                 var saved = new SimpleSceneVisibility { Actor = actor, ActorAddress = pair.Key, InstanceId = (int)Bind().SimpleNpcInstanceId.GetValue(actor), Hidden = actor.bHidden };
                 s_simpleSceneVisibility[pair.Key] = saved;
-                Attempt(delegate { if (!actor.bHidden) actor.SetActorHiddenInGame(true); if (!actor.bHidden) throw new InvalidOperationException("Simple scene actor hide readback differs."); }, errors, "simple scene visibility hide");
+                Attempt(saved.Hide, errors, "simple scene visibility hide");
             }
         }
 
@@ -272,44 +295,22 @@ namespace WwPoser.ColdLoad
             if (Valid(pawn)) protectedActors.Add(Address(pawn));
             return protectedActors;
         }
+        // Pending removal is allowed for restoration while this exact object is
+        // still registered. Recycled handles/actors are never modified.
         private static bool SceneIdentityCurrent(SceneVisibility saved)
         {
-            var handle = saved.Handle; var entity = saved.Entity; var c = Bind();
-            if (handle == null || entity == null || !Object.ReferenceEquals(handle.Entity, entity) || handle.Id != saved.EntityId || entity.Id != saved.EntityId ||
-                handle.Index != saved.EntityIndex || entity.Index != saved.EntityIndex ||
-                (uint)handle.Index != ((uint)handle.Id >> GameCompat.EntityHandleIndexShift) || !Valid(saved.Actor) || Address(saved.Actor) != saved.ActorAddress) return false;
-            var character = c.CharacterInstance.GetValue(null); var objects = c.ObjectInstance.GetValue(null);
-            if (character == null || objects == null) return false;
-            var handles = (List<EntityHandle>)c.CharacterHandles.GetValue(character); var values = (List<ObjectBase>)c.ObjectList.GetValue(objects);
-            var versions = (List<int>)c.ObjectVersions.GetValue(objects); var index = handle.Index;
-            // Pending removal is allowed for restoration while this exact object
-            // is still registered. Recycled handles/actors are never modified.
-            return index >= 0 && index < handles.Count && index < values.Count && index < versions.Count &&
-                Object.ReferenceEquals(handles[index], handle) && Object.ReferenceEquals(values[index], entity) && versions[index] == (handle.Id & GameCompat.EntityHandleVersionMask) &&
-                Object.ReferenceEquals(entity.GetComponent<CharacterActorComponent>(), saved.Component) &&
-                Object.ReferenceEquals(entity.GetComponent<CreatureDataComponent>(), saved.Data) &&
-                Valid((AActor)c.ActorInternal.GetValue(saved.Component)) && Address((AActor)c.ActorInternal.GetValue(saved.Component)) == saved.ActorAddress;
-        }
-        private static void RestoreSceneVisibility(SceneVisibility saved)
-        {
-            if (saved.Released) return;
-            if (!SceneIdentityCurrent(saved)) { saved.Expired = true; saved.Released = true; return; }
-            if (saved.Actor.bHidden != saved.Hidden) saved.Actor.SetActorHiddenInGame(saved.Hidden);
-            if (saved.Actor.bHidden != saved.Hidden) throw new InvalidOperationException("Scene actor visibility readback differs.");
-            saved.Released = true;
+            var c = Bind(); var component = saved.Component;
+            return RegistryEntry(saved.Handle, saved.Entity, saved.EntityId, saved.EntityIndex) && Valid(saved.Actor) && Address(saved.Actor) == saved.ActorAddress &&
+                Object.ReferenceEquals(saved.Entity.GetComponent<CharacterActorComponent>(), component) &&
+                Object.ReferenceEquals(saved.Entity.GetComponent<CreatureDataComponent>(), saved.Data) &&
+                Valid((AActor)c.ActorInternal.GetValue(component)) && Address((AActor)c.ActorInternal.GetValue(component)) == saved.ActorAddress;
         }
         private static void UpdateSceneVisibility(bool forceScan)
         {
             if (s_sceneRadius <= 0 || s_stage == null || s_owners.Count == 0) return;
             var errors = new List<string>(); var protectedActors = SceneProtectedActors();
-            foreach (var saved in s_sceneVisibility.Values)
-            {
-                if (saved.Released) continue;
-                if (!SceneIdentityCurrent(saved)) { saved.Expired = true; saved.Released = true; continue; }
-                if (protectedActors.Contains(saved.ActorAddress) || !SceneCategory(saved.Data) || !SceneInRange(saved.Actor))
-                    Attempt(delegate { RestoreSceneVisibility(saved); }, errors, "scene visibility restore");
-                else Attempt(delegate { if (!saved.Actor.bHidden) saved.Actor.SetActorHiddenInGame(true); if (!saved.Actor.bHidden) throw new InvalidOperationException("Scene actor hide readback differs."); }, errors, "scene visibility hide");
-            }
+            MaintainLeases(s_sceneVisibility.Values, SceneIdentityCurrent,
+                saved => !protectedActors.Contains(saved.ActorAddress) && SceneCategory(saved.Data) && SceneInRange(saved.Actor), errors, "scene visibility");
             var tick = Environment.TickCount;
             var scan = forceScan || !s_sceneScanned || unchecked(tick - s_sceneScanTick) >= 500;
             if (scan)
@@ -339,62 +340,91 @@ namespace WwPoser.ColdLoad
                             Actor = actor, ActorAddress = Address(actor), EntityId = handle.Id, EntityIndex = handle.Index, Hidden = actor.bHidden };
                         s_sceneVisibility[handle.Id] = saved; seen.Add(saved.ActorAddress);
                         // Save before the first write so partial startup failures restore.
-                        Attempt(delegate { if (!actor.bHidden) actor.SetActorHiddenInGame(true); if (!actor.bHidden) throw new InvalidOperationException("Scene actor hide readback differs."); }, errors, "scene visibility hide");
+                        Attempt(saved.Hide, errors, "scene visibility hide");
                     }
                 }
             }
             UpdateSimpleSceneVisibility(protectedActors, scan, errors);
             if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
+        // actors.tsv: slot, role, skin, stage x/y/z, mesh asset, yaw, form id,
+        // form strategy, morph type, base model, main mesh, anim class,
+        // child meshes (|-separated), independent instance (0/1).
         private static List<Owner> Requests()
         {
-            var requests = new List<Owner>(); var path = Path.Combine(s_session, "actors.tsv");
-            if (!File.Exists(path))
-            {
-                var old = File.ReadAllLines(Path.Combine(s_session, "owned_character.txt"), Encoding.UTF8);
-                requests.Add(new Owner { Slot = 1, RequestedRoleId = Int32.Parse(old[1], CultureInfo.InvariantCulture), RequestedSkinId = Int32.Parse(old[2], CultureInfo.InvariantCulture), X = 150, AssetName = "" }); return requests;
-            }
-            var slots = new HashSet<uint>();
-            foreach (var line in File.ReadAllLines(path, Encoding.UTF8))
+            var requests = new List<Owner>(); var slots = new HashSet<uint>();
+            Func<string, int> integer = text => Int32.Parse(text, CultureInfo.InvariantCulture);
+            Func<string, double> number = text => Double.Parse(text, CultureInfo.InvariantCulture);
+            foreach (var line in File.ReadAllLines(Path.Combine(s_session, "actors.tsv"), Encoding.UTF8))
             {
                 if (String.IsNullOrWhiteSpace(line)) continue; var columns = line.Split('\t');
-                if (columns.Length != 8 && columns.Length != 16) throw new InvalidDataException("actors.tsv requires eight legacy or sixteen form-aware columns.");
-                var owner = new Owner { Slot = UInt32.Parse(columns[0], CultureInfo.InvariantCulture), RequestedRoleId = Int32.Parse(columns[1], CultureInfo.InvariantCulture), RequestedSkinId = Int32.Parse(columns[2], CultureInfo.InvariantCulture), X = Double.Parse(columns[3], CultureInfo.InvariantCulture), Y = Double.Parse(columns[4], CultureInfo.InvariantCulture), Z = Double.Parse(columns[5], CultureInfo.InvariantCulture), AssetName = columns[6], Yaw = Double.Parse(columns[7], CultureInfo.InvariantCulture) };
-                if (columns.Length == 16)
+                if (columns.Length != 16) throw new InvalidDataException("actors.tsv requires sixteen columns.");
+                var owner = new Owner
                 {
-                    owner.FormId = columns[8]; owner.FormStrategy = columns[9]; owner.MorphType = Int32.Parse(columns[10], CultureInfo.InvariantCulture);
-                    if (String.IsNullOrEmpty(owner.FormId)) throw new InvalidDataException("Missing form ID.");
-                    foreach (var ch in owner.FormId) if (!(ch >= 'a' && ch <= 'z') && !(ch >= '0' && ch <= '9') && ch != '-' && ch != '_') throw new InvalidDataException("Invalid form ID.");
-                    owner.BaseModelId = Int32.Parse(columns[11], CultureInfo.InvariantCulture); owner.MainMeshPath = columns[12]; owner.AnimClassPath = columns[13];
-                    owner.ChildMeshPaths = String.IsNullOrEmpty(columns[14]) ? new string[0] : columns[14].Split('|');
-                    if (columns[15] != "0" && columns[15] != "1") throw new InvalidDataException("Invalid independent actor flag.");
-                    owner.IndependentInstance = columns[15] == "1";
-                    if (owner.FormStrategy != "role_skin" && owner.FormStrategy != "role_morph" && owner.FormStrategy != "mesh_parts") throw new InvalidDataException("Unknown actor form strategy.");
-                    if (owner.FormStrategy != "role_skin" && (!owner.IndependentInstance || owner.BaseModelId <= 0 || String.IsNullOrEmpty(owner.AssetName))) throw new InvalidDataException("Forms require a separately owned actor and exact mesh.");
-                    if (owner.FormStrategy == "role_morph" && owner.MorphType != 1) throw new InvalidDataException("Unsupported role morph type.");
-                    if (owner.FormStrategy == "mesh_parts" && (!AssetPath(owner.MainMeshPath) || !AssetPath(owner.AnimClassPath) || owner.ChildMeshPaths.Length == 0)) throw new InvalidDataException("Incomplete form mesh composition.");
-                    foreach (var child in owner.ChildMeshPaths) if (!AssetPath(child)) throw new InvalidDataException("Invalid form child mesh path.");
-                }
-                if (owner.Slot == 0 || !slots.Add(owner.Slot)) throw new InvalidDataException("Actor slots must be distinct positive numbers."); requests.Add(owner);
+                    Slot = UInt32.Parse(columns[0], CultureInfo.InvariantCulture),
+                    RequestedRoleId = integer(columns[1]),
+                    RequestedSkinId = integer(columns[2]),
+                    X = number(columns[3]),
+                    Y = number(columns[4]),
+                    Z = number(columns[5]),
+                    AssetName = columns[6],
+                    Yaw = number(columns[7]),
+                    FormId = columns[8],
+                    FormStrategy = columns[9],
+                    MorphType = integer(columns[10]),
+                    BaseModelId = integer(columns[11]),
+                    MainMeshPath = columns[12],
+                    AnimClassPath = columns[13],
+                    ChildMeshPaths = String.IsNullOrEmpty(columns[14]) ? new string[0] : columns[14].Split('|'),
+                    IndependentInstance = columns[15] == "1"
+                };
+                if (String.IsNullOrEmpty(owner.FormId)) throw new InvalidDataException("Missing form ID.");
+                foreach (var ch in owner.FormId) if (!(ch >= 'a' && ch <= 'z') && !(ch >= '0' && ch <= '9') && ch != '-' && ch != '_') throw new InvalidDataException("Invalid form ID.");
+                if (columns[15] != "0" && columns[15] != "1") throw new InvalidDataException("Invalid independent actor flag.");
+                if (owner.FormStrategy != "role_skin" && owner.FormStrategy != "role_morph" && owner.FormStrategy != "mesh_parts") throw new InvalidDataException("Unknown actor form strategy.");
+                if (owner.FormStrategy != "role_skin" && (!owner.IndependentInstance || owner.BaseModelId <= 0 || String.IsNullOrEmpty(owner.AssetName)))
+                    throw new InvalidDataException("Forms require a separately owned actor and exact mesh.");
+                if (owner.FormStrategy == "role_morph" && owner.MorphType != 1) throw new InvalidDataException("Unsupported role morph type.");
+                if (owner.FormStrategy == "mesh_parts" && (!AssetPath(owner.MainMeshPath) || !AssetPath(owner.AnimClassPath) || owner.ChildMeshPaths.Length == 0))
+                    throw new InvalidDataException("Incomplete form mesh composition.");
+                foreach (var child in owner.ChildMeshPaths) if (!AssetPath(child)) throw new InvalidDataException("Invalid form child mesh path.");
+                if (owner.Slot == 0 || !slots.Add(owner.Slot)) throw new InvalidDataException("Actor slots must be distinct positive numbers.");
+                requests.Add(owner);
             }
             if (requests.Count == 0) throw new InvalidDataException("No actors requested."); return requests;
         }
-        private static bool AssetPath(string value) { return !String.IsNullOrEmpty(value) && value.StartsWith("/Game/", StringComparison.Ordinal) && value.IndexOfAny(new char[] { '\t', '\r', '\n', '|', '\\' }) < 0 && !value.Contains(".."); }
+        private static bool AssetPath(string value)
+        {
+            return !String.IsNullOrEmpty(value) && value.StartsWith("/Game/", StringComparison.Ordinal) &&
+                value.IndexOfAny(new char[] { '\t', '\r', '\n', '|', '\\' }) < 0 && !value.Contains("..");
+        }
         private static bool HandleCurrent(EntityHandle handle, WorldEntity entity)
         {
             return handle != null && !handle.PendingRemoving && HandleRegistered(handle, entity, handle.Id, handle.Index);
+        }
+        // The handle still names this entity at the same id, index and version
+        // in the character and object registries.
+        private static bool RegistryEntry(EntityHandle handle, WorldEntity entity, int entityId, int entityIndex)
+        {
+            if (handle == null || entity == null || !Object.ReferenceEquals(handle.Entity, entity) ||
+                handle.Id != entityId || entity.Id != entityId || handle.Index != entityIndex || entity.Index != entityIndex ||
+                (uint)handle.Index != ((uint)handle.Id >> GameCompat.EntityHandleIndexShift)) return false;
+            var c = Bind(); var character = c.CharacterInstance.GetValue(null); var objects = c.ObjectInstance.GetValue(null);
+            if (character == null || objects == null) return false;
+            var handles = (List<EntityHandle>)c.CharacterHandles.GetValue(character);
+            var values = (List<ObjectBase>)c.ObjectList.GetValue(objects);
+            var versions = (List<int>)c.ObjectVersions.GetValue(objects);
+            var index = handle.Index;
+            return index >= 0 && index < handles.Count && index < values.Count && index < versions.Count && Object.ReferenceEquals(handles[index], handle) &&
+                Object.ReferenceEquals(values[index], entity) && versions[index] == (handle.Id & GameCompat.EntityHandleVersionMask);
         }
         private static bool HandleRegistered(EntityHandle handle, WorldEntity entity, int entityId, int entityIndex)
         {
             // A held original may be pending removal. Recovery may return its
             // state and hold, but only for the exact acquired registration.
-            if (handle == null || entity == null || !Object.ReferenceEquals(handle.Entity, entity) ||
-                handle.Id != entityId || entity.Id != entityId || handle.Index != entityIndex || entity.Index != entityIndex) return false;
-            var c = Bind(); var flags = Convert.ToInt32(c.EntityFlags.GetValue(entity), CultureInfo.InvariantCulture);
-            if ((flags & GameCompat.EntityFlagRegistered) == 0 || (flags & GameCompat.EntityFlagRetired) != 0 || (uint)handle.Index != ((uint)handle.Id >> GameCompat.EntityHandleIndexShift)) return false;
-            var character = c.CharacterInstance.GetValue(null); var objects = c.ObjectInstance.GetValue(null); if (character == null || objects == null) return false;
-            var handles = (List<EntityHandle>)c.CharacterHandles.GetValue(character); var values = (List<ObjectBase>)c.ObjectList.GetValue(objects); var versions = (List<int>)c.ObjectVersions.GetValue(objects); var index = handle.Index;
-            return index >= 0 && index < handles.Count && index < values.Count && index < versions.Count && Object.ReferenceEquals(handles[index], handle) && Object.ReferenceEquals(values[index], entity) && versions[index] == (handle.Id & GameCompat.EntityHandleVersionMask);
+            if (!RegistryEntry(handle, entity, entityId, entityIndex)) return false;
+            var flags = Convert.ToInt32(Bind().EntityFlags.GetValue(entity), CultureInfo.InvariantCulture);
+            return (flags & GameCompat.EntityFlagRegistered) != 0 && (flags & GameCompat.EntityFlagRetired) == 0;
         }
         private static List<Candidate> CurrentTeam()
         {
@@ -409,7 +439,9 @@ namespace WwPoser.ColdLoad
                 if (role == null) continue; SceneTeamItem matched = null;
                 foreach (var item in items)
                 {
-                    if (item == null || (int)c.ItemPlayer.GetValue(item) != playerId || !(bool)c.ItemLocal.GetValue(item) || (ETeamGroupType)c.ItemGroup.GetValue(item) != groupType || (int)c.ItemRole.GetValue(item) != role.RoleId || (long)c.ItemCreature.GetValue(item) != role.CreatureDataId) continue;
+                    if (item == null || (int)c.ItemPlayer.GetValue(item) != playerId || !(bool)c.ItemLocal.GetValue(item) ||
+                        (ETeamGroupType)c.ItemGroup.GetValue(item) != groupType || (int)c.ItemRole.GetValue(item) != role.RoleId ||
+                        (long)c.ItemCreature.GetValue(item) != role.CreatureDataId) continue;
                     if (matched != null) { matched = null; break; } matched = item;
                 }
                 if (matched == null) continue; var handle = (EntityHandle)c.ItemHandle.GetValue(matched);
@@ -417,7 +449,11 @@ namespace WwPoser.ColdLoad
                 var entity = handle.Entity; var component = entity.GetComponent<CharacterActorComponent>(); var data = entity.GetComponent<CreatureDataComponent>(); if (component == null || data == null) continue;
                 if ((int)c.DataRole.GetValue(data) != role.RoleId || (int)c.DataPlayer.GetValue(data) != playerId || (long)c.DataCreature.GetValue(data) != role.CreatureDataId) continue;
                 var actor = (AActor)c.ActorInternal.GetValue(component); var mesh = component.SkeletalMesh; if (!Valid(actor) || !Valid(mesh) || !Valid(mesh.SkeletalMesh)) continue;
-                result.Add(new Candidate { RoleId = role.RoleId, SkinId = (int)c.SkinId.GetValue(data), Handle = handle, Entity = entity, Component = component, Actor = actor, Mesh = mesh, AssetName = mesh.SkeletalMesh.GetName() });
+                result.Add(new Candidate
+                {
+                    RoleId = role.RoleId, SkinId = (int)c.SkinId.GetValue(data), Handle = handle, Entity = entity,
+                    Component = component, Actor = actor, Mesh = mesh, AssetName = mesh.SkeletalMesh.GetName()
+                });
             }
             return result;
         }
@@ -427,7 +463,11 @@ namespace WwPoser.ColdLoad
             foreach (var owner in requests)
             {
                 s_owners.Add(owner); Candidate candidate = null;
-                if (!owner.IndependentInstance) foreach (var option in candidates) if (option.RoleId == owner.RequestedRoleId && option.SkinId == owner.RequestedSkinId && String.Equals(option.AssetName, owner.AssetName, StringComparison.Ordinal) && !used.Contains(Address(option.Actor)) && HandleCurrent(option.Handle, option.Entity)) { candidate = option; break; }
+                if (!owner.IndependentInstance)
+                    foreach (var option in candidates)
+                        if (option.RoleId == owner.RequestedRoleId && option.SkinId == owner.RequestedSkinId &&
+                            String.Equals(option.AssetName, owner.AssetName, StringComparison.Ordinal) &&
+                            !used.Contains(Address(option.Actor)) && HandleCurrent(option.Handle, option.Entity)) { candidate = option; break; }
                 if (candidate != null)
                 {
                     owner.Borrowed = true; owner.Actor = candidate.Actor; owner.Mesh = candidate.Mesh; owner.Handle = candidate.Handle; owner.Entity = candidate.Entity; owner.BorrowedComponent = candidate.Component;
@@ -466,7 +506,7 @@ namespace WwPoser.ColdLoad
         {
             if (owner.Borrowed)
             {
-                if (!HandleCurrent(owner.Handle, owner.Entity) || !Valid(owner.Actor) || !Valid(owner.Mesh) || Address((AActor)Bind().ActorInternal.GetValue(owner.BorrowedComponent)) != Address(owner.Actor) || Address(owner.BorrowedComponent.SkeletalMesh) != Address(owner.Mesh)) throw new InvalidOperationException("Borrowed team actor changed.");
+                if (!HandleCurrent(owner.Handle, owner.Entity) || !BorrowedIdentity(owner)) throw new InvalidOperationException("Borrowed team actor changed.");
             }
             else
             {
@@ -477,7 +517,9 @@ namespace WwPoser.ColdLoad
             var asset = owner.Mesh.SkeletalMesh; var skeleton = asset == null ? null : asset.Skeleton; var anim = owner.Mesh.GetAnimInstance();
             if (!Valid(asset) || !Valid(skeleton) || !Valid(anim)) throw new InvalidOperationException("Actor resources are still loading.");
             if (!String.IsNullOrEmpty(owner.AssetName) && !String.Equals(asset.GetName(), owner.AssetName, StringComparison.Ordinal)) throw new InvalidOperationException("Loaded actor uses a different requested mesh asset.");
-            if (owner.ActorAddress != 0 && (owner.ActorAddress != Address(owner.Actor) || owner.MeshAddress != Address(owner.Mesh) || Address(owner.Asset) != Address(asset) || Address(owner.Skeleton) != Address(skeleton) || Address(owner.Anim) != Address(anim))) throw new InvalidOperationException("Actor graph changed during preparation.");
+            var graphChanged = owner.ActorAddress != Address(owner.Actor) || owner.MeshAddress != Address(owner.Mesh) || Address(owner.Asset) != Address(asset) ||
+                Address(owner.Skeleton) != Address(skeleton) || Address(owner.Anim) != Address(anim);
+            if (owner.ActorAddress != 0 && graphChanged) throw new InvalidOperationException("Actor graph changed during preparation.");
             owner.Asset = asset; owner.Skeleton = skeleton; owner.Anim = anim; owner.ActorAddress = Address(owner.Actor); owner.MeshAddress = Address(owner.Mesh);
             if (owner.FormStrategy == "mesh_parts")
             {
@@ -487,7 +529,8 @@ namespace WwPoser.ColdLoad
                 for (var index = 0; index < children.Count; index++)
                 {
                     var child = children[index]; var expectedName = owner.ChildMeshPaths[index].Substring(owner.ChildMeshPaths[index].LastIndexOf('.') + 1);
-                    if (!Valid(child) || !Valid(child.SkeletalMesh) || child.SkeletalMesh.GetName() != expectedName || Address(child) == owner.MeshAddress || (owner.FormChildren != null && Address(child) != Address(owner.FormChildren[index]))) throw new InvalidOperationException("Form child mesh identity differs.");
+                    if (!Valid(child) || !Valid(child.SkeletalMesh) || child.SkeletalMesh.GetName() != expectedName || Address(child) == owner.MeshAddress ||
+                        (owner.FormChildren != null && Address(child) != Address(owner.FormChildren[index]))) throw new InvalidOperationException("Form child mesh identity differs.");
                     if (!components.Add(Address(child))) throw new InvalidOperationException("Form parts share a mesh component.");
                     foreach (var other in s_owners) if (!Object.ReferenceEquals(other, owner) && !other.Released)
                     {
@@ -540,19 +583,52 @@ namespace WwPoser.ColdLoad
         {
             var mesh = owner.Mesh;
             var rotation = owner.Actor.K2_GetActorRotation();
-            return new Snapshot { Location = owner.Actor.D_K2_GetActorLocation(), Rotation = rotation, MeshYawOffset = Math.IEEERemainder(mesh.K2_GetComponentRotation().Yaw - rotation.Yaw, 360), Hidden = owner.Actor.bHidden, ActorTick = owner.Actor.IsActorTickEnabled(), ActorInterval = owner.Actor.GetActorTickInterval(), MeshVisible = mesh.bVisible, MeshHidden = mesh.bHiddenInGame, MeshTick = mesh.IsComponentTickEnabled(), MeshInterval = mesh.GetComponentTickInterval(), MeshActive = mesh.IsActive(), PauseAnims = mesh.bPauseAnims, NoSkeletonUpdate = mesh.bNoSkeletonUpdate, AutonomousOnly = mesh.bOnlyAllowAutonomousTickPose, UpdateRate = mesh.bEnableUpdateRateOptimizations, RenderStatic = mesh.bRenderStatic, AnimTick = mesh.VisibilityBasedAnimTickOption };
+            return new Snapshot
+            {
+                Location = owner.Actor.D_K2_GetActorLocation(),
+                Rotation = rotation,
+                MeshYawOffset = Math.IEEERemainder(mesh.K2_GetComponentRotation().Yaw - rotation.Yaw, 360),
+                Hidden = owner.Actor.bHidden,
+                ActorTick = owner.Actor.IsActorTickEnabled(),
+                ActorInterval = owner.Actor.GetActorTickInterval(),
+                MeshVisible = mesh.bVisible,
+                MeshHidden = mesh.bHiddenInGame,
+                MeshTick = mesh.IsComponentTickEnabled(),
+                MeshInterval = mesh.GetComponentTickInterval(),
+                MeshActive = mesh.IsActive(),
+                PauseAnims = mesh.bPauseAnims,
+                NoSkeletonUpdate = mesh.bNoSkeletonUpdate,
+                AutonomousOnly = mesh.bOnlyAllowAutonomousTickPose,
+                UpdateRate = mesh.bEnableUpdateRateOptimizations,
+                RenderStatic = mesh.bRenderStatic,
+                AnimTick = mesh.VisibilityBasedAnimTickOption
+            };
         }
-        private static void EnableEvaluation(Owner owner)
+        // Keeps the actor and its meshes visible and evaluating every frame,
+        // writing only flags that differ.
+        private static void EnsureEvaluation(Owner owner)
         {
-            owner.Actor.SetActorHiddenInGame(false); owner.Actor.SetActorTickEnabled(true); owner.Actor.SetActorTickInterval(0);
-            EnableMeshEvaluation(owner.Mesh);
-            if (owner.FormChildren != null) foreach (var child in owner.FormChildren) EnableMeshEvaluation(child);
+            var actor = owner.Actor;
+            if (actor.bHidden) actor.SetActorHiddenInGame(false);
+            if (!actor.IsActorTickEnabled()) actor.SetActorTickEnabled(true);
+            if (actor.GetActorTickInterval() != 0) actor.SetActorTickInterval(0);
+            EnsureMeshEvaluation(owner.Mesh);
+            if (owner.FormChildren != null) foreach (var child in owner.FormChildren) EnsureMeshEvaluation(child);
         }
-        private static void EnableMeshEvaluation(USkeletalMeshComponent mesh)
+        private static void EnsureMeshEvaluation(USkeletalMeshComponent mesh)
         {
-            mesh.SetActive(true, false); mesh.SetVisibility(true, false); mesh.SetHiddenInGame(false, false); mesh.SetComponentTickEnabled(true); mesh.SetComponentTickInterval(0);
-            mesh.bPauseAnims = false; mesh.bNoSkeletonUpdate = false; mesh.bOnlyAllowAutonomousTickPose = false; mesh.bEnableUpdateRateOptimizations = false; mesh.bRenderStatic = false;
-            mesh.VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption.AlwaysTickPoseAndRefreshBones;
+            if (!mesh.IsActive()) mesh.SetActive(true, false);
+            if (!mesh.bVisible) mesh.SetVisibility(true, false);
+            if (mesh.bHiddenInGame) mesh.SetHiddenInGame(false, false);
+            if (!mesh.IsComponentTickEnabled()) mesh.SetComponentTickEnabled(true);
+            if (mesh.GetComponentTickInterval() != 0) mesh.SetComponentTickInterval(0);
+            if (mesh.bPauseAnims) mesh.bPauseAnims = false;
+            if (mesh.bNoSkeletonUpdate) mesh.bNoSkeletonUpdate = false;
+            if (mesh.bOnlyAllowAutonomousTickPose) mesh.bOnlyAllowAutonomousTickPose = false;
+            if (mesh.bEnableUpdateRateOptimizations) mesh.bEnableUpdateRateOptimizations = false;
+            if (mesh.bRenderStatic) mesh.bRenderStatic = false;
+            if (mesh.VisibilityBasedAnimTickOption != EVisibilityBasedAnimTickOption.AlwaysTickPoseAndRefreshBones)
+                mesh.VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption.AlwaysTickPoseAndRefreshBones;
         }
         private static void ValidatePlayerVisibility(PlayerVisibility saved, bool restoring)
         {
@@ -632,14 +708,21 @@ namespace WwPoser.ColdLoad
                 var rightLength = Math.Sqrt((double)right.X * right.X + (double)right.Y * right.Y); var forwardLength = Math.Sqrt((double)forward.X * forward.X + (double)forward.Y * forward.Y);
                 if (rightLength == 0 || forwardLength == 0) throw new InvalidOperationException("Stage basis is unavailable.");
                 var stageMeshRotation = pawnMesh.K2_GetComponentRotation();
-                s_stage = new Stage { Origin = pawn.D_K2_GetActorLocation(), Rotation = pawn.K2_GetActorRotation(), MeshYaw = stageMeshRotation.Yaw, MeshPitch = stageMeshRotation.Pitch, MeshRoll = stageMeshRotation.Roll, Floor = capsule.D_K2_GetComponentLocation().Z - capsule.D_GetScaledCapsuleHalfHeight(), RightX = right.X / rightLength, RightY = right.Y / rightLength, ForwardX = forward.X / forwardLength, ForwardY = forward.Y / forwardLength };
+                s_stage = new Stage
+                {
+                    Origin = pawn.D_K2_GetActorLocation(), Rotation = pawn.K2_GetActorRotation(),
+                    MeshYaw = stageMeshRotation.Yaw, MeshPitch = stageMeshRotation.Pitch, MeshRoll = stageMeshRotation.Roll,
+                    Floor = capsule.D_K2_GetComponentLocation().Z - capsule.D_GetScaledCapsuleHalfHeight(),
+                    RightX = right.X / rightLength, RightY = right.Y / rightLength, ForwardX = forward.X / forwardLength, ForwardY = forward.Y / forwardLength
+                };
                 CaptureFormationFloor((ACharacter)pawn, s_stage);
             }
             foreach (var owner in s_owners)
             {
                 if (owner.Shown) continue; var actorHeight = 0.0; var character = owner.Actor as ACharacter;
                 if (owner.Borrowed && character != null) actorHeight = character.CapsuleComponent.D_GetScaledCapsuleHalfHeight();
-                var destination = new FVectorDouble(s_stage.Origin.X + s_stage.RightX * owner.X + s_stage.ForwardX * owner.Y, s_stage.Origin.Y + s_stage.RightY * owner.X + s_stage.ForwardY * owner.Y, s_stage.Floor + owner.Z + actorHeight);
+                var destination = new FVectorDouble(s_stage.Origin.X + s_stage.RightX * owner.X + s_stage.ForwardX * owner.Y,
+                    s_stage.Origin.Y + s_stage.RightY * owner.X + s_stage.ForwardY * owner.Y, s_stage.Floor + owner.Z + actorHeight);
                 // UI actors and gameplay characters can use different mesh-to-actor
                 // rotations. Align their mesh bases, not just their Actor yaws.
                 // Both the reference and offsets were captured before any actor moved.
@@ -649,7 +732,7 @@ namespace WwPoser.ColdLoad
                 owner.StageLocation = destination; owner.StageRotation = targetRotation;
                 if (!owner.Actor.D_K2_SetActorLocationAndRotation(destination, targetRotation, false, ref hit, true)) throw new InvalidOperationException("Actor placement failed.");
                 if (!owner.Borrowed) { UKuroRenderingRuntimeBPPluginBPLibrary.SetActorUISceneRendering(owner.Role, false); owner.Data.SetVisible(true); }
-                EnableEvaluation(owner); owner.Shown = true;
+                EnsureEvaluation(owner); owner.Shown = true;
             }
             HideNonPerformingPlayer();
             UpdateSceneVisibility(true);
@@ -667,9 +750,7 @@ namespace WwPoser.ColdLoad
         }
         private static void CaptureFormationFloor(ACharacter pawn, Stage stage)
         {
-            var path = Path.Combine(s_session, "stage_floor.tsv");
-            if (!File.Exists(path)) return;
-            var policy = File.ReadAllText(path, Encoding.UTF8).TrimEnd('\r', '\n').Split('\t');
+            var policy = File.ReadAllText(Path.Combine(s_session, "stage_floor.tsv"), Encoding.UTF8).TrimEnd('\r', '\n').Split('\t');
             if (policy.Length != 2 || (policy[0] != "walkable_floor" && policy[0] != "capsule_bottom")) throw new InvalidDataException("Invalid stage floor policy.");
             if (policy[0] == "capsule_bottom") return;
             var fallback = Double.Parse(policy[1], CultureInfo.InvariantCulture);
@@ -687,29 +768,24 @@ namespace WwPoser.ColdLoad
             if (Double.IsNaN(distance) || Double.IsInfinity(distance) || distance < 0 || distance > 5) return;
             stage.HeightCorrection = -distance; stage.HeightSource = floor.bLineTrace ? "line_floor_distance" : "sweep_floor_distance";
         }
+        // The borrowed actor still uses the acquired component, actor and mesh.
+        private static bool BorrowedIdentity(Owner owner)
+        {
+            var actor = (AActor)Bind().ActorInternal.GetValue(owner.BorrowedComponent);
+            return Valid(owner.Actor) && Valid(owner.Mesh) && Valid(actor) && Valid(owner.BorrowedComponent.SkeletalMesh) &&
+                Address(actor) == Address(owner.Actor) && Address(owner.BorrowedComponent.SkeletalMesh) == Address(owner.Mesh);
+        }
         private static void Maintain(Owner owner)
         {
-            if (!HandleCurrent(owner.Handle, owner.Entity) || !Valid(owner.Actor) || !Valid(owner.Mesh) || Address((AActor)Bind().ActorInternal.GetValue(owner.BorrowedComponent)) != owner.ActorAddress || Address(owner.BorrowedComponent.SkeletalMesh) != owner.MeshAddress || Address(owner.Actor) != owner.ActorAddress || Address(owner.Mesh) != owner.MeshAddress) throw new InvalidOperationException("Borrowed actor identity changed during staging.");
-            var position = owner.Actor.D_K2_GetActorLocation(); var rotation = owner.Actor.K2_GetActorRotation(); var target = owner.StageLocation; var facing = owner.StageRotation;
-            if (!Near(position.X, target.X) || !Near(position.Y, target.Y) || !Near(position.Z, target.Z) || !RotationNear(rotation.Yaw, facing.Yaw) || !RotationNear(rotation.Pitch, facing.Pitch) || !RotationNear(rotation.Roll, facing.Roll))
-            {
-                var hit = new FHitResult(); if (!owner.Actor.D_K2_SetActorLocationAndRotation(target, facing, false, ref hit, true)) throw new InvalidOperationException("Borrowed stage transform update failed.");
-            }
-            if (owner.Actor.bHidden) owner.Actor.SetActorHiddenInGame(false);
-            if (!owner.Actor.IsActorTickEnabled()) owner.Actor.SetActorTickEnabled(true);
-            if (owner.Actor.GetActorTickInterval() != 0) owner.Actor.SetActorTickInterval(0);
-            var mesh = owner.Mesh;
-            if (!mesh.IsActive()) mesh.SetActive(true, false);
-            if (!mesh.bVisible) mesh.SetVisibility(true, false);
-            if (mesh.bHiddenInGame) mesh.SetHiddenInGame(false, false);
-            if (!mesh.IsComponentTickEnabled()) mesh.SetComponentTickEnabled(true);
-            if (mesh.GetComponentTickInterval() != 0) mesh.SetComponentTickInterval(0);
-            if (mesh.bPauseAnims) mesh.bPauseAnims = false;
-            if (mesh.bNoSkeletonUpdate) mesh.bNoSkeletonUpdate = false;
-            if (mesh.bOnlyAllowAutonomousTickPose) mesh.bOnlyAllowAutonomousTickPose = false;
-            if (mesh.bEnableUpdateRateOptimizations) mesh.bEnableUpdateRateOptimizations = false;
-            if (mesh.bRenderStatic) mesh.bRenderStatic = false;
-            if (mesh.VisibilityBasedAnimTickOption != EVisibilityBasedAnimTickOption.AlwaysTickPoseAndRefreshBones) mesh.VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption.AlwaysTickPoseAndRefreshBones;
+            if (!HandleCurrent(owner.Handle, owner.Entity) || !BorrowedIdentity(owner) || Address(owner.Actor) != owner.ActorAddress || Address(owner.Mesh) != owner.MeshAddress)
+                throw new InvalidOperationException("Borrowed actor identity changed during staging.");
+            var position = owner.Actor.D_K2_GetActorLocation(); var rotation = owner.Actor.K2_GetActorRotation();
+            var target = owner.StageLocation; var facing = owner.StageRotation;
+            var placed = Near(position.X, target.X) && Near(position.Y, target.Y) && Near(position.Z, target.Z) &&
+                RotationNear(rotation.Yaw, facing.Yaw) && RotationNear(rotation.Pitch, facing.Pitch) && RotationNear(rotation.Roll, facing.Roll);
+            var hit = new FHitResult();
+            if (!placed && !owner.Actor.D_K2_SetActorLocationAndRotation(target, facing, false, ref hit, true)) throw new InvalidOperationException("Borrowed stage transform update failed.");
+            EnsureEvaluation(owner);
         }
         public static void MaintainStage()
         {
@@ -720,23 +796,49 @@ namespace WwPoser.ColdLoad
             Attempt(delegate { UpdateSceneVisibility(false); }, errors, "scene character visibility");
             if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
-        private static void Pointer(StringBuilder output, string name, UnrealObject value) { output.Append('"').Append(name).Append("\":\"0x").Append(Address(value).ToString("x", CultureInfo.InvariantCulture)).Append('"'); }
+        // Minimal JSON writer: the attached-thread helper has no JSON library.
+        private sealed class JsonText
+        {
+            private readonly StringBuilder text = new StringBuilder();
+            private bool first = true;
+            private JsonText Key(string name) { if (!first) text.Append(','); first = false; text.Append('"').Append(name).Append("\":"); return this; }
+            public JsonText Begin(char bracket) { if (!first) text.Append(','); text.Append(bracket); first = true; return this; }
+            public JsonText BeginField(string name, char bracket) { Key(name).text.Append(bracket); first = true; return this; }
+            public JsonText End(char bracket) { text.Append(bracket); first = false; return this; }
+            public JsonText String(string name, string value) { Key(name).text.Append('"').Append(value).Append('"'); return this; }
+            public JsonText Raw(string name, string value) { Key(name).text.Append(value); return this; }
+            public JsonText Number(string name, double value) { return Raw(name, value.ToString("R", CultureInfo.InvariantCulture)); }
+            public JsonText Number(string name, float value) { return Raw(name, value.ToString("R", CultureInfo.InvariantCulture)); }
+            public JsonText Number(string name, long value) { return Raw(name, value.ToString(CultureInfo.InvariantCulture)); }
+            public JsonText Bool(string name, bool value) { return Raw(name, value ? "true" : "false"); }
+            public JsonText Address(string name, ulong value) { return String(name, "0x" + value.ToString("x", CultureInfo.InvariantCulture)); }
+            public JsonText Vector(string name, params double[] values)
+            {
+                Key(name).text.Append('[');
+                for (var i = 0; i < values.Length; i++) text.Append(i == 0 ? "" : ",").Append(values[i].ToString("R", CultureInfo.InvariantCulture));
+                text.Append(']'); return this;
+            }
+            public void Save(string path) { text.Append('\n'); File.WriteAllText(path, text.ToString(), new UTF8Encoding(false)); }
+        }
         private static void Export()
         {
-            var context = s_owners[0].Actor; var pawn = UGameplayStatics.GetPlayerPawn(context, 0); var controller = UGameplayStatics.GetPlayerController(context, 0);
-            var output = new StringBuilder("{\"schema\":2,\"status\":\"owned_mmd_graph_exported\","); Pointer(output, "player_pawn", pawn); output.Append(','); Pointer(output, "player_controller", controller);
-            if (s_owners.Count == 1) { var one = s_owners[0]; output.Append(','); Pointer(output, "actor", one.Actor); output.Append(','); Pointer(output, "mesh", one.Mesh); output.Append(','); Pointer(output, "asset", one.Asset); output.Append(','); Pointer(output, "skeleton", one.Skeleton); output.Append(','); Pointer(output, "main_anim", one.Anim); }
-            output.Append(",\"actors\":[");
-            for (int i = 0; i < s_owners.Count; i++)
+            var context = s_owners[0].Actor;
+            var json = new JsonText().Begin('{').Number("schema", 2).String("status", "owned_mmd_graph_exported")
+                .Address("player_pawn", Address(UGameplayStatics.GetPlayerPawn(context, 0)))
+                .Address("player_controller", Address(UGameplayStatics.GetPlayerController(context, 0)))
+                .BeginField("actors", '[');
+            foreach (var owner in s_owners)
             {
-                var owner = s_owners[i]; if (i != 0) output.Append(','); output.Append("{\"slot\":").Append(owner.Slot).Append(",\"ownership\":\"").Append(owner.Borrowed ? "borrowed" : "created").Append("\",");
-                output.Append("\"form_id\":\"").Append(owner.FormId).Append("\",\"form_strategy\":\"").Append(owner.FormStrategy).Append("\",");
-                Pointer(output, "actor", owner.Actor); output.Append(','); Pointer(output, "mesh", owner.Mesh); output.Append(','); Pointer(output, "asset", owner.Asset); output.Append(','); Pointer(output, "skeleton", owner.Skeleton); output.Append(','); Pointer(output, "main_anim", owner.Anim);
-                output.Append(",\"form_children\":[");
-                if (owner.FormChildren != null) for (var child = 0; child < owner.FormChildren.Count; child++) { if (child != 0) output.Append(','); output.Append('{'); Pointer(output, "mesh", owner.FormChildren[child]); output.Append(','); Pointer(output, "asset", owner.FormChildren[child].SkeletalMesh); output.Append('}'); }
-                output.Append("]}");
+                json.Begin('{').Number("slot", owner.Slot).String("ownership", owner.Borrowed ? "borrowed" : "created")
+                    .String("form_id", owner.FormId).String("form_strategy", owner.FormStrategy)
+                    .Address("actor", Address(owner.Actor)).Address("mesh", Address(owner.Mesh)).Address("asset", Address(owner.Asset))
+                    .Address("skeleton", Address(owner.Skeleton)).Address("main_anim", Address(owner.Anim))
+                    .BeginField("form_children", '[');
+                if (owner.FormChildren != null)
+                    foreach (var child in owner.FormChildren) json.Begin('{').Address("mesh", Address(child)).Address("asset", Address(child.SkeletalMesh)).End('}');
+                json.End(']').End('}');
             }
-            output.Append("]}\n"); File.WriteAllText(Path.Combine(s_session, "owned_mmd_graph.json"), output.ToString(), new UTF8Encoding(false));
+            json.End(']').End('}').Save(Path.Combine(s_session, "owned_mmd_graph.json"));
         }
         private static void Attempt(Action action, List<string> errors, string operation) { try { action(); } catch (Exception error) { errors.Add(operation + ": " + error.Message); } }
         private static bool Near(double left, double right) { return Math.Abs(left - right) < 0.01; }
@@ -744,14 +846,19 @@ namespace WwPoser.ColdLoad
         private static bool Restored(Owner owner)
         {
             if (owner.Before == null) return true; var saved = owner.Before; var now = Capture(owner);
-            return Near(saved.Location.X, now.Location.X) && Near(saved.Location.Y, now.Location.Y) && Near(saved.Location.Z, now.Location.Z) && RotationNear(saved.Rotation.Yaw, now.Rotation.Yaw) && RotationNear(saved.Rotation.Pitch, now.Rotation.Pitch) && RotationNear(saved.Rotation.Roll, now.Rotation.Roll) && saved.Hidden == now.Hidden && saved.ActorTick == now.ActorTick && saved.ActorInterval == now.ActorInterval && saved.MeshVisible == now.MeshVisible && saved.MeshHidden == now.MeshHidden && saved.MeshTick == now.MeshTick && saved.MeshInterval == now.MeshInterval && saved.MeshActive == now.MeshActive && saved.PauseAnims == now.PauseAnims && saved.NoSkeletonUpdate == now.NoSkeletonUpdate && saved.AutonomousOnly == now.AutonomousOnly && saved.UpdateRate == now.UpdateRate && saved.RenderStatic == now.RenderStatic && saved.AnimTick == now.AnimTick;
+            var placed = Near(saved.Location.X, now.Location.X) && Near(saved.Location.Y, now.Location.Y) && Near(saved.Location.Z, now.Location.Z) &&
+                RotationNear(saved.Rotation.Yaw, now.Rotation.Yaw) && RotationNear(saved.Rotation.Pitch, now.Rotation.Pitch) && RotationNear(saved.Rotation.Roll, now.Rotation.Roll);
+            var actor = saved.Hidden == now.Hidden && saved.ActorTick == now.ActorTick && saved.ActorInterval == now.ActorInterval;
+            var mesh = saved.MeshVisible == now.MeshVisible && saved.MeshHidden == now.MeshHidden && saved.MeshTick == now.MeshTick &&
+                saved.MeshInterval == now.MeshInterval && saved.MeshActive == now.MeshActive && saved.AnimTick == now.AnimTick;
+            var evaluation = saved.PauseAnims == now.PauseAnims && saved.NoSkeletonUpdate == now.NoSkeletonUpdate && saved.AutonomousOnly == now.AutonomousOnly &&
+                saved.UpdateRate == now.UpdateRate && saved.RenderStatic == now.RenderStatic;
+            return placed && actor && mesh && evaluation;
         }
         private static void RestoreBorrowed(Owner owner)
         {
-            if (!HandleRegistered(owner.Handle, owner.Entity, owner.EntityId, owner.EntityIndex) || !Valid(owner.Actor) || !Valid(owner.Mesh) ||
-                !Object.ReferenceEquals(owner.Entity.GetComponent<CharacterActorComponent>(), owner.BorrowedComponent) ||
-                !Valid((AActor)Bind().ActorInternal.GetValue(owner.BorrowedComponent)) || !Valid(owner.BorrowedComponent.SkeletalMesh) ||
-                Address((AActor)Bind().ActorInternal.GetValue(owner.BorrowedComponent)) != Address(owner.Actor) || Address(owner.BorrowedComponent.SkeletalMesh) != Address(owner.Mesh) ||
+            if (!HandleRegistered(owner.Handle, owner.Entity, owner.EntityId, owner.EntityIndex) ||
+                !Object.ReferenceEquals(owner.Entity.GetComponent<CharacterActorComponent>(), owner.BorrowedComponent) || !BorrowedIdentity(owner) ||
                 (owner.ActorAddress != 0 && (Address(owner.Actor) != owner.ActorAddress || Address(owner.Mesh) != owner.MeshAddress)))
                 throw new InvalidOperationException("Borrowed actor identity no longer matches; no replacement actor will be modified.");
             var errors = new List<string>(); var saved = owner.Before; var mesh = owner.Mesh;
@@ -794,12 +901,20 @@ namespace WwPoser.ColdLoad
         public static void Stop()
         {
             VerifySession(); s_maintenanceEnabled = false; var errors = new List<string>();
-            foreach (var owner in s_owners) { if (owner.Released) continue; Attempt(delegate { if (owner.Borrowed) RestoreBorrowed(owner); else DestroyCreated(owner); }, errors, "slot " + owner.Slot.ToString(CultureInfo.InvariantCulture)); }
+            foreach (var owner in s_owners)
+            {
+                if (owner.Released) continue;
+                Attempt(delegate { if (owner.Borrowed) RestoreBorrowed(owner); else DestroyCreated(owner); }, errors, "slot " + owner.Slot.ToString(CultureInfo.InvariantCulture));
+            }
             Attempt(RestorePlayerVisibility, errors, "non-performing player visibility");
-            foreach (var saved in s_sceneVisibility.Values) Attempt(delegate { RestoreSceneVisibility(saved); }, errors, "NPC and monster visibility");
+            foreach (var saved in s_sceneVisibility.Values) { var lease = saved; Attempt(delegate { lease.Restore(SceneIdentityCurrent(lease)); }, errors, "NPC and monster visibility"); }
             if (s_simpleSceneVisibility.Count != 0) Attempt(delegate {
                 var simpleActors = SimpleSceneActors();
-                foreach (var saved in s_simpleSceneVisibility.Values) Attempt(delegate { RestoreSimpleSceneVisibility(saved, simpleActors); }, errors, "simple scene visibility");
+                foreach (var saved in s_simpleSceneVisibility.Values)
+                {
+                    var lease = saved;
+                    Attempt(delegate { lease.Restore(SimpleSceneIdentityCurrent(lease, simpleActors)); }, errors, "simple scene visibility");
+                }
             }, errors, "simple scene visibility registry");
             WriteLifecycle(); if (errors.Count != 0) throw new InvalidOperationException(String.Join("; ", errors.ToArray()));
         }
@@ -810,73 +925,57 @@ namespace WwPoser.ColdLoad
             foreach (var saved in s_sceneVisibility.Values) if (!saved.Released) throw new InvalidOperationException("NPC or monster visibility still requires restoration.");
             foreach (var saved in s_simpleSceneVisibility.Values) if (!saved.Released) throw new InvalidOperationException("Simple scene visibility still requires restoration.");
             foreach (var owner in s_owners)
-                if (!owner.Released || (owner.Borrowed && owner.HoldAdded) || (!owner.Borrowed && owner.HasIndex && Map(owner).ContainsKey(owner.Index))) throw new InvalidOperationException("Actor slot still requires restoration: " + owner.Slot.ToString(CultureInfo.InvariantCulture));
+                if (!owner.Released || (owner.Borrowed && owner.HoldAdded) || (!owner.Borrowed && owner.HasIndex && Map(owner).ContainsKey(owner.Index)))
+                    throw new InvalidOperationException("Actor slot still requires restoration: " + owner.Slot.ToString(CultureInfo.InvariantCulture));
         }
         private static void WriteLifecycle()
         {
-            var output = new StringBuilder("{\"schema\":1,\"actors\":[");
-            for (int i = 0; i < s_owners.Count; i++)
+            var json = new JsonText().Begin('{').Number("schema", 1).BeginField("actors", '[');
+            foreach (var owner in s_owners)
             {
-                var owner = s_owners[i]; if (i != 0) output.Append(',');
-                output.Append("{\"slot\":").Append(owner.Slot).Append(",\"role_id\":").Append(owner.RequestedRoleId).Append(",\"skin_id\":").Append(owner.RequestedSkinId).Append(",\"ownership\":\"").Append(owner.Borrowed ? "borrowed" : "created").Append("\",\"shown\":").Append(owner.Shown ? "true" : "false").Append(",\"released\":").Append(owner.Released ? "true" : "false").Append(",\"retained\":").Append(owner.HoldAdded ? "true" : "false");
-                output.Append(",\"form_id\":\"").Append(owner.FormId).Append("\",\"form_strategy\":\"").Append(owner.FormStrategy).Append("\",\"form_applied\":").Append(owner.FormApplied ? "true" : "false").Append(",\"independent_instance\":").Append(owner.IndependentInstance ? "true" : "false").Append(",\"morph_type\":").Append(owner.MorphType);
+                json.Begin('{').Number("slot", owner.Slot).Number("role_id", owner.RequestedRoleId).Number("skin_id", owner.RequestedSkinId)
+                    .String("ownership", owner.Borrowed ? "borrowed" : "created").Bool("shown", owner.Shown).Bool("released", owner.Released)
+                    .Bool("retained", owner.HoldAdded).String("form_id", owner.FormId).String("form_strategy", owner.FormStrategy)
+                    .Bool("form_applied", owner.FormApplied).Bool("independent_instance", owner.IndependentInstance).Number("morph_type", owner.MorphType);
                 if (owner.Before != null)
                 {
-                    output.Append(",\"requested_stage_yaw\":").Append(owner.Yaw.ToString("R", CultureInfo.InvariantCulture));
-                    output.Append(",\"mesh_yaw_offset\":").Append(owner.Before.MeshYawOffset.ToString("R", CultureInfo.InvariantCulture));
-                    if (owner.Shown) output.Append(",\"stage_actor_yaw\":").Append(owner.StageRotation.Yaw.ToString("R", CultureInfo.InvariantCulture));
+                    json.Number("requested_stage_yaw", owner.Yaw).Number("mesh_yaw_offset", owner.Before.MeshYawOffset);
+                    if (owner.Shown) json.Number("stage_actor_yaw", owner.StageRotation.Yaw);
                 }
-                output.Append('}');
+                json.End('}');
             }
-            output.Append("],\"all_released\":").Append(AllReleased() ? "true" : "false");
-            output.Append(",\"scene_visibility\":{\"enabled\":").Append(s_sceneRadius > 0 ? "true" : "false")
-                .Append(",\"radius_cm\":").Append(s_sceneRadius.ToString("R", CultureInfo.InvariantCulture))
-                .Append(",\"include_simple_scene_people\":").Append(s_sceneIncludeSimple ? "true" : "false")
-                .Append(",\"limit_reached\":").Append(s_sceneLimitReached ? "true" : "false").Append(",\"targets\":[");
-            var sceneIndex = 0;
+            json.End(']').Bool("all_released", AllReleased()).BeginField("scene_visibility", '{').Bool("enabled", s_sceneRadius > 0)
+                .Number("radius_cm", s_sceneRadius).Bool("include_simple_scene_people", s_sceneIncludeSimple).Bool("limit_reached", s_sceneLimitReached)
+                .BeginField("targets", '[');
             foreach (var saved in s_sceneVisibility.Values)
-            {
-                if (sceneIndex++ != 0) output.Append(',');
-                output.Append("{\"entity_id\":").Append(saved.EntityId).Append(",\"actor\":\"0x").Append(saved.ActorAddress.ToString("x", CultureInfo.InvariantCulture))
-                    .Append("\",\"original_hidden\":").Append(saved.Hidden ? "true" : "false")
-                    .Append(",\"released\":").Append(saved.Released ? "true" : "false").Append(",\"expired\":").Append(saved.Expired ? "true" : "false").Append('}');
-            }
+                json.Begin('{').Number("entity_id", saved.EntityId).Address("actor", saved.ActorAddress).Bool("original_hidden", saved.Hidden)
+                    .Bool("released", saved.Released).Bool("expired", saved.Expired).End('}');
             foreach (var saved in s_simpleSceneVisibility.Values)
-            {
-                if (sceneIndex++ != 0) output.Append(',');
-                output.Append("{\"category\":\"simple_scene_person\",\"instance_id\":").Append(saved.InstanceId).Append(",\"actor\":\"0x").Append(saved.ActorAddress.ToString("x", CultureInfo.InvariantCulture))
-                    .Append("\",\"original_hidden\":").Append(saved.Hidden ? "true" : "false")
-                    .Append(",\"released\":").Append(saved.Released ? "true" : "false").Append(",\"expired\":").Append(saved.Expired ? "true" : "false").Append('}');
-            }
-            output.Append("]}");
+                json.Begin('{').String("category", "simple_scene_person").Number("instance_id", saved.InstanceId).Address("actor", saved.ActorAddress)
+                    .Bool("original_hidden", saved.Hidden).Bool("released", saved.Released).Bool("expired", saved.Expired).End('}');
+            json.End(']').End('}');
             if (s_playerVisibility != null)
             {
                 var saved = s_playerVisibility;
-                output.Append(",\"nonperforming_player\":{\"actor\":\"0x").Append(saved.ActorAddress.ToString("x", CultureInfo.InvariantCulture))
-                    .Append("\",\"mesh\":\"0x").Append(saved.MeshAddress.ToString("x", CultureInfo.InvariantCulture))
-                    .Append("\",\"restored\":").Append(saved.Released ? "true" : "false").Append(",\"retained\":").Append(saved.HoldAdded ? "true" : "false")
-                    .Append(",\"original_actor_hidden\":").Append(saved.ActorHidden ? "true" : "false").Append(",\"original_mesh_visible\":").Append(saved.MeshVisible ? "true" : "false")
-                    .Append(",\"original_mesh_hidden\":").Append(saved.MeshHidden ? "true" : "false").Append('}');
+                json.BeginField("nonperforming_player", '{').Address("actor", saved.ActorAddress).Address("mesh", saved.MeshAddress)
+                    .Bool("restored", saved.Released).Bool("retained", saved.HoldAdded).Bool("original_actor_hidden", saved.ActorHidden)
+                    .Bool("original_mesh_visible", saved.MeshVisible).Bool("original_mesh_hidden", saved.MeshHidden).End('}');
             }
             if (s_stage != null)
             {
                 // Absolute D_ coordinates remain placement diagnostics. Camera
                 // code consumes only the saved displacement below, never these
                 // global coordinates as an absolute local POV position.
-                output.Append(",\"stage_reference_actor_yaw\":").Append(s_stage.Rotation.Yaw.ToString("R", CultureInfo.InvariantCulture))
-                    .Append(",\"stage_reference_mesh_yaw\":").Append(s_stage.MeshYaw.ToString("R", CultureInfo.InvariantCulture))
-                    .Append(",\"stage_reference_mesh_pitch\":").Append(s_stage.MeshPitch.ToString("R", CultureInfo.InvariantCulture))
-                    .Append(",\"stage_reference_mesh_roll\":").Append(s_stage.MeshRoll.ToString("R", CultureInfo.InvariantCulture))
-                    .Append(",\"stage_reference_location\":[").Append(s_stage.Origin.X.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(s_stage.Origin.Y.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(s_stage.Origin.Z.ToString("R", CultureInfo.InvariantCulture)).Append(']')
-                    .Append(",\"stage_reference_floor\":").Append(s_stage.Floor.ToString("R", CultureInfo.InvariantCulture))
-                    .Append(",\"stage_height_correction_cm\":").Append(s_stage.HeightCorrection.ToString("R", CultureInfo.InvariantCulture))
-                    .Append(",\"stage_height_correction_source\":\"").Append(s_stage.HeightSource).Append('"')
-                    .Append(",\"stage_reference_right\":[").Append(s_stage.RightX.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(s_stage.RightY.ToString("R", CultureInfo.InvariantCulture)).Append(']')
-                    .Append(",\"stage_reference_forward\":[").Append(s_stage.ForwardX.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(s_stage.ForwardY.ToString("R", CultureInfo.InvariantCulture)).Append(']');
-                if (s_stage.CameraReferenceCaptured)
-                    output.Append(",\"stage_reference_camera_offset_from_mesh\":[").Append(s_stage.CameraOffsetFromMesh.X.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(s_stage.CameraOffsetFromMesh.Y.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(s_stage.CameraOffsetFromMesh.Z.ToString("R", CultureInfo.InvariantCulture)).Append(']');
+                var stage = s_stage;
+                json.Number("stage_reference_actor_yaw", stage.Rotation.Yaw).Number("stage_reference_mesh_yaw", stage.MeshYaw)
+                    .Number("stage_reference_mesh_pitch", stage.MeshPitch).Number("stage_reference_mesh_roll", stage.MeshRoll)
+                    .Vector("stage_reference_location", stage.Origin.X, stage.Origin.Y, stage.Origin.Z).Number("stage_reference_floor", stage.Floor)
+                    .Number("stage_height_correction_cm", stage.HeightCorrection).String("stage_height_correction_source", stage.HeightSource)
+                    .Vector("stage_reference_right", stage.RightX, stage.RightY).Vector("stage_reference_forward", stage.ForwardX, stage.ForwardY);
+                if (stage.CameraReferenceCaptured)
+                    json.Vector("stage_reference_camera_offset_from_mesh", stage.CameraOffsetFromMesh.X, stage.CameraOffsetFromMesh.Y, stage.CameraOffsetFromMesh.Z);
             }
-            output.Append("}\n"); File.WriteAllText(Path.Combine(s_session, "managed_actor_lifecycle.json"), output.ToString(), new UTF8Encoding(false));
+            json.End('}').Save(Path.Combine(s_session, "managed_actor_lifecycle.json"));
         }
     }
 }

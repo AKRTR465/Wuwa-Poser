@@ -21,7 +21,7 @@ internal static class SimpleSceneVisibilityChecks
         string Begin(string name, string mode = "scene_characters\t100000\n")
         {
             var directory = Path.Combine(fixture, name); Directory.CreateDirectory(directory);
-            File.WriteAllText(Path.Combine(directory, "actors.tsv"), "1\t10\t100\t150\t0\t0\tRole10Skin100\t0\n");
+            SessionFixture.Actors(directory, "1\t10\t100\t150\t0\t0\tRole10Skin100\t0\n");
             File.WriteAllText(Path.Combine(directory, "scene_visibility.tsv"), mode);
             Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", directory);
             ManagedBridge.BindSession(); ManagedBridge.BeginTarget(); ManagedBridge.CheckLoaded(); ManagedBridge.ShowAtLocal(); return directory;

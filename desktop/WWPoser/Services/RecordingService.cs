@@ -317,9 +317,6 @@ public sealed class RecordingService
         return double.Parse(JsonNode.Parse(result.Output)!["format"]!["duration"]!.GetValue<string>(), CultureInfo.InvariantCulture);
     }
 
-    public Task<JsonObject> RenderAudioAsync(string journalPath, string outputWav, CancellationToken cancellation = default) =>
-        AudioRenderer.RenderAsync(Path.GetFullPath(journalPath), Path.GetFullPath(outputWav), ffmpeg, cancellation);
-
     private static class GameWindows
     {
         private delegate bool EnumCallback(nint hwnd, nint parameter);

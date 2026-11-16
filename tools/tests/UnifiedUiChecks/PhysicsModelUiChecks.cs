@@ -112,7 +112,7 @@ internal static class PhysicsModelUiChecks
             var actor = catalog.Select(evidence["role"]!.GetValue<string>());
             var bone = evidence["root"]!.GetValue<string>();
             var liveReport = JsonData.ReadObject(Path.Combine(frames, label + "-live.json"));
-            var nativeStatus = JsonData.ReadObject(Path.Combine(liveReport["session_dir"]!.GetValue<string>(), "player_status.json"));
+            var nativeStatus = JsonData.ReadObject(Path.Combine(liveReport["session_dir"]!.GetValue<string>(), "mmd_status.json"));
             nativeStatus["session_active"] = true;
             nativeStatus["restore_requested"] = false;
             nativeStatus["mode"] = "paused";
@@ -123,7 +123,7 @@ internal static class PhysicsModelUiChecks
             var adjustedFrame = BinaryPrimitives.ReadUInt64LittleEndian(adjusted.AsSpan(24));
             var directory = Path.Combine(output, "model-replay-" + label + "-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
-            var statusFile = Path.Combine(directory, "player_status.json");
+            var statusFile = Path.Combine(directory, "mmd_status.json");
             var poseFile = Path.Combine(directory, "model_pose.dat");
             var commandFile = Path.Combine(directory, "control.dat");
             JsonData.Write(statusFile, nativeStatus);

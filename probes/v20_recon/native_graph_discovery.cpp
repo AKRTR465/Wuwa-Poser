@@ -1,28 +1,21 @@
 // Independent discovery carrier. Fixed vtable slots are temporarily patched.
 // Original callbacks run exactly once; no pose/alpha/timing writes, engine
 // getter, native UpdateInternal call or DLL unloading.
-#include "shared_readonly.h"
-#include "vmt_slot_patch.h"
-#include "native_graph_discovery.h"
+#include "observer_carrier.h"
 #include "native_animation_target_config.h"
 #include "object_identity.h"
-#include "game_compat_witness.h"
-#include "../../runtime/generated/GameCompat.generated.h"
-#include <atomic>
-#include <array>
-#include <filesystem>
-#include <fstream>
+#include "../../playback/native_kawaii_parameters.h"
 
 namespace graph_carrier {
 namespace ng=native_graph_discovery;
+namespace oc=observer_carrier;
 namespace compat=ww_game_compat;namespace witness=ww_game_compat_witness;
-using Fn2=void(*)(void*,void*);using Fn3=void(*)(void*,void*,void*);
+namespace kawaii=wwp_playback::kawaii_parameters;
 static HMODULE selfModule=nullptr;static volatile LONG started=0;
-static ng::Binding binding;static ng::Recorder recorder;
-static std::atomic<bool> observing{false};static std::atomic<unsigned> active{0};
+static ng::Binding binding;static ng::Recorder recorder;static oc::Hooks hooks;
+static std::atomic<bool> observing{false};
 static std::atomic<uint64_t> observedMainProxy{0};
-static std::array<std::atomic<uint64_t>,ng::kHooks> calls{},targetCalls{};
-static std::array<Fn2,ng::kHooks> originals2{};static std::array<Fn3,ng::kHooks> originals3{};
+static std::array<std::atomic<uint64_t>,ng::kHooks> targetCalls{};
 static std::atomic<uint64_t> unreadableTarget{0};
 static bool rootLayoutVerified=false;
 static bool observePhysicsSettings=false;
@@ -30,74 +23,28 @@ static std::vector<std::string> referenceBoneNames;
 static Json rootSetJson=Json::array(); // Worker-only decoded cache, after quiescence.
 static constexpr uint64_t kRootRvas[]={compat::FunctionGroupInitializeBoneReferencesRva,compat::FunctionGroupInitializeModifyBonesRva};
 static constexpr unsigned kRootBytes[]={compat::FunctionGroupInitializeBoneReferencesBytes,compat::FunctionGroupInitializeModifyBonesBytes};
-static bool Read(uint64_t address,void* out,size_t bytes) noexcept {
-    if(!ng::Range(address,bytes))return false;SIZE_T got=0;
-    return ReadProcessMemory(GetCurrentProcess(),reinterpret_cast<void*>(address),out,bytes,&got)&&got==bytes;
-}
-struct SettingsCodeTarget { const char* label; uint32_t callOffset, rva, bytes; uint64_t caller=compat::FunctionGroupEvaluateRva; };
-static constexpr SettingsCodeTarget kSettingsCode[] = {{"GroupUpdatePhysicsSettings", 0x90, 0xa5d990, 0x471},
-                                                       {"GroupSimulate", 0x178, 0xa5b750, 0x18fe}};
-static constexpr SettingsCodeTarget kApplyResult = {"GroupApplyResult", 0x189, 0xa51030, 0x6af};
-static constexpr SettingsCodeTarget kCapsuleUpdate = {"GroupUpdateCapsuleLimits", 0xf4, 0xa5d280, 0x241};
-static constexpr SettingsCodeTarget kLimits = {"GroupApplyLimits", 0xcf9, 0xa578c0, 0x338, 0xa5b750};
-static constexpr SettingsCodeTarget kWorldCollision = {"GroupWorldCollision", 0x165, 0xa5eaf0, 0x486};
-static constexpr SettingsCodeTarget kCollisionCandidate = {"GroupCollisionCandidate", 0x15aa, 0xa4c220, 0x476, 0xa5b750};
-static constexpr SettingsCodeTarget kCapsuleContacts[] = {{"CapsuleContactsA", 0x62, 0xa4ff20, 0x262, 0xa4c220},
-    {"CapsuleContactsB", 0x190, 0xa4ce90, 0x2af, 0xa4c220}, {"CapsuleContactsC", 0x2a6, 0xa4cab0, 0x3d3, 0xa4c220}};
-static Json CapturePhysicsSettingsEvidence(uint64_t image, unsigned imageSize,bool collision,bool contacts) {
-    if (std::string_view(compat::SourceBuildSha256) != "38b3980f0436d8ead42a0ff8c45c183936ed02cd8b4b33944a03316b68cfd887")
-        throw std::runtime_error("Kawaii settings sample is defined for 3.8.0");
-    // These are the direct calls identified in the already verified GroupEvaluate.
-    // Use the contiguous unwind ranges for each callee in the 3.8.0 image.
-    Json samples = Json::array();
-    for (const auto& target : {kSettingsCode[0], kSettingsCode[1], kApplyResult,kCapsuleUpdate,kLimits,kWorldCollision,kCollisionCandidate,
-         kCapsuleContacts[0],kCapsuleContacts[1],kCapsuleContacts[2]}) {
-        if(target.caller==kCollisionCandidate.rva&&!contacts)continue;
-        if(!collision&&target.rva!=kSettingsCode[0].rva&&target.rva!=kSettingsCode[1].rva&&target.rva!=kApplyResult.rva)continue;
-        const auto site = target.caller + target.callOffset;
-        std::array<uint8_t, 5> call{};
-        uint64_t address = 0;
-        if (!Read(image + site, call.data(), call.size()) || call[0] != 0xe8 ||
-            int64_t(site + call.size()) + ng::Get<int32_t>(call.data(), 1) != target.rva ||
-            !ww_game_compat_resolution::ResolveImageAddress(image, imageSize, target.rva, target.bytes, address))
-            throw std::runtime_error("unexpected Kawaii settings call target");
-        std::vector<uint8_t> bytes(target.bytes);
-        if (!Read(address, bytes.data(), bytes.size())) throw std::runtime_error("Kawaii settings code sample unreadable");
-        constexpr char digits[] = "0123456789abcdef";
-        std::string hex(bytes.size() * 2, '0');
-        for (size_t i = 0; i < bytes.size(); ++i) {
-            hex[i * 2] = digits[bytes[i] >> 4];
-            hex[i * 2 + 1] = digits[bytes[i] & 0xf];
-        }
-        samples.push_back({{"label", target.label}, {"call_site_rva", Hex(site)}, {"rva", Hex(target.rva)},
-                           {"bytes", target.bytes}, {"function_bytes_hex", std::move(hex)}});
-    }
-    return samples;
-}
 struct Entry {uint64_t sequence=0;int32_t slot=-1;bool read=false,target=false;};
+// Diagnostic sample of the group's authored settings and the first/last
+// cached simulated bone, enabled by WWPOSER_OBSERVE_KAWAII_SETTINGS=1.
 static void CapturePhysicsSettings(ng::Phase& phase) {
-    // Confirmed against both the group updater and Lily's authored values.
-    constexpr size_t simulatedBoneBytes = 0x1b0;
-    constexpr size_t cachedSettingsOffset = 0x28;
-    ng::ArrayHead bones;
-    phase.settings_read = Read(phase.node + 0x108, phase.settings.data(), sizeof(phase.settings)) &&
-        Read(phase.node + 0x260, &phase.settings_cache_initialized, 1) &&
-        Read(phase.node + 0x160, &phase.settings_refresh_each_evaluation, 1);
-    if (!phase.settings_read || !Read(phase.node + 0x1f8, &bones, sizeof(bones)) || !ng::Array(bones)) return;
-    phase.settings_cache_count = bones.num;
-    if (!bones.num || !phase.settings_cache_initialized || !ng::Range(bones.data, size_t(bones.num) * simulatedBoneBytes)) return;
-    const auto first = bones.data + cachedSettingsOffset;
-    const auto last = first + size_t(bones.num - 1) * simulatedBoneBytes;
-    ng::ArrayHead after;
-    phase.settings_cache_read = Read(first, phase.settings_cache_first.data(), sizeof(phase.settings_cache_first)) &&
-        Read(last, phase.settings_cache_last.data(), sizeof(phase.settings_cache_last)) &&
-        Read(phase.node + 0x1f8, &after, sizeof(after)) && ng::SameHead(bones, after);
+    ue_memory::ArrayHead bones,after;
+    phase.settings_read=oc::Read(phase.node+kawaii::kNodeSettings,phase.settings.data(),sizeof(phase.settings))&&
+        oc::Read(phase.node+kawaii::kInitialized,&phase.settings_cache_initialized,1)&&
+        oc::Read(phase.node+kawaii::kRefresh,&phase.settings_refresh_each_evaluation,1);
+    if(!phase.settings_read||!oc::Read(phase.node+kawaii::kBoneArray,&bones,sizeof(bones))||!ng::Array(bones))return;
+    phase.settings_cache_count=bones.num;
+    if(!bones.num||!phase.settings_cache_initialized||!ng::Range(bones.data,size_t(bones.num)*kawaii::kBoneStride))return;
+    const auto first=bones.data+kawaii::kBoneSettings;
+    const auto last=first+size_t(bones.num-1)*kawaii::kBoneStride;
+    phase.settings_cache_read=oc::Read(first,phase.settings_cache_first.data(),sizeof(phase.settings_cache_first))&&
+        oc::Read(last,phase.settings_cache_last.data(),sizeof(phase.settings_cache_last))&&
+        oc::Read(phase.node+kawaii::kBoneArray,&after,sizeof(after))&&ng::SameHead(bones,after);
 }
 static void CaptureObservation(unsigned hook,void* node,void* context,ng::Phase& phase,ng::Mapping& mapping,ng::RootSnapshot* roots){
-    ng::CapturePhase(Read,binding,ng::Kind(hook),reinterpret_cast<uint64_t>(node),reinterpret_cast<uint64_t>(context),phase,mapping,roots,observedMainProxy.load(std::memory_order_acquire));
+    ng::CapturePhase(oc::Read,binding,ng::Kind(hook),reinterpret_cast<uint64_t>(node),reinterpret_cast<uint64_t>(context),phase,mapping,roots,observedMainProxy.load(std::memory_order_acquire));
     if(phase.type_verified&&phase.owner_role_verified&&phase.owner_is_main)observedMainProxy.store(phase.proxy,std::memory_order_release);
-    if (observePhysicsSettings && phase.type_verified && phase.owner_role_verified &&
-        (hook == unsigned(ng::Kind::GroupUpdate) || hook == unsigned(ng::Kind::GroupEvaluate))) CapturePhysicsSettings(phase);
+    if(observePhysicsSettings&&phase.type_verified&&phase.owner_role_verified&&
+        (hook==unsigned(ng::Kind::GroupUpdate)||hook==unsigned(ng::Kind::GroupEvaluate)))CapturePhysicsSettings(phase);
 }
 // These helper frames are gone before forwarding the recursive graph call.
 // Keeping 1024-bone scratch arrays in Detour would multiply stack use by the
@@ -122,55 +69,45 @@ __declspec(noinline) static void EndObservation(unsigned hook,void* node,void* c
     recorder.End(entry.slot,exit,after,mapping,rootLayoutVerified?&roots:nullptr);
 }
 static void Detour(unsigned hook,void* node,void* context,void* out){
-    const DWORD incomingError=GetLastError();++active;++calls[hook];
-    struct Active {~Active(){--active;}} activeScope;
+    const DWORD incomingError=GetLastError();++hooks.active;++hooks.calls[hook];
+    struct Active {~Active(){--hooks.active;}} activeScope;
     const bool enabled=observing.load(std::memory_order_acquire)&&!recorder.window_closed.load(std::memory_order_acquire);
     Entry entry;if(enabled)entry=BeginObservation(hook,node,context);
     SetLastError(incomingError);
-    if(ng::kSpecs[hook].arity==2)originals2[hook](node,context);else originals3[hook](node,context,out);
+    hooks.Forward(hook,node,context,out);
     const DWORD originalError=GetLastError();
     if(enabled)EndObservation(hook,node,context,entry);
     SetLastError(originalError);
 }
-static void L2C(void* n,void* c){Detour(0,n,c,nullptr);}
-static void GroupBase(void* n,void* c){Detour(1,n,c,nullptr);}
-static void GroupUpdate(void* n,void* c){Detour(2,n,c,nullptr);}
-static void GroupEvaluate(void* n,void* c,void* o){Detour(3,n,c,o);}
-static void SingleBase(void* n,void* c){Detour(4,n,c,nullptr);}
-static void* DetourAddress(unsigned i){switch(i){case 0:return reinterpret_cast<void*>(&L2C);case 1:return reinterpret_cast<void*>(&GroupBase);
-    case 2:return reinterpret_cast<void*>(&GroupUpdate);case 3:return reinterpret_cast<void*>(&GroupEvaluate);default:return reinterpret_cast<void*>(&SingleBase);}}
-static void* OriginalAddress(unsigned i){return ng::kSpecs[i].arity==2?reinterpret_cast<void*>(originals2[i]):reinterpret_cast<void*>(originals3[i]);}
-static uint64_t Address(const Json& j){uint64_t parsed=0;std::string error;
-    if(!j.is_string()||!ww_game_compat_resolution::ParseHexU64(j.get<std::string>(),parsed,error))throw std::runtime_error("invalid hexadecimal address: "+error);return parsed;}
+using Trampolines=oc::Trampolines<&Detour>;
 struct Config {
     unsigned duration_ms=5000,node_limit=ng::kNodes,frame_limit=ng::kFrames;
     uint64_t go_rva=0,pool_rva=0;std::string profile,skeleton_sha;
     unsigned bone_count=0;std::vector<std::string> bone_names;std::vector<int32_t> parents;
-    Json function_witnesses,root_witnesses;
+    Json root_witnesses;
 };
 static Config ParseConfig(const Json& j){Config c;
     const auto& d=j.at("native_graph_discovery");
     c.duration_ms=d.at("duration_ms");c.node_limit=d.at("node_limit");c.frame_limit=d.at("frame_limit");
-    c.go_rva=Address(j.at("gobjects_rva"));c.pool_rva=Address(j.at("name_pool_rva"));c.profile=j.at("character_profile_id");c.bone_count=j.at("expected_bone_count");
+    c.go_rva=oc::Address(j.at("gobjects_rva"));c.pool_rva=oc::Address(j.at("name_pool_rva"));c.profile=j.at("character_profile_id");c.bone_count=j.at("expected_bone_count");
     c.skeleton_sha=j.at("expected_skeleton_sha256");
     c.bone_names=j.at("expected_bone_names").get<std::vector<std::string>>();c.parents=j.at("expected_bone_parents").get<std::vector<int32_t>>();
-    c.function_witnesses=d.at("function_witnesses");c.root_witnesses=d.at("root_layout_witnesses");
+    c.root_witnesses=d.at("root_layout_witnesses");
     if(!c.bone_count||c.bone_count>ng::kBones||c.parents.size()!=c.bone_count||c.bone_names.size()!=c.bone_count)throw std::runtime_error("reference topology bounds differ");
     return c;
 }
 static bool FullName(Reader& r,const Pool& pool,const std::array<uint32_t,3>& words,std::string& value){
-    if(!Decode(r,pool,words[0],value)||value.empty())return false;if(words[2])value+="_"+std::to_string(words[2]-1);return true;
+    return ::FullName(r,pool,words[0],words[2],value)&&!value.empty();
 }
-static std::array<uint32_t,3> NameWords(const ng::Token& t){return {{ng::Get<uint32_t>(t.header.data(),compat::ObjectNameOffset),ng::Get<uint32_t>(t.header.data(),compat::ObjectNameOffset+compat::NameWordBytes),ng::Get<uint32_t>(t.header.data(),compat::ObjectNameOffset+compat::NameNumberOffset)}};}
+static std::array<uint32_t,3> NameWords(const ng::Token& t){return {{At<uint32_t>(t.header.data(),compat::ObjectNameOffset),At<uint32_t>(t.header.data(),compat::ObjectNameOffset+compat::NameWordBytes),At<uint32_t>(t.header.data(),compat::ObjectNameOffset+compat::NameNumberOffset)}};}
 static Json TokenJson(Reader& r,const Pool& pool,const ng::Token& t){
-    std::string name,className;ng::Token classToken;const bool named=FullName(r,pool,NameWords(t),name);
-    const bool classRead=ng::CaptureToken(Read,binding.go,ng::Class(t),classToken,false);const bool classNamed=classRead&&FullName(r,pool,NameWords(classToken),className);
+    std::string name,className;ng::Token classToken;FullName(r,pool,NameWords(t),name);
+    const bool classRead=ng::CaptureToken(oc::Read,binding.go,ng::Class(t),classToken,false);if(classRead)FullName(r,pool,NameWords(classToken),className);
     return {{"address",Hex(t.address)},{"item_address",Hex(t.item)},{"index",ng::Index(t)},{"serial",ng::Serial(t)},
-        {"class_address",Hex(ng::Class(t))},{"class",className},{"class_name",className},{"class_name_verified",classNamed},
-        {"outer_address",Hex(ng::Get<uint64_t>(t.header.data(),compat::ObjectOuterOffset))},{"vtable",Hex(ng::Get<uint64_t>(t.header.data(),compat::ObjectVtableOffset))},
-        {"object_flags",ng::Get<uint32_t>(t.header.data(),compat::ObjectFlagsOffset)},{"item_flags",ng::Get<uint32_t>(t.item_bytes.data(),compat::ObjectItemFlagsOffset)},
-        {"name",name},{"name_verified",named},{"name_words",NameWords(t)},{"class_name_words",classRead?Json(NameWords(classToken)):Json(nullptr)},
-        {"identity_rechecked",true},{"strong_identity",ng::Serial(t)!=0}};
+        {"class_address",Hex(ng::Class(t))},{"class_name",className},
+        {"outer_address",Hex(At<uint64_t>(t.header.data(),compat::ObjectOuterOffset))},{"vtable",Hex(At<uint64_t>(t.header.data(),compat::ObjectVtableOffset))},
+        {"object_flags",At<uint32_t>(t.header.data(),compat::ObjectFlagsOffset)},{"item_flags",At<uint32_t>(t.item_bytes.data(),compat::ObjectItemFlagsOffset)},
+        {"name",name},{"name_words",NameWords(t)},{"class_name_words",classRead?Json(NameWords(classToken)):Json(nullptr)}};
 }
 static Json BindingJson(Reader& r,const Pool& pool,const ng::Binding& b){Json j;
     const char* labels[]={"mesh","pawn","controller","mesh_asset","skeleton_asset","main_anim"};
@@ -182,63 +119,63 @@ static Json BindingJson(Reader& r,const Pool& pool,const ng::Binding& b){Json j;
 }
 static ng::Binding Bind(Reader& r,const Pool& pool,const Go& go,const Config& c,const Json& cfg,uint64_t image){
     ng::Binding b;b.image=image;b.go={go.table,go.count};b.bone_count=c.bone_count;std::copy(c.parents.begin(),c.parents.end(),b.parents.begin());
-    auto capture=[&](const char* label,uint64_t address,ng::Token& t){if(!ng::CaptureToken(Read,b.go,address,t))
+    auto capture=[&](const char* label,uint64_t address,ng::Token& t){if(!ng::CaptureToken(oc::Read,b.go,address,t))
         throw std::runtime_error(std::string("strong UObject identity unavailable: ")+label+" address="+Hex(address));};
-    capture("mesh",Address(cfg.at("object")),b.mesh);capture("actor",Address(cfg.at("outer_address")),b.pawn);
-    if(native_animation_target_config::Policy(cfg)==native_animation_target::OwnerPolicy::ControlledPlayer)capture("controller",Address(cfg.at("controller_address")),b.controller);
+    capture("mesh",oc::Address(cfg.at("object")),b.mesh);capture("actor",oc::Address(cfg.at("outer_address")),b.pawn);
+    if(native_animation_target_config::Policy(cfg)==native_animation_target::OwnerPolicy::ControlledPlayer)capture("controller",oc::Address(cfg.at("controller_address")),b.controller);
     uint64_t asset=0,skeleton=0,main=0;
-    if(!Read(b.mesh.address+compat::ComponentAssetOffset,&asset,compat::PointerBytes)||!Read(asset+compat::AssetSkeletonOffset,&skeleton,compat::PointerBytes)||!Read(b.mesh.address+compat::ComponentMainAnimOffset,&main,compat::PointerBytes))throw std::runtime_error("main/assets unavailable");
+    if(!oc::Read(b.mesh.address+compat::ComponentAssetOffset,&asset,compat::PointerBytes)||!oc::Read(asset+compat::AssetSkeletonOffset,&skeleton,compat::PointerBytes)||
+       !oc::Read(b.mesh.address+compat::ComponentMainAnimOffset,&main,compat::PointerBytes))throw std::runtime_error("main/assets unavailable");
     capture("mesh_asset",asset,b.mesh_asset);capture("skeleton_asset",skeleton,b.skeleton_asset);capture("main_anim",main,b.main_anim);
     b.authority=native_animation_target_config::Parse(cfg,b.pawn,b.mesh,b.mesh_asset,b.skeleton_asset,b.main_anim);
-    ng::ArrayHead h;std::vector<uint8_t> rows(size_t(c.bone_count)*compat::ReferenceBoneInfoBytes);
-    if(!Read(asset+compat::AssetRefBoneInfoOffset,&h,sizeof(h))||h.num!=int32_t(c.bone_count)||!Read(h.data,rows.data(),rows.size()))throw std::runtime_error("reference table unavailable");
-    for(unsigned i=0;i<c.bone_count;++i){const uint8_t* p=rows.data()+i*compat::ReferenceBoneInfoBytes;std::array<uint32_t,3> words{{ng::Get<uint32_t>(p,0),ng::Get<uint32_t>(p,compat::NameWordBytes),ng::Get<uint32_t>(p,compat::NameNumberOffset)}};std::string bone;
-        if(!FullName(r,pool,words,bone)||!ww_object::SameName(bone,c.bone_names[i])||ng::Get<int32_t>(p,compat::ReferenceBoneParentOffset)!=c.parents[i])throw std::runtime_error("full reference topology differs");}
+    ue_memory::ArrayHead h;std::vector<uint8_t> rows(size_t(c.bone_count)*compat::ReferenceBoneInfoBytes);
+    if(!oc::Read(asset+compat::AssetRefBoneInfoOffset,&h,sizeof(h))||h.num!=int32_t(c.bone_count)||!oc::Read(h.data,rows.data(),rows.size()))throw std::runtime_error("reference table unavailable");
+    for(unsigned i=0;i<c.bone_count;++i){const uint8_t* p=rows.data()+i*compat::ReferenceBoneInfoBytes;std::string bone;
+        const std::array<uint32_t,3> words{{At<uint32_t>(p,0),At<uint32_t>(p,compat::NameWordBytes),At<uint32_t>(p,compat::NameNumberOffset)}};
+        if(!FullName(r,pool,words,bone)||!ww_object::SameName(bone,c.bone_names[i])||At<int32_t>(p,compat::ReferenceBoneParentOffset)!=c.parents[i])throw std::runtime_error("full reference topology differs");}
     return b;
 }
-static Json HeadJson(const ng::ArrayHead& h){return {{"data",Hex(h.data)},{"num",h.num},{"capacity",h.capacity}};}
+static Json HeadJson(const ue_memory::ArrayHead& h){return {{"data",Hex(h.data)},{"num",h.num},{"capacity",h.max}};}
 static Json RootJson(Reader& r,const Pool& pool,const ng::RootSnapshot& roots){
     Json names=Json::array(),wordsList=Json::array(),indices=Json::array();bool decoded=roots.read&&roots.roots.num>0;
     if(roots.read)for(int32_t i=0;i<roots.roots.num;++i){const auto* row=roots.bytes.data()+size_t(i)*ng::kRootStride;
-        const std::array<uint32_t,3> words{{ng::Get<uint32_t>(row,0),ng::Get<uint32_t>(row,compat::NameWordBytes),ng::Get<uint32_t>(row,compat::NameNumberOffset)}};
+        const std::array<uint32_t,3> words{{At<uint32_t>(row,0),At<uint32_t>(row,compat::NameWordBytes),At<uint32_t>(row,compat::NameNumberOffset)}};
         std::string name;const bool named=FullName(r,pool,words,name);const auto found=std::find(referenceBoneNames.begin(),referenceBoneNames.end(),name);
         const bool matched=named&&found!=referenceBoneNames.end();decoded=decoded&&matched;wordsList.push_back(words);names.push_back(named?Json(name):Json(nullptr));
         indices.push_back(matched?Json(size_t(found-referenceBoneNames.begin())):Json(nullptr));
     }
-    const bool verified=rootLayoutVerified&&roots.headers_read&&roots.stable&&roots.identity_stable&&roots.extended.num==0&&decoded;
+    const bool verified=rootLayoutVerified&&roots.headers_read&&roots.extended.num==0&&decoded;
     const char* reason=!rootLayoutVerified?"layout_not_verified":!roots.headers_read?"headers_unreadable":roots.extended.num!=0?"extended_root_array_not_empty":
-        !roots.read?"root_array_unreadable_or_out_of_bounds":!roots.stable?"root_array_unstable":!roots.identity_stable?"root_identity_changed":
-        !roots.roots.num?"empty_root_array":!decoded?"root_fname_unresolved_or_absent_from_reference":"verified";
+        !roots.read?"root_array_unreadable_or_out_of_bounds":!roots.roots.num?"empty_root_array":!decoded?"root_fname_unresolved_or_absent_from_reference":"verified";
     return {{"root_bones",names},{"root_bones_verified",verified},{"root_bones_reason",reason},{"root_bone_name_words",wordsList},
-        {"root_reference_indices",indices},{"indices_derived_from_names",true},{"cached_indices_consumed",false},
-        {"root_array",HeadJson(roots.roots)},{"extended_root_array",HeadJson(roots.extended)},{"root_array_stable",roots.stable},
-        {"root_snapshot_identity_stable",roots.identity_stable},{"root_layout_verified",rootLayoutVerified},{"root_stride",ng::kRootStride}};
+        {"root_reference_indices",indices},{"root_array",HeadJson(roots.roots)},{"extended_root_array",HeadJson(roots.extended)},
+        {"root_layout_verified",rootLayoutVerified},{"root_stride",ng::kRootStride}};
 }
 static Json PhaseJson(Reader& r,const Pool& pool,const ng::Phase& p,unsigned hook){if(!p.read)return nullptr;
     const bool relative=p.type_verified&&p.owner_verified&&p.owner_role_verified&&p.owner_is_main&&p.node>=binding.main_anim.address&&p.node-binding.main_anim.address<=0x100000;
     Json j={{"node",Hex(p.node)},{"context",Hex(p.context)},{"proxy",Hex(p.proxy)},{"mesh",Hex(p.mesh)},
         {"owner_a0",Hex(p.owner_a0)},{"owner_a8",Hex(p.owner_a8)},{"main_proxy",Hex(p.main_proxy)},{"skeleton",Hex(p.skeleton)},
         {"vtable",Hex(p.vtable)},{"frame",p.frame},{"counter",p.counter},{"main_frame",p.main_frame},{"main_counter",p.main_counter},
-        {"binding_alive",p.binding_alive},{"type_verified",p.type_verified},{"owner_verified",p.owner_verified},{"owner_role_verified",p.owner_role_verified},
+        {"type_verified",p.type_verified},{"owner_verified",p.owner_verified},{"owner_role_verified",p.owner_role_verified},
         {"owner_role",p.owner_role_verified?(p.owner_is_main?"main":"linked"):"unverified"},{"owner",p.owner_verified?TokenJson(r,pool,p.owner):Json(nullptr)},
         {"offset_from_main",relative?Json(Hex(p.node-binding.main_anim.address)):Json(nullptr)},{"external_route",p.external_route}};
     const bool fields=p.node_fields_read&&p.type_verified&&hook!=unsigned(ng::Kind::LocalToComponent);
     std::string curve;const bool named=fields&&FullName(r,pool,p.curve_name_words,curve);
     j["node_fields"]={{"verified",fields},{"alpha",fields&&std::isfinite(p.alpha)?Json(p.alpha):Json(nullptr)},{"alpha_type",fields?Json(p.alpha_type):Json(nullptr)},
         {"delta",fields&&std::isfinite(p.delta)?Json(p.delta):Json(nullptr)},{"update_delta",hook==unsigned(ng::Kind::GroupUpdate)&&std::isfinite(p.update_delta)?Json(p.update_delta):Json(nullptr)},
-        {"curve_name_offset",Hex(compat::CurveNameOffset)},{"curve_name_offset_verified",fields},{"curve_name_words",fields?Json(p.curve_name_words):Json(nullptr)},
-        {"curve_name",named?Json(curve):Json(nullptr)},{"curve_name_decoded",named},{"curve_semantically_active",fields&&p.alpha_type==2}};
+        {"curve_name_offset",Hex(compat::CurveNameOffset)},{"curve_name_words",fields?Json(p.curve_name_words):Json(nullptr)},
+        {"curve_name",named?Json(curve):Json(nullptr)},{"curve_semantically_active",fields&&p.alpha_type==compat::AlphaTypeCurve}};
     j["node_fields"]["root_bones"]=Json::array();j["node_fields"]["root_bones_verified"]=false;
     j["node_fields"]["root_bones_reason"]=rootLayoutVerified?"root_snapshot_unavailable":"layout_not_verified";
-    if (p.settings_read) {
-        const auto namedSettings=[](const std::array<float,7>& values) {
+    if(p.settings_read){
+        const auto namedSettings=[](const std::array<float,7>& values){
             return Json{{"damping",values[0]},{"world_damping_location",values[1]},{"world_damping_rotation",values[2]},
                 {"stiffness",values[3]},{"radius",values[4]},{"limit_angle_degrees",values[5]},{"half_width",values[6]}};
         };
-        j["kawaii_settings"] = {{"node_values", namedSettings(p.settings)}, {"cache_initialized", p.settings_cache_initialized},
-            {"refresh_each_evaluation", p.settings_refresh_each_evaluation}, {"cache_count", p.settings_cache_count},
-            {"cache_first", p.settings_cache_read ? namedSettings(p.settings_cache_first) : Json(nullptr)},
-            {"cache_last", p.settings_cache_read ? namedSettings(p.settings_cache_last) : Json(nullptr)}};
+        j["kawaii_settings"]={{"node_values",namedSettings(p.settings)},{"cache_initialized",p.settings_cache_initialized},
+            {"refresh_each_evaluation",p.settings_refresh_each_evaluation},{"cache_count",p.settings_cache_count},
+            {"cache_first",p.settings_cache_read?namedSettings(p.settings_cache_first):Json(nullptr)},
+            {"cache_last",p.settings_cache_read?namedSettings(p.settings_cache_last):Json(nullptr)}};
     }
     if(p.root_snapshot_id>=0&&size_t(p.root_snapshot_id)<rootSetJson.size()){
         const auto& roots=rootSetJson[size_t(p.root_snapshot_id)];for(auto it=roots.begin();it!=roots.end();++it)j["node_fields"][it.key()]=it.value();
@@ -265,7 +202,7 @@ static void CaptureJson(Reader& r,const Pool& pool,Json& report){
     report["complete_frame_count"]=completeFrames;
     report["incomplete_events"]=incompleteEvents;
     for(unsigned i=0;i<recorder.mapping_count;++i){const auto& m=recorder.mappings[i];
-        report["mappings"].push_back({{"id",i},{"read",m.read},{"stable",m.stable},{"bijective",m.bijective},{"parents_match",m.parents_match},
+        report["mappings"].push_back({{"id",i},{"read",m.read},{"bijective",m.bijective},{"parents_match",m.parents_match},
             {"skeleton_count",m.skeleton_count},{"compact_count",m.compact_count},
             {"skeleton_to_compact",std::vector<int32_t>(m.skeleton_to_compact.begin(),m.skeleton_to_compact.begin()+m.skeleton_count)},
             {"compact_parents",std::vector<int32_t>(m.compact_parents.begin(),m.compact_parents.begin()+m.compact_count)}});}
@@ -275,117 +212,68 @@ static void CaptureJson(Reader& r,const Pool& pool,Json& report){
     report["truncated"]=recorder.node_overflow||recorder.event_overflow||recorder.mapping_overflow||recorder.root_overflow||recorder.contention.load()!=0||recorder.late_frame;
     report["unreadable_target_callbacks"]=unreadableTarget.load();report["callback_identity_failure"]=recorder.identity_failure;
 }
-static Json Outcome(const v20_vmt_slot_patch::Outcome& o){return {{"code",v20_vmt_slot_patch::Name(o.code)},{"error",o.error},
-    {"pointer_changed",o.pointer_changed},{"protection_restored",o.protection_restored}};}
-static void Save(const std::filesystem::path& p,const Json& j){ww_report::Save(p,j);}
-static bool Quiescent(){const auto begin=GetTickCount64();ULONGLONG quiet=0;while(GetTickCount64()-begin<5000){const auto now=GetTickCount64();
-    if(active.load())quiet=0;else if(!quiet)quiet=now;else if(now-quiet>=200)return true;Sleep(1);}return false;}
 static DWORD WINAPI Worker(LPVOID){
-    wchar_t modulePath[32768]{};GetModuleFileNameW(selfModule,modulePath,32768);const auto directory=std::filesystem::path(modulePath).parent_path();
-    const auto resultPath=directory/L"native_graph_discovery.json",statusPath=directory/L"logs"/L"carrier_status.json",configPath=directory/L"observe_target.json";
     Json report={{"schema",1},{"kind","native_graph_discovery"},{"phase","discovery"},{"status","error"},{"pid",GetCurrentProcessId()},
         {"readonly_animation",true},{"pose_writes",0},{"alpha_writes",0},{"native_update_calls",0},{"engine_getter_calls",0},{"vtable_writes_only",true},
-        {"dll_retained_until_process_exit",true},{"hooks",Json::array()},{"identity_stable",false},{"all_hooks_restored",true},{"callbacks_quiescent",false},
+        {"dll_retained_until_process_exit",true},{"hooks",Json::array()},{"all_hooks_restored",true},{"callbacks_quiescent",false},
         {"truncated",false},{"reasons",Json::array()},{"scope","Executed callbacks in one bounded frame window; unexecuted branches are not covered."},
         {"compatibility_profile",compat::ProfileId},{"compatibility_source_sha256",compat::SourceSha256},
-        {"checks_performed",Json::array()},{"root_layout_verified",false},{"game_image_sha256_verified",false}};
-    std::array<v20_vmt_slot_patch::State,ng::kHooks> patches{};std::array<uint64_t,ng::kHooks> hookSlots{};Pool pool;bool bound=false,ran=false;Json cfg;Config config;
+        {"checks_performed",Json::array()},{"root_layout_verified",false}};
+    oc::Session session;Pool pool;bool bound=false,ran=false;
     try{
-        std::filesystem::create_directories(directory/L"logs");Save(statusPath,report);
-        // Recovery publishes stop before checking this atomic marker. A late
-        // worker must announce itself, then honor stop before touching targets.
-        if(std::filesystem::exists(directory/L"stop.flag"))throw std::runtime_error("observer cancelled before target access");
-        std::ifstream input(configPath,std::ios::binary);input>>cfg;
+        oc::Begin(session,selfModule,L"native_graph_discovery.json",report,"native_graph_discovery","graph_hooks");
+        const auto& cfg=session.config;const auto& discovery=cfg.at("native_graph_discovery");
         std::string verificationError;
-        if(!witness::CompatibleSource(cfg,compat::ProfileId,compat::SourceSha256,report["checks_performed"],verificationError))throw std::runtime_error(verificationError);
+        const auto config=ParseConfig(cfg);
         report["host_sha256"]=compat::SourceBuildSha256;
-        MODULEINFO module{};if(!GetModuleInformation(GetCurrentProcess(),GetModuleHandleW(nullptr),&module,sizeof(module)))throw std::runtime_error("main module unavailable");
-        const uint64_t image=reinterpret_cast<uint64_t>(module.lpBaseOfDll);report["image_base"]=Hex(image);
-        const auto& discovery = cfg.at("native_graph_discovery");
-        if (discovery.value("observe_kawaii_settings_only", false)) {
-            if (discovery.at("expected_pid").get<DWORD>() != GetCurrentProcessId())
-                throw std::runtime_error("Kawaii settings sample process changed");
-            const bool collision=discovery.value("observe_kawaii_collision_code",false);
-            const bool contacts=collision&&discovery.value("observe_capsule_contact_code",false);
-            std::vector<witness::Function> functions={{"GroupEvaluate",compat::FunctionGroupEvaluateRva,compat::FunctionGroupEvaluateBytes}};
-            if(collision)functions.push_back({"GroupSimulate",kSettingsCode[1].rva,kSettingsCode[1].bytes});
-            if(contacts)functions.push_back({"GroupCollisionCandidate",kCollisionCandidate.rva,kCollisionCandidate.bytes});
-            if (!witness::VerifyFunctions(Read,image,module.SizeOfImage,discovery.at("function_witnesses"),functions,
-                report["checks_performed"],"kawaii_settings_code",verificationError)) throw std::runtime_error(verificationError);
-            report["kawaii_settings_code"] = CapturePhysicsSettingsEvidence(image,module.SizeOfImage,collision,contacts);
-            report["scope"] = "Read-only function bytes; no actor, animation-node or vtable access.";
-            report["status"] = "complete"; report["callbacks_quiescent"] = true;
-            Save(resultPath,report); Save(statusPath,report); return 0;
-        }
-        config=ParseConfig(cfg);
-        std::vector<witness::Function> hookFunctions;
-        for(const auto& spec:ng::kSpecs)if(std::none_of(hookFunctions.begin(),hookFunctions.end(),[&](const witness::Function& value){return value.rva==spec.function_rva;}))
-            hookFunctions.push_back({spec.name,spec.function_rva,spec.function_bytes});
-        if(!witness::VerifyFunctions(Read,image,module.SizeOfImage,config.function_witnesses,hookFunctions,report["checks_performed"],"graph_hooks",verificationError))throw std::runtime_error(verificationError);
-        if (discovery.contains("kawaii_settings_witnesses")) {
-            std::vector<witness::Function> functions;
-            for (const auto& target : kSettingsCode) functions.push_back({target.label,target.rva,target.bytes});
-            if (!witness::VerifyFunctions(Read,image,module.SizeOfImage,discovery.at("kawaii_settings_witnesses"),functions,
-                report["checks_performed"],"kawaii_settings_layout",verificationError)) throw std::runtime_error(verificationError);
-            observePhysicsSettings = true;
+        if(discovery.contains("kawaii_settings_witnesses")){
+            const std::vector<witness::Function> functions={{"GroupUpdatePhysicsSettings",kawaii::kUpdateRva,kawaii::kUpdateBytes},
+                {"GroupSimulate",kawaii::kSimulateRva,kawaii::kSimulateBytes}};
+            if(!witness::VerifyFunctions(oc::Read,session.image,session.image_bytes,discovery.at("kawaii_settings_witnesses"),functions,
+                report["checks_performed"],"kawaii_settings_layout",verificationError))throw std::runtime_error(verificationError);
+            observePhysicsSettings=true;
         }
         const std::vector<witness::Function> rootFunctions={
             {"GroupInitializeBoneReferences",kRootRvas[0],kRootBytes[0]},
             {"GroupInitializeModifyBones",kRootRvas[1],kRootBytes[1]}};
-        if(!witness::VerifyFunctions(Read,image,module.SizeOfImage,config.root_witnesses,rootFunctions,report["checks_performed"],"graph_root_layout",verificationError))throw std::runtime_error(verificationError);
+        if(!witness::VerifyFunctions(oc::Read,session.image,session.image_bytes,config.root_witnesses,rootFunctions,report["checks_performed"],"graph_root_layout",verificationError))
+            throw std::runtime_error(verificationError);
         rootLayoutVerified=true;report["root_layout_verified"]=true;
         uint64_t goAddress=0,poolAddress=0;
-        if(!ww_game_compat_resolution::ResolveImageAddress(image,module.SizeOfImage,config.go_rva,compat::ObjectArrayHeaderBytes,goAddress)||
-           !ww_game_compat_resolution::ResolveImageAddress(image,module.SizeOfImage,config.pool_rva,compat::NamePoolHeaderBytes,poolAddress))throw std::runtime_error("graph anchor RVA out of image");
+        if(!ww_game_compat_resolution::ResolveImageAddress(session.image,session.image_bytes,config.go_rva,compat::ObjectArrayHeaderBytes,goAddress)||
+           !ww_game_compat_resolution::ResolveImageAddress(session.image,session.image_bytes,config.pool_rva,compat::NamePoolHeaderBytes,poolAddress))throw std::runtime_error("graph anchor RVA out of image");
         Reader reader{GetCurrentProcess()};Go go;if(!ValidateGo(reader,goAddress,go)||!ValidatePool(reader,poolAddress,pool))throw std::runtime_error("fresh anchors invalid");
-        binding=Bind(reader,pool,go,config,cfg,image);bound=true;report["identity_before"]=BindingJson(reader,pool,binding);
+        binding=Bind(reader,pool,go,config,cfg,session.image);bound=true;report["identity"]=BindingJson(reader,pool,binding);
         referenceBoneNames=config.bone_names;
         report["profile_id"]=config.profile;report["bone_count"]=config.bone_count;report["skeleton_sha256"]=config.skeleton_sha;report["watch_mesh"]=Hex(binding.mesh.address);
         report["reference_bone_names"]=config.bone_names;report["reference_bone_parents"]=config.parents;
         recorder.node_limit=config.node_limit;recorder.frame_limit=config.frame_limit;
-        report["evidence"]["root_layout_witnesses"]=Json::array();
-        for(unsigned i=0;i<2;++i)report["evidence"]["root_layout_witnesses"].push_back({{"rva",Hex(kRootRvas[i])},{"witness_bytes",kRootBytes[i]}});
-        for(unsigned i=0;i<ng::kHooks;++i){const auto& s=ng::kSpecs[i];uint64_t original=0;
-            const bool inImage=s.vtable_rva<module.SizeOfImage&&s.slot_bytes<=module.SizeOfImage-s.vtable_rva&&
-                ww_game_compat_resolution::ResolveImageAddress(image,module.SizeOfImage,s.vtable_rva+s.slot_bytes,compat::PointerBytes,hookSlots[i]);
-            const bool read=inImage&&Read(hookSlots[i],&original,compat::PointerBytes),matched=read&&original==image+s.function_rva;
-            report["checks_performed"].push_back({{"kind","vtable_slot"},{"label",s.name},{"performed",inImage},{"read_succeeded",read},{"matched",matched}});
-            if(!matched)throw std::runtime_error("fixed hook slot differs");
-            if(s.arity==2)originals2[i]=reinterpret_cast<Fn2>(original);else originals3[i]=reinterpret_cast<Fn3>(original);
-            report["hooks"].push_back({{"kind",s.name},{"node_kind",s.node_kind},{"rva",Hex(s.function_rva)},{"vtable_rva",Hex(s.vtable_rva)},
-                {"slot_bytes",s.slot_bytes},{"witness_bytes",s.function_bytes},{"arity",s.arity}});
-        }
+        hooks.Resolve(session,report);
         // Enable capture only after every required hook is installed, so a
         // recorded frame cannot silently omit a not-yet-installed category.
-        for(unsigned i=0;i<ng::kHooks;++i){const auto o=v20_vmt_slot_patch::Install(patches[i],
-            reinterpret_cast<void**>(hookSlots[i]),OriginalAddress(i),DetourAddress(i));report["hooks"][i]["install"]=Outcome(o);
-            if(o.code!=v20_vmt_slot_patch::Code::Ok)throw std::runtime_error("hook installation refused");}
-        observing.store(true,std::memory_order_release);ran=true;report["status"]="observing";Save(statusPath,report);
-        const auto begin=GetTickCount64();while(GetTickCount64()-begin<config.duration_ms&&!recorder.window_closed.load()&&
-            GetFileAttributesW((directory/L"stop.flag").c_str())==INVALID_FILE_ATTRIBUTES)Sleep(10);
-        report["stopped_by_flag"]=GetFileAttributesW((directory/L"stop.flag").c_str())!=INVALID_FILE_ATTRIBUTES;
+        hooks.Install(&Trampolines::Address,report);
+        observing.store(true,std::memory_order_release);ran=true;report["status"]="observing";ww_report::Save(session.status,report);
+        const auto begin=GetTickCount64();
+        while(GetTickCount64()-begin<config.duration_ms&&!recorder.window_closed.load()&&!oc::StopRequested(session.directory))Sleep(10);
+        report["stopped_by_flag"]=oc::StopRequested(session.directory);
     }catch(const std::exception& e){report["reasons"].push_back(e.what());}
-    observing.store(false,std::memory_order_release);bool restored=true;
-    for(unsigned i=ng::kHooks;i-->0;){auto& p=patches[i];if(!p.slot)continue;const auto o=v20_vmt_slot_patch::Restore(p);
-        const bool ok=o.code==v20_vmt_slot_patch::Code::Ok&&!p.changed&&!p.protection_pending;
-        report["hooks"][i]["restore"]=Outcome(o);report["hooks"][i]["fully_restored"]=ok;restored=restored&&ok;
-    }
-    const bool quiet=Quiescent();report["all_hooks_restored"]=restored;report["callbacks_quiescent"]=quiet;report["active_callbacks"]=active.load();
+    observing.store(false,std::memory_order_release);
+    const bool restored=hooks.Restore(report);
+    const bool quiet=hooks.Quiescent();report["all_hooks_restored"]=restored;report["callbacks_quiescent"]=quiet;report["active_callbacks"]=hooks.active.load();
     try{
-        if(bound){Reader reader{GetCurrentProcess()};report["identity_after"]=report["identity_before"];report["identity_stable"]=true;
-            // Fixed records are read only after all observed writers have left.
-            if(quiet)CaptureJson(reader,pool,report);else report["reasons"].push_back("callbacks not quiescent; record snapshot withheld");
-        }
-        for(unsigned i=0;i<report["hooks"].size();++i){report["hooks"][i]["calls"]=calls[i].load();report["hooks"][i]["target_calls"]=targetCalls[i].load();}
+        // Fixed records are read only after all observed writers have left.
+        if(bound){Reader reader{GetCurrentProcess()};if(quiet)CaptureJson(reader,pool,report);else report["reasons"].push_back("callbacks not quiescent; record snapshot withheld");}
+        hooks.ReportCalls(report);
+        for(unsigned i=0;i<report["hooks"].size();++i)report["hooks"][i]["target_calls"]=targetCalls[i].load();
         if(!restored||!quiet)report["reasons"].push_back("hook restoration or callback quiescence incomplete");
         if(ran&&report["reasons"].empty()){
-            const bool complete=report["identity_stable"].get<bool>()&&!report["truncated"].get<bool>()&&
-                report.value("complete_frame_count",0u)>=3&&report.value("incomplete_events",0u)==0&&!recorder.identity_failure&&!unreadableTarget.load();
+            const bool complete=!report["truncated"].get<bool>()&&report.value("complete_frame_count",0u)>=3&&report.value("incomplete_events",0u)==0&&
+                !recorder.identity_failure&&!unreadableTarget.load();
             report["status"]=complete?"complete":"partial";
             if(!complete)report["reasons"].push_back("bounded observation lacks three complete frames or has identity/capture/truncation gaps");
         }else report["status"]="error";
-        Save(resultPath,report);Save(statusPath,report);
-    }catch(const std::exception& e){report["status"]="error";report["reasons"].push_back(e.what());try{Save(resultPath,report);Save(statusPath,report);}catch(...){return ERROR_WRITE_FAULT;}}
+    }catch(const std::exception& e){report["status"]="error";report["reasons"].push_back(e.what());}
+    oc::Save(session,report);
     return 0;
 }
 } // namespace graph_carrier
@@ -393,12 +281,7 @@ static DWORD WINAPI Worker(LPVOID){
 // The installer advertises this capability only for a DLL with the guard above.
 extern "C" __declspec(dllexport) void WwPoserObserverRecoveryV1() {}
 extern "C" __declspec(dllexport) LRESULT CALLBACK HookProc(int code,WPARAM w,LPARAM l){
-    using namespace graph_carrier;
-    if(code>=0&&InterlockedCompareExchange(&started,1,0)==0){wchar_t host[32768]{};GetModuleFileNameW(nullptr,host,32768);HMODULE retained=nullptr;
-        if(!_wcsicmp(std::filesystem::path(host).filename().c_str(),L"Client-Win64-Shipping.exe")&&
-            GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,reinterpret_cast<LPCWSTR>(&HookProc),&retained)){
-            HANDLE thread=CreateThread(nullptr,0,Worker,nullptr,0,nullptr);if(thread)CloseHandle(thread);}
-    }
+    if(code>=0)observer_carrier::StartOnce(graph_carrier::started,graph_carrier::Worker,reinterpret_cast<const void*>(&HookProc));
     return CallNextHookEx(nullptr,code,w,l);
 }
 BOOL WINAPI DllMain(HINSTANCE module,DWORD reason,LPVOID){if(reason==DLL_PROCESS_ATTACH){graph_carrier::selfModule=module;DisableThreadLibraryCalls(module);}return TRUE;}

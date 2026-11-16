@@ -40,30 +40,21 @@ inline bool NativeCapsuleCommand(CommandKind kind){
     return kind>=CommandKind::SetNativeCapsuleRadius&&kind<=CommandKind::SetNativeCapsuleActive;
 }
 inline bool ValidCommand(const Command& command) {
-    const bool target_valid=command.kind==CommandKind::SetNativeShoulderFollow||command.kind==CommandKind::SetNativeCapsuleCollision||NativeCapsuleCommand(command.kind) ?
-        command.target_slot&&command.target_group&&command.target_chain :
-        command.kind==CommandKind::SetNativePreview?command.target_slot&&command.target_group&&!command.target_chain:
-        command.kind==CommandKind::SetNativeGravity?command.target_slot&&command.target_group&&!command.target_chain&&(command.value>=0||command.value==-1):
-        command.kind==CommandKind::SetPartGravity?command.target_slot&&!command.target_group&&command.target_chain&&(command.value>=0||command.value==-1):
-        command.kind==CommandKind::SetModelPreview?command.target_slot&&!command.target_group&&!command.target_chain:
-        NativeSettingsCommand(command.kind)?command.target_slot&&command.target_group&&(command.value>=0||command.value==-1):
-        !command.target_group&&!command.target_chain;
-    return target_valid&&command.clip_epoch&&command.sequence&&ValidCommandArguments(command.kind,command.value,command.target_slot);
+    return command.clip_epoch&&command.sequence&&
+        ValidCommandFields(command.kind,command.value,command.target_slot,command.target_group,command.target_chain);
 }
 // A well-formed frame retains its identity even when its arguments are invalid,
 // so the scene host can publish a rejection for that sequence.
-inline bool DecodeCommandFrame(const CommandWire& wire,Command* output) {
+inline bool DecodeCommandFrame(const CommandWire& wire,Command& output) {
     const char magic[8]={'W','W','P','C','T','L','1','\0'};
-    if(!output||std::memcmp(wire.data(),magic,8)||LoadU32(wire.data()+8)!=1||LoadU32(wire.data()+12)!=64||
-        LoadU32(wire.data()+56)||
-        LoadU32(wire.data()+60)!=WireChecksum(wire))return false;
-    Command command{};command.clip_epoch=LoadU64(wire.data()+16);command.sequence=LoadU64(wire.data()+24);
-    command.kind=CommandKind(LoadU32(wire.data()+32));command.target_slot=LoadU32(wire.data()+36);const uint64_t bits=LoadU64(wire.data()+40);
-    command.target_group=LoadU32(wire.data()+48);command.target_chain=LoadU32(wire.data()+52);std::memcpy(&command.value,&bits,8);*output=command;return true;
-}
-inline bool DecodeCommand(const CommandWire& wire,Command* output) {
-    Command command;if(!DecodeCommandFrame(wire,&command)||!ValidCommand(command)||!output)return false;
-    *output=command;return true;
+    if(std::memcmp(wire.data(),magic,8)||LoadU32(wire.data()+8)!=1||LoadU32(wire.data()+12)!=64||
+        LoadU32(wire.data()+56)||LoadU32(wire.data()+60)!=WireChecksum(wire))return false;
+    Command command{};
+    command.clip_epoch=LoadU64(wire.data()+16);command.sequence=LoadU64(wire.data()+24);
+    command.kind=CommandKind(LoadU32(wire.data()+32));command.target_slot=LoadU32(wire.data()+36);
+    const uint64_t bits=LoadU64(wire.data()+40);std::memcpy(&command.value,&bits,8);
+    command.target_group=LoadU32(wire.data()+48);command.target_chain=LoadU32(wire.data()+52);
+    output=command;return true;
 }
 template<unsigned Capacity=64> class SpscCommandQueue {
     static_assert(Capacity>=2&&Capacity<=1024,"bounded control queue");
@@ -75,10 +66,10 @@ public:
         if(next==read_.load(std::memory_order_acquire))return false;
         slots_[write]=command;write_.store(next,std::memory_order_release);return true;
     }
-    bool Pop(Command* output) noexcept {
-        if(!output)return false;const unsigned read=read_.load(std::memory_order_relaxed);
+    bool Pop(Command& output) noexcept {
+        const unsigned read=read_.load(std::memory_order_relaxed);
         if(read==write_.load(std::memory_order_acquire))return false;
-        *output=slots_[read];read_.store((read+1)%Capacity,std::memory_order_release);return true;
+        output=slots_[read];read_.store((read+1)%Capacity,std::memory_order_release);return true;
     }
 };
 class Transport {
@@ -93,10 +84,6 @@ class Transport {
     }
 public:
     const PlayerState& State() const noexcept {return state_;} // game thread only.
-    bool SetInitialCameraMode(uint32_t mode) noexcept {
-        if(mode>2||state_.mode!=PlayerMode::Stopped||state_.last_sequence||state_.restore_requested)return false;
-        state_.camera_mode=mode;return true;
-    }
     bool SetClip(uint64_t epoch,double duration) noexcept {
         if(!epoch||!std::isfinite(duration)||duration<0||duration>10000000||state_.restore_requested||
             (state_.mode!=PlayerMode::Empty&&state_.mode!=PlayerMode::Stopped))return false;
@@ -216,12 +203,5 @@ public:
         const auto ready=BeforeCommand(command,now);if(ready!=ControlCode::Ok)return ready;
         state_.last_sequence=command.sequence;++state_.revision;return ControlCode::Ok;
     }
-    template<unsigned Capacity> unsigned Drain(SpscCommandQueue<Capacity>& queue,double now,
-                                               ControlCode* last_result=nullptr) noexcept {
-        unsigned processed=0;Command command{};
-        while(processed<Capacity&&queue.Pop(&command)){const auto code=Apply(command,now);if(last_result)*last_result=code;++processed;}
-        return processed;
-    }
-    void AcknowledgeRestore() noexcept {state_.restore_requested=false;}
 };
 } // namespace wwp_playback

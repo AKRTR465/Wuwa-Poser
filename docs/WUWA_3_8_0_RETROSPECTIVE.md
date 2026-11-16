@@ -128,7 +128,7 @@
 | `FunctionAssignWeakObjectSha256` | `165872ef14eebb05c725a39e381bf60d31d5b8e5beb16cc4f33627eff3eb2b1b` | `5e11a1ff463285758fb363bf152428b82239081102613c8af31593e818486139` |
 | 生成物中的 `SourceSha256` | `44668b9210086a485c32715fd099e5e4c7a2d242abd5ff2b6d7afa508d88ccd8` | `8cf1df3c896312977a37147ff8a12d50525c325596086d8654106baf0ffce32f` |
 
-`SourceBuildSha256` 对应游戏磁盘 EXE，`SourceSha256` 对应 `ww_runtime.json` 的原始文件字节。后者用于检测 Poser 的桌面程序、托管组件和原生组件是否来自同一份配置。`runtime_layout` 保留 `@字段` 引用，运行时 JSON 通过生成器写入新值。四份生成物是 `desktop/WWPoser/Generated/GameCompat.generated.cs`、`runtime/generated/GameCompat.generated.h`、`runtime/generated/ManagedCompat.generated.cs` 和 `runtime/owned_mmd/native/owned_mmd_layout.json`。[兼容定义与生成方法](GAME_COMPATIBILITY.md)
+`SourceBuildSha256` 对应游戏磁盘 EXE，`SourceSha256` 对应 `ww_runtime.json` 的原始文件字节。后者用于检测 Poser 的桌面程序、托管组件和原生组件是否来自同一份配置。`runtime_layout` 保留 `@字段` 引用，运行时 JSON 通过生成器写入新值。四份生成物是 `desktop/WWPoser/Generated/GameCompat.generated.cs`、`runtime/generated/GameCompat.generated.h`、`runtime/generated/ManagedCompat.generated.cs` 和 `runtime/owned_mmd/native/owned_mmd_layout.json`；2026-11-17 起 `runtime_layout` 已删除，生成物合并为 C++ 和 C# 各一份。[兼容定义与生成方法](GAME_COMPATIBILITY.md)
 
 ## 角色与资源字段
 
@@ -169,11 +169,11 @@
 | --- | --- |
 | `session_result.json` | 启动或结束原因、游戏线程检查结果、`mmd_restoration_verified` |
 | `game_compatibility.json` | 对象表和名字池通过交叉验证时使用的实际 RVA |
-| `reference_skeleton_diagnostic.json` | 参考骨架数组候选、骨名读取函数确认的偏移、逐骨差异和帧计数采样 |
+| `reference_skeleton_diagnostic.json` | 参考骨架数组候选、骨名读取函数确认的偏移、逐骨差异和帧计数采样（2026-11-17 起不再生成；需要时从 `f00725c` 恢复该诊断） |
 | `native_identity_bootstrap.json` | 主实例和关联实例的登记结果、失败回调的归属和槽位证据 |
 | `native_graph_discovery.json` | 本会话采集到的动画图、回调来源和骨骼映射 |
 | `native_function_checks.json` | 每位演员进入正式原生物理前的函数证据匹配情况 |
-| `player_status.json` / `mmd_result.json` | 轨道模式、镜头应用帧数、各演员原生输入帧数和物理组激活统计 |
+| `mmd_status.json` / `mmd_result.json` | 轨道模式、镜头应用帧数、各演员原生输入帧数和物理组激活统计 |
 
 ## 下次更新的复用顺序
 

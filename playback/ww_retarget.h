@@ -72,13 +72,12 @@ inline PreparedTarget ReadTarget(const std::filesystem::path& path) {
     if(root.is_array())for(const auto& item:root)if(item.value("Type","")=="Skeleton"&&item.contains("ReferenceSkeleton"))skeleton=&item;
     const auto& ref=skeleton->at("ReferenceSkeleton");const auto& infos=ref.at("FinalRefBoneInfo");const auto& poses=ref.at("FinalRefBonePose");
     PreparedTarget target;target.skeleton_name=skeleton->value("Name","");
-    std::vector<std::string> names;std::vector<int32_t> parents;
+    std::vector<int32_t> parents;
     for(size_t i=0;i<infos.size();++i){mmd::TargetBone bone;bone.name=infos[i].at("Name").get<std::string>();bone.parent=infos[i].at("ParentIndex");
         const auto& pose=poses.at(i);const auto& q=pose.at("Rotation");const auto& p=pose.at("Translation");const auto& s=pose.at("Scale3D");
         bone.localRot={q.at("X"),q.at("Y"),q.at("Z"),q.at("W")};bone.localPos={p.at("X"),p.at("Y"),p.at("Z")};bone.localScale={s.at("X"),s.at("Y"),s.at("Z")};
-        bone.role=Role(bone.name);names.push_back(bone.name);parents.push_back(bone.parent);target.profile.bones.push_back(bone);}
-    wwp_ue::subtree_rotation::Manifest proof;proof.expected_count=uint32_t(names.size());proof.expected_names=names;proof.expected_parents=parents;
-    if(!fb::PrepareTopology(proof,names,parents,&target.topology))throw std::runtime_error("invalid complete hierarchy");
+        bone.role=Role(bone.name);parents.push_back(bone.parent);target.profile.bones.push_back(bone);}
+    if(!fb::PrepareTopology(parents,&target.topology))throw std::runtime_error("invalid complete hierarchy");
     // Target asset coordinates are UE source +Z-up; core_math calibration is
     // parameterized, so preserve that source basis and explicitly pass up Z.
     target.metacarpal_finger_chains=MapMetacarpalFingers(target.profile);

@@ -55,9 +55,9 @@ internal static class PhysicsEditorUiChecks
             ["native_physics_groups"] = new JsonArray(new JsonObject { ["group_id"] = group, ["curve_name"] = "Kawaii_alpha_S03",
                 ["root_bones"] = new JsonArray("Bone_Skirt001_L", "Bone_Skirt001_R"), ["settings"] = Settings(), ["gravity"] = new JsonObject { ["requested"] = -1d },
                 ["chains"] = new JsonArray(new JsonObject { ["chain_id"] = chain, ["root"] = "Bone_Skirt001_L", ["settings"] = Settings() }) }) };
-        var state = new JsonObject { ["clip_epoch"] = 114ul, ["last_sequence"] = 0ul, ["session_active"] = true,
-            ["mode"] = "paused", ["seconds"] = 0d, ["actors"] = new JsonArray(Actor(4, 17, 6)) };
-        var statusPath = Path.Combine(directory, "player_status.json");
+        var state = new JsonObject { ["clip_epoch"] = 114ul, ["last_sequence"] = 0ul, ["last_control_sequence"] = 0ul, ["last_control_code"] = 0u,
+            ["session_active"] = true,             ["mode"] = "paused", ["seconds"] = 0d, ["actors"] = new JsonArray(Actor(4, 17, 6)) };
+        var statusPath = Path.Combine(directory, "mmd_status.json");
         var commandPath = Path.Combine(directory, "control.dat");
         JsonData.Write(statusPath, state);
         var service = Field<PlaybackSessionService>("player");
@@ -86,6 +86,7 @@ internal static class PhysicsEditorUiChecks
                             BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(48)), BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(52)), BinaryPrimitives.ReadDoubleLittleEndian(bytes.AsSpan(40))));
                         var status = JsonData.ReadObject(statusPath);
                         status["last_sequence"] = sequence;
+                        status["last_control_sequence"] = sequence;
                         JsonData.Write(statusPath, status);
                     }
                 }
@@ -152,7 +153,7 @@ internal static class PhysicsEditorUiChecks
         void Check(bool value, string text) { if (!value) throw new Exception(text); checks++; }
         var request = (PlaybackSessionRequest)Call("CapturePlaybackRequest")!;
         var directory = Path.Combine(output, "physics-ui-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
-        var statusPath = Path.Combine(directory, "player_status.json");
+        var statusPath = Path.Combine(directory, "mmd_status.json");
         var commandPath = Path.Combine(directory, "control.dat");
         var previewPositions = new JsonArray(profile.Bones.Select(bone => (JsonNode)new JsonArray(bone.Position.X, bone.Position.Y, bone.Position.Z)).ToArray());
         var settings = new JsonObject { ["requested"] = new JsonArray(.05, -1d, 65d), ["original"] = new JsonArray(.2, .2, 50d),
@@ -170,8 +171,8 @@ internal static class PhysicsEditorUiChecks
             ["native_physics_groups"] = new JsonArray(group, sleeveGroup), ["gravity_parts"] = sleeveParts,
             ["native_preview"] = new JsonObject { ["group_id"] = 7u, ["frame"] = 12ul,
                 ["solved_bones"] = 10, ["positions"] = previewPositions } };
-        var state = new JsonObject { ["clip_epoch"] = 833ul, ["last_sequence"] = 0ul, ["session_active"] = true,
-            ["mode"] = "paused", ["seconds"] = 2d, ["duration_seconds"] = 20d, ["preview_loop_start"] = 1.25d,
+        var state = new JsonObject { ["clip_epoch"] = 833ul, ["last_sequence"] = 0ul, ["last_control_sequence"] = 0ul, ["last_control_code"] = 0u,
+            ["session_active"] = true,             ["mode"] = "paused", ["seconds"] = 2d, ["duration_seconds"] = 20d, ["preview_loop_start"] = 1.25d,
             ["actors"] = new JsonArray(actor) };
         JsonData.Write(statusPath, state);
         UiSessionFixture.Own(window, directory, request, JsonData.ReadObject(statusPath));
@@ -211,7 +212,6 @@ internal static class PhysicsEditorUiChecks
                             partCommands.Add((slot, groupId, part, value));
                             var rejected = part == 8 && value == 720;
                             if (!rejected) sleeveParts.Single(row => row!["id"]!.GetValue<uint>() == part)!["strength"] = value;
-                            state["last_control_sequence"] = sequence;
                             state["last_control_code"] = rejected ? 1u : 0u;
                         }
                         else
@@ -219,8 +219,10 @@ internal static class PhysicsEditorUiChecks
                             commands.Add((kind, slot, groupId, value));
                             if (kind is 19 or 21) settings["requested"]![kind == 19 ? 0 : 2] = value;
                             if (kind == 28) gravity["requested"] = value;
+                            state["last_control_code"] = 0u;
                         }
                         state["last_sequence"] = sequence;
+                        state["last_control_sequence"] = sequence;
                         JsonData.Write(statusPath, state);
                     }
                 }

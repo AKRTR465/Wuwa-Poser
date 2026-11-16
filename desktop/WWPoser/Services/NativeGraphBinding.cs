@@ -15,7 +15,7 @@ public sealed partial class NativeGraphService
         var observation = JsonData.ReadObject(observationPath); var cfg = JsonData.ReadObject(configPath);
         Contract.Require(Contract.S(observation, "status") == "complete", "动画图观测失败：" + observation["reasons"]?.ToJsonString());
         var profile = registry.GetProfile(Contract.S(cfg, "character_profile_id"));
-        var identities = Contract.O(observation, "identity_before");
+        var identities = Contract.O(observation, "identity");
         var main = Contract.O(identities, "main_anim");
         var mainAddress = Contract.Number(Contract.N(main, "address"));
         var frames = Contract.A(observation, "frames").Where(x => Contract.True(x!, "complete") && Contract.True(x!, "closed_by_next_frame") && !Contract.True(x!, "first_frame_boundary_partial")).ToArray();
@@ -26,8 +26,15 @@ public sealed partial class NativeGraphService
         var verifiedFrames = new HashSet<long>();
         foreach (var frame in frames)
         {
-            var cycles = events.Where(e => Contract.I(e, "frame_id") == Contract.I(frame!, "id") && Contract.S(e, "hook_kind") != "group_update" && !(Contract.S(e, "hook_kind") == "local_to_component" && Contract.S(phases[Contract.I(e, "id")], "owner_role") == "linked"))
-                .GroupBy(e => JsonData.CanonicalDigest(Contract.Select(phases[Contract.I(e, "id")], ["proxy", "main_proxy", "frame", "counter", "main_frame", "main_counter"])));
+            // Linked-owner conversions and group updates do not delimit evaluation cycles.
+            bool CycleEvent(JsonNode e)
+            {
+                var kind = Contract.S(e, "hook_kind");
+                return Contract.I(e, "frame_id") == Contract.I(frame!, "id") && kind != "group_update" &&
+                    !(kind == "local_to_component" && Contract.S(phases[Contract.I(e, "id")], "owner_role") == "linked");
+            }
+            var cycles = events.Where(CycleEvent).GroupBy(e => JsonData.CanonicalDigest(
+                Contract.Select(phases[Contract.I(e, "id")], ["proxy", "main_proxy", "frame", "counter", "main_frame", "main_counter"])));
             foreach (var cycle in cycles)
             {
                 var group = new Dictionary<ulong, JsonObject>();
@@ -49,7 +56,7 @@ public sealed partial class NativeGraphService
 
                 if (group.Count == 0)
                     continue;
-                var eligible = converters.Where(c => bases.All(b => Encloses(b, c)) && eval.All(e => Contract.Equal(e["thread"], c["thread"]) && Contract.Number(Contract.N(c, "exit_sequence")) < Contract.Number(Contract.N(e, "entry_sequence")))).ToArray();
+                var eligible = converters.Where(c => bases.All(b => Encloses(b, c)) && eval.All(e => Precedes(c, e))).ToArray();
                 Contract.Require(eligible.Length == 1, "无法唯一定位前物理main转换器");
                 selected.Add(phases[Contract.I(eligible[0], "id")]);
                 groupFrames.Add(group);
@@ -61,54 +68,52 @@ public sealed partial class NativeGraphService
         var node = Contract.Number(Contract.N(selected[0], "node"));
         var activation = Activation(RuntimeProfile(Contract.S(profile, "profile_id")), groupFrames[0]);
         Contract.Require(activation.Complete, "本次实例缺少完整原生物理组匹配");
-        var result = new JsonObject
+        return new JsonObject
         {
             ["schema"] = 1,
             ["kind"] = "native_graph_binding",
-            ["host_sha256"] = Contract.Build,
             ["profile_id"] = profile["profile_id"]!.DeepClone(),
-            ["character_profile_sha256"] = cfg["character_profile_sha256"]!.DeepClone(),
             ["bone_count"] = profile["bone_count"]!.DeepClone(),
-            ["skeleton_sha256"] = profile["skeleton_sha256"]!.DeepClone(),
-            ["mesh_asset_name"] = cfg["expected_mesh_asset_name"]!.DeepClone(),
-            ["game_pid"] = observation["pid"]!.DeepClone(),
+            ["observed_frames"] = verifiedFrames.Count,
             ["target"] = Contract.Select(Contract.N(identities, "mesh"), ["address", "index", "serial"]),
-            ["main_anim"] = Contract.Select(main, ["address", "index", "serial", "item_address", "class_address", "class_name", "outer_address", "vtable", "name_words"]),
-            ["converter"] = new JsonObject
-            {
-                ["offset"] = node - mainAddress,
-                ["vtable_rva"] = GameCompat.AddressHex(GameCompat.VtableLocalToComponentRva),
-                ["function_rva"] = GameCompat.AddressHex(GameCompat.FunctionLocalToComponentRva)
-            },
-            ["curve_name_offset"] = GameCompat.AddressHex(GameCompat.CurveNameOffset),
-            ["curve_groups"] = activation.Groups,
-            ["discovery_file"] = "native_graph_discovery.json",
-            ["proof"] = new JsonObject
-            {
-                ["source_config_sha256"] = JsonData.Digest(configPath),
-                ["discovery_sha256"] = JsonData.Digest(observationPath),
-                ["observed_frames"] = verifiedFrames.Count,
-                ["unique_main_converter"] = true,
-                ["pre_physics_order_verified"] = true,
-                ["identity_stable"] = true,
-                ["complete_bone_mapping"] = true,
-                ["extra_vectors_absent"] = true,
-                ["restored_observer"] = true,
-                ["activation_complete"] = activation.Complete
-            }
+            ["main_anim"] = Contract.Select(main, ["address", "index", "serial"]),
+            ["converter"] = new JsonObject { ["offset"] = node - mainAddress },
+            ["curve_groups"] = activation.Groups
         };
-        if (cfg["animation_target"] != null) result["animation_target"] = cfg["animation_target"]!.DeepClone();
-        return result;
     }
 
-    private static bool Encloses(JsonNode outer, JsonNode inner) => Contract.Equal(outer["thread"], inner["thread"]) && Contract.Number(Contract.N(outer, "entry_sequence")) < Contract.Number(Contract.N(inner, "entry_sequence")) && Contract.Number(Contract.N(inner, "exit_sequence")) < Contract.Number(Contract.N(outer, "exit_sequence"));
+    private static ulong Sequence(JsonNode e, string key) => Contract.Number(Contract.N(e, key));
+    private static bool Encloses(JsonNode outer, JsonNode inner) => Contract.Equal(outer["thread"], inner["thread"]) &&
+        Sequence(outer, "entry_sequence") < Sequence(inner, "entry_sequence") && Sequence(inner, "exit_sequence") < Sequence(outer, "exit_sequence");
+    private static bool Precedes(JsonNode first, JsonNode next) => Contract.Equal(first["thread"], next["thread"]) &&
+        Sequence(first, "exit_sequence") < Sequence(next, "entry_sequence");
     private static (JsonArray Groups, bool Complete) Activation(JsonObject candidate, Dictionary<ulong, JsonObject> groups)
     {
-        var curves = groups.Values.Where(p => Contract.I(Contract.O(p, "node_fields"), "alpha_type") == GameCompat.AlphaTypeCurve).Select(p => Contract.S(Contract.O(p, "node_fields"), "curve_name")).Order().ToArray();
-        var matches = Contract.A(candidate, "candidate_sources").Where(s => (Contract.S(s!, "kind") is "seq_export" or "pc_export" or "ui_export") && Contract.S(s!, "evidence_kind") == "actual_nodes" && Contract.I(Contract.O(s!, "group_signature"), "kawaii_group_count") == groups.Count && Contract.A(Contract.O(s!, "group_signature"), "curve_names").Select(x => x!.GetValue<string>()).Order().SequenceEqual(curves)).Where(s => Contract.A(candidate, "candidate_groups").Where(g => Contract.Equal(g!["source_id"], s!["sha256"]) && Contract.S(g!, "alpha_input_type") == "Curve").All(g => Contract.True(g!, "simulate_default") && Contract.A(g!, "unmatched_root_bones").Count == 0 && Contract.S(g!, "extraction_kind") == "actual_nodes")).ToArray();
+        var curves = groups.Values.Where(p => Contract.I(Contract.O(p, "node_fields"), "alpha_type") == GameCompat.AlphaTypeCurve)
+            .Select(p => Contract.S(Contract.O(p, "node_fields"), "curve_name")).Order().ToArray();
+        // An exported animation graph whose actual nodes have the same group count
+        // and curve names, with every curve group simulating and fully rooted.
+        bool SameSignature(JsonNode source)
+        {
+            var signature = Contract.O(source, "group_signature");
+            return Contract.S(source, "kind") is "seq_export" or "pc_export" or "ui_export" && Contract.S(source, "evidence_kind") == "actual_nodes" &&
+                Contract.I(signature, "kawaii_group_count") == groups.Count &&
+                Contract.A(signature, "curve_names").Select(x => x!.GetValue<string>()).Order().SequenceEqual(curves);
+        }
+        bool CurveGroupsUsable(JsonNode source) => Contract.A(candidate, "candidate_groups")
+            .Where(g => Contract.Equal(g!["source_id"], source["sha256"]) && Contract.S(g!, "alpha_input_type") == "Curve")
+            .All(g => Contract.True(g!, "simulate_default") && Contract.A(g!, "unmatched_root_bones").Count == 0 && Contract.S(g!, "extraction_kind") == "actual_nodes");
+        var matches = Contract.A(candidate, "candidate_sources").Where(s => SameSignature(s!) && CurveGroupsUsable(s!)).ToArray();
         if (groups.Count == 0 || matches.Length == 0 || groups.Values.Any(p => !Contract.True(Contract.O(p, "node_fields"), "root_bones_verified")))
             return (new(), false);
-        string Sig(IEnumerable<JsonNode?> rows) => string.Join(";", rows.Select(g => Contract.S(g!, "node_type") + "|" + Contract.S(g!, "alpha_input_type") + "|" + (Contract.S(g!, "alpha_input_type") == "Curve" ? g!["alpha_curve"]?.ToJsonString(JsonData.Compact) ?? "null" : "natural") + "|" + string.Join(",", Contract.A(g!, "root_bones").Select(x => x!.GetValue<string>()).Order())).Order());
+        static string Row(JsonNode g)
+        {
+            var input = Contract.S(g, "alpha_input_type");
+            var alpha = input == "Curve" ? g["alpha_curve"]?.ToJsonString(JsonData.Compact) ?? "null" : "natural";
+            var roots = string.Join(",", Contract.A(g, "root_bones").Select(x => x!.GetValue<string>()).Order());
+            return Contract.S(g, "node_type") + "|" + input + "|" + alpha + "|" + roots;
+        }
+        static string Sig(IEnumerable<JsonNode?> rows) => string.Join(";", rows.Select(g => Row(g!)).Order());
         var observed = groups.Values.Select(p =>
         {
             var f = Contract.O(p, "node_fields");
@@ -130,8 +135,12 @@ public sealed partial class NativeGraphService
         {
             var f = Contract.O(p, "node_fields");
             var alphaType = Contract.I(f, "alpha_type");
-            output.Add(new JsonObject { ["offset"] = p["offset_from_main"]!.DeepClone(), ["node_type"] = "KawaiiPhysicsGroup", ["vtable_rva"] = GameCompat.AddressHex(GameCompat.VtableKawaiiPhysicsGroupRva), ["alpha_type"] = alphaType, ["activation"] = alphaType == GameCompat.AlphaTypeCurve ? "force_when_zero" : "observe_natural", ["curve_name"] = f["curve_name"]?.DeepClone() ?? JsonValue.Create("None"), ["curve_name_words"] = f["curve_name_words"]!.DeepClone(), ["root_binding"] = new JsonObject { ["array"] = f["root_array"]!.DeepClone(), ["extended_array"] = f["extended_root_array"]!.DeepClone(), ["name_words"] = f["root_bone_name_words"]!.DeepClone() } });
-            output[^1]!["root_bones"] = f["root_bones"]!.DeepClone();
+            output.Add(new JsonObject
+            {
+                ["offset"] = p["offset_from_main"]!.DeepClone(), ["alpha_type"] = alphaType,
+                ["curve_name"] = f["curve_name"]?.DeepClone() ?? JsonValue.Create("None"), ["curve_name_words"] = f["curve_name_words"]!.DeepClone(),
+                ["root_bones"] = f["root_bones"]!.DeepClone()
+            });
         }
 
         return (output, true);

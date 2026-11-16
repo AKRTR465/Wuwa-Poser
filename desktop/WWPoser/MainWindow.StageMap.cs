@@ -284,7 +284,8 @@ public sealed partial class MainWindow
             var chosen = placed.FirstOrDefault(actor => ReferenceEquals(actor.Card, selected));
             if (chosen is not null) Gizmo(draw, c, chosen);
             AxisWidget(draw, c);
-            Label(draw, (ortho ? "正交" : "透视") + (grabbing ? (drag is Handle.X or Handle.Y or Handle.Z ? $" · 抓取（锁定 {drag}）" : drag == Handle.Ring ? " · 旋转" : " · 抓取") : ""), new(14, 12), B("Muted"), 11, false);
+            var mode = !grabbing ? "" : drag is Handle.X or Handle.Y or Handle.Z ? $" · 抓取（锁定 {drag}）" : drag == Handle.Ring ? " · 旋转" : " · 抓取";
+            Label(draw, (ortho ? "正交" : "透视") + mode, new(14, 12), B("Muted"), 11, false);
             Label(draw, "每格 50 厘米 · 粗线 1 米", new(14, ActualHeight - 22), B("Muted"), 11, false);
             if (placed.Count == 0) Label(draw, "还没有参与表演的演员", new(ActualWidth / 2, ActualHeight / 2 + 50), B("Muted"), 12, true);
         }

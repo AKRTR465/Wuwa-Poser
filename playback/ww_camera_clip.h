@@ -30,6 +30,6 @@ inline Clip ReadFile(const std::filesystem::path& path){
 inline bool Sample(const Clip& clip,double seconds,const ww_camera::Settings& settings,ww_camera::Frame* out)noexcept{
     if(clip.source_keys.empty())return false;
     const auto key=mmd::SampleCamera(clip.source_keys,(std::max)(0.,(std::min)(seconds,clip.duration))*30,clip.adjacent_cuts);
-    return ww_camera::Place(key,seconds,settings,out);
+    return ww_camera::Place(key,settings,out);
 }
 }} // namespace

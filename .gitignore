@@ -65,7 +65,6 @@ __pycache__/
 /test_outputs/
 /local/
 /repro.i
-/runtime/owned_mmd_lite/session_usage/
 
 # Independent reference checkouts
 /docs/_kp_master/

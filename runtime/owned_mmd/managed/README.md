@@ -1,8 +1,7 @@
 # Mixed actor ownership
 
 `ManagedBridge` executes its public operations on the attached game thread. It
-reads `actors.tsv` with sixteen tab-separated columns and no header (the legacy
-eight-column format remains readable):
+reads `actors.tsv` with sixteen tab-separated columns and no header:
 
 ```text
 slot, role_id, skin_id, stage_x_cm, stage_y_cm, stage_z_cm, model_asset_name, stage_yaw_degrees,
@@ -18,6 +17,9 @@ Actor, main mesh, animation instance and child components must remain distinct
 between slots. Graph and lifecycle exports include the selected form; created
 form actors are checked for identity/form changes during playback maintenance.
 
+Every session also provides two one-line sidecars. `scene_visibility.tsv` holds
+`none`, `npc_monsters` or `scene_characters`, a tab, and a hiding radius in
+centimetres (at most `GameCompat.SceneVisibilityRadiusCm`).
 `stage_floor.tsv` selects `capsule_bottom` for normal staging or `walkable_floor`
 for original choreography, followed by a tab and a small fallback distance in
 centimetres (2.5 by default). For original choreography the bridge captures the
@@ -49,9 +51,8 @@ placed, the bridge saves `stage_reference_camera_offset_from_mesh`: the global
 stage floor point minus the first actor mesh's D_/global position. Native code
 adds this translation to that mesh's current local position on every frame,
 so the camera remains anchored to the stage across world-origin rebases. The
-saved translation is also safe to report after meshes have been released.
-Helpers without this field use the native first-actor fallback, ignoring their
-absolute global stage coordinates. Orbit orientation uses the first mesh's
+saved translation is also safe to report after meshes have been released;
+native playback requires it. Orbit orientation uses the first mesh's
 measured rotation and source calibration. `stage_reference_right` and
 `stage_reference_forward` document the placement plane basis. Models with a
 different authored rest-pose forward direction still need asset adaptation.
@@ -125,8 +126,7 @@ in `references.json`. Notable metadata tokens include SceneTeamModel
 `0x0200295c`, SceneTeamItem `0x02002953`, EntityHandle `0x020031bb`,
 CharacterActorComponent `0x02003041`, BaseActorComponent `0x0200326f`,
 CreatureDataComponent `0x020030a0`, and Entity `0x02000075` in their corresponding
-Game/Core assemblies. The existing `csharp_scene_team_readonly_contract.json`
-provides the independently documented membership chain.
+Game/Core assemblies.
 
 Offline verification:
 

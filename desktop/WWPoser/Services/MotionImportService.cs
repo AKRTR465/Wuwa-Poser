@@ -1,7 +1,7 @@
 using System.Diagnostics;
 
 namespace WWPoser.Services;
-public sealed record MotionImportRequest(string Source, string? Skeleton, string Output, double? Scale = null, string? FaceSource = null, string? ModelId = null, string? CharacterProfile = null, string? MeshAssetName = null, string? CacheDirectory = null, string? GazeSource = null, double GazeStrength = 1);
+public sealed record MotionImportRequest(string Source, string ProfileId, string MeshAssetName, string Output, double? Scale = null, string? FaceSource = null, string? CacheDirectory = null, string? GazeSource = null, double GazeStrength = 1);
 public sealed class MotionImportService(string repoRoot)
 {
     private readonly string root = Path.GetFullPath(repoRoot);
@@ -15,11 +15,10 @@ public sealed class MotionImportService(string repoRoot)
         var gaze = request.GazeSource is null ? null : Path.GetFullPath(request.GazeSource);
         Contract.Require(double.IsFinite(request.GazeStrength) && request.GazeStrength >= 0 && request.GazeStrength <= 3, "目线幅度须在 0–3 倍之间。");
         var output = Path.GetFullPath(request.Output);
-        var profile = request.CharacterProfile != null ? registry.LoadProfile(request.CharacterProfile)
-            : registry.GetProfile(Contract.S(Contract.A(registry.Index(), "profiles").First(x => request.ModelId != null ? Contract.S(x!, "model_id") == request.ModelId : Contract.S(x!, "skeleton_sha256") == JsonData.Digest(request.Skeleton!))!, "profile_id"));
-        var skeleton = Path.GetFullPath(request.Skeleton ?? registry.SkeletonPath(profile));
+        var profile = registry.GetProfile(request.ProfileId);
+        var skeleton = registry.SkeletonPath(profile);
         var model = Contract.S(profile, "model_id");
-        var mesh = request.MeshAssetName ?? model;
+        var mesh = request.MeshAssetName;
         var targets = registry.MorphNames(profile, mesh);
         var bodyTool = Path.Combine(root, "tools", "mmd_outputs", "mmd_vmd_cli.exe");
         var faceTool = Path.Combine(root, "tools", "mmd_outputs", "mmd_face_compile.exe");

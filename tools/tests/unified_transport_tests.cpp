@@ -1,5 +1,4 @@
 #include "../../playback/player_transport.h"
-#include "../../playback/ww_mmd_squad.h"
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -13,17 +12,19 @@ static void Put64(CommandWire& wire,unsigned offset,uint64_t value){for(unsigned
 static CommandWire Wire(Command command){CommandWire wire{};std::memcpy(wire.data(),"WWPCTL1",7);Put32(wire,8,1);Put32(wire,12,64);
     Put64(wire,16,command.clip_epoch);Put64(wire,24,command.sequence);Put32(wire,32,uint32_t(command.kind));Put32(wire,36,command.target_slot);
     uint64_t bits=0;std::memcpy(&bits,&command.value,8);Put64(wire,40,bits);Put32(wire,48,command.target_group);Put32(wire,52,command.target_chain);Put32(wire,60,WireChecksum(wire));return wire;}
+static bool DecodeCommand(const CommandWire& wire,Command* output){return DecodeCommandFrame(wire,*output)&&ValidCommand(*output);}
 int main(){
     Command decoded;
     auto wire=Wire({42,1,CommandKind::SetPlacementX,25,3});
     Check(DecodeCommand(wire,&decoded)&&decoded.target_slot==3&&decoded.value==25,"actor slot must survive wire decoding");
-    Check(DecodeCommand(Wire({42,1,CommandKind::Play,0}),&decoded)&&decoded.target_slot==0,"legacy untargeted wire remains valid");
+    Check(DecodeCommand(Wire({42,1,CommandKind::Play,0}),&decoded)&&decoded.target_slot==0,"untargeted session wire is valid");
+    Check(!ValidCommand({42,1,CommandKind::Play,0,1})&&!ValidCommand({42,1,CommandKind::SeekSeconds,1,2}),"session timeline commands never accept an actor slot");
     Check(DecodeCommand(Wire({42,1,CommandKind::SetGroundHeight,-2}),&decoded)&&decoded.kind==CommandKind::SetGroundHeight&&decoded.value==-2,"shared standing height survives wire decoding");
     Check(!ValidCommand({42,1,CommandKind::SetGroundHeight,1001}),"shared standing height rejects out-of-range values");
     Check(!ValidCommand({42,1,CommandKind::SetGroundHeight,0,1}),"shared standing height rejects actor targets at the protocol boundary");
     Check(DecodeCommand(Wire({42,1,CommandKind::SetCameraTrackHeight,-150.5}),&decoded)&&decoded.value==-150.5,"signed camera track height survives wire decoding");
     Check(!ValidCommand({42,1,CommandKind::SetCameraTrackHeight,10001})&&!ValidCommand({42,1,CommandKind::SetCameraTrackHeight,20,1}),"track height is bounded and global, never actor-routed");
-    Check(DecodeCommand(Wire({42,1,CommandKind::Play,0,UINT32_MAX}),&decoded)&&decoded.target_slot==UINT32_MAX,"full positive uint32 actor slot range accepted");
+    Check(DecodeCommand(Wire({42,1,CommandKind::SetPlacementX,0,UINT32_MAX}),&decoded)&&decoded.target_slot==UINT32_MAX,"full positive uint32 actor slot range accepted");
     wire[48]=1;Put32(wire,60,WireChecksum(wire));Check(!DecodeCommand(wire,&decoded),"group index is reserved for native settings commands");
     Check(DecodeCommand(Wire({42,4,CommandKind::SetNativeDamping,.4,3,12}),&decoded)&&decoded.target_slot==3&&decoded.target_group==12&&Close(decoded.value,.4),"native damping targets one group on one actor");
     Check(DecodeCommand(Wire({42,4,CommandKind::SetNativeDamping,.4,3,12,2}),&decoded)&&decoded.target_chain==2,"one parameter command targets a verified chain inside its group");
@@ -40,7 +41,7 @@ int main(){
         "gravity is group-scoped with an explicit restore sentinel");
     wire=Wire({42,1,CommandKind::SetTimeLimit,0});wire[40]^=1;Check(!DecodeCommand(wire,&decoded),"modified payload checksum rejected");
     wire=Wire({42,2,CommandKind::SetSpeed,5});
-    Check(DecodeCommandFrame(wire,&decoded)&&decoded.sequence==2&&!DecodeCommand(wire,&decoded),"a valid frame preserves rejected command identity without weakening strict decoding");
+    Check(DecodeCommandFrame(wire,decoded)&&decoded.sequence==2&&!ValidCommand(decoded),"a valid frame preserves rejected command identity without weakening strict validation");
     Check(ValidCommand({42,1,CommandKind::SetSpeed,.1})&&ValidCommand({42,1,CommandKind::SetSpeed,4}),"unified speed endpoints accepted");
     Check(!ValidCommand({42,1,CommandKind::SetSpeed,.09})&&!ValidCommand({42,1,CommandKind::SetSpeed,4.01}),"out-of-range speed rejected");
 
@@ -65,8 +66,6 @@ int main(){
     Check(limited.State().time_limit_reached&&limited.State().restore_requested&&limited.State().mode==PlayerMode::Stopped,"wall-clock residency expires while paused");
     Check(Close(limited.State().session_elapsed_seconds,5),"time limit begins at first play, not configuration");
     Check(limited.Apply({99,4,CommandKind::Play,0},106)==ControlCode::RestorePending,"expired session cannot bypass restoration");
-    limited.AcknowledgeRestore();limited.Apply({99,4,CommandKind::SetTimeLimit,0},106);limited.Apply({99,5,CommandKind::Play,0},106);limited.Tick(10000);
-    Check(!limited.State().time_limit_reached&&!limited.State().restore_requested,"explicit unlimited setting permits next restored playback");
 
     Transport recording;Check(recording.SetClip(100,12),"recording clip configured");
     recording.Apply({100,1,CommandKind::SetTimeLimit,5},0);
@@ -90,7 +89,6 @@ int main(){
     Check(camera.State().seconds==8&&camera.State().camera_track_height_cm==-75&&camera.State().placement_height==0,"track height preserves cursor and actor height");
     camera.Apply({103,4,CommandKind::Stop,0},0);Check(camera.State().camera_track_height_cm==-75,"stop retains the selected track offset for restart");
     Check(!camera.SetClip(104,12),"a camera offset never bypasses pending restoration");
-    camera.AcknowledgeRestore();Check(camera.SetClip(104,12)&&camera.State().camera_track_height_cm==0,"a new restored clip resets the previous track offset");
     Transport compare;compare.SetClip(110,12);compare.Apply({110,1,CommandKind::Play,0},0);
     Check(compare.Apply({110,2,CommandKind::SetPreviewLoopStart,2},0)==ControlCode::Ok&&
         compare.Apply({110,3,CommandKind::SetPreviewLoopEnd,5},0)==ControlCode::Ok,"physics preview selects an explicit interval");
@@ -100,13 +98,5 @@ int main(){
     compare.Tick(8);
     Check(Close(compare.State().seconds,7),"exiting the preview interval restores ordinary playback time");
 
-    ww_mmd_squad::SharedTimeline squad;squad.Configure(55,{10,20,30},7);squad.Advance(1,100);
-    Check(squad.Apply({55,1,CommandKind::Play,0},true)==ww_mmd_squad::ClockCode::Ok,"shared play accepted");
-    squad.Advance(2,101);const auto first=squad.State().player.seconds;squad.Advance(2,101.75);
-    Check(Close(first,1)&&Close(squad.State().player.seconds,first),"actors in one engine frame share exact cursor");
-    Check(squad.AcceptRoutedCommand({55,2,CommandKind::SetPlacementX,80,2})==ww_mmd_squad::ClockCode::Ok,"per-actor command accepted by shared order");
-    Check(squad.State().player.last_sequence==2&&squad.State().player.placement_x==0,"routed placement does not mutate shared placement");
-    Check(squad.Apply({55,2,CommandKind::SetLoop,1},true)==ww_mmd_squad::ClockCode::CommandRejected,"routed sequence cannot be reused globally");
-    Check(squad.AcceptRoutedCommand({55,3,CommandKind::SeekSeconds,4,2})==ww_mmd_squad::ClockCode::CommandRejected,"timeline commands cannot bypass shared clock");
     std::cout<<"unified transport: "<<assertions<<" assertions passed\n";
 }

@@ -44,6 +44,12 @@ struct RigDefinition {
   }
 };
 // Same numeric roles as Unity HumanBodyBones; independent of game headers.
+// True when `bone` is `ancestor` or lies below it in a parent table.
+template <class Bones> bool Reaches(const Bones &bones, int bone, int ancestor) {
+  while (bone >= 0 && bone != ancestor)
+    bone = bones[size_t(bone)].parent;
+  return bone >= 0;
+}
 inline const std::array<const char *, 55> &RoleNames() {
   static const std::array<const char *, 55> n = {
       {u8"下半身",   u8"左足",    u8"右足",    u8"左ひざ",  u8"右ひざ",

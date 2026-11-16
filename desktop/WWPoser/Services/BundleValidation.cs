@@ -20,7 +20,7 @@ public static class BundleValidation
         // Source checkouts have no bundle manifest. Portable packages do.
         if (!File.Exists(manifestPath)) return;
         var manifest = JsonData.ReadObject(manifestPath);
-        var requireHashes = Contract.I(manifest, "schema") >= 4;
+        Contract.Require(Contract.I(manifest, "schema") == 4, "包清单版本不受支持。");
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var row in Contract.A(manifest, "files"))
         {
@@ -31,14 +31,10 @@ public static class BundleValidation
             var file = new FileInfo(Path.Combine(root, relative));
             Contract.Require(file.Exists, "包文件缺失：" + relative);
             Contract.Require(file.Length == Contract.I(row!, "bytes"), "包文件大小不符：" + relative);
-            var digest = row!["sha256"]?.GetValue<string>();
-            Contract.Require(!requireHashes || digest is not null, "包清单缺少 SHA-256：" + relative);
-            if (digest is not null)
-            {
-                Contract.Require(digest.Length == 64 && digest.All(Uri.IsHexDigit), "包清单 SHA-256 无效：" + relative);
-                Contract.Require(string.Equals(JsonData.Digest(file.FullName), digest, StringComparison.OrdinalIgnoreCase),
-                    "包文件 SHA-256 不符：" + relative);
-            }
+            var digest = Contract.S(row!, "sha256");
+            Contract.Require(digest.Length == 64 && digest.All(Uri.IsHexDigit), "包清单 SHA-256 无效：" + relative);
+            Contract.Require(string.Equals(JsonData.Digest(file.FullName), digest, StringComparison.OrdinalIgnoreCase),
+                "包文件 SHA-256 不符：" + relative);
         }
         Contract.Require(seen.Count > 0, "包清单没有文件。");
     }

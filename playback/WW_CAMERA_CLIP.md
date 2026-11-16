@@ -40,7 +40,7 @@ finite values, FOV1..179, perspective bits, known sample flags, strictly ordered
 source keys and finite Bezier controls in [0,1]. Source ends hold the final key;
 the player should use the longest duration across paired body/face/camera clips.
 
-Build `tools/mmd_build_camera.bat`; invoke
+Build with `tools/build_compilers.bat`; invoke
 `mmd_camera_compile.exe CAMERA_VMD NEW_PROFILE_JSON NEW_WWCAM [TIMELINE_SECONDS]
 [continuous]`. The compiler refuses existing outputs, uses the established
 VMD parser's 24-byte camera interpolation order x1,x2,y1,y2 and defaults to

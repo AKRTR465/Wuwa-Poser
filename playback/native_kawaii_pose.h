@@ -7,24 +7,18 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include "ue_memory.h"
 
 namespace wwp_playback { namespace native_kawaii {
 constexpr uint32_t kLimit = 1024;
 using Transform = std::array<uint8_t, ww_game_compat::TransformBytes>;
-struct ArrayHeader { uintptr_t data=0; int32_t num=0, capacity=0; };
-static_assert(sizeof(ArrayHeader)==ww_game_compat::TArrayHeaderBytes, "x64 TArray header required");
-
-struct Layout {
-    uint32_t proxy=ww_game_compat::AnimContextProxyOffset, pose=ww_game_compat::AnimContextPoseOffset, transforms=ww_game_compat::AnimContextTransformsOffset, extra_vectors=ww_game_compat::AnimContextExtraVectorsOffset;
-    uint32_t extra_vectors_active=ww_game_compat::AnimContextExtraVectorsActiveOffset, bone_container=ww_game_compat::AnimContextBoneContainerOffset, flags=ww_game_compat::AnimContextFlagsOffset;
-    uint32_t proxy_mesh=ww_game_compat::AnimProxyMeshOffset, skeleton_to_compact=ww_game_compat::BoneContainerSkeletonToCompactOffset, compact_parents=ww_game_compat::BoneContainerCompactParentsOffset;
-};
+using ue_memory::ArrayHead;
 enum class Error {
     none, unreadable, bad_count, pointer_mismatch, extra_channel_unsupported, bad_mapping, getter_failed
 };
 struct View {
     uintptr_t context=0, proxy=0, mesh=0, bone_container=0, pose=0;
-    ArrayHeader transforms, flags, extra_vectors, skeleton_to_compact;
+    ArrayHead transforms, flags, extra_vectors, skeleton_to_compact;
     uint8_t extra_active=0;
 };
 struct Snapshot {
@@ -32,23 +26,25 @@ struct Snapshot {
     std::array<int32_t,kLimit> skeleton_to_compact{};
     std::array<Transform,kLimit> component{}; // compact order
 };
-inline bool Header(const ArrayHeader& a, uint32_t count) { return a.data && a.num==static_cast<int32_t>(count); }
-inline bool ExtraVectorsAbsent(const ArrayHeader& a, uint8_t mode) {
-    // Local-to-component conversion clears/copies this array independently of the mode byte;
-    // only the canonical null array is supported.
-    return mode<=1 && a.data==0 && a.num==0 && a.capacity==0;
+inline bool Header(const ArrayHead& a, uint32_t count) { return a.data && a.num==static_cast<int32_t>(count); }
+inline bool ExtraVectorsAbsent(const ArrayHead& a, uint8_t mode) {
+    // Local-to-component conversion and bone-container setup set the adjacent
+    // mode byte independently of array presence. Only Boolean modes with a
+    // canonical null array are supported; no retained/populated storage.
+    return mode<=1 && a.data==0 && a.num==0 && a.max==0;
 }
 template<class Read>
-Error ReadView(uintptr_t context, uintptr_t expected_mesh, uint32_t count, const Layout& l, Read&& read, View* out) {
-    View v; v.context=context; v.pose=context+l.pose;
-    if(!read(context+l.proxy,&v.proxy,sizeof(v.proxy)) ||
-       !read(context+l.bone_container,&v.bone_container,sizeof(v.bone_container)) ||
-       !read(context+l.transforms,&v.transforms,sizeof(v.transforms)) ||
-       !read(context+l.flags,&v.flags,sizeof(v.flags)) ||
-       !read(context+l.extra_vectors,&v.extra_vectors,sizeof(v.extra_vectors)) ||
-       !read(context+l.extra_vectors_active,&v.extra_active,sizeof(v.extra_active)) ||
-       !read(v.proxy+l.proxy_mesh,&v.mesh,sizeof(v.mesh)) ||
-       !read(v.bone_container+l.skeleton_to_compact,&v.skeleton_to_compact,sizeof(v.skeleton_to_compact))) return Error::unreadable;
+Error ReadView(uintptr_t context, uintptr_t expected_mesh, uint32_t count, Read&& read, View* out) {
+    namespace compat=ww_game_compat;
+    View v; v.context=context; v.pose=context+compat::AnimContextPoseOffset;
+    if(!read(context+compat::AnimContextProxyOffset,&v.proxy,sizeof(v.proxy)) ||
+       !read(context+compat::AnimContextBoneContainerOffset,&v.bone_container,sizeof(v.bone_container)) ||
+       !read(context+compat::AnimContextTransformsOffset,&v.transforms,sizeof(v.transforms)) ||
+       !read(context+compat::AnimContextFlagsOffset,&v.flags,sizeof(v.flags)) ||
+       !read(context+compat::AnimContextExtraVectorsOffset,&v.extra_vectors,sizeof(v.extra_vectors)) ||
+       !read(context+compat::AnimContextExtraVectorsActiveOffset,&v.extra_active,sizeof(v.extra_active)) ||
+       !read(v.proxy+compat::AnimProxyMeshOffset,&v.mesh,sizeof(v.mesh)) ||
+       !read(v.bone_container+compat::BoneContainerSkeletonToCompactOffset,&v.skeleton_to_compact,sizeof(v.skeleton_to_compact))) return Error::unreadable;
     if(v.mesh!=expected_mesh) return Error::pointer_mismatch;
     if(!ExtraVectorsAbsent(v.extra_vectors,v.extra_active)) return Error::extra_channel_unsupported;
     if(!Header(v.transforms,count) || !Header(v.flags,count) || !Header(v.skeleton_to_compact,count)) return Error::bad_count;

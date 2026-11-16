@@ -21,11 +21,7 @@ class Mailbox {
     std::array<std::atomic<float>,4> rotation_{};
     std::atomic<float> scale_{1};
 public:
-    Mailbox() noexcept {
-        for(auto& value:anchor_)value.store(0);
-        for(auto& value:rotation_)value.store(0);
-        rotation_[3].store(1);
-    }
+    Mailbox() noexcept {rotation_[3].store(1);}
     void Publish(const Snapshot& value) noexcept {
         // Sequential consistency keeps both version checks around all fields.
         sequence_.fetch_add(1);

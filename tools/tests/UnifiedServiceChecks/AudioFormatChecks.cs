@@ -24,7 +24,7 @@ internal static class AudioFormatChecks
         Check(cancelled && opened == 0 && service.LastError is null, "stopping a pending decode cancels it without opening an audio device or retaining an error");
 
         var timeline = Path.Combine(fixture, "decoded-selection"); Directory.CreateDirectory(timeline);
-        File.WriteAllText(Path.Combine(timeline, "player_status.json"), new JsonObject {
+        File.WriteAllText(Path.Combine(timeline, "mmd_status.json"), new JsonObject {
             ["clip_epoch"] = 11UL, ["last_sequence"] = 0UL, ["session_active"] = true, ["mode"] = "paused",
             ["seconds"] = 0d, ["speed"] = 1d, ["restore_requested"] = false }.ToJsonString());
         var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

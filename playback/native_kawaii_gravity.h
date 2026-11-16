@@ -1,5 +1,5 @@
 #pragma once
-
+#include "../runtime/generated/GameCompat.generated.h"
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -10,7 +10,7 @@
 namespace wwp_playback::kawaii_gravity {
 // GroupSimulate reads three float components and converts the world vector
 // into component space using the conjugated component rotation and inverse scale.
-inline constexpr uintptr_t kNodeGravity=0x1e0,kConjugateSignsRva=0x954a290;
+inline constexpr uintptr_t kNodeGravity=ww_game_compat::KawaiiGravityOffset,kConjugateSignsRva=ww_game_compat::GravityConjugateSignsRva;
 using Vector=std::array<float,3>;
 static_assert(sizeof(Vector)==12,"expected UE FVector3f");
 

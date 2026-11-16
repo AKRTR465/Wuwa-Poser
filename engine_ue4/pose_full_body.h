@@ -10,6 +10,7 @@
 // Same-header pose mutation and applying multiple patches are NOT atomic.
 #include "pose_subtree_rotation.h"
 #include <algorithm>
+#include <vector>
 
 namespace wwp_ue { namespace full_body {
 namespace sub=subtree_rotation;
@@ -32,9 +33,8 @@ struct Topology {
     uint32_t count=0;
     std::array<int32_t,kLimit> parents{};
 };
+constexpr double kQuaternionTolerance=.001,kMinimumScale=1e-8;
 struct Request {
-    double quaternion_tolerance=.001;
-    double minimum_scale=1e-8;
     // Optional worker-prepared canonical local positions freeze mapped body
     // translation/ancestors while leaving nonmapped secondary locals dynamic.
     const uint8_t* canonical_position_mask=nullptr;
@@ -46,7 +46,7 @@ struct Request {
     bool root_rotation_enabled=false;
     std::array<double,4> root_anchor_rotation{{0,0,0,1}};
 };
-enum class Code {None,InvalidTopology,CountMismatch,InvalidFrame,NonFinite,
+enum class Code {None,CountMismatch,InvalidFrame,NonFinite,
     NonUnitQuaternion,SingularScale,Overflow};
 struct Failure {Code code=Code::None;uint32_t bone=UINT32_MAX;};
 struct Scratch {
@@ -56,17 +56,17 @@ struct Scratch {
 };
 inline bool Fail(Failure* failure,Code code,uint32_t bone=UINT32_MAX){if(failure)*failure={code,bone};return false;}
 
-// Worker prepares this once from the complete expected names/parents table.
-inline bool PrepareTopology(const sub::Manifest& manifest,const std::vector<std::string>& names,
-    const std::vector<int32_t>& parents,Topology* out,sub::Failure* failure=nullptr) {
-    const auto fail=[&](sub::Code code,uint32_t bone=UINT32_MAX){if(failure)*failure={code,bone};return false;};
-    if(!manifest.expected_count||manifest.expected_count>kLimit)return fail(sub::Code::InvalidManifest);
-    if(names.size()!=manifest.expected_count||names!=manifest.expected_names||parents!=manifest.expected_parents)return fail(sub::Code::NameParentMismatch);
-    Topology value;value.count=manifest.expected_count;
-    for(uint32_t i=0;i<value.count;++i){if(i?parents[i]<0||uint32_t(parents[i])>=i:parents[i]!=-1)return fail(sub::Code::InvalidTree,i);value.parents[i]=parents[i];}
+// Worker prepares this once from the complete, already matched parent table.
+inline bool PrepareTopology(const std::vector<int32_t>& parents,Topology* out) {
+    if(parents.empty()||parents.size()>kLimit)return false;
+    Topology value;value.count=uint32_t(parents.size());
+    for(uint32_t i=0;i<value.count;++i){
+        const bool valid=i==0?parents[i]==-1:parents[i]>=0&&uint32_t(parents[i])<i;
+        if(!valid)return false;
+        value.parents[i]=parents[i];
+    }
     *out=value;return true;
 }
-
 
 // Absolute local rotation overrides are immutable clip output, never an
 // accumulating delta. Translation is an offset from THIS current local pose.
@@ -79,12 +79,11 @@ inline bool MakePlan(const Topology& topology,const Request& request,
     if(count!=topology.count||frame.bone_count!=count)return Fail(failure,Code::CountMismatch);
     auto& s=*scratch;
     for(uint32_t i=0;i<count;++i){
-        auto q=sub::detail::Rotation(current[i]);const auto p=sub::detail::Position(current[i]);
-        sub::detail::V scale{{sub::detail::Float(current[i].data()+32),sub::detail::Float(current[i].data()+36),sub::detail::Float(current[i].data()+40)}};
+        auto q=sub::detail::Rotation(current[i]);const auto p=sub::detail::Position(current[i]);const auto scale=sub::detail::Scale(current[i]);
         for(double v:q)if(!std::isfinite(v))return Fail(failure,Code::NonFinite,i);
         for(double v:p)if(!std::isfinite(v))return Fail(failure,Code::NonFinite,i);
         for(double v:scale)if(!std::isfinite(v))return Fail(failure,Code::NonFinite,i);
-        const double norm=sub::detail::Norm(q);if(!norm||std::fabs(norm-1)>request.quaternion_tolerance)return Fail(failure,Code::NonUnitQuaternion,i);
+        const double norm=sub::detail::Norm(q);if(!norm||std::fabs(norm-1)>kQuaternionTolerance)return Fail(failure,Code::NonUnitQuaternion,i);
         s.current_rotation[i]=sub::detail::Unit(q);s.current_position[i]=p;s.scale[i]=scale;
     }
     for(uint32_t i=0;i<count;++i){
@@ -95,16 +94,21 @@ inline bool MakePlan(const Topology& topology,const Request& request,
             s.local_rotation[i]=sub::detail::Unit(sub::detail::Mul(sub::detail::Conj(s.current_rotation[p]),s.current_rotation[i]));
             const auto offset=sub::detail::Rotate(sub::detail::Conj(s.current_rotation[p]),{{s.current_position[i][0]-s.current_position[p][0],
                 s.current_position[i][1]-s.current_position[p][1],s.current_position[i][2]-s.current_position[p][2]}});
-            for(unsigned k=0;k<3;++k){if(std::fabs(s.scale[p][k])<request.minimum_scale)return Fail(failure,Code::SingularScale,p);
+            for(unsigned k=0;k<3;++k){if(std::fabs(s.scale[p][k])<kMinimumScale)return Fail(failure,Code::SingularScale,p);
                 s.local_position[i][k]=offset[k]/s.scale[p][k];}
         }
         if(request.canonical_position_mask&&request.canonical_position_mask[i])
             for(unsigned k=0;k<3;++k)s.local_position[i][k]=request.canonical_local_positions[i][k];
         if(request.canonical_rotation_mask&&request.canonical_rotation_mask[i]){
-            for(unsigned k=0;k<4;++k)s.local_rotation[i][k]=request.canonical_local_rotations[i][k];s.local_rotation[i]=sub::detail::Unit(s.local_rotation[i]);}
+            for(unsigned k=0;k<4;++k)s.local_rotation[i][k]=request.canonical_local_rotations[i][k];
+            s.local_rotation[i]=sub::detail::Unit(s.local_rotation[i]);
+        }
         if(i==0&&request.root_anchor_enabled)s.local_position[i]=request.root_anchor_position;
         if(i==0&&request.root_rotation_enabled)s.local_rotation[i]=sub::detail::Unit(request.root_anchor_rotation);
-        if(command.mask&RotationOverride){for(unsigned k=0;k<4;++k)s.local_rotation[i][k]=command.rotation_xyzw[k];s.local_rotation[i]=sub::detail::Unit(s.local_rotation[i]);}
+        if(command.mask&RotationOverride){
+            for(unsigned k=0;k<4;++k)s.local_rotation[i][k]=command.rotation_xyzw[k];
+            s.local_rotation[i]=sub::detail::Unit(s.local_rotation[i]);
+        }
         if(command.mask&TranslationDelta)for(unsigned k=0;k<3;++k)s.local_position[i][k]+=command.translation_delta[k];
         const bool translated=(command.mask&TranslationDelta)&&
             (command.translation_delta[0]!=0||command.translation_delta[1]!=0||command.translation_delta[2]!=0);
@@ -124,8 +128,9 @@ inline bool MakePlan(const Topology& topology,const Request& request,
     // original field is the exact incoming bytes, retaining scale/padding.
     out->count=0;
     for(uint32_t i=0;i<count;++i)if(s.affected[i]){
-        sub::Patch patch;patch.bone=i;std::memcpy(patch.original_rotation.data(),current[i].data(),16);
-        std::memcpy(patch.original_position.data(),current[i].data()+16,12);
+        sub::Patch patch;patch.bone=i;
+        std::memcpy(patch.original_rotation.data(),current[i].data()+ww_game_compat::TransformRotationOffset,patch.original_rotation.size());
+        std::memcpy(patch.original_position.data(),current[i].data()+ww_game_compat::TransformTranslationOffset,patch.original_position.size());
         for(unsigned k=0;k<4;++k)sub::detail::Store(patch.rotated_rotation.data()+k*4,s.next_rotation[i][k]);
         for(unsigned k=0;k<3;++k)sub::detail::Store(patch.rotated_position.data()+k*4,s.next_position[i][k]);
         patch.position_changed=patch.rotated_position!=patch.original_position;

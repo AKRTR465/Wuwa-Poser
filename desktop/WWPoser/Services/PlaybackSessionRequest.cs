@@ -19,7 +19,7 @@ public sealed record PlaybackSessionRequest(IReadOnlyList<PlaybackActorRequest> 
         Range(Speed, .1, 4); Range(DurationSeconds, 0, 2147483); Range(SpacingCm, 0, 1000);
         Range(GroundHeightCm, -1000, 1000); Range(CameraTrackHeightCm, -10000, 10000);
         if (CameraMode is < 0 or > 2) throw new InvalidDataException("镜头模式无效。");
-        PlaybackAssets.PhysicsMode(NativePhysics, Physics);
+        PlaybackAssets.ValidatePhysics(NativePhysics, Physics);
         foreach (var actor in Actors)
         {
             if (actor is null) throw new InvalidDataException("表演演员为空。");

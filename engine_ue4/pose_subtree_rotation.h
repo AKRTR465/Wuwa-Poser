@@ -7,18 +7,9 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <string>
-#include <vector>
 
 namespace wwp_ue { namespace subtree_rotation {
 using TransformBytes=std::array<uint8_t,ww_game_compat::TransformBytes>;
-struct Manifest {
-    uint32_t expected_count=0;
-    std::vector<std::string> expected_names;
-    std::vector<int32_t> expected_parents;
-};
-enum class Code {None,InvalidManifest,CountMismatch,NameParentMismatch,InvalidTree};
-struct Failure {Code code=Code::None;uint32_t bone=UINT32_MAX;};
 constexpr uint32_t kFixedLimit=1024;
 struct Patch {
     uint32_t bone=UINT32_MAX;
@@ -30,6 +21,22 @@ struct FixedPlan {
     uint32_t count=0;
     std::array<Patch,kFixedLimit> patches{};
 };
+// Writes a patch's rotated rotation and, when it moved, its rotated position.
+inline void ApplyPatch(uint8_t* bone,const Patch& patch){
+    std::memcpy(bone+ww_game_compat::TransformRotationOffset,patch.rotated_rotation.data(),patch.rotated_rotation.size());
+    if(patch.position_changed)std::memcpy(bone+ww_game_compat::TransformTranslationOffset,patch.rotated_position.data(),patch.rotated_position.size());
+}
+// Captures the rotation/position change from one transform to another.
+inline Patch MakePatch(uint32_t bone,const uint8_t* original,const uint8_t* rotated){
+    Patch patch;patch.bone=bone;
+    std::memcpy(patch.original_rotation.data(),original+ww_game_compat::TransformRotationOffset,patch.original_rotation.size());
+    std::memcpy(patch.rotated_rotation.data(),rotated+ww_game_compat::TransformRotationOffset,patch.rotated_rotation.size());
+    std::memcpy(patch.original_position.data(),original+ww_game_compat::TransformTranslationOffset,patch.original_position.size());
+    std::memcpy(patch.rotated_position.data(),rotated+ww_game_compat::TransformTranslationOffset,patch.rotated_position.size());
+    patch.position_changed=patch.original_position!=patch.rotated_position;
+    return patch;
+}
+inline bool Changed(const Patch& patch){return patch.position_changed||patch.original_rotation!=patch.rotated_rotation;}
 namespace detail {
 using V=std::array<double,3>;using Q=std::array<double,4>;
 inline uint32_t U32(const uint8_t* b){return uint32_t(b[0])|(uint32_t(b[1])<<8)|(uint32_t(b[2])<<16)|(uint32_t(b[3])<<24);}
@@ -44,7 +51,13 @@ inline Q Conj(Q q){return {{-q[0],-q[1],-q[2],q[3]}};}
 inline double Norm(const Q& q){return std::sqrt(q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3]);}
 inline Q Unit(Q q){const double n=Norm(q);for(double& x:q)x/=n;return q;}
 inline V Rotate(const Q& q,const V& v){const Q result=Mul(Mul(q,{{v[0],v[1],v[2],0}}),Conj(q));return {{result[0],result[1],result[2]}};}
-inline Q Rotation(const TransformBytes& b){return {{Float(b.data()+ww_game_compat::TransformRotationOffset),Float(b.data()+ww_game_compat::TransformRotationOffset+sizeof(float)),Float(b.data()+ww_game_compat::TransformRotationOffset+2*sizeof(float)),Float(b.data()+ww_game_compat::TransformRotationOffset+3*sizeof(float))}};}
-inline V Position(const TransformBytes& b){return {{Float(b.data()+ww_game_compat::TransformTranslationOffset),Float(b.data()+ww_game_compat::TransformTranslationOffset+sizeof(float)),Float(b.data()+ww_game_compat::TransformTranslationOffset+2*sizeof(float))}};}
+template<size_t N> std::array<double,N> Floats(const TransformBytes& b,uint32_t offset){
+    std::array<double,N> values{};
+    for(size_t k=0;k<N;++k)values[k]=Float(b.data()+offset+k*sizeof(float));
+    return values;
+}
+inline Q Rotation(const TransformBytes& b){return Floats<4>(b,ww_game_compat::TransformRotationOffset);}
+inline V Position(const TransformBytes& b){return Floats<3>(b,ww_game_compat::TransformTranslationOffset);}
+inline V Scale(const TransformBytes& b){return Floats<3>(b,ww_game_compat::TransformScaleOffset);}
 }
 }} // namespace wwp_ue::subtree_rotation

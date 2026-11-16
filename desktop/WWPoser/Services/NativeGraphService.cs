@@ -3,12 +3,12 @@ public sealed partial class NativeGraphService(string repoRoot)
 {
     private readonly string root = Path.GetFullPath(repoRoot);
     private readonly CharacterRegistry registry = new(repoRoot);
-    private JsonArray? VersionedWitnesses()
+    // Function byte evidence captured from the supported game build.
+    private JsonArray VersionedWitnesses()
     {
-        var path = Path.Combine(root, "data", "runtime_contracts", "native_functions_3_8.json");
-        if (!File.Exists(path)) return null;
-        var witness = JsonData.ReadObject(path);
-        return Contract.S(witness, "source_sha256") == GameCompat.SourceBuildSha256 ? Contract.A(witness, "functions") : null;
+        var witness = JsonData.ReadObject(Path.Combine(root, "data", "runtime_contracts", "native_functions_3_8.json"));
+        Contract.Require(Contract.S(witness, "source_sha256") == GameCompat.SourceBuildSha256, "函数字节证据与当前游戏兼容配置的版本不符。");
+        return Contract.A(witness, "functions");
     }
     private static readonly (string Label, ulong Rva)[] ObserverFunctions =
     [
@@ -18,13 +18,7 @@ public sealed partial class NativeGraphService(string repoRoot)
         ("GroupEvaluate", GameCompat.FunctionGroupEvaluateRva)
     ];
 
-    private JsonArray FunctionWitnesses(params (string Label, ulong Rva)[] functions)
-    {
-        IEnumerable<JsonNode?>? rows = VersionedWitnesses();
-        rows ??= new[] { "native_kawaii.json", "native_activation.json" }
-            .SelectMany(file => Contract.A(JsonData.ReadObject(Path.Combine(root, "data", "runtime_contracts", file)), "functions"));
-        return ResolveFunctionWitnesses(rows, functions);
-    }
+    private JsonArray FunctionWitnesses(params (string Label, ulong Rva)[] functions) => ResolveFunctionWitnesses(VersionedWitnesses(), functions);
 
     private static JsonArray ResolveFunctionWitnesses(IEnumerable<JsonNode?> rows, params (string Label, ulong Rva)[] functions)
     {
@@ -71,11 +65,8 @@ public sealed partial class NativeGraphService(string repoRoot)
             ["duration_ms"] = 6000, ["frame_limit"] = 8, ["node_limit"] = 128,
             ["function_witnesses"] = FunctionWitnesses(ObserverFunctions), ["root_layout_witnesses"] = RootWitnesses() };
         if (Environment.GetEnvironmentVariable("WWPOSER_OBSERVE_KAWAII_SETTINGS") == "1")
-        {
-            var version = VersionedWitnesses() ?? throw new InvalidOperationException("当前游戏版本没有 Kawaii 参数函数证据。");
-            var settings = version.Where(row => Contract.S(row!, "label") is "GroupUpdatePhysicsSettings" or "GroupSimulate");
-            cfg["native_graph_discovery"]!["kawaii_settings_witnesses"] = new JsonArray(settings.Select(row => row!.DeepClone()).ToArray());
-        }
+            cfg["native_graph_discovery"]!["kawaii_settings_witnesses"] = FunctionWitnesses(
+                ("GroupUpdatePhysicsSettings", GameCompat.FunctionGroupUpdatePhysicsSettingsRva), ("GroupSimulate", GameCompat.FunctionGroupSimulateRva));
         StageObserver(cfg, output, "native_graph_discovery.dll");
     }
 
@@ -87,7 +78,7 @@ public sealed partial class NativeGraphService(string repoRoot)
         if (registration != null)
         {
             var contract = JsonData.ReadObject(registration);
-            contract["functions"] = ResolveFunctionWitnesses(VersionedWitnesses() ?? Contract.A(contract, "functions"),
+            contract["functions"] = ResolveFunctionWitnesses(VersionedWitnesses(),
                 ("FUObjectArray_AllocateSerialNumber", GameCompat.FunctionAllocateSerialNumberRva),
                 ("FWeakObjectPtr_AssignObject", GameCompat.FunctionAssignWeakObjectRva));
             contract["source_archive_sha256"] = JsonData.Digest(registration);
@@ -113,27 +104,17 @@ public sealed partial class NativeGraphService(string repoRoot)
         return cfg;
     }
 
-    public void AttachPlaybackBinding(JsonObject cfg, JsonObject binding, int pid)
+    public void AttachPlaybackBinding(JsonObject cfg, JsonObject binding)
     {
-        cfg["native_physics"] = true;
-        cfg["physics_backend"] = "game_native";
-        cfg["freeze_native_animation_time"] = false;
-        cfg["native_physics_activate_curve_groups"] = true;
         cfg["native_graph_binding"] = binding.DeepClone();
-        cfg["native_graph_game_pid"] = pid;
-        cfg["native_graph_source_config_file"] = "native_graph_source_config.json";
-        cfg["native_graph_source_config_sha256"] = binding["proof"]!["source_config_sha256"]!.DeepClone();
         cfg["native_physics_witnesses"] = InputWitnesses();
         cfg["native_physics_activation_witnesses"] = ActivationWitnesses();
-        if (VersionedWitnesses() is { } version)
-        {
-            var settings = version.Where(row => Contract.S(row!, "label") is "GroupEvaluate" or "GroupUpdatePhysicsSettings" or "GroupSimulate" or "GroupApplyResult")
-                .Select(row => row!.DeepClone()).ToArray();
-            if (settings.Length == 4) cfg["native_physics_settings_witnesses"] = new JsonArray(settings);
-            var capsules = version.Where(row => Contract.S(row!, "label") is "GroupUpdateCapsuleLimits" or "GroupWorldCollision" or
-                "GroupCollisionCandidate" or "CapsuleContactsA" or "CapsuleContactsB" or "CapsuleContactsC").Select(row => row!.DeepClone()).ToArray();
-            if (capsules.Length == 6) cfg["native_physics_capsule_witnesses"] = new JsonArray(capsules);
-        }
-        if (Contract.A(binding, "curve_groups").Any(x => x!["root_binding"] != null)) cfg["native_graph_root_layout_witnesses"] = RootWitnesses();
+        cfg["native_physics_settings_witnesses"] = FunctionWitnesses(
+            ("GroupEvaluate", GameCompat.FunctionGroupEvaluateRva), ("GroupUpdatePhysicsSettings", GameCompat.FunctionGroupUpdatePhysicsSettingsRva),
+            ("GroupSimulate", GameCompat.FunctionGroupSimulateRva), ("GroupApplyResult", GameCompat.FunctionGroupApplyResultRva));
+        cfg["native_physics_capsule_witnesses"] = FunctionWitnesses(
+            ("GroupUpdateCapsuleLimits", GameCompat.FunctionGroupUpdateCapsuleLimitsRva), ("GroupWorldCollision", GameCompat.FunctionGroupWorldCollisionRva),
+            ("GroupCollisionCandidate", GameCompat.FunctionGroupCollisionCandidateRva), ("CapsuleContactsA", GameCompat.FunctionCapsuleContactsARva),
+            ("CapsuleContactsB", GameCompat.FunctionCapsuleContactsBRva), ("CapsuleContactsC", GameCompat.FunctionCapsuleContactsCRva));
     }
 }

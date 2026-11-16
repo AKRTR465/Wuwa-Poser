@@ -33,18 +33,34 @@ foreach ($form in $forms.forms) {
     $descriptorPath = 'data/native_graphs/'+$row[0].runtime_path
     Require ((Digest $descriptorPath) -ceq $row[0].runtime_sha256) 'Form native descriptor digest differs.'
     $descriptor = ReadJson $descriptorPath
-    Require ($descriptor.character_profile_sha256 -ceq (Digest $profilePath) -and $descriptor.skeleton_sha256 -ceq $character.skeleton_sha256 -and $descriptor.requires_live_discovery -eq $true -and $descriptor.runtime_verified -eq $false) 'Form native identity scope differs.'
-    $graphs = @($descriptor.candidate_sources | Where-Object { $_.kind -eq 'ui_export' -and $_.ui_class_asset -ceq $load.anim_class_path -and $_.evidence_kind -eq 'actual_nodes' })
+    Require ($descriptor.character_profile_sha256 -ceq (Digest $profilePath) -and $descriptor.skeleton_sha256 -ceq $character.skeleton_sha256 -and
+        $descriptor.requires_live_discovery -eq $true -and $descriptor.runtime_verified -eq $false) 'Form native identity scope differs.'
+    $graphs = @($descriptor.candidate_sources | Where-Object {
+        $_.kind -eq 'ui_export' -and $_.ui_class_asset -ceq $load.anim_class_path -and $_.evidence_kind -eq 'actual_nodes'
+    })
     Require ($graphs.Count -eq 1 -and $graphs[0].group_signature.kawaii_group_count -gt 0) 'Exact form UI physics source is missing.'
     Require ($load.main_mesh_path.Split('.')[-1] -ceq $form.model_asset_name) 'Form primary mesh differs.'
     if ($load.strategy -eq 'role_morph') {
         $source = $form.evidence.row
-        Require ($source.roleid -eq $base[0].role_id -and $source.skinid -eq $base[0].skin_id -and $source.morph -eq $load.morph_type -and [string]$source.uimeshid -ceq $form.model_id -and $source.uisceneperformanceabp -ceq $load.anim_class_path) 'RoleMorph source association differs.'
+        Require ($source.roleid -eq $base[0].role_id -and $source.skinid -eq $base[0].skin_id -and $source.morph -eq $load.morph_type -and
+            [string]$source.uimeshid -ceq $form.model_id -and $source.uisceneperformanceabp -ceq $load.anim_class_path) 'RoleMorph source association differs.'
     } else {
-        Require ($form.evidence.kind -eq 'sequence_mesh_composition' -and $load.child_mesh_paths.Count -eq 1 -and $character.morph_count -gt 0) 'Split form composition is incomplete.'
+        Require ($form.evidence.kind -eq 'sequence_mesh_composition' -and $load.child_mesh_paths.Count -eq 1 -and
+            $character.morph_count -gt 0) 'Split form composition is incomplete.'
     }
-    $results += [ordered]@{ character_id=$form.character_id;profile_id=$form.profile_id;bone_count=$character.bone_count;morph_count=$character.morph_count;native_groups=$graphs[0].group_signature.kawaii_group_count;runtime_verified=$false }
+    $results += [ordered]@{
+        character_id = $form.character_id; profile_id = $form.profile_id; bone_count = $character.bone_count
+        morph_count = $character.morph_count; native_groups = $graphs[0].group_signature.kawaii_group_count; runtime_verified = $false
+    }
 }
-$report = [ordered]@{state='passed';scope='offline_character_form_sources_and_profiles';additional_forms=$results.Count;combined_selections=$ids.Count;raw_sources_checked=[bool]$CheckSources;game_accessed=$false;runtime_verified=$false;results=$results}
-if ($ReportPath) { $path = [IO.Path]::GetFullPath($ReportPath); [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($path)) | Out-Null; [IO.File]::WriteAllText($path,($report|ConvertTo-Json -Depth 10),[Text.UTF8Encoding]::new($false)) }
+$report = [ordered]@{
+    state = 'passed'; scope = 'offline_character_form_sources_and_profiles'
+    additional_forms = $results.Count; combined_selections = $ids.Count
+    raw_sources_checked = [bool]$CheckSources; game_accessed = $false; runtime_verified = $false; results = $results
+}
+if ($ReportPath) {
+    $path = [IO.Path]::GetFullPath($ReportPath)
+    [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($path)) | Out-Null
+    [IO.File]::WriteAllText($path, ($report | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
+}
 $report | ConvertTo-Json -Depth 8

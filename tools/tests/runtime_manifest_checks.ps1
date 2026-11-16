@@ -6,7 +6,7 @@ $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ('wwposer-manifest-' + [Guid]::NewGuid().ToString('N'))
 $builder = Join-Path $repo 'tools/build_owned_mmd.ps1'
 $revision = '1111111111111111111111111111111111111111'
-$files = @('ownedmmd_lite_observer.dll', 'ownedmmd_lite_installer.exe', 'owned_mmd_layout.json', 'WwPoser.ColdLoad.ManagedBridge.OwnedMmdLite.dll')
+$files = @((Import-PowerShellDataFile (Join-Path $repo 'tools/player_build_inputs.psd1')).OwnedRuntimeFiles)
 $script:wwManifestChecks = 0
 function Reject([scriptblock]$Action, [string]$Label) {
     $rejected = $false
@@ -18,7 +18,7 @@ try {
     [IO.Directory]::CreateDirectory($fixture) | Out-Null
     foreach ($name in $files) { [IO.File]::WriteAllText((Join-Path $fixture $name), 'original') }
     $manifest = [ordered]@{
-        schema = 2; purpose = 'single_owned_character_native_mmd'
+        schema = 2; purpose = 'owned_mmd_scene'
         source_revision = $revision; source_dirty = $false; files = $files
         compatibility_profile = (Get-Content -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Raw | ConvertFrom-Json).profile_id
         compatibility_source_sha256 = (Get-FileHash -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Algorithm SHA256).Hash.ToLowerInvariant()

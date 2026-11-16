@@ -5,8 +5,7 @@ namespace WWPoser.Services;
 
 public sealed partial class OwnedMmdPlaybackService
 {
-    public static IReadOnlyList<JsonObject> ActorConfigs(JsonObject config) => config["actors"] is JsonArray actors
-        ? actors.Select(actor => actor!.AsObject()).ToArray() : [config];
+    public static IReadOnlyList<JsonObject> ActorConfigs(JsonObject config) => Contract.A(config, "actors").Select(actor => actor!.AsObject()).ToArray();
 
     public static void ConfigureStage(JsonObject config, double spacingCm, bool formationNative = false, double groundHeightCm = -2)
     {
@@ -59,7 +58,7 @@ public sealed partial class OwnedMmdPlaybackService
                 string.Join('|', children?.Select(child => child!.GetValue<string>()) ?? []) };
             if (fields.Any(field => field.IndexOfAny(['\t', '\r', '\n']) >= 0) || children?.Any(child => child!.GetValue<string>().Contains('|')) == true)
                 throw new InvalidDataException("角色形态含无效文本字符。");
-            return string.Join('\t', (actor["slot"]?.GetValue<uint>() ?? 1).ToString(CultureInfo.InvariantCulture),
+            return string.Join('\t', actor["slot"]!.GetValue<uint>().ToString(CultureInfo.InvariantCulture),
                 Contract.I(actor, "role_id").ToString(CultureInfo.InvariantCulture), Contract.I(actor, "skin_id").ToString(CultureInfo.InvariantCulture),
                 Number(actor, "stage_x_cm"), Number(actor, "stage_y_cm"), Number(actor, "stage_z_cm"), model, Number(actor, "stage_yaw_degrees"),
                 fields[1], fields[2], (form?["morph_type"]?.GetValue<int>() ?? 0).ToString(CultureInfo.InvariantCulture),
@@ -98,8 +97,8 @@ public sealed partial class OwnedMmdPlaybackService
                 request.Loop, actor.CharacterId, actor.FaceSource, CameraMode: 0, Placement: actor.Placement, NativePhysics: request.NativePhysics, Physics: request.Physics,
                 GazeSource: actor.GazeSource, GazeStrength: actor.GazeStrength), cancellation);
             var config = Config(actorDirectory);
-            config["slot"] = actor.Slot; config["target_slot"] = actor.Slot; config["actor_directory"] = relative; SetStage(config, actor.Stage);
-            config["session_epoch"] = epoch; config["enabled"] = true; config["ownership_preference"] = "scene_team_then_create";
+            config["slot"] = actor.Slot; config["actor_directory"] = relative; SetStage(config, actor.Stage);
+            config["session_epoch"] = epoch; config["enabled"] = true;
             var report = JsonData.ReadObject(Path.Combine(actorDirectory, "compiled_report.json"));
             anchorClip ??= Contract.O(report, "compiled_target_clip");
             bodyDuration = Math.Max(bodyDuration, Contract.D(config, "clip_duration_seconds"));
@@ -111,14 +110,13 @@ public sealed partial class OwnedMmdPlaybackService
         {
             ["schema"] = 3, ["scope"] = "mixed_actor_mmd", ["session_epoch"] = epoch,
             ["actors"] = actors, ["actor_count"] = actors.Count, ["camera_anchor_slot"] = selected[0].Slot,
-            ["ownership_preference"] = "scene_team_then_create", ["duration_ms"] = checked((int)Math.Round(request.DurationSeconds * 1000)),
+            ["duration_ms"] = checked((int)Math.Round(request.DurationSeconds * 1000)),
             ["speed"] = request.Speed, ["loop"] = request.Loop, ["clip_duration_seconds"] = bodyDuration,
             ["hide_scene_characters"] = request.HideSceneCharacters,
             ["camera_track_height_cm"] = request.CameraTrackHeightCm
         };
-        var assets = new PlaybackAssets(root);
-        assets.Physics(scene, output, request.NativePhysics, request.Physics);
-        await assets.CameraAsync(scene, output, request.CameraSource, request.CameraMode, anchorClip!, cancellation);
+        PlaybackAssets.Physics(scene, request.NativePhysics, request.Physics);
+        await new PlaybackAssets(root).CameraAsync(scene, output, request.CameraSource, request.CameraMode, anchorClip!, cancellation);
         scene["camera_enabled"] = true;
         scene["duration_seconds"] = Math.Max(duration, scene["camera_clip_duration_seconds"]?.GetValue<double>() ?? 0);
         ConfigureStage(scene, request.SpacingCm, request.FormationNative, request.GroundHeightCm); WriteActorsFile(output, scene);

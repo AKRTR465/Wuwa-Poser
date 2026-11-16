@@ -14,7 +14,7 @@ if (args.Length == 2 && args[0] == "--observer-installer-fixture")
 var assertions = 0;
 void Check(bool value, string message) { if (!value) throw new Exception(message); assertions++; }
 static void Save(string path, JsonObject value) { var next = path + ".next"; File.WriteAllText(next, value.ToJsonString()); File.Move(next, path, true); }
-static JsonObject Timeline(string mode = "playing") => new() { ["clip_epoch"] = 123UL, ["last_sequence"] = 0UL, ["session_active"] = true, ["mode"] = mode, ["seconds"] = 2d, ["duration_seconds"] = 10d, ["speed"] = 1d, ["loop"] = false, ["restore_requested"] = false };
+static JsonObject Timeline(string mode = "playing") => new() { ["clip_epoch"] = 123UL, ["last_sequence"] = 0UL, ["last_control_sequence"] = 0UL, ["last_control_code"] = 0u, ["session_active"] = true, ["mode"] = mode, ["seconds"] = 2d, ["duration_seconds"] = 10d, ["speed"] = 1d, ["loop"] = false, ["restore_requested"] = false };
 var fixture = Path.Combine(AppContext.BaseDirectory, "fixtures-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(fixture);
 assertions += RecordingStorageChecks.Run(fixture);
@@ -73,24 +73,23 @@ foreach (var localBuild in new[] { Path.Combine(localWorkspace, "dist", "version
 var standalone = Path.Combine(Path.GetTempPath(), "wwposer-portable-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(Path.Combine(standalone, "data", "characters")); File.WriteAllText(Path.Combine(standalone, "data", "characters", "index.json"), "{}");
 Save(Path.Combine(standalone, "manifest.json"), new JsonObject { ["source_root"] = localWorkspace });
 Check(RecordingService.DefaultOutputDirectory(standalone) == Path.Combine(standalone, "playback", "recordings"), "standalone portable recordings stay local even with a stale source workspace in the manifest");
-var wire = PlaybackControl.Encode(123, 45, "time_limit", 0, 3);
-Check(wire.Length == 64 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(32)) == 16 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(36)) == 3, "wire fields");
+var wire = PlaybackControl.Encode(123, 45, "offset_x", 0, 3);
+Check(wire.Length == 64 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(32)) == 10 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(36)) == 3, "wire fields");
 uint checksum = 2166136261; foreach (var b in wire.AsSpan(0, 60)) checksum = unchecked((checksum ^ b) * 16777619);
 Check(BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(60)) == checksum, "wire checksum");
 foreach (var slot in new uint[] { 4, 17, 40, 4096, uint.MaxValue }) Check(BinaryPrimitives.ReadUInt32LittleEndian(PlaybackControl.Encode(123, 46, "offset_x", 12, slot).AsSpan(36)) == slot, "dynamic actor slot roundtrip");
-foreach (var invalid in new (string Kind, double Value, uint Slot)[] { ("speed", double.NaN, 0), ("step", .5, 0), ("camera", 3, 0), ("camera_track_height", 0, 1) })
+foreach (var invalid in new (string Kind, double Value, uint Slot)[] { ("speed", double.NaN, 0), ("step", .5, 0), ("camera", 3, 0), ("camera_track_height", 0, 1), ("time_limit", 0, 3) })
 {
     try { PlaybackControl.Encode(123, 46, invalid.Kind, invalid.Value, invalid.Slot); throw new Exception("invalid control arguments accepted"); }
     catch (ArgumentException) { assertions++; }
 }
-var single = Path.Combine(fixture, "single"); Directory.CreateDirectory(single); Save(Path.Combine(single, "player_status.json"), Timeline());
-Check(PlaybackSessionStatus.Read(single).State["seconds"]!.GetValue<double>() == 2, "single timeline");
-var squad = Path.Combine(fixture, "squad"); Directory.CreateDirectory(squad); Save(Path.Combine(squad, "stage_config.json"), new());
-var squadTimeline = Timeline(); squadTimeline["mode"] = 2;
-Save(Path.Combine(squad, "stage_status.json"), new JsonObject { ["mmd_squad"] = squadTimeline });
-Check(PlaybackSessionStatus.Read(squad).State["mode"]!.GetValue<string>() == "playing", "squad timeline");
-var owned = Path.Combine(fixture, "owned"); Directory.CreateDirectory(owned); Save(Path.Combine(owned, "owned_mmd_config.json"), new()); Save(Path.Combine(owned, "mmd_status.json"), Timeline());
-Check(PlaybackSessionStatus.Read(owned).State["source_kind"]!.GetValue<string>() == "created_character", "owned timeline");
+var single = Path.Combine(fixture, "single"); Directory.CreateDirectory(single); Save(Path.Combine(single, "mmd_status.json"), Timeline());
+Check(PlaybackSessionStatus.Read(single).State["seconds"]!.GetValue<double>() == 2, "session timeline");
+var owned = Path.Combine(fixture, "owned"); Directory.CreateDirectory(owned); Save(Path.Combine(owned, "mmd_status.json"), Timeline());
+Save(Path.Combine(owned, "mmd_result.json"), Timeline());
+var final = PlaybackSessionStatus.Read(owned).State;
+Check(Contract.True(final, "terminal") && !Contract.True(final, "session_active"), "terminal result supersedes live status");
+File.Delete(Path.Combine(owned, "mmd_result.json"));
 var desired = MediaService.DesiredAudio(PlaybackSessionStatus.Read(owned).State, .5, 30000);
 Check(desired.PositionMilliseconds == 1500 && desired.Playing, "owned music");
 // No real audio device is opened. Reproduce MCI's already-closed alias errors
@@ -145,7 +144,7 @@ foreach (var missingDeviceCode in new[] { 257, 263 })
     await audio.StopAsync(); Check(true, "a reported audio fault does not poison later stop or window close attempts");
 }
 var commandPath = Path.Combine(single, "control.dat"); var commands = new List<uint>();
-Save(Path.Combine(single, "player_status.json"), Timeline());
+Save(Path.Combine(single, "mmd_status.json"), Timeline());
 var emulator = Task.Run(async () =>
 {
     ulong previous = 0, accepted = 0;
@@ -159,8 +158,8 @@ var emulator = Task.Run(async () =>
                 previous = sequence; commands.Add(BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(32)));
                 var rejected = commands.Count == 3; if (!rejected) accepted = sequence;
                 var state = Timeline(); state["last_sequence"] = accepted;
-                if (commands.Count > 2) { state["last_control_sequence"] = sequence; state["last_control_code"] = rejected ? 1u : 0u; }
-                Save(Path.Combine(single, "player_status.json"), state);
+                state["last_control_sequence"] = sequence; state["last_control_code"] = rejected ? 1u : 0u;
+                Save(Path.Combine(single, "mmd_status.json"), state);
             }
         }
         await Task.Delay(5);
@@ -174,12 +173,7 @@ var rejectedSequence = PlaybackControl.Status(single)["last_control_sequence"]!.
 var acceptedState = await PlaybackControl.SendAsync(single, "pause"); await emulator.WaitAsync(TimeSpan.FromSeconds(10));
 Check(acceptedState["last_control_sequence"]!.GetValue<ulong>() > rejectedSequence && acceptedState["last_sequence"]!.GetValue<ulong>() == acceptedState["last_control_sequence"]!.GetValue<ulong>(),
     "the next accepted command has its own increasing sequence and does not inherit a previous rejection");
-var actor = new JsonObject { ["target_slot"] = 1, ["enabled"] = true, ["profile_id"] = "test", ["local_clip_sha256"] = "body-a" };
-Save(Path.Combine(squad, "stage_config.json"), new JsonObject { ["mmd_squad"] = new JsonObject { ["members"] = new JsonArray(actor), ["camera_clip_sha256"] = "camera-a" } });
-var bookmark = Path.Combine(fixture, "pose.wwpose"); BookmarkService.Snapshot(squad, 3.25, bookmark);
-Check(BookmarkService.SeekTime(bookmark, squad) == 3.25, "squad bookmark roundtrip");
-actor["local_clip_sha256"] = "body-b"; Save(Path.Combine(squad, "stage_config.json"), new JsonObject { ["mmd_squad"] = new JsonObject { ["members"] = new JsonArray(actor.DeepClone()), ["camera_clip_sha256"] = "camera-a" } });
-try { BookmarkService.SeekTime(bookmark, squad); throw new Exception("bookmark accepted another clip"); } catch (InvalidDataException) { }
+var bookmark = Path.Combine(fixture, "pose.wwpose");
 var vmd = Path.Combine(fixture, "input.vmd"); File.WriteAllText(vmd, "offline input snapshot");
 foreach (var count in new[] { 4, 17, 40 })
 {
@@ -191,10 +185,9 @@ var sparse = PlaybackSessionService.AssignSlots(new([new(vmd, CharacterId: "same
 Check(sparse.Actors.Select(actor => actor.Slot).SequenceEqual(new uint[] { 4096, 1, 17 }), "non-contiguous supplied slots are preserved");
 try { PlaybackSessionService.AssignSlots(new([new(vmd, Slot: 17), new(vmd, Slot: 17)])); throw new Exception("duplicate actor slot accepted"); } catch (InvalidDataException) { assertions++; }
 var mixed = Path.Combine(fixture, "mixed"); Directory.CreateDirectory(mixed);
-var mixedConfig = new JsonObject { ["schema"] = 3, ["native_physics"] = true, ["actors"] = new JsonArray(sparse.Actors.Select(actor => (JsonNode)new JsonObject { ["slot"] = actor.Slot, ["target_slot"] = actor.Slot, ["character_id"] = actor.CharacterId, ["profile_id"] = "profile", ["local_clip_sha256"] = "body-a", ["expression_clip_sha256"] = "face-a", ["native_physics"] = actor.Slot != 1 }).ToArray()) };
+var mixedConfig = new JsonObject { ["schema"] = 3, ["native_physics"] = true, ["actors"] = new JsonArray(sparse.Actors.Select(actor => (JsonNode)new JsonObject { ["slot"] = actor.Slot, ["enabled"] = true, ["character_id"] = actor.CharacterId, ["profile_id"] = "profile", ["local_clip_sha256"] = "body-a", ["expression_clip_sha256"] = "face-a", ["native_physics"] = actor.Slot != 1 }).ToArray()) };
 var mixedTimeline = Timeline(); mixedTimeline["actors"] = mixedConfig["actors"]!.DeepClone();
 Save(Path.Combine(mixed, "owned_mmd_config.json"), mixedConfig); Save(Path.Combine(mixed, "mmd_status.json"), mixedTimeline);
-Check(PlaybackSessionStatus.Read(mixed).State["source_kind"]!.GetValue<string>() == "mixed_actors", "dynamic status uses one mixed source");
 var routes = OwnedMmdPlaybackService.NativeTargetRoutes(mixedConfig, mixed);
 Check(routes.Select(route => route.Slot).SequenceEqual(new uint[] { 4096, 17 }) && routes.All(route => route.TargetConfigPath.EndsWith(Path.Combine("native_targets", route.Slot.ToString(), "native_target.json"))), "native observations route by slot and selected physics backend");
 BookmarkService.Snapshot(mixed, 2.5, bookmark); Check(BookmarkService.SeekTime(bookmark, mixed) == 2.5, "mixed multi-actor bookmark roundtrip");
@@ -221,7 +214,7 @@ Check(OwnedMmdPlaybackService.RestorationConfirmed(mixed), "completed restoratio
     Check(OwnedMmdPlaybackService.CheckInitialPoseReadyTimeout(false, waiting, 90000, since) is null, "ordinary playback is not constrained by the paused-start deadline");
     Check(OwnedMmdPlaybackService.CheckInitialPoseReadyTimeout(true, loading, 90000, since) is null, "inactive runtime clears first-pose waiting state");
 }
-Console.WriteLine("PASS: arbitrary actor slots; mixed routing/status/music/bookmarks; legacy status reading; serialized commands; restoration retry. No game or GUI execution.");
+Console.WriteLine("PASS: arbitrary actor slots; mixed routing/status/music/bookmarks; terminal status; serialized commands; restoration retry. No game or GUI execution.");
 if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
 {
     void Vmd(string path, bool face)
@@ -330,7 +323,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     firstPreparation = (await service.PrepareAsync(gazeRequest with { Actors = gazeRequest.Actors.Select((actor, index) =>
         index == 0 ? actor with { GazeSource = Path.Combine(fixture, "gaze-7s.vmd.moved") } : actor).ToArray() }))["session_dir"]!.GetValue<string>();
     var fakePackage = Path.Combine(fixture, "build", "owned_mmd"); Directory.CreateDirectory(fakePackage);
-    foreach (var file in new[] { "ownedmmd_lite_observer.dll", "ownedmmd_lite_installer.exe", OwnedMmdPlaybackService.HelperFilename, "owned_mmd_layout.json" }) File.WriteAllText(Path.Combine(fakePackage, file), "offline package fixture");
+    foreach (var file in new[] { "ownedmmd_lite_observer.dll", "ownedmmd_lite_installer.exe", OwnedMmdPlaybackService.HelperFilename }) File.WriteAllText(Path.Combine(fakePackage, file), "offline package fixture");
     var isolation = new OwnedMmdPlaybackService(fixture);
     foreach (var section in new[] { "characters", "native_graphs" })
     {
@@ -346,13 +339,7 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     var sourceConfig = OwnedMmdPlaybackService.Config(firstPreparation!); sourceConfig["camera_controller_address"] = "0xdead"; sourceConfig["native_graph_binding"] = new JsonObject { ["stale"] = true }; sourceConfig["start_paused"] = true;
     var gazeRelative = Path.Combine(OwnedMmdPlaybackService.ActorConfigs(sourceConfig)[0]["actor_directory"]!.GetValue<string>(), "gaze_source.vmd");
     Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig); File.WriteAllText(Path.Combine(firstPreparation!, "owned_mmd_graph.json"), "stale identity fixture");
-    var fakeGame = new GameIdentity(42, 123456, "0x1234", 567);
-    var legacyPreparation = Path.Combine(fixture, "legacy-cli-preparation");
-    await new OwnedMmdPlaybackService(args[1]).PrepareAsync(new(bodyPath + ".moved", legacyPreparation, CharacterId: selectedCharacter));
-    var legacyRuntime = (string)prepareRuntime.Invoke(isolation, [legacyPreparation, fakeGame, false])!;
-    var legacyActor = OwnedMmdPlaybackService.ActorConfigs(OwnedMmdPlaybackService.Config(legacyRuntime)).Single();
-    Check(legacyActor["slot"]!.GetValue<uint>() == 1 && legacyActor["gravity_parts"] is JsonArray { Count: > 0 },
-        "single-actor CLI preparation converts to a runtime slot and resolves its native physics parts");
+    var fakeGame = new GameIdentity(42, "0x1234", 567);
     var snapshotA = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, false])!;
     sourceConfig["start_paused"] = false; Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig);
     var snapshotB = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, true])!;

@@ -9,16 +9,7 @@ public static class PlaybackControl
     public static byte[] Encode(ulong epoch, ulong sequence, string kind, double value = 0, uint targetSlot = 0, uint targetGroup = 0, uint targetChain = 0)
     {
         if (epoch == 0 || sequence == 0) throw new ArgumentException("控制命令的 epoch 和 sequence 必须为正数");
-        var id = PlaybackCommands.Validate(kind, value, targetSlot);
-        var nativeSetting = kind is "native_damping" or "native_stiffness" or "native_limit_angle";
-        var requiresMember = kind == "native_shoulder_follow" || kind.StartsWith("native_capsule_", StringComparison.Ordinal);
-        if (requiresMember ? targetSlot == 0 || targetGroup == 0 || targetChain == 0 :
-            kind == "native_preview" ? targetSlot == 0 || targetGroup == 0 || targetChain != 0 :
-            kind == "native_gravity" ? targetSlot == 0 || targetGroup == 0 || targetChain != 0 || (value < 0 && value != -1) :
-            kind == "part_gravity" ? targetSlot == 0 || targetGroup != 0 || targetChain == 0 || (value < 0 && value != -1) :
-            kind == "model_preview" ? targetSlot == 0 || targetGroup != 0 || targetChain != 0 :
-            nativeSetting ? targetSlot == 0 || targetGroup == 0 || (value < 0 && value != -1) : targetGroup != 0 || targetChain != 0)
-            throw new ArgumentException("控制命令的演员、物理组、部件或还原值无效。");
+        var id = PlaybackCommands.Validate(kind, value, targetSlot, targetGroup, targetChain);
         var bytes = new byte[64]; "WWPCTL1\0"u8.CopyTo(bytes);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(8), 1); BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(12), 64);
         BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(16), epoch); BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(24), sequence);
@@ -40,7 +31,7 @@ public static class PlaybackControl
             if (Contract.True(state, "restore_requested") && kind != "stop") throw new InvalidOperationException("播放会话正在恢复，请等待恢复完成");
             var epoch = Contract.N(state, "clip_epoch").GetValue<ulong>();
             if (!Contract.True(state, "session_active")) throw new InvalidOperationException("播放会话已结束");
-            var processed = state["last_control_sequence"]?.GetValue<ulong>() ?? 0;
+            var processed = Contract.N(state, "last_control_sequence").GetValue<ulong>();
             var sequence = Math.Max(checked((ulong)DateTime.UtcNow.Ticks), Math.Max(processed, Contract.N(state, "last_sequence").GetValue<ulong>()) + 1);
             JsonData.AtomicWrite(Path.Combine(session, "control.dat"), Encode(epoch, sequence, kind, value, targetSlot, targetGroup, targetChain));
             var deadline = Environment.TickCount64 + 3000;
@@ -48,16 +39,12 @@ public static class PlaybackControl
             {
                 var acknowledgement = PlaybackSessionStatus.Read(session); var current = acknowledgement.State;
                 if (Contract.N(current, "clip_epoch").GetValue<ulong>() != epoch) throw new InvalidOperationException("播放会话已经更换");
-                if (acknowledgement.Fresh && current["last_control_sequence"] is JsonNode resultSequence)
+                if (acknowledgement.Fresh && Contract.N(current, "last_control_sequence").GetValue<ulong>() == sequence)
                 {
-                    if (resultSequence.GetValue<ulong>() == sequence)
-                    {
-                        var code = Contract.N(current, "last_control_code").GetValue<uint>();
-                        if (code != 0) throw new InvalidOperationException($"播放器拒绝 {kind} 命令（序号 {sequence}，错误码 {code}）");
-                        return current;
-                    }
+                    var code = Contract.N(current, "last_control_code").GetValue<uint>();
+                    if (code != 0) throw new InvalidOperationException($"播放器拒绝 {kind} 命令（序号 {sequence}，错误码 {code}）");
+                    return current;
                 }
-                else if (acknowledgement.Fresh && current["last_control_sequence"] is null && Contract.N(current, "last_sequence").GetValue<ulong>() >= sequence) return current; // Older hosts only acknowledge accepted commands.
                 await Task.Delay(25, cancellation).ConfigureAwait(false);
             }
             throw new TimeoutException("命令已写入，播放器尚未确认；请查看本次状态");

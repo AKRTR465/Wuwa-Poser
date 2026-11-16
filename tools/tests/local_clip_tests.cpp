@@ -32,7 +32,6 @@ int main(){
     clip::BoneCommand sampled[2];
     Check(clip::Sample(loaded,1./120,sampled,2)&&std::fabs(sampled[0].translation_delta[0]-5)<1e-5,"validated clip interpolates its actual samples");
     Check(!clip::Sample(loaded,std::numeric_limits<double>::quiet_NaN(),sampled,2),"non-finite sampling cursor rejected");
-    Check(!clip::Sample(loaded,0,nullptr,2),"null sampling destination rejected");
     std::ifstream input(path,std::ios::binary);std::vector<char> bytes((std::istreambuf_iterator<char>(input)),{});input.close();
     const auto Reject=[&](std::vector<char> changed,const char* label){
         {std::ofstream out(path,std::ios::binary|std::ios::trunc);out.write(changed.data(),std::streamsize(changed.size()));}

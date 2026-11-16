@@ -18,9 +18,9 @@ internal static class CameraTrackHeightUiChecks
         var original = (PlaybackSessionRequest)Call("CapturePlaybackRequest")!;
         var request = original with { CameraSource = Path.Combine(output, "camera-ui-fixture.vmd"), CameraMode = 2, CameraTrackHeightCm = 0 };
         var directory = Path.Combine(output, "track-height-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
-        var statePath = Path.Combine(directory, "player_status.json"); var commandPath = Path.Combine(directory, "control.dat");
-        var state = new JsonObject { ["clip_epoch"] = 421UL, ["last_sequence"] = 0UL, ["session_active"] = true,
-            ["mode"] = "paused", ["seconds"] = 6d, ["duration_seconds"] = 20d, ["camera_mode"] = 2, ["camera_track_height_cm"] = 0d, ["placement_height"] = 13d };
+        var statePath = Path.Combine(directory, "mmd_status.json"); var commandPath = Path.Combine(directory, "control.dat");
+        var state = new JsonObject { ["clip_epoch"] = 421UL, ["last_sequence"] = 0UL, ["last_control_sequence"] = 0UL, ["last_control_code"] = 0u,
+            ["session_active"] = true,             ["mode"] = "paused", ["seconds"] = 6d, ["duration_seconds"] = 20d, ["camera_mode"] = 2, ["camera_track_height_cm"] = 0d, ["placement_height"] = 13d };
         JsonData.Write(statePath, state); Call("SetRequest", request); UiSessionFixture.Own(window, directory, request, state); Call("UpdateActions");
         var commands = new List<double>();
         var acknowledge = Task.Run(async () => {
@@ -37,7 +37,8 @@ internal static class CameraTrackHeightUiChecks
                         if (BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(32)) != 18 || BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(36)) != 0)
                             throw new Exception("track-height UI changed another setting or targeted an actor");
                         last = sequence; var value = BinaryPrimitives.ReadDoubleLittleEndian(bytes.AsSpan(40)); commands.Add(value);
-                        state["camera_track_height_cm"] = value; state["last_sequence"] = sequence; JsonData.Write(statePath, state);
+                        state["camera_track_height_cm"] = value; state["last_sequence"] = sequence; state["last_control_sequence"] = sequence;
+                        JsonData.Write(statePath, state);
                     }
                 }
                 await Task.Delay(5, deadline.Token);

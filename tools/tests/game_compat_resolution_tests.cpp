@@ -1,6 +1,5 @@
 // Synthetic mapped images only. No game access, injection, hooks or game calls.
 #include "../../probes/v20_recon/game_compat_witness.h"
-#include "../../probes/v20_recon/game_thread_diagnostics.h"
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -29,7 +28,7 @@ struct Memory {
         Put32(0x1b0+8,0x200);Put32(0x1b0+12,0x800);Put32(0x1b0+16,0x200);Put32(0x1b0+36,0xc0000040);
     }
 };
-static r::Pattern Pattern(const char* bytes,const char* mask=""){r::Pattern p;std::string error;Check(r::ParsePattern(bytes,mask,p,error),"test pattern parses");return p;}
+static std::vector<uint8_t> Bytes(const char* hex){std::vector<uint8_t> bytes;std::string error;Check(r::ParseHexBytes(hex,bytes,error),"test bytes parse");return bytes;}
 static void Parsing(){
     uint64_t value=9;std::string error;std::vector<uint8_t> bytes;
     Check(r::ParseHexU64("0xFFFFFFFFFFFFFFFF",value,error)&&value==std::numeric_limits<uint64_t>::max(),"maximum integer parses");
@@ -38,12 +37,9 @@ static void Parsing(){
         Check(!r::ParseHexU64(text,value,error)&&value==0&&!error.empty(),"invalid or overflowing integer rejects without stale result");
     Check(r::ParseHexBytes("00aAFF",bytes,error)&&bytes==std::vector<uint8_t>({0,0xaa,0xff}),"complete mixed case bytes parse");
     for(const auto text:{"","0","0xAA","aa bb","0G","aa\n"})Check(!r::ParseHexBytes(text,bytes,error)&&bytes.empty(),"invalid compact bytes reject without partial output");
-    r::Pattern p;Check(!r::ParsePattern("aabb","ff",p,error),"mask length mismatch rejects");
-    Check(!r::ParsePattern("aabb","0000",p,error),"all-wildcard signature rejects");
-    Check(!r::ValidPattern({{1}, {}}),"malformed typed pattern rejects");
 }
 static void Verification(){
-    Memory memory(8);memory.Put(4,{0xaa,0xbb,0xcc,0xdd});auto read=memory.Reader();const auto bytes=Pattern("aabbccdd").bytes;
+    Memory memory(8);memory.Put(4,{0xaa,0xbb,0xcc,0xdd});auto read=memory.Reader();const auto bytes=Bytes("aabbccdd");
     Check(r::VerifyBytes(read,memory.base,memory.bytes.size(),4,bytes)==r::VerifyStatus::Match,"function ending at final image byte verifies");
     Check(r::VerifyBytes(read,memory.base,memory.bytes.size(),3,bytes)==r::VerifyStatus::Mismatch,"changed function bytes reject");
     const auto before=memory.reads;
@@ -53,29 +49,10 @@ static void Verification(){
     Check(r::VerifyBytes(read,memory.base,memory.bytes.size(),0,{})==r::VerifyStatus::InvalidBytes,"empty function is not verification");
     memory.fail=memory.base+5;Check(r::VerifyBytes(read,memory.base,memory.bytes.size(),4,bytes)==r::VerifyStatus::ReadFailed,"unreadable expected code rejects");
 }
-static void Scanning(){
-    Memory memory(48);auto read=memory.Reader();const auto p=Pattern("aabbccdd");const std::vector<r::Range> ranges={{memory.base,memory.bytes.size()}};
-    memory.Put(7,{0xaa,0xbb,0xcc,0xdd});auto scan=r::FindUnique(read,ranges,p,8);
-    Check(scan.status==r::ScanStatus::Unique&&scan.address==memory.base+7&&scan.complete,"signature crossing chunk boundary resolves uniquely");
-    memory.Put(44,{0xaa,0xbb,0xcc,0xdd});scan=r::FindUnique(read,ranges,p,8);
-    Check(scan.status==r::ScanStatus::Ambiguous&&scan.address==0&&scan.matches==2,"duplicate candidate at last legal offset rejects uniqueness");
-    std::fill(memory.bytes.begin(),memory.bytes.end(),uint8_t(0));memory.Put(44,{0xaa,0xbb,0xcc,0xdd});scan=r::FindUnique(read,ranges,p,8);
-    Check(scan.status==r::ScanStatus::Unique&&scan.address==memory.base+44,"last legal start is scanned");
-    memory.bytes[44]=0;Check(r::FindUnique(read,ranges,p,8).status==r::ScanStatus::NotFound,"absent signature has no candidate");
-    memory.Put(6,{0xaf,0x12,0x3c,0xdf});const auto masked=Pattern("a00030d0","f000f0f0");
-    Check(r::FindUnique(read,ranges,masked,8).status==r::ScanStatus::Unique,"explicit bit masks constrain matching");
-    Check(r::FindUnique(read,{{memory.base+6,2},{memory.base+8,2}},masked,8).status==r::ScanStatus::NotFound,"pattern never bridges disjoint declared ranges");
-    Check(r::FindUnique(read,{{memory.base,16},{memory.base+8,16}},p).status==r::ScanStatus::InvalidRange,"overlapping ranges reject duplicate counting");
-    Check(r::FindUnique(read,{{std::numeric_limits<uint64_t>::max()-1,8}},p).status==r::ScanStatus::InvalidRange,"scan overflow rejects");
-    Check(r::FindUnique(read,ranges,{{1},{0}}).status==r::ScanStatus::InvalidPattern,"unconstrained typed signature rejects");
-    std::fill(memory.bytes.begin(),memory.bytes.end(),uint8_t(0));memory.Put(0,{0xaa,0xbb,0xcc,0xdd});memory.fail=memory.base+30;scan=r::FindUnique(read,ranges,p,8);
-    Check(scan.status==r::ScanStatus::ReadFailed&&scan.address==0&&!scan.complete&&scan.matches==1,"candidate before unreadable tail is never called unique");
-}
 static void PEAndWitnesses(){
     Memory memory(0x1000);memory.PE();auto read=memory.Reader();std::vector<r::Range> ranges;std::string error;
     Check(r::ExecutableRanges(read,memory.base,memory.bytes.size(),ranges,error)&&ranges.size()==1&&ranges[0].address==memory.base+0x400&&ranges[0].bytes==0x200,"only mapped executable PE32+ section is selected");
     memory.Put(0x440,{0xaa,0xbb,0xcc,0xdd});memory.Put(0x820,{0xaa,0xbb,0xcc,0xdd});
-    Check(r::FindUnique(read,ranges,Pattern("aabbccdd")).status==r::ScanStatus::Unique,"same bytes in nonexecutable data do not make code search ambiguous");
     const std::vector<w::Function> required={{"SyntheticFunction",0x440,4}};
     Json witness=Json::array({Json{{"rva","0x440"},{"bytes",4},{"function_bytes_hex","aabbccdd"}}});Json checks=Json::array();
     Check(w::VerifyFunctions(read,memory.base,memory.bytes.size(),witness,required,checks,"synthetic",error)&&checks[0]["matched"]==true,"complete live function bytes authorize the configured address");
@@ -87,9 +64,7 @@ static void PEAndWitnesses(){
     witness[0]["rva"]="0x440";witness.push_back(witness[0]);checks=Json::array();
     Check(!w::VerifyFunctions(read,memory.base,memory.bytes.size(),witness,required,checks,"synthetic",error),"extra or duplicate witness rows reject");witness.erase(1);
     memory.bytes[0x440]=0;memory.Put(0x460,{0xaa,0xbb,0xcc,0xdd});checks=Json::array();
-    Check(!w::VerifyFunctions(read,memory.base,memory.bytes.size(),witness,required,checks,"synthetic",error),"relocated exact function is refused for execution");
-    const auto candidate=checks[0]["relocation_candidate"];
-    Check(candidate["status"]=="unique_candidate"&&candidate["candidate_rva"]=="0x460"&&candidate["candidate_requires_review"]==true&&candidate["execution_authorized"]==false&&candidate["exact_function_bytes_match"]==true,"unique relocated function is diagnostic evidence only");
+    Check(!w::VerifyFunctions(read,memory.base,memory.bytes.size(),witness,required,checks,"synthetic",error)&&checks[0]["execution_authorized"]==false,"relocated exact function is refused for execution");
     const std::vector<w::Function> dataRequirement={{"DataImpersonatingCode",0x820,4}};
     witness[0]["rva"]="0x820";checks=Json::array();
     Check(!w::VerifyFunctions(read,memory.base,memory.bytes.size(),witness,dataRequirement,checks,"synthetic",error)&&checks[0]["executable_section_verified"]==false,"matching data bytes cannot authorize function calls");
@@ -103,41 +78,5 @@ static void PEAndWitnesses(){
     memory.PE();memory.Put16(0x86,97);Check(!r::ExecutableRanges(read,memory.base,memory.bytes.size(),ranges,error),"unbounded section count rejects");
     memory.PE();memory.Put32(0x98+56,0x2000);Check(!r::ExecutableRanges(read,memory.base,memory.bytes.size(),ranges,error),"PE and actual image extent mismatch rejects");
 }
-static void GameThreadDiagnostics() {
-    namespace thread = ww_game_thread_diagnostics;
-    Memory memory(0x1000);
-    memory.PE();
-    size_t messageRva = 0x900, codeRva = 0x420;
-    for (const auto& signature : thread::signatures) {
-        const auto code = Pattern(signature.bytes).bytes;
-        std::copy(code.begin(),code.end(),memory.bytes.begin()+codeRva);
-        const auto rip = [&](size_t offset,size_t target,size_t suffix = 0) {
-            memory.Put32(codeRva+offset,uint32_t(target-(codeRva+offset+4+suffix)));
-        };
-        rip(signature.flag,0x800,1);
-        rip(signature.idProvider,0x810);
-        rip(signature.threadId,0x820);
-        rip(signature.message,messageRva);
-        const std::u16string message(signature.diagnostic);
-        std::memcpy(memory.bytes.data()+messageRva,message.c_str(),(message.size()+1)*sizeof(char16_t));
-        messageRva+=0x80;
-        codeRva+=0x80;
-    }
-    memory.Put(0x800,{1});memory.Put32(0x820,77);
-    auto report = thread::Collect(memory.Reader(),memory.base,memory.bytes.size(),77);
-    Check(report["status"]=="candidate_requires_review" && report["registered_game_thread_id_rva"]=="0x820" &&
-          report["registered_game_thread_initialized_rva"]=="0x800" && report["window_thread_matches"]==true &&
-          report["execution_authorized"]==false,"independent diagnostics agree on a read-only candidate");
-    report = thread::Collect(memory.Reader(),memory.base,memory.bytes.size(),99);
-    Check(report["window_thread_matches"]==false,"candidate is kept separate from observed window identity");
-    const size_t offset = thread::signatures[2].threadId;
-    memory.Put32(0x520+offset,uint32_t(0x824-(0x520+offset+4)));
-    report = thread::Collect(memory.Reader(),memory.base,memory.bytes.size(),77);
-    Check(report["status"]=="unresolved" && !report.contains("registered_game_thread_id_rva"),
-          "a conflicting independent reference rejects the candidate");
-    memory.Put(0x980,{0});memory.Put(0xa00,{0});
-    report = thread::Collect(memory.Reader(),memory.base,memory.bytes.size(),77);
-    Check(report["status"]=="unresolved","a single verified diagnostic reference is insufficient");
-}
-int main(){try{Parsing();Verification();Scanning();PEAndWitnesses();GameThreadDiagnostics();std::cout<<"game compatibility resolution: "<<assertions<<" assertions passed\n";return 0;}
+int main(){try{Parsing();Verification();PEAndWitnesses();std::cout<<"game compatibility resolution: "<<assertions<<" assertions passed\n";return 0;}
     catch(const std::exception& error){std::cerr<<"unexpected exception: "<<error.what()<<'\n';return 1;}}

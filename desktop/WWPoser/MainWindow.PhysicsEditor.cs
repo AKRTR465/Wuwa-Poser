@@ -388,11 +388,17 @@ public sealed partial class MainWindow
             var requested = (settings?["requested"] as JsonArray)?[i]?.GetValue<double>();
             var first = (settings?["effective_first"] as JsonArray)?[i]?.GetValue<double>();
             var last = (settings?["effective_last"] as JsonArray)?[i]?.GetValue<double>();
-            var initial = idle ? preconfigured ? staged![i] : groupValue ? inherited![i] : previewValues[i] : requested >= 0 ? requested : original;
+            // Idle rows show the preset draft; live rows show the game's readback.
+            double? initial;
+            if (!idle) initial = requested >= 0 ? requested : original;
+            else if (preconfigured) initial = staged![i];
+            else if (groupValue) initial = inherited![i];
+            else initial = previewValues[i];
             if (!wasEnabled && row.Slider.IsEnabled) row.Slider.Value = Math.Clamp(initial ?? 0, 0, row.Slider.Maximum);
-            row.Readback.Text = idle ? preconfigured ? "预设值 " + Value(staged![i]) : groupValue ? "继承整组预设 " + Value(inherited![i]) : "开演时使用原值" :
-                parameterTarget is null ? "等待匹配本次播放的物理骨链" :
-                original is null ? "等待游戏求值" : $"原值 {Value(original)} · 求值 {Value(first)}" + (first == last ? "" : $" / {Value(last)}");
+            if (idle) row.Readback.Text = preconfigured ? "预设值 " + Value(staged![i]) : groupValue ? "继承整组预设 " + Value(inherited![i]) : "开演时使用原值";
+            else if (parameterTarget is null) row.Readback.Text = "等待匹配本次播放的物理骨链";
+            else if (original is null) row.Readback.Text = "等待游戏求值";
+            else row.Readback.Text = $"原值 {Value(original)} · 求值 {Value(first)}" + (first == last ? "" : $" / {Value(last)}");
         }
         if (shoulderFollow is { } shoulder)
         {

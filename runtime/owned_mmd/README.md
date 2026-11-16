@@ -1,6 +1,6 @@
 # Dynamic actor MMD runtime
 
-This host now manages a dynamic mixture of borrowed current-team actors and newly created actors. Requests use one actor list, timeline, camera and native-physics hub. The installed catalog provides 64 role configurations and 80 role/skin selections. The historical build locations `build/owned_mmd` / `runtime/owned_mmd_lite` and package identifier `single_owned_character_native_mmd` remain for packaging compatibility; they no longer imply one actor or created-only playback. New scene preparations use `mixed_actor_mmd`.
+This host now manages a dynamic mixture of borrowed current-team actors and newly created actors. Requests use one actor list, timeline, camera and native-physics hub. The installed catalog provides 64 role configurations and 80 role/skin selections. The historical locations `build/owned_mmd` / `runtime/owned_mmd_lite` and the `ownedmmd_lite_*` file names no longer imply one actor or created-only playback. The package manifest purpose is `owned_mmd_scene`.
 
 ## Build
 
@@ -21,14 +21,13 @@ Place the six DLLs named in `managed/references.json` in `local/owned_mmd_refere
 
 `WWPOSER_MANAGED_REFERENCE_DIR` can supply the reference directory when `-ReferenceDirectory` is omitted. `-Compiler` selects a different Roslyn `csc.exe`; the C++ compiler setup uses the repository's `tools/msvc_env.bat` and its `WW_VCVARS64` override. Reference assemblies remain local compile inputs and are never included in the runtime package.
 
-The package contains four files at its root plus `runtime_package.json`:
+The package contains three files at its root plus `runtime_package.json`:
 
 - `ownedmmd_lite_observer.dll`
 - `ownedmmd_lite_installer.exe`
 - `WwPoser.ColdLoad.ManagedBridge.OwnedMmdLite.dll`
-- `owned_mmd_layout.json`
 
-Compiler intermediate files go to the ignored `build/owned_mmd_compile` directory. `-Check` verifies the existing manifest and four runtime files without compiling or loading them.
+Game addresses and layouts are compiled into the observer from `data/game_compat/ww_runtime.json`; there is no separate layout file. Compiler intermediate files go to the ignored `build/owned_mmd_compile` directory. `-Check` verifies the existing manifest and three runtime files without compiling or loading them.
 
 To rebuild and stage the self-contained desktop player, including the flat owned runtime package:
 
@@ -44,7 +43,7 @@ The managed provider reads the current SceneTeam and borrows each matching real 
 
 Pause holds the common timeline while keeping body input. Non-looping playback holds the last frame until Stop or the selected time limit; zero is unlimited. The existing PCM hook also maintains borrowed actors' stage state. Cleanup restores body/face/physics before disabling that maintenance and returning borrowed actors to their original state; only actors actually created by this session are removed from the UI actor manager. Incomplete cleanup retains the dispatch route for retries.
 
-Add any number of actors in the unified desktop; each row selects a role and skin. A legacy file-only CLI can still prepare a single catalog entry for the same host:
+Add any number of actors in the unified desktop; each row selects a role and skin. The file-only CLI prepares a one-actor scene through the same preparation path:
 
 ```powershell
 WWPoser.exe --prepare-owned-mmd SOURCE.vmd NEW_OUTPUT_DIRECTORY 120000 --character-id role1206-skin81001206

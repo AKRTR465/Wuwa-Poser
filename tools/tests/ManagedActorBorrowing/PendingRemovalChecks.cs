@@ -22,7 +22,7 @@ internal static class PendingRemovalChecks
             handle.PendingRemoving = false;
             pawn.Location = initialLocation; pawn.bHidden = false; mesh.bVisible = true; mesh.bHiddenInGame = false;
             var directory = Path.Combine(fixture, "pending-removal-" + name); Directory.CreateDirectory(directory);
-            File.WriteAllText(Path.Combine(directory, "actors.tsv"), borrowed
+            SessionFixture.Actors(directory, borrowed
                 ? "1\t10\t100\t150\t0\t0\tRole10Skin100\t0\n"
                 : "1\t90\t900\t150\t0\t0\tRole90Skin900\t0\n");
             Environment.SetEnvironmentVariable("WWPOSER_OWNED_SESSION_DIR", directory);

@@ -32,12 +32,12 @@ static void RunTests(){
     a.motion.frames.resize(32768);a.features.face_clip.payload.resize(32768);
     r.actors.push_back(std::move(actor));scene::FreezeActorIndices();r.cameraAnchor=&a;
     r.cameraFeatures.anchor_meshes.resize(1024);r.cameraFeatures.anchor_identities.resize(1024);
-    r.cameraFeatures.anchor_clip_starts.resize(1024);r.cameraFeatures.clip.source_keys.resize(1024);
-    r.epoch=2;r.observing=true;r.transport.SetClip(2,12);scene::Start(100);scene::Advance(1,100);
+    r.cameraFeatures.clip.source_keys.resize(1024);
+    r.epoch=2;r.observing=true;r.transport.SetClip(2,12);scene::Start();scene::Advance(1,100);
     Check(r.transport.State().mode==play::PlayerMode::Playing&&r.actualPlayStart.load()!=0,"default startup still automatically plays");
     r.transport=play::Transport{};r.actualPlayStart=0;r.lastEngineFrame=0;
     r.epoch=1;r.startPaused=true;r.transport.SetClip(1,12);r.transport.PreparePausedStart();
-    scene::Start(100);scene::Advance(1,100);scene::Advance(2,1000);scene::CheckTimeLimit();
+    scene::Start();scene::Advance(1,100);scene::Advance(2,1000);scene::CheckTimeLimit();
     Check(r.transport.State().mode==play::PlayerMode::Paused&&r.transport.State().seconds==0&&r.actualPlayStart.load()==0&&!r.closing.load(),"paused startup holds time zero without a worker deadline");
     Check(!scene::Status().at("ready").get<bool>(),"paused startup waits for actual actor pose publication");
     a.features.frames=1;r.cameraFeatures.available=true;
@@ -63,7 +63,7 @@ static void RunTests(){
     const auto finalActors=terminal.at("actors");
     Check(scene::ReleaseRetiredPayload(terminal)&&terminal.at("retired_payload_released").get<bool>(),"retired session releases its payload after freezing terminal evidence");
     Check(r.actors.empty()&&r.actors.capacity()==0&&r.byMesh.capacity()==0&&r.bySlot.capacity()==0&&!r.cameraAnchor,"actor objects, frames and lookup storage are released");
-    Check(r.cameraFeatures.clip.source_keys.capacity()==0&&r.cameraFeatures.anchor_meshes.capacity()==0&&r.cameraFeatures.anchor_identities.capacity()==0&&r.cameraFeatures.anchor_clip_starts.capacity()==0,"camera payload and actor anchors are released");
+    Check(r.cameraFeatures.clip.source_keys.capacity()==0&&r.cameraFeatures.anchor_meshes.capacity()==0&&r.cameraFeatures.anchor_identities.capacity()==0,"camera payload and actor anchors are released");
     Check(scene::Status().at("actor_count")==1&&scene::Status().at("actors")==finalActors,"terminal diagnostics preserve actor counts after payload release");
     scene::Detour(nullptr);feature::CameraDetour(nullptr,0);native::ConverterDetour(nullptr,nullptr);native::GroupDetour(nullptr,nullptr);
     Check(bodyCalls==1&&cameraCalls==1&&converterCalls==1&&groupCalls==1,"delayed detours still forward exactly once without touching retired payload");

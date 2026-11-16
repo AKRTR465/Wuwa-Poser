@@ -1,14 +1,30 @@
 using System.Diagnostics;
+using System.Globalization;
 
 namespace WWPoser.Services;
 
 public static class OwnedMmdCommandLine
 {
-    private static string Value(string[] args, string option)
+    private static string[] Values(string[] args, string option, int count)
     {
         var index = Array.IndexOf(args, option);
-        if (index < 0 || index + 1 >= args.Length) throw new ArgumentException("缺少命令参数：" + option);
-        return args[index + 1];
+        if (index < 0 || index + count >= args.Length) throw new ArgumentException("缺少命令参数：" + option);
+        return args[(index + 1)..(index + 1 + count)];
+    }
+    private static string Value(string[] args, string option) => Values(args, option, 1)[0];
+
+    // --prepare-owned-mmd SOURCE.vmd NEW_OUTPUT_DIRECTORY DURATION_MS [--character-id ID]
+    // prepares a one-actor scene through the same path as the desktop.
+    public static async Task<int> PrepareAsync(string repo, string[] args)
+    {
+        var values = Values(args, "--prepare-owned-mmd", 3);
+        var service = new OwnedMmdPlaybackService(repo);
+        var character = args.Contains("--character-id") ? Value(args, "--character-id") : service.CharacterCatalog().DefaultCharacterId;
+        var request = new PlaybackSessionRequest([new PlaybackActorRequest(values[0], CharacterId: character)],
+            DurationSeconds: int.Parse(values[2], CultureInfo.InvariantCulture) / 1000d);
+        var result = await service.PrepareActorsAsync(request, values[1]);
+        File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "owned_mmd_prepare_result.json"), result.ToJsonString(JsonData.Pretty));
+        return 0;
     }
 
     public static async Task<int> RunAsync(string repo, string[] args)
@@ -45,9 +61,9 @@ public static class OwnedMmdCommandLine
                 var finished = OwnedMmdPlaybackService.Finished(session);
                 if (finished) { Save("finishing"); await service.StopAsync(cancellation: budget.Token); }
                 var state = OwnedMmdPlaybackService.Status(session);
-                report["body_frames"] = (state["body_frames"] ?? state["frames"])?.DeepClone();
-                foreach (var key in new[] { "failed", "native_input_frames", "native_input_error", "native_graph_binding_kind", "native_physics_group_count", "native_curve_group_count", "native_physics_activation_complete", "native_activation_observed_group_count", "native_secondary_motion_activation_runtime_observed", "native_secondary_motion_activation_status", "native_physics_groups", "native_curve_groups", "native_group_force_updates" })
-                    report[key] = state[key]?.DeepClone();
+                report["body_frames"] = state["frames"]?.DeepClone();
+                // Per-actor entries carry the native physics group statistics.
+                foreach (var key in new[] { "failed", "native_input_frames", "native_input_error", "actors" }) report[key] = state[key]?.DeepClone();
                 if (finished)
                 {
                     var terminal = JsonData.ReadObject(Path.Combine(session, "session_result.json"));

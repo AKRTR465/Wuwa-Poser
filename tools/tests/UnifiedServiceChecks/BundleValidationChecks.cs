@@ -41,8 +41,11 @@ internal static class BundleValidationChecks
         Rejected("wrong size");
         entry["bytes"] = new FileInfo(asset).Length;
         entry.AsObject().Remove("sha256");
-        Rejected("missing schema-4 digest");
+        Rejected("missing digest");
         entry["sha256"] = JsonData.Digest(asset);
+        manifest["schema"] = 3;
+        Rejected("an older manifest schema");
+        manifest["schema"] = 4;
         entry["path"] = "../payload.dat";
         Rejected("parent traversal");
         entry["path"] = "C:/payload.dat";

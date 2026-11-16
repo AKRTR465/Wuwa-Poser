@@ -70,45 +70,46 @@ inline bool IsActorCommand(CommandKind kind) noexcept {
     default:return false;
     }
 }
-inline bool ValidCommandArguments(CommandKind kind,double value,uint32_t target_slot) noexcept {
+// Value range and the actor/group/chain targets each command requires.
+inline bool ValidCommandFields(CommandKind kind,double value,uint32_t slot,uint32_t group,uint32_t chain) noexcept {
     if(!std::isfinite(value))return false;
     switch(kind) {
-    case CommandKind::Play:return value>=0&&value<=0;
-    case CommandKind::Pause:return value>=0&&value<=0;
-    case CommandKind::SeekSeconds:return value>=0;
-    case CommandKind::StepFrames:return value>=-1000000&&value<=1000000&&std::trunc(value)==value;
-    case CommandKind::SetLoop:return value>=0&&value<=1&&std::trunc(value)==value;
-    case CommandKind::SetSpeed:return value>=0.1&&value<=4;
-    case CommandKind::Stop:return value>=0&&value<=0;
-    case CommandKind::SetPhysics:return value>=0&&value<=1&&std::trunc(value)==value;
-    case CommandKind::SetCameraMode:return value>=0&&value<=2&&std::trunc(value)==value;
-    case CommandKind::SetPlacementX:return value>=-1000&&value<=1000;
-    case CommandKind::SetPlacementY:return value>=-1000&&value<=1000;
-    case CommandKind::SetPlacementHeight:return value>=-1000&&value<=1000;
-    case CommandKind::SetPlacementYaw:return value>=-180&&value<=180;
-    case CommandKind::SetPlacementInPlace:return value>=0&&value<=1&&std::trunc(value)==value;
-    case CommandKind::ResetPlacement:return value>=0&&value<=0;
-    case CommandKind::SetTimeLimit:return value>=0&&value<=10000000;
-    case CommandKind::SetGroundHeight:return value>=-1000&&value<=1000&&target_slot==0;
-    case CommandKind::SetCameraTrackHeight:return value>=-10000&&value<=10000&&target_slot==0;
-    case CommandKind::SetNativeDamping:return value>=-1&&value<=1;
-    case CommandKind::SetNativeStiffness:return value>=-1&&value<=1;
-    case CommandKind::SetNativeLimitAngle:return value>=-1&&value<=180;
-    case CommandKind::SetNativeShoulderFollow:return value>=0&&value<=1;
-    case CommandKind::SetPreviewLoopStart:return value>=0&&value<=10000000&&target_slot==0;
-    case CommandKind::SetPreviewLoopEnd:return value>=0&&value<=10000000&&target_slot==0;
-    case CommandKind::SetNativePreview:return value>=0&&value<=1&&std::trunc(value)==value;
-    case CommandKind::SetNativeCapsuleCollision:return value>=0&&value<=1&&std::trunc(value)==value;
-    case CommandKind::SetModelPreview:return value>=0&&value<=1&&std::trunc(value)==value;
-    case CommandKind::SetNativeGravity:return value>=-1&&value<=1500;
-    case CommandKind::SetPartGravity:return value>=-1&&value<=1500;
-    case CommandKind::SetNativeCapsuleRadius:return value>=0&&value<=100;
-    case CommandKind::SetNativeCapsuleLength:return value>=0&&value<=300;
-    case CommandKind::SetNativeCapsuleOffsetX:return value>=-300&&value<=300;
-    case CommandKind::SetNativeCapsuleOffsetY:return value>=-300&&value<=300;
-    case CommandKind::SetNativeCapsuleOffsetZ:return value>=-300&&value<=300;
-    case CommandKind::ResetNativeCapsule:return value>=0&&value<=0;
-    case CommandKind::SetNativeCapsuleActive:return value>=0&&value<=1&&std::trunc(value)==value;
+    case CommandKind::Play:return value==0&&slot==0&&group==0&&chain==0;
+    case CommandKind::Pause:return value==0&&slot==0&&group==0&&chain==0;
+    case CommandKind::SeekSeconds:return value>=0&&slot==0&&group==0&&chain==0;
+    case CommandKind::StepFrames:return value>=-1000000&&value<=1000000&&std::trunc(value)==value&&slot==0&&group==0&&chain==0;
+    case CommandKind::SetLoop:return value>=0&&value<=1&&std::trunc(value)==value&&slot==0&&group==0&&chain==0;
+    case CommandKind::SetSpeed:return value>=0.1&&value<=4&&slot==0&&group==0&&chain==0;
+    case CommandKind::Stop:return value==0&&slot==0&&group==0&&chain==0;
+    case CommandKind::SetPhysics:return value>=0&&value<=1&&std::trunc(value)==value&&group==0&&chain==0;
+    case CommandKind::SetCameraMode:return value>=0&&value<=2&&std::trunc(value)==value&&slot==0&&group==0&&chain==0;
+    case CommandKind::SetPlacementX:return value>=-1000&&value<=1000&&group==0&&chain==0;
+    case CommandKind::SetPlacementY:return value>=-1000&&value<=1000&&group==0&&chain==0;
+    case CommandKind::SetPlacementHeight:return value>=-1000&&value<=1000&&group==0&&chain==0;
+    case CommandKind::SetPlacementYaw:return value>=-180&&value<=180&&group==0&&chain==0;
+    case CommandKind::SetPlacementInPlace:return value>=0&&value<=1&&std::trunc(value)==value&&group==0&&chain==0;
+    case CommandKind::ResetPlacement:return value==0&&group==0&&chain==0;
+    case CommandKind::SetTimeLimit:return value>=0&&value<=10000000&&slot==0&&group==0&&chain==0;
+    case CommandKind::SetGroundHeight:return value>=-1000&&value<=1000&&slot==0&&group==0&&chain==0;
+    case CommandKind::SetCameraTrackHeight:return value>=-10000&&value<=10000&&slot==0&&group==0&&chain==0;
+    case CommandKind::SetNativeDamping:return value>=-1&&value<=1&&(value>=0||value==-1)&&slot!=0&&group!=0;
+    case CommandKind::SetNativeStiffness:return value>=-1&&value<=1&&(value>=0||value==-1)&&slot!=0&&group!=0;
+    case CommandKind::SetNativeLimitAngle:return value>=-1&&value<=180&&(value>=0||value==-1)&&slot!=0&&group!=0;
+    case CommandKind::SetNativeShoulderFollow:return value>=0&&value<=1&&slot!=0&&group!=0&&chain!=0;
+    case CommandKind::SetPreviewLoopStart:return value>=0&&value<=10000000&&slot==0&&group==0&&chain==0;
+    case CommandKind::SetPreviewLoopEnd:return value>=0&&value<=10000000&&slot==0&&group==0&&chain==0;
+    case CommandKind::SetNativePreview:return value>=0&&value<=1&&std::trunc(value)==value&&slot!=0&&group!=0&&chain==0;
+    case CommandKind::SetNativeCapsuleCollision:return value>=0&&value<=1&&std::trunc(value)==value&&slot!=0&&group!=0&&chain!=0;
+    case CommandKind::SetModelPreview:return value>=0&&value<=1&&std::trunc(value)==value&&slot!=0&&group==0&&chain==0;
+    case CommandKind::SetNativeGravity:return value>=-1&&value<=1500&&(value>=0||value==-1)&&slot!=0&&group!=0&&chain==0;
+    case CommandKind::SetPartGravity:return value>=-1&&value<=1500&&(value>=0||value==-1)&&slot!=0&&group==0&&chain!=0;
+    case CommandKind::SetNativeCapsuleRadius:return value>=0&&value<=100&&slot!=0&&group!=0&&chain!=0;
+    case CommandKind::SetNativeCapsuleLength:return value>=0&&value<=300&&slot!=0&&group!=0&&chain!=0;
+    case CommandKind::SetNativeCapsuleOffsetX:return value>=-300&&value<=300&&slot!=0&&group!=0&&chain!=0;
+    case CommandKind::SetNativeCapsuleOffsetY:return value>=-300&&value<=300&&slot!=0&&group!=0&&chain!=0;
+    case CommandKind::SetNativeCapsuleOffsetZ:return value>=-300&&value<=300&&slot!=0&&group!=0&&chain!=0;
+    case CommandKind::ResetNativeCapsule:return value==0&&slot!=0&&group!=0&&chain!=0;
+    case CommandKind::SetNativeCapsuleActive:return value>=0&&value<=1&&std::trunc(value)==value&&slot!=0&&group!=0&&chain!=0;
     }
     return false;
 }

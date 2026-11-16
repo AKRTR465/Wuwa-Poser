@@ -42,7 +42,7 @@ pwsh -NoProfile -File tools/prepare_player_dependencies.ps1 -Download
 pwsh -NoProfile -File tools/build_player.ps1 -Rebuild -PublicRelease -ReferenceDirectory 'D:\WuwaReferences'
 ```
 
-`-Rebuild` 编译托管桥、原生运行时、原生物理必需的身份登记和图观察模块，以及三个 VMD 编译器，随后发布自带 .NET 运行库的 WPF 程序。`-PublicRelease` 要求干净且已提交的源码及 `-Rebuild`，执行离线回归，排除本地会话占用记录，并在包内记录公开源码地址。构建期间源码发生变化会拒绝完成公开包。输出位于 `dist/ww-mmd-player-csharp_<时间>/`。
+`-Rebuild` 编译托管桥、原生运行时、原生物理必需的身份登记和图观察模块，以及三个 VMD 编译器，随后发布自带 .NET 运行库的 WPF 程序。`-PublicRelease` 要求干净且已提交的源码及 `-Rebuild`，执行离线回归，并在包内记录公开源码地址。构建期间源码发生变化会拒绝完成公开包。输出位于 `dist/ww-mmd-player-csharp_<时间>/`。
 
 可用 `-OutputDirectory` 指定新的便携包目录；`-PublishDirectory` 可单独指定 WPF 中间发布目录。本地开发包在原生输出已准备好时可省略 `-Rebuild`；已有运行时包还可通过 `-OwnedMmdPackageDirectory` 指定。公开发布会重新构建该目录，并核对运行时 manifest 的源码提交、干净状态和逐文件 SHA-256。
 
@@ -56,7 +56,7 @@ pwsh -NoProfile -File tools/build_player.ps1 -Rebuild -PublicRelease -ReferenceD
 .\dist\<便携包目录>\WWPoser.exe --validate-bundle
 ```
 
-此命令只校验包与角色目录，不启动或操作游戏。新包的 schema 4 manifest 为每个文件记录字节数与 SHA-256，校验会拒绝缺失、长度不符、内容损坏和不合法的相对路径。旧 schema 3 清单仍检查文件长度，但没有散列的旧清单不能证明文件内容一致。
+此命令只校验包与角色目录，不启动或操作游戏。schema 4 manifest 为每个文件记录字节数与 SHA-256，校验会拒绝其他清单版本、缺失、长度不符、内容损坏和不合法的相对路径。
 
 `data/` 中的证书和契约使用原始文件字节散列。仓库通过 `.gitattributes` 保留它们既有的字节与换行，避免 `core.autocrlf` 改变校验结果。编辑这些文件后仍需更新相关证书，不能仅转换换行而沿用旧散列。
 
@@ -64,7 +64,7 @@ pwsh -NoProfile -File tools/build_player.ps1 -Rebuild -PublicRelease -ReferenceD
 
 `tools/player_build_inputs.psd1` 统一列出正式播放使用的原生构建脚本及其产物、运行包文件、便携包数据和文档。`build_player.ps1` 从这份清单构建和打包，`run_offline_checks.ps1` 复用其中的编译器与观察器分组，`build_owned_mmd.ps1` 复用运行包文件列表。运行包与最终便携包继续使用各自的既有 manifest 校验摘要和源码出处。
 
-默认包保留 `hook_install_v20.exe`、`native_identity_bootstrap.dll` 和 `native_graph_discovery.dll`，它们是当前原生物理播放依赖。旧单人扫描、小队驻留和 roster 采样入口已退出桌面主流程；对应的 `recon_carrier_v20.dll`、`accessory_recon.dll`、`publish_probe_v21.dll`、`puerts_scene_sampler.dll`、`stage_residency.dll`、`mmd_squad_residency.dll` 不再默认构建或打包。它们的源码和单项构建脚本仍保留在 `probes/v20_recon/`，需要诊断时可直接运行对应脚本；该目录内被正式运行时包含的共享头文件也继续保留。
+原生产物由两个脚本构建，均以 `/W4 /WX` 编译：`probes/v20_recon/build_observers.bat` 生成原生物理播放依赖的 `hook_install_v20.exe`、`native_identity_bootstrap.dll` 和 `native_graph_discovery.dll`；`tools/build_compilers.bat` 生成三个 VMD 编译器。旧单人扫描、小队驻留和 roster 采样探针已从仓库移除，需要时可从 v0.2.9 及更早的 Git 历史恢复。
 
 播放控制命令定义在 `playback/control_commands.json`。修改后运行 `tools/generate_playback_control.ps1`，同步生成 C#、C++ 绑定和 [命令文档](../playback/CONTROL_COMMANDS.md)。完整构建生成绑定，离线检查与 CI 使用 `-Check` 拒绝未同步的生成物。
 
@@ -76,7 +76,7 @@ Windows 完整离线检查可通过统一入口运行，无需游戏参考 DLL�
 pwsh -NoProfile -File tools/run_offline_checks.ps1
 ```
 
-入口会构建三个 VMD 编译器，使用合成素材检查演员准备，并运行下面的回归与数据证书检查。两个 WPF 检查项目共享构建目录，应串行执行。Windows/Linux 的 GitHub Actions 工作流会在提交和 PR 上执行相应离线检查。
+入口会构建观察器和三个 VMD 编译器（`-SkipNativeBuild` 可复用已有产物），使用合成素材检查演员准备，并运行下面的回归与数据证书检查。两个 WPF 检查项目共享构建目录，应串行执行。Windows/Linux 的 GitHub Actions 工作流会在提交和 PR 上执行相应离线检查。
 
 也可以分别运行：
 
@@ -84,13 +84,8 @@ pwsh -NoProfile -File tools/run_offline_checks.ps1
 dotnet run --project tools/tests/ManagedActorBorrowing/ManagedActorBorrowing.csproj
 dotnet run --project tools/tests/UnifiedServiceChecks/ServiceChecks.csproj
 dotnet run --project tools/tests/UnifiedUiChecks/UnifiedUiChecks.csproj -- . test_outputs/ui
-.\tools\tests\run_unified_player_features_tests.bat
-.\tools\tests\run_unified_transport_tests.bat
-.\tools\tests\run_dynamic_actor_tests.bat
-.\tools\tests\run_owned_recovery_tests.bat
-.\tools\tests\run_local_clip_tests.bat
-.\tools\tests\run_camera_diagnostics_tests.bat
-.\tools\tests\run_session_retirement_tests.bat
+.\tools\tests\run_native_tests.bat unified_transport owned_recovery local_clip foot_calibration hand_mapping camera_diagnostics
+.\tools\tests\run_native_tests.bat unified_player_features vmd_name dynamic_actor session_retirement game_compat_resolution native_function_witness game_object_anchors
 pwsh -NoProfile -File tools/tests/runtime_manifest_checks.ps1
 ```
 
@@ -101,7 +96,7 @@ dotnet run --project tools/tests/PortableServiceChecks/PortableServiceChecks.csp
 dotnet run --project tools/tests/ManagedActorBorrowing/ManagedActorBorrowing.csproj
 ```
 
-`unified_transport_tests.cpp`、`owned_recovery_tests.cpp`、`local_clip_tests.cpp` 和 `camera_diagnostics_tests.cpp` 也支持 C++17 编译器；并发镜头测试需要线程支持（例如 GCC 的 `-pthread`）。会话退役和其余原生测试使用 Windows API 的本进程测试对象。
+`run_native_tests.bat NAME...` 以 `/W4 /WX` 编译并运行 `tools/tests/NAME_tests.cpp`。`unified_transport`、`owned_recovery`、`local_clip`、`camera_diagnostics` 和 `game_compat_resolution` 也支持其他 C++17 编译器；并发镜头测试需要线程支持（例如 GCC 的 `-pthread`）。会话退役和其余原生测试使用 Windows API 的本进程测试对象。
 
 这些检查使用合成数据或本进程测试对象，不证明当前游戏版本、全角色物理、录屏或同进程连续播放的视觉效果。游戏运行验证需另行进行。
 

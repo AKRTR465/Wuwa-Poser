@@ -3,43 +3,43 @@
 
 定义源为 `playback/control_commands.json`；执行 `pwsh tools/generate_playback_control.ps1` 更新两端代码与本表，使用 `-Check` 检查生成产物。所有 value 均以有限 IEEE754 binary64 传输，类型是其语义约束。
 
-`actor`：target_slot=0 广播，否则选择一个现有演员槽位。`scene`：只接受 target_slot=0。`session`：共享时间轴或镜头设置，建议 target_slot=0；保留 V1 非零槽位兼容（宿主检查槽位存在，但不会变成单演员时钟）。
+`session` 与 `scene` 命令只接受 target_slot=0。`actor` 命令的 target_slot=0 表示广播，否则选择一个现有演员槽位；目标列给出物理组（group）和骨链/部件/胶囊（chain）的要求。带还原值的命令只接受非负值或该还原值。
 
-| 编号 | 命令 / C++ 名称 | 类型 | 单位 | 范围（含端点） | 作用域 | 含义 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | `play` / `Play` | none | — | 0 | session | 开始或继续播放 |
-| 2 | `pause` / `Pause` | none | — | 0 | session | 暂停并保持当前姿态 |
-| 3 | `seek` / `SeekSeconds` | number | 秒 | 0…∞ | session | 选择时间，超出片长时截到末帧 |
-| 4 | `step` / `StepFrames` | integer | 帧（30 fps） | -1000000…1000000 | session | 相对逐帧移动 |
-| 5 | `loop` / `SetLoop` | boolean | — | 0…1 | session | 0 关闭，1 开启循环 |
-| 6 | `speed` / `SetSpeed` | number | 倍速 | 0.1…4 | session | 播放速度 |
-| 7 | `stop` / `Stop` | none | — | 0 | session | 停止并请求恢复 |
-| 8 | `physics` / `SetPhysics` | boolean | — | 0…1 | actor | 0 关闭，1 开启物理增强 |
-| 9 | `camera` / `SetCameraMode` | integer | — | 0…2 | session | 0 跟随，1 固定，2 VMD（需要镜头轨道） |
-| 10 | `offset_x` / `SetPlacementX` | number | cm | -1000…1000 | actor | 演员 X 偏移 |
-| 11 | `offset_y` / `SetPlacementY` | number | cm | -1000…1000 | actor | 演员 Y 偏移 |
-| 12 | `height` / `SetPlacementHeight` | number | cm | -1000…1000 | actor | 演员高度偏移 |
-| 13 | `yaw` / `SetPlacementYaw` | number | 度 | -180…180 | actor | 演员水平朝向 |
-| 14 | `in_place` / `SetPlacementInPlace` | boolean | — | 0…1 | actor | 0 保留，1 移除根位移 |
-| 15 | `reset_placement` / `ResetPlacement` | none | — | 0 | actor | 重置演员手动位置与原地模式 |
-| 16 | `time_limit` / `SetTimeLimit` | number | 秒 | 0…10000000 | session | 驻留时限，0 表示不限时 |
-| 17 | `ground_height` / `SetGroundHeight` | number | cm | -1000…1000 | scene | 全体演员共用地面高度修正 |
-| 18 | `camera_track_height` / `SetCameraTrackHeight` | number | cm | -10000…10000 | scene | VMD 镜头轨道的世界高度偏移 |
-| 19 | `native_damping` / `SetNativeDamping` | number | — | -1…1 | actor | 指定原生物理组的阻尼，-1 为还原 |
-| 20 | `native_stiffness` / `SetNativeStiffness` | number | — | -1…1 | actor | 指定原生物理组的回正强度，-1 为还原 |
-| 21 | `native_limit_angle` / `SetNativeLimitAngle` | number | 度 | -1…180 | actor | 指定原生物理组的摆角上限，-1 为还原 |
-| 22 | `native_shoulder_follow` / `SetNativeShoulderFollow` | number | 比例 | 0…1 | actor | 指定袖套骨链继承肩部旋转的比例 |
-| 23 | `preview_loop_start` / `SetPreviewLoopStart` | number | 秒 | 0…10000000 | scene | 暂存物理对照的片段起点 |
-| 24 | `preview_loop_end` / `SetPreviewLoopEnd` | number | 秒 | 0…10000000 | scene | 提交物理对照片段终点，0 为退出片段循环 |
-| 25 | `native_preview` / `SetNativePreview` | boolean | — | 0…1 | actor | 采样指定物理组的实时求值骨架 |
-| 26 | `native_capsule_collision` / `SetNativeCapsuleCollision` | boolean | — | 0…1 | actor | 开关指定物理组中由指定骨骼驱动的胶囊碰撞 |
-| 27 | `model_preview` / `SetModelPreview` | boolean | — | 0…1 | actor | 订阅指定演员发布后的完整模型姿态 |
-| 28 | `native_gravity` / `SetNativeGravity` | number | 原生值 | -1…1500 | actor | 指定物理组的向下重力，-1 为还原 |
-| 29 | `part_gravity` / `SetPartGravity` | number | 厘米/秒² | -1…1500 | actor | 指定部件的重力加速度，-1 为还原 |
-| 30 | `native_capsule_radius` / `SetNativeCapsuleRadius` | number | 厘米 | 0…100 | actor | 编辑单个原生胶囊的半径 |
-| 31 | `native_capsule_length` / `SetNativeCapsuleLength` | number | 厘米 | 0…300 | actor | 编辑原生胶囊两端球心间的长度 |
-| 32 | `native_capsule_offset_x` / `SetNativeCapsuleOffsetX` | number | 厘米 | -300…300 | actor | 编辑原生胶囊局部 X 偏移 |
-| 33 | `native_capsule_offset_y` / `SetNativeCapsuleOffsetY` | number | 厘米 | -300…300 | actor | 编辑原生胶囊局部 Y 偏移 |
-| 34 | `native_capsule_offset_z` / `SetNativeCapsuleOffsetZ` | number | 厘米 | -300…300 | actor | 编辑原生胶囊局部 Z 偏移 |
-| 35 | `native_capsule_reset` / `ResetNativeCapsule` | none | — | 0 | actor | 还原单个原生胶囊的尺寸、偏移和开关 |
-| 36 | `native_capsule_active` / `SetNativeCapsuleActive` | boolean | — | 0…1 | actor | 开关单个原生胶囊 |
+| 编号 | 命令 / C++ 名称 | 类型 | 单位 | 范围（含端点） | 作用域 | 目标 | 含义 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | `play` / `Play` | none | — | 0 | session | none | 开始或继续播放 |
+| 2 | `pause` / `Pause` | none | — | 0 | session | none | 暂停并保持当前姿态 |
+| 3 | `seek` / `SeekSeconds` | number | 秒 | 0…∞ | session | none | 选择时间，超出片长时截到末帧 |
+| 4 | `step` / `StepFrames` | integer | 帧（30 fps） | -1000000…1000000 | session | none | 相对逐帧移动 |
+| 5 | `loop` / `SetLoop` | boolean | — | 0…1 | session | none | 0 关闭，1 开启循环 |
+| 6 | `speed` / `SetSpeed` | number | 倍速 | 0.1…4 | session | none | 播放速度 |
+| 7 | `stop` / `Stop` | none | — | 0 | session | none | 停止并请求恢复 |
+| 8 | `physics` / `SetPhysics` | boolean | — | 0…1 | actor | none | 0 关闭，1 开启物理增强 |
+| 9 | `camera` / `SetCameraMode` | integer | — | 0…2 | session | none | 0 跟随，1 固定，2 VMD（需要镜头轨道） |
+| 10 | `offset_x` / `SetPlacementX` | number | cm | -1000…1000 | actor | none | 演员 X 偏移 |
+| 11 | `offset_y` / `SetPlacementY` | number | cm | -1000…1000 | actor | none | 演员 Y 偏移 |
+| 12 | `height` / `SetPlacementHeight` | number | cm | -1000…1000 | actor | none | 演员高度偏移 |
+| 13 | `yaw` / `SetPlacementYaw` | number | 度 | -180…180 | actor | none | 演员水平朝向 |
+| 14 | `in_place` / `SetPlacementInPlace` | boolean | — | 0…1 | actor | none | 0 保留，1 移除根位移 |
+| 15 | `reset_placement` / `ResetPlacement` | none | — | 0 | actor | none | 重置演员手动位置与原地模式 |
+| 16 | `time_limit` / `SetTimeLimit` | number | 秒 | 0…10000000 | session | none | 驻留时限，0 表示不限时 |
+| 17 | `ground_height` / `SetGroundHeight` | number | cm | -1000…1000 | scene | none | 全体演员共用地面高度修正 |
+| 18 | `camera_track_height` / `SetCameraTrackHeight` | number | cm | -10000…10000 | scene | none | VMD 镜头轨道的世界高度偏移 |
+| 19 | `native_damping` / `SetNativeDamping` | number | — | 0…1，还原 -1 | actor | group_or_chain | 指定原生物理组的阻尼，-1 为还原 |
+| 20 | `native_stiffness` / `SetNativeStiffness` | number | — | 0…1，还原 -1 | actor | group_or_chain | 指定原生物理组的回正强度，-1 为还原 |
+| 21 | `native_limit_angle` / `SetNativeLimitAngle` | number | 度 | 0…180，还原 -1 | actor | group_or_chain | 指定原生物理组的摆角上限，-1 为还原 |
+| 22 | `native_shoulder_follow` / `SetNativeShoulderFollow` | number | 比例 | 0…1 | actor | chain | 指定袖套骨链继承肩部旋转的比例 |
+| 23 | `preview_loop_start` / `SetPreviewLoopStart` | number | 秒 | 0…10000000 | scene | none | 暂存物理对照的片段起点 |
+| 24 | `preview_loop_end` / `SetPreviewLoopEnd` | number | 秒 | 0…10000000 | scene | none | 提交物理对照片段终点，0 为退出片段循环 |
+| 25 | `native_preview` / `SetNativePreview` | boolean | — | 0…1 | actor | group | 采样指定物理组的实时求值骨架 |
+| 26 | `native_capsule_collision` / `SetNativeCapsuleCollision` | boolean | — | 0…1 | actor | chain | 开关指定物理组中由指定骨骼驱动的胶囊碰撞 |
+| 27 | `model_preview` / `SetModelPreview` | boolean | — | 0…1 | actor | slot | 订阅指定演员发布后的完整模型姿态 |
+| 28 | `native_gravity` / `SetNativeGravity` | number | 原生值 | 0…1500，还原 -1 | actor | group | 指定物理组的向下重力，-1 为还原 |
+| 29 | `part_gravity` / `SetPartGravity` | number | 厘米/秒² | 0…1500，还原 -1 | actor | part | 指定部件的重力加速度，-1 为还原 |
+| 30 | `native_capsule_radius` / `SetNativeCapsuleRadius` | number | 厘米 | 0…100 | actor | chain | 编辑单个原生胶囊的半径 |
+| 31 | `native_capsule_length` / `SetNativeCapsuleLength` | number | 厘米 | 0…300 | actor | chain | 编辑原生胶囊两端球心间的长度 |
+| 32 | `native_capsule_offset_x` / `SetNativeCapsuleOffsetX` | number | 厘米 | -300…300 | actor | chain | 编辑原生胶囊局部 X 偏移 |
+| 33 | `native_capsule_offset_y` / `SetNativeCapsuleOffsetY` | number | 厘米 | -300…300 | actor | chain | 编辑原生胶囊局部 Y 偏移 |
+| 34 | `native_capsule_offset_z` / `SetNativeCapsuleOffsetZ` | number | 厘米 | -300…300 | actor | chain | 编辑原生胶囊局部 Z 偏移 |
+| 35 | `native_capsule_reset` / `ResetNativeCapsule` | none | — | 0 | actor | chain | 还原单个原生胶囊的尺寸、偏移和开关 |
+| 36 | `native_capsule_active` / `SetNativeCapsuleActive` | boolean | — | 0…1 | actor | chain | 开关单个原生胶囊 |

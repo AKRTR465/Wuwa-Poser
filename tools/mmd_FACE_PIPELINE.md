@@ -35,7 +35,7 @@ The next integration step is the named SetMorphTarget native function/consumer
 path, plus asset MorphTarget-name/index mutual checks; do not treat `+0x368` as
 a component writable weight array.
 
-Build `mmd_build_face.bat`; CLI arguments are VMD, census JSON, new profile JSON,
+Build with `tools/build_compilers.bat`; CLI arguments are VMD, census JSON, new profile JSON,
 All work here uses saved files, with no game or IDA access.
 
 测试与中间构建入口已于 2026-10-22 移除；当前构建入口为 `tools/build_player.ps1 -Rebuild`。
