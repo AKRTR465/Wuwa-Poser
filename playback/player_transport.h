@@ -26,13 +26,9 @@ struct PlayerState {
     bool loop=false, restore_requested=false, physics_enabled=false, placement_in_place=false, time_limit_reached=false;
 };
 static_assert(std::is_trivially_copyable<Command>::value, "fixed command");
-constexpr uint32_t kCommandWireBytes=64;
 using CommandWire=std::array<uint8_t,kCommandWireBytes>;
 inline uint32_t LoadU32(const uint8_t* p) {uint32_t v=0;for(unsigned i=0;i<4;++i)v|=uint32_t(p[i])<<(i*8);return v;}
 inline uint64_t LoadU64(const uint8_t* p) {uint64_t v=0;for(unsigned i=0;i<8;++i)v|=uint64_t(p[i])<<(i*8);return v;}
-inline uint32_t WireChecksum(const CommandWire& bytes) {
-    uint32_t hash=2166136261u;for(unsigned i=0;i<60;++i){hash^=bytes[i];hash*=16777619u;}return hash;
-}
 inline bool NativeSettingsCommand(CommandKind kind) {
     return kind==CommandKind::SetNativeDamping||kind==CommandKind::SetNativeStiffness||kind==CommandKind::SetNativeLimitAngle;
 }
@@ -46,9 +42,8 @@ inline bool ValidCommand(const Command& command) {
 // A well-formed frame retains its identity even when its arguments are invalid,
 // so the scene host can publish a rejection for that sequence.
 inline bool DecodeCommandFrame(const CommandWire& wire,Command& output) {
-    const char magic[8]={'W','W','P','C','T','L','1','\0'};
-    if(std::memcmp(wire.data(),magic,8)||LoadU32(wire.data()+8)!=1||LoadU32(wire.data()+12)!=64||
-        LoadU32(wire.data()+56)||LoadU32(wire.data()+60)!=WireChecksum(wire))return false;
+    if(std::memcmp(wire.data(),kCommandWireMagic,sizeof(kCommandWireMagic))||
+        LoadU32(wire.data()+8)!=kCommandWireVersion||LoadU32(wire.data()+12)!=kCommandWireBytes)return false;
     Command command{};
     command.clip_epoch=LoadU64(wire.data()+16);command.sequence=LoadU64(wire.data()+24);
     command.kind=CommandKind(LoadU32(wire.data()+32));command.target_slot=LoadU32(wire.data()+36);

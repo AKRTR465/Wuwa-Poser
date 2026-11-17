@@ -21,7 +21,6 @@ int wmain(int argc,wchar_t** argv){std::filesystem::path source,output,targetPat
         if(source.empty()||output.empty())throw std::runtime_error("Source and output required");
         auto clip=vmd::ReadFile(source,Decode);
         Json report={{"schema",1},{"source",Decode(source.string(),CP_ACP,false)},{"fps",30},{"duration_seconds",clip.DurationSeconds()}};
-        if(!omitProvenance)report["source_sha256"]=Sha256(source);
         if(!compiledPath.empty()){
             namespace rt=wwp_playback::ww_retarget;namespace lc=wwp_playback::local_clip;
             auto target=rt::ReadTarget(targetPath);rt::Compiler compiler;compiler.Bind(clip.motion,target);
@@ -31,7 +30,7 @@ int wmain(int argc,wchar_t** argv){std::filesystem::path source,output,targetPat
                 throw std::runtime_error("Compiled motion exceeds the supported frame budget");
             lc::Clip local;local.bone_count=target.topology.count;local.fps=60;local.frame_count=uint32_t(sampledFrames);
             local.duration=(local.frame_count-1)/60.;local.omit_provenance=omitProvenance;
-            if(!omitProvenance){local.source_sha256=report["source_sha256"].get<std::string>();local.skeleton_sha256=Sha256(targetPath);}
+            if(!omitProvenance){local.source_sha256=Sha256(source);local.skeleton_sha256=Sha256(targetPath);}
             const auto payloadBytes=lc::PayloadBytes(local);
             local.frames.resize(size_t(payloadBytes/lc::kBoneBytes));
             wwp_ue::full_body::LocalFrame frame;for(uint32_t f=0;f<local.frame_count;++f){compiler.Sample(f/60.,float(scale),&frame);
@@ -49,7 +48,7 @@ int wmain(int argc,wchar_t** argv){std::filesystem::path source,output,targetPat
                 {"skeleton_name",target.skeleton_name},{"bone_names",names},{"parents",parents},
                 {"canonical_local_positions",positions},{"canonical_position_mask",positionMask},
                 {"canonical_local_rotations",rotations},{"canonical_rotation_mask",rotationMask}};
-            if(!omitProvenance){report["compiled_target_clip"]["sha256"]=Sha256(compiledPath);report["compiled_target_clip"]["skeleton_sha256"]=local.skeleton_sha256;}
+            if(!omitProvenance)report["compiled_target_clip"]["sha256"]=Sha256(compiledPath);
         }
         Save(output,report);
         std::printf("VMD bone_tracks=%zu morph_tracks=%zu IK_tracks=%zu cameras=%zu duration=%.3fs\n",clip.motion.bones.size(),clip.motion.morphs.size(),clip.motion.ik.size(),clip.motion.cameras.size(),clip.DurationSeconds());return 0;

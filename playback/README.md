@@ -15,7 +15,7 @@ const auto& state = transport.State();
 // state.restore_requested 时由后端停止输入并恢复游戏状态。
 ```
 
-控制帧固定为 64 字节 little-endian，C# `PlaybackControl.Encode` 与 C++ `DecodeCommandFrame` 按字节序列化。字段：0–7 magic `WWPCTL1\0`、8 version=1、12 length=64、16 clip epoch u64、24 sequence u64、32 command u32、36 target slot u32、40 value IEEE754 binary64、48 target group u32、52 target chain u32、60 FNV-1a checksum；56–59 保留为 0。命令编号、参数类型、单位、范围、作用域与演员/物理组/部件目标规则集中在 [`control_commands.json`](control_commands.json)，由 `tools/generate_playback_control.ps1` 生成两端定义和[完整命令表](CONTROL_COMMANDS.md)，用 `-Check` 检查产物是否同步。epoch 必须与当前 clip 一致，sequence 严格递增。恢复未完成时拒绝重新播放及切换相关设置；设置不会自动开始播放。
+控制帧采用 56 字节 little-endian 的 `WWPCTL2` 格式。字段为 0–7 magic `WWPCTL2\0`、8 version=2、12 length=56、16 clip epoch u64、24 sequence u64、32 command u32、36 target slot u32、40 value IEEE754 binary64、48 target group u32、52 target chain u32。宿主只接收长度恰好为 56 字节的当前版本文件。命令编号、参数类型、单位、范围、作用域与演员、物理组、部件目标规则集中在 [`control_commands.json`](control_commands.json)，由 `tools/generate_playback_control.ps1` 生成两端定义和[完整命令表](CONTROL_COMMANDS.md)，用 `-Check` 检查产物是否同步。epoch 必须与当前 clip 一致，sequence 严格递增。恢复未完成时拒绝重新播放及切换相关设置。
 
 正式宿主 `owned_mmd_body.h` 在 worker 上读取控制帧，以 `DecodeCommandFrame` 验证封装、版本、保留字节和校验和，再将命令入队；游戏回调校验参数和运行条件。损坏帧不确认，合法帧的参数或目标被拒绝时发布明确结果。
 

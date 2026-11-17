@@ -2,10 +2,7 @@
 // are assigned only by the engine allocator in callbacks.
 #include "observer_carrier.h"
 #include "native_identity_bootstrap.h"
-#include "native_identity_witness.h"
 #include "native_animation_target_config.h"
-#include <bcrypt.h>
-#pragma comment(lib,"bcrypt.lib")
 
 namespace identity_carrier {
 namespace nb=native_identity_bootstrap;namespace ng=native_graph_discovery;namespace oc=observer_carrier;
@@ -14,18 +11,6 @@ using Allocator=int32_t(*)(void*,int32_t);
 static HMODULE selfModule=nullptr;static volatile LONG started=0;
 static nb::State bootstrapState;static Pool namePool;static std::atomic<bool> enabled{false};static oc::Hooks hooks;
 static uint64_t objectArray=0,allocatorAddress=0;
-static std::string Sha256(const std::string& data){
-    struct Handles {BCRYPT_ALG_HANDLE alg=nullptr;BCRYPT_HASH_HANDLE hash=nullptr;
-        ~Handles(){if(hash)BCryptDestroyHash(hash);if(alg)BCryptCloseAlgorithmProvider(alg,0);}} h;
-    unsigned char digest[32]{};
-    ue_memory::Require(data.size()<=0xffffffffull&&BCryptOpenAlgorithmProvider(&h.alg,BCRYPT_SHA256_ALGORITHM,nullptr,0)>=0&&
-        BCryptCreateHash(h.alg,&h.hash,nullptr,0,nullptr,0,0)>=0&&
-        BCryptHashData(h.hash,reinterpret_cast<PUCHAR>(const_cast<char*>(data.data())),static_cast<ULONG>(data.size()),0)>=0&&
-        BCryptFinishHash(h.hash,digest,sizeof(digest),0)>=0,"SHA-256 failed");
-    constexpr char hex[]="0123456789abcdef";std::string out(64,'0');
-    for(size_t i=0;i<32;++i){out[2*i]=hex[digest[i]>>4];out[2*i+1]=hex[digest[i]&15];}
-    return out;
-}
 // Callback-side and allocation-free: narrow "ABP_*_C" animation blueprint classes.
 static bool AnimationClass(const ng::Token& token)noexcept{
     Reader reader{GetCurrentProcess()};NameEntry name;
@@ -74,20 +59,6 @@ static void BindBasis(const Go& objects,const Json& cfg,uint64_t image){auto& ba
     capture(asset,basis.mesh_asset,false);capture(skeleton,basis.skeleton_asset,false);capture(main,basis.main_candidate,false);
     basis.authority=native_animation_target_config::Parse(cfg,basis.pawn,basis.mesh,basis.mesh_asset,basis.skeleton_asset,basis.main_candidate);
 }
-// The staged registration contract must be the exact file the desktop hashed.
-static Json ReadRegistration(const oc::Session& session,const Json& stage,Json& report){
-    std::ifstream input(session.directory/L"native_identity_registration_contract.json",std::ios::binary);
-    input.seekg(0,std::ios::end);const std::streamoff bytes=input.tellg();
-    if(bytes<=0||bytes>8*1024*1024)throw std::runtime_error("staged identity registration contract unavailable or oversized");
-    std::string text(static_cast<size_t>(bytes),'\0');input.seekg(0,std::ios::beg);
-    if(!input.read(text.data(),bytes))throw std::runtime_error("staged identity registration contract truncated");
-    const auto digest=Sha256(text);
-    const bool matches=stage.contains("registration_contract_sha256")&&stage["registration_contract_sha256"].is_string()&&stage["registration_contract_sha256"]==digest;
-    report["registration_contract_sha256"]=digest;report["registration_contract_sha256_verified"]=matches;
-    report["checks_performed"].push_back({{"kind","staged_contract_sha256"},{"performed",true},{"matched",matches}});
-    if(!matches)throw std::runtime_error("staged identity registration contract digest differs from configuration");
-    return Json::parse(text);
-}
 static Json OwnerJson(Reader& reader,const nb::Owner& owner,const char* role){
     return {{"role",role},{"before",TokenJson(reader,owner.before)},{"after",TokenJson(reader,owner.after)},
         {"status",owner.accepted?(owner.allocator_called?"registered":"already_assigned"):"rejected"},{"allocator_called",owner.allocator_called},
@@ -95,27 +66,23 @@ static Json OwnerJson(Reader& reader,const nb::Owner& owner,const char* role){
 }
 static DWORD WINAPI Worker(LPVOID){
     Json report={{"schema",1},{"kind","native_identity_bootstrap"},{"phase","identity_registration"},{"status","error"},{"pid",GetCurrentProcessId()},
-        {"host_sha256",compat::SourceBuildSha256},{"archive_evidence_sha256",native_identity_witness::kSha},{"readonly",false},{"readonly_animation",true},
+        {"readonly",false},{"readonly_animation",true},
         {"pose_writes",0},{"alpha_writes",0},{"manual_serial_writes",0},{"native_update_calls",0},{"engine_getter_calls",0},
         {"vtable_writes_only",false},{"serial_metadata_registration",true},{"registry_metadata_mutation_only",true},
         {"serial_rollback_attempted",false},{"serial_restore_policy","engine_managed_no_rollback"},{"dll_retained_until_process_exit",true},
         {"hooks",Json::array()},{"owners",Json::array()},{"support_registrations",Json::array()},{"rejections",Json::array()},{"reasons",Json::array()},
         {"all_hooks_restored",true},{"callbacks_quiescent",false},{"main_strong_identity_confirmed",false},
-        {"compatibility_profile",compat::ProfileId},{"compatibility_source_sha256",compat::SourceSha256},{"checks_performed",Json::array()}};
+        {"compatibility_id",compat::CompatibilityId},{"checks_performed",Json::array()}};
     oc::Session session;bool ran=false,bound=false;
     try{
         oc::Begin(session,selfModule,L"native_identity_bootstrap.json",report,"native_identity_bootstrap","identity_hooks");
         const auto& cfg=session.config;const auto& stage=cfg.at("native_identity_bootstrap");const unsigned duration=stage.at("duration_ms");
         bootstrapState.owner_limit=stage.at("owner_limit");report["owner_limit"]=bootstrapState.owner_limit;
-        report["evidence"]["allocator_witnesses"]=Json::array();
-        for(const auto& witness:native_identity_witness::kFunctions)
-            report["evidence"]["allocator_witnesses"].push_back({{"label",witness.label},{"rva",witness.rva},{"sha256",witness.sha256},{"bytes",witness.bytes}});
-        const Json registration=ReadRegistration(session,stage,report);
         const std::vector<witness::Function> allocatorFunctions={
             {"FUObjectArray_AllocateSerialNumber",compat::FunctionAllocateSerialNumberRva,compat::FunctionAllocateSerialNumberBytes},
             {"FWeakObjectPtr_AssignObject",compat::FunctionAssignWeakObjectRva,compat::FunctionAssignWeakObjectBytes}};
         std::string verificationError;
-        if(!witness::VerifyFunctions(oc::Read,session.image,session.image_bytes,registration.at("functions"),allocatorFunctions,report["checks_performed"],"identity_allocator",verificationError))
+        if(!witness::VerifyFunctions(oc::Read,session.image,session.image_bytes,stage.at("allocator_witnesses"),allocatorFunctions,report["checks_performed"],"identity_allocator",verificationError))
             throw std::runtime_error(verificationError);
         const ww_game_compat_resolution::Range image{session.image,session.image_bytes};
         if(!ww_game_compat_resolution::Contains(image,session.image+compat::FunctionAllocateSerialNumberRva,compat::FunctionAllocateSerialNumberBytes))throw std::runtime_error("allocator address out of image");

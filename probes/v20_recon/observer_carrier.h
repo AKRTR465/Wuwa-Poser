@@ -47,9 +47,12 @@ inline void Begin(Session& session,HMODULE self,const wchar_t* resultName,Json& 
     // Recovery publishes stop before checking this atomic marker. A late
     // worker must announce itself, then honor stop before touching targets.
     if(StopRequested(session.directory))throw std::runtime_error("observer cancelled before target access");
-    std::ifstream input(session.directory/L"observe_target.json",std::ios::binary);input>>session.config;
+    std::ifstream input(session.directory/L"observe_target.json",std::ios::binary|std::ios::ate);
+    const std::streamoff bytes=input.tellg();
+    if(bytes<=0||bytes>8*1024*1024)throw std::runtime_error("observer configuration unavailable or oversized");
+    input.seekg(0);session.config=Json::parse(input);
     std::string error;
-    if(!witness::CompatibleSource(session.config,compat::ProfileId,compat::SourceSha256,report["checks_performed"],error))throw std::runtime_error(error);
+    if(!witness::CompatibleId(session.config,compat::CompatibilityId,report["checks_performed"],error))throw std::runtime_error(error);
     MODULEINFO module{};if(!GetModuleInformation(GetCurrentProcess(),GetModuleHandleW(nullptr),&module,sizeof(module)))throw std::runtime_error("main module unavailable");
     session.image=reinterpret_cast<uint64_t>(module.lpBaseOfDll);session.image_bytes=module.SizeOfImage;report["image_base"]=Hex(session.image);
     if(!witness::VerifyFunctions(Read,session.image,session.image_bytes,session.config.at(stage).at("function_witnesses"),HookFunctions(),report["checks_performed"],group,error))

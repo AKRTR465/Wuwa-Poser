@@ -91,7 +91,6 @@
   "layouts": {
     "femalem--sanhua--r2t1sanhuamd10011:/Game/Aki/Character/Role/FemaleM/Sanhua/R2T1SanhuaMd10011/ABP_Performance_Sanhua_PC.ABP_Performance_Sanhua_PC_C": {
       "variant": "ABP_Performance_Sanhua_PC",
-      "export_sha256": "62e19b4af1e3a5db0505bf2cfede24c536bc6ac13c1f4afcfe030ddf77eb31ae",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Bone_Hair012", "Bone_Hair003", "Bone_Hair002", "Bone_Hair001", "Hair_M_LiuHai01"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_6", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Piao_LongA02", "Piao_LongB02"], "shapes": [
@@ -131,7 +130,6 @@
     },
     "femalem--sanhua--r2t1sanhuamd20011:/Game/Aki/Character/Role/FemaleM/Sanhua/R2T1SanhuaMd20011/ABP_Performance_Sanhua_PC.ABP_Performance_Sanhua_PC_C": {
       "variant": "ABP_Performance_Sanhua_PC",
-      "export_sha256": "6d46b77d0877db218803da1c72a787e20e53ce56ac39f71fbac53846c2ed5108",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Bone_Hair012", "Bone_Hair003", "Bone_Hair002", "Bone_Hair001", "Hair_M_LiuHai01"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_6", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Piao_LongA02", "Piao_LongB02"], "shapes": [
@@ -171,7 +169,6 @@
     },
     "femalexl--bailian--r2t1bailianmd10011:/Game/Aki/Character/Role/FemaleXL/BaiLian/R2T1BaiLianMd10011/ABP_Performance_BaiLian_PC.ABP_Performance_BaiLian_PC_C": {
       "variant": "ABP_Performance_BaiLian_PC",
-      "export_sha256": "08f82419afe01783949c94ed39c09fc2d9ab14da37207e6f2c3b6e121648d4d1",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "None", "root_bones": ["L_ChestBone01", "R_ChestBone01"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "None", "root_bones": ["Piao_R_hair03", "Piao_L_hair03"], "shapes": [
@@ -222,7 +219,6 @@
     },
     "males--lingyang--r2t1lingyangmd10011:/Game/Aki/Character/Role/MaleS/Lingyang/R2T1LingyangMd10011/ABP_Performance_Lingyang_PC.ABP_Performance_Lingyang_PC_C": {
       "variant": "ABP_Performance_Lingyang_PC",
-      "export_sha256": "be673df41e97acaa6cc0a38d063658a7103a6f3288c4d747489650088f45c279",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_11", "curve_name": "None", "root_bones": ["Bone_Hair012_R", "Bone_Hair022_R", "Bone_Hair012_L", "Bone_Hair022_L"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Hair041"], "shapes": [
@@ -274,7 +270,6 @@
     },
     "femalem--zhezhi--r2t1zhezhimd10011:/Game/Aki/Character/Role/FemaleM/Zhezhi/R2T1ZhezhiMd10011/ABP_Performance_Zhezhi_PC.ABP_Performance_Zhezhi_PC_C": {
       "variant": "ABP_Performance_Zhezhi_PC",
-      "export_sha256": "4ee70df5dc786a2990069031584760401c7ede61d3b0f879492c45df95633e27",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "None", "root_bones": ["Bone_Hair002_M", "Bone_Hair007_R", "Bone_Hair003_R", "Bone_Hair005_R", "Bone_Hair012_R", "Bone_Hair004_R", "Bone_Hair014_R", "Bone_Hair002_L", "Bone_Hair012_L", "Bone_Hair016_L", "Bone_Hair014_L", "Bone_Hair004_L", "Bone_Piao021_R", "Bone_Piao021_L"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Bone_Piao002_R", "Bone_Piao002_L", "Bone_Piao011_R", "Bone_Piao011_L"], "shapes": []},
@@ -309,7 +304,6 @@
     },
     "females--youhu--r2t1youhumd10011:/Game/Aki/Character/Role/FemaleS/Youhu/R2T1YouHuMd10011/ABP_Performance_YouHu_PC.ABP_Performance_YouHu_PC_C": {
       "variant": "ABP_Performance_YouHu_PC",
-      "export_sha256": "d4931734da7313c68f9a16dd08f07c69242000cfefe318aebd3445d022b23ad0",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "None", "root_bones": ["Bone_Piao083_R", "Bone_Piao083_L", "Bone_Piao088_M"], "shapes": [
             {"id": "824483c00b6c02637067ee6ba5337fea", "source_id": 1, "bone": "Bip001LThigh", "array": 0, "radius": 5.0, "length": 26.5, "offset": [13.070716, -0.117051, -0.751967], "rotation": [-89.558975, -0.084941, 0.103216], "enabled": true},
@@ -344,7 +338,6 @@
     },
     "femalems--kmola--r2t1kamolamd10011:/Game/Aki/Character/Role/FemaleMS/Kmola/R2T1KamolaMd10011/ABP_Performance_Kamola_PC.ABP_Performance_Kamola_PC_C": {
       "variant": "ABP_Performance_Kamola_PC",
-      "export_sha256": "26be39c1fb57111378c4bc0cc9df2c7bf19a989395b3331d3e69fa70a78a75fd",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Bone_Skirt013_R", "Bone_Skirt013_L", "Bone_Skirt003_R", "Bone_Skirt003_L", "Bone_Piao044_R", "Bone_Piao044_L"], "shapes": [
             {"id": "6e4bfe479a836926801a9736eb04a613", "source_id": 1, "bone": "Bip001LThigh", "array": 0, "radius": 5.881724, "length": 13.936864, "offset": [8.4511595, -0.22189534, 0.40757078], "rotation": [77.928444, 0.038369674, 0.0013694925], "enabled": true},
@@ -368,7 +361,6 @@
     },
     "femalems--kmola--r2t1kamolamd20011:/Game/Aki/Character/Role/FemaleMS/Kmola/R2T1KamolaMd20011/ABP_Performance_Kamola_PC.ABP_Performance_Kamola_PC_C": {
       "variant": "ABP_Performance_Kamola_PC",
-      "export_sha256": "9ddd9047c5923ad6005ff3c339cbac4927f33606b77628792576c0161800f1a5",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Bone_Skirt013_R", "Bone_Skirt013_L", "Bone_Skirt003_R", "Bone_Skirt003_L", "Bone_Piao044_R", "Bone_Piao044_L"], "shapes": [
             {"id": "0145153befe75d029abb7b2e8205c6cc", "source_id": 1, "bone": "Bip001LThigh", "array": 0, "radius": 5.881724, "length": 13.936864, "offset": [8.4511595, -0.22189534, 0.40757078], "rotation": [77.928444, 0.038369674, 0.0013694925], "enabled": true},
@@ -392,7 +384,6 @@
     },
     "femalexl--taidaonv--r2t1taidaonvmd10011:/Game/Aki/Character/Role/FemaleXL/TaiDaoNv/R2T1TaidaonvMd10011/ABP_Performance_Feixue_PC.ABP_Performance_Feixue_PC_C": {
       "variant": "ABP_Performance_Feixue_PC",
-      "export_sha256": "4797bcd0c5351ad0a24d839abae370d642f41cae36657388253049df683c15d0",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_13", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Piao102_R", "Bone_Piao102_L", "Bone_Piao112_R", "Bone_Piao112_L", "Bone_Piao091_R", "Bone_Piao091_L", "Bone_Piao083_M"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_12", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Skirt001_R", "Bone_Skirt001_L", "Bone_Skirt011_R", "Bone_Skirt011_L", "Bone_Piao172_R", "Bone_Piao172_L"], "shapes": [
@@ -455,7 +446,6 @@
     },
     "femalexl--taidaonv--r2t1taidaonvmd20011:/Game/Aki/Character/Role/FemaleXL/TaiDaoNv/R2T1TaidaonvMd20011/ABP_Performance_Feixue_PC.ABP_Performance_Feixue_PC_C": {
       "variant": "ABP_Performance_Feixue_PC",
-      "export_sha256": "865455682ea51ac3111465d42a861ed07909566ff66b16dd501c337dcd8b8153",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Piao142_L", "Bone_Piao142_R", "Bone_Piao132_L", "Bone_Piao132_R", "Bone_Piao121_L", "Bone_Piao121_R", "Bone_Piao124_M"], "shapes": [
             {"id": "a1b4deb15098a945923a4424ede3b01a", "source_id": 1, "bone": "Bip001Pelvis", "array": 0, "radius": 10.574125, "length": 8.265018, "offset": [1.93262, 0.63058, 0.005315181], "rotation": [-0.011591, -0.007212, -3.625785], "enabled": true},
@@ -504,7 +494,6 @@
     },
     "femalexl--luosela--r2t1luoselamd10011:/Game/Aki/Character/Role/FemaleXL/Luosela/R2T1LuoselaMd10011/ABP_Performance_Luosela_PC.ABP_Performance_Luosela_PC_C": {
       "variant": "ABP_Performance_Luosela_PC",
-      "export_sha256": "208b8f81403188157d575deaed35dd4bbe9c34be072aaab729e6aff2f24e84c4",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Piao081_L", "Bone_Piao081_R", "Bone_Piao047_R", "Bone_Piao012_L", "Bone_Piao014_L", "Bone_Piao003_M", "Bone_Piao002_L", "Bone_Piao002_R", "Bone_Piao001_R", "Bone_Piao002_M", "Bone_Piao001_L"], "shapes": [
             {"id": "9fc9335edc3286fb25083c9799c934d4", "source_id": 1, "bone": "Bip001RClavicle", "array": 0, "radius": 4.320683, "length": 6.25, "offset": [5.654206, 0.4992902, 0.6459616], "rotation": [74.66493, 179.86554, 178.14064], "enabled": true},
@@ -550,7 +539,6 @@
     },
     "femalem--suisui--r2t1suisuimd10011:/Game/Aki/Character/Role/FemaleM/Suisui/R2T1SuisuiMd10011/ABP_Performance_Suisui_PC.ABP_Performance_Suisui_PC_C": {
       "variant": "ABP_Performance_Suisui_PC",
-      "export_sha256": "c31d17115a08a6832d520b7f92c7bfa41fa2c77ccf8533204bc10d839816a608",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "Kawaii_alpha_S07", "root_bones": ["Bone_Hair072_M", "Bone_Hair082_M", "Bone_Hair152_R", "Bone_Hair152_L", "Bone_Hair062_R", "Bone_Hair062_L", "Bone_Hair042_R", "Bone_Hair042_L", "Bone_Hair052_R", "Bone_Hair052_L", "Bone_Hair142_R", "Bone_Hair142_L", "Bone_Hair032_R", "Bone_Hair022_R", "Bone_Hair012_R", "Bone_Hair002_R", "Bone_Hair002_L", "Bone_Hair012_L", "Bone_Hair022_L", "Bone_Hair032_L"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "Kawaii_alpha_S06", "root_bones": ["Bone_Piao144_R", "Bone_Piao242_R", "Bone_Piao152_R", "Bone_Piao201_M", "Bone_Piao011_L", "Bone_Piao052_L", "Bone_Piao042_L", "Bone_Piao211_L", "Bone_Piao231_L", "Bone_Piao221_L", "Bone_Piao072_L", "Bone_Piao241_L", "Bone_Piao081_L", "Bone_Piao042_R", "Bone_Piao052_R", "Bone_Piao231_R", "Bone_Piao211_R", "Bone_Piao221_R", "Bone_Piao072_R", "Bone_Piao083_R", "Bone_Piao241_R"], "shapes": [
@@ -592,7 +580,6 @@
     },
     "femalem--maxiaofang--r2t1maxiaofangmd10011:/Game/Aki/Character/Role/FemaleM/Maxiaofang/R2T1MaxiaofangMd10011/ABP_Performance_Maxiaofang_PC.ABP_Performance_Maxiaofang_PC_C": {
       "variant": "ABP_Performance_Maxiaofang_PC",
-      "export_sha256": "bdd0fb442c92a266f3590a827eace7bfe274c1940b76f2142306b5421721f8ed",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "None", "root_bones": ["Bone_Hair019_R", "Bone_Hair015_L", "Bone_Hair001_L", "Bone_Hair005_L", "Bone_Hair011_M", "Bone_Hair008_R", "Bone_Piao023_R", "Bone_Piao020_L"], "shapes": [
             {"id": "c07d463893962ccd3a4438902299b60b", "source_id": 1, "bone": "Bip001Neck", "array": 0, "radius": 3.25, "length": 3.5, "offset": [4.745249, 0.574525, -0.037125], "rotation": [87.95263, 0.31246, -11.35961], "enabled": true}
@@ -630,7 +617,6 @@
     },
     "females--anke--r2t1ankemd10011:/Game/Aki/Character/Role/FemaleS/Anke/R2T1AnkeMd10011/ABP_Performance_Anke_PC.ABP_Performance_Anke_PC_C": {
       "variant": "ABP_Performance_Anke_PC",
-      "export_sha256": "aca9ae64613b5248ef87ebecfb038daf937b7a4d568591ab21c1b248a79eb25c",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_12", "curve_name": "None", "root_bones": ["Hair_daiMao01", "Hair_R_niMao01", "Hair_L_niMao01"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_11", "curve_name": "None", "root_bones": ["Piao_R_erZhui01", "Piao_L_erZhui01"], "shapes": [
@@ -678,7 +664,6 @@
     },
     "malexl--baer--r2t1baermd10011:/Game/Aki/Character/Role/MaleXL/Baer/R2T1BaerMd10011/ABP_Performance_Baer_PC.ABP_Performance_Baer_PC_C": {
       "variant": "ABP_Performance_Baer_PC",
-      "export_sha256": "9bd53c87ca50418fc09cc3277dc5b78a8a3535ab756675f6b67902e8bd9936a5",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_6", "curve_name": "None", "root_bones": ["Skirt_L_02", "Skirt_R_02", "Skirt_M_02"], "shapes": [
             {"id": "24f997fdb46956c465904eada8d33330", "source_id": 1, "bone": "Bip001RThigh", "array": 0, "radius": 7.25, "length": 42.0, "offset": [24.811392, -0.310508, -1.588933], "rotation": [-87.41471, 1.90157, 0.003412], "enabled": true},
@@ -713,7 +698,6 @@
     },
     "femalexl--changli--r2t1changlimd10011:/Game/Aki/Character/Role/FemaleXL/ChangLi/R2T1ChangLiMd10011/ABP_Performance_ChangLi_PC.ABP_Performance_ChangLi_PC_C": {
       "variant": "ABP_Performance_ChangLi_PC",
-      "export_sha256": "50494149e1870d0e2c971f4389d7ca5bfdd6eab7634b9b1b8045007168836349",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "None", "root_bones": ["Bone_Hair001_M", "Bone_Hair004_M", "Bone_Hair082_R", "Bone_Hair082_L", "Bone_Hair093_R", "Bone_Hair093_L", "Bone_Hair023_R", "Bone_Hair023_L", "Bone_Hair026_R", "Bone_Hair026_L", "Bone_Hair007_M", "Bone_Hair103"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "None", "root_bones": ["Bone_Piao023_L", "Bone_Piao023_R"], "shapes": []},
@@ -750,7 +734,6 @@
     },
     "femalexl--changli--r2t1changlimd20011:/Game/Aki/Character/Role/FemaleXL/ChangLi/R2T1ChangLiMd20011/ABP_Performance_ChangLi_PC.ABP_Performance_ChangLi_PC_C": {
       "variant": "ABP_Performance_ChangLi_PC",
-      "export_sha256": "17af1e85df4755cf3a7436bbbced5f9d4acf03ca92369e400e00db37d396e997",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "None", "root_bones": ["Bone_Hair001_M", "Bone_Hair004_M", "Bone_Hair082_R", "Bone_Hair082_L", "Bone_Hair093_R", "Bone_Hair093_L", "Bone_Hair023_R", "Bone_Hair023_L", "Bone_Hair026_R", "Bone_Hair026_L", "Bone_Hair007_M", "Bone_Hair103"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "None", "root_bones": ["Bone_Piao023_L", "Bone_Piao023_R"], "shapes": []},
@@ -787,7 +770,6 @@
     },
     "malexl--bulante--r2t1bulantemd10011:/Game/Aki/Character/Role/MaleXL/Bulante/R2T1BulanteMd10011/ABP_Performance_Bulante_PC.ABP_Performance_Bulante_PC_C": {
       "variant": "ABP_Performance_Bulante_PC",
-      "export_sha256": "446ca7897362ca40d1d13c54c7696949721b96e4c335c52c6e68de1f74e17d66",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "None", "root_bones": ["Bone_Piao025_M", "Bone_Piao013_M", "Bone_Piao017_M", "Bone_Piao021_M"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Bone_Hair102_M", "Bone_Hair110_M", "Bone_Hair107_M", "Bone_Hair114_R", "Bone_Hair109_R", "Bone_Hair002_R", "Bone_Hair115_R", "Bone_Hair111_R", "Bone_Hair001_R", "Bone_Hair004_R", "Bone_Hair005_R", "Bone_Hair002_M", "Bone_Hair004_M", "Bone_Hair003_M", "Bone_Hair004_L", "Bone_Hair101_L", "Bone_Hair116_L", "Bone_Hair001_L", "Bone_Hair002_L", "Bone_Hair113_L", "Bone_Hair104_M"], "shapes": [
@@ -829,7 +811,6 @@
     },
     "femalem--lupa--r2t1lupamd10011:/Game/Aki/Character/Role/FemaleM/Lupa/R2T1LupaMd10011/ABP_Performance_Lupa_PC.ABP_Performance_Lupa_PC_C": {
       "variant": "ABP_Performance_Lupa_PC",
-      "export_sha256": "b1be2324bddd4a6b5eb7dfac94f0e8181b7e28cc63fdb417db0688985e9f36f6",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Tail004_M"], "shapes": [
             {"id": "696a2b46f9b57b34f35b08615e665a85", "source_id": 1, "bone": "Bip001LThigh", "array": 0, "radius": 5.9708695, "length": 24.159588, "offset": [21.824957, 0.22593305, -0.4201474], "rotation": [-77.6047, -76.67385, 72.783676], "enabled": true},
@@ -873,7 +854,6 @@
     },
     "femalexl--jiabeilina--r2t1calbrenamd10011:/Game/Aki/Character/Role/FemaleXL/Jiabeilina/R2T1CalbrenaMd10011/ABP_Performance_Calbrena_PC.ABP_Performance_Calbrena_PC_C": {
       "variant": "ABP_Performance_Calbrena_PC",
-      "export_sha256": "5533300db9d057c34076605b2ddc01e35c804d95131842fae39ed0ec5b2d32a8",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_15", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Skirt004_L", "Bone_Skirt003_R", "Bone_Skirt014_L", "Bone_Skirt014_R"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_14", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Piao133_R", "Bone_Piao133_L"], "shapes": []},
@@ -927,7 +907,6 @@
     },
     "femalems--mone--r2t1monemd10011:/Game/Aki/Character/Role/FemaleMS/Mone/R2T1MoneMd10011/ABP_Performance_Mone_PC.ABP_Performance_Mone_PC_C": {
       "variant": "ABP_Performance_Mone_PC",
-      "export_sha256": "029e4158cc97fff9f52ea9312e5b4773fa9ece42d4f6c00c86ce0bc3f3647666",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_15", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Skirt001_L", "Bone_Skirt001_R"], "shapes": [
             {"id": "e1816d0ad22ce112c36dc1e70fe6b6ae", "source_id": 1, "bone": "Bip001Pelvis", "array": 0, "radius": 6.519454, "length": 7.430003, "offset": [0.016769, 1.025361, -0.077753], "rotation": [-4.792354, 2.4125228, -11.01761], "enabled": true},
@@ -974,7 +953,6 @@
     },
     "femalems--mone--r2t1monemd20011:/Game/Aki/Character/Role/FemaleMS/Mone/R2T1MoneMd20011/ABP_Performance_Mone_PC.ABP_Performance_Mone_PC_C": {
       "variant": "ABP_Performance_Mone_PC",
-      "export_sha256": "46be4894799420d146ad85c1940260485ac8cc25d938d04199086f34bd4079ed",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_15", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Skirt001_L", "Bone_Skirt001_R"], "shapes": [
             {"id": "c363a669c51b05b0eeaf7beaa9685aed", "source_id": 1, "bone": "Bip001Pelvis", "array": 0, "radius": 6.519454, "length": 7.430003, "offset": [0.016769, 1.025361, -0.077753], "rotation": [-4.792354, 2.4125228, -11.01761], "enabled": true},
@@ -1021,7 +999,6 @@
     },
     "femalem--aimisi--r2t1aimisimd10011:/Game/Aki/Character/Role/FemaleM/Aimisi/R2T1AimisiMd10011/ABP_Performance_Aimisi_PC.ABP_Performance_Aimisi_PC_C": {
       "variant": "ABP_Performance_Aimisi_PC",
-      "export_sha256": "a3d6df8fc2866e916b6b976b17dc549f8590fcf640508af6b1751c6a326eb8ab",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "Kawaii_alpha_S06", "root_bones": ["Bone_Hair002_M", "Bone_Hair002_R", "Bone_Hair012_R", "Bone_Hair022_R", "Bone_Hair062_R", "Bone_Hair032_R", "Bone_Hair042_R", "Bone_Hair002_L", "Bone_Hair012_L", "Bone_Hair022_L", "Bone_Hair033_L", "Bone_Hair042_L", "Bone_Hair171_L", "Bone_Hair061_L"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Hair103_M"], "shapes": [
@@ -1061,7 +1038,6 @@
     },
     "femalez2--aimisigd--r2t1aimisigdmd10011:/Game/Aki/Character/Role/FemaleZ2/AimisiGD/R2T1AimisiGDMd10011/ABP_Performance_AimisiGD_PC.ABP_Performance_AimisiGD_PC_C": {
       "variant": "ABP_Performance_AimisiGD_PC",
-      "export_sha256": "d40b589d7d75c2617884f834ef1ceb68014f5ecb63f0241bae1d104205723778",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_3", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Hair052"], "shapes": [
             {"id": "cb43dbe2d2e3c51a977d21a45368357f", "source_id": 1, "bone": "Bip001LUpperArm", "array": 0, "radius": 0.0, "length": 14.5, "offset": [7.137086, 0.002128, 0.059629], "rotation": [-90.0, 90.197685, -90.1806], "enabled": true}
@@ -1079,7 +1055,6 @@
     },
     "femalems--daniya--r2t1daniyamd10011:/Game/Aki/Character/Role/FemaleMS/Daniya/R2T1DaniyaMd10011/ABP_Performance_Daniya_PC.ABP_Performance_Daniya_PC_C": {
       "variant": "ABP_Performance_Daniya_PC",
-      "export_sha256": "3a86596753aa321efd41b880ff59b6eacef67e8329a6f24d6bb93782855364aa",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Hair032_L", "Bone_Hair042_L", "Bone_Hair042_R", "Bone_Hair032_R"], "shapes": [
             {"id": "a866d7903e723c822c3cba2e013854f1", "source_id": 1, "bone": "Bip001LClavicle", "array": 0, "radius": 4.0, "length": 8.5, "offset": [3.703196, -0.147812, -0.067537], "rotation": [-90.0, -68.1986, 58.1795], "enabled": true},
@@ -1124,7 +1099,6 @@
     },
     "femalems--daniya-dark--r2t1daniyamd10011-up2:/Game/Aki/Character/Role/FemaleMS/Daniya/R2T1DaniyaMd10011/ABP_Performance_Daniya_PC.ABP_Performance_Daniya_PC_C": {
       "variant": "ABP_Performance_Daniya_PC",
-      "export_sha256": "3a86596753aa321efd41b880ff59b6eacef67e8329a6f24d6bb93782855364aa",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Hair032_L", "Bone_Hair042_L", "Bone_Hair042_R", "Bone_Hair032_R"], "shapes": [
             {"id": "a866d7903e723c822c3cba2e013854f1", "source_id": 1, "bone": "Bip001LClavicle", "array": 0, "radius": 4.0, "length": 8.5, "offset": [3.703196, -0.147812, -0.067537], "rotation": [-90.0, -68.1986, 58.1795], "enabled": true},
@@ -1169,7 +1143,6 @@
     },
     "malem--jingran--r2t1jingranmd10011:/Game/Aki/Character/Role/MaleM/Jingran/R2T1JingranMd10011/ABP_Performance_Jingran_PC.ABP_Performance_Jingran_PC_C": {
       "variant": "ABP_Performance_Jingran_PC",
-      "export_sha256": "1d31b4649f808fd783284b623017efafec2606514d12752f2398a83965a05f1c",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Piao061_L", "Bone_Piao061_R", "Bone_Piao066_R", "Bone_Piao211_R", "Bone_Piao191_R", "Bone_Piao191_L", "Bone_Piao185_L"], "shapes": [
             {"id": "743d35d2c3ff315d409c8b2aef56c6c9", "source_id": 1, "bone": "Bip001Pelvis", "array": 0, "radius": 8.972579, "length": 6.8218856, "offset": [2.7474594, 2.507699, -1.0789726], "rotation": [-4.803767, 2.4091058, -8.541156], "enabled": true},
@@ -1219,7 +1192,6 @@
     },
     "malexl--kakaluo--r2t1kakaluomd10011:/Game/Aki/Character/Role/MaleXL/Kakaluo/R2T1KakaluoMd10011/ABP_Performance_Kakaluo_PC.ABP_Performance_Kakaluo_PC_C": {
       "variant": "ABP_Performance_Kakaluo_PC",
-      "export_sha256": "db8b609cb9f392f76ed33c2a0676ed85ac2490b48ee52c3ff3a0d49c67d1f1cb",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Bone_Hair029_R", "Bone_Hair001_R"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_6", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Hair047_M"], "shapes": [
@@ -1265,7 +1237,6 @@
     },
     "femalem--yinlin--r2t1yinlinmd10011:/Game/Aki/Character/Role/FemaleM/YinLin/R2T1YinlinMd10011/ABP_Performance_Yinlin_PC.ABP_Performance_Yinlin_PC_C": {
       "variant": "ABP_Performance_Yinlin_PC",
-      "export_sha256": "9e2fe098b787a679b81955f2008f775a0993c14ce12045ad5b7fd92b76137c62",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "None", "root_bones": ["Bone_Hair011_R", "Bone_Hair002_R", "Bone_Hair002_M", "Bone_Hair012_L"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Hair068_R"], "shapes": [
@@ -1319,7 +1290,6 @@
     },
     "malexl--yuanwu--r2t1yuanwumd10011:/Game/Aki/Character/Role/MaleXL/Yuanwu/R2T1YuanwuMd10011/ABP_Performance_Yuanwu_PC.ABP_Performance_Yuanwu_PC_C": {
       "variant": "ABP_Performance_Yuanwu_PC",
-      "export_sha256": "dc7b52f7893c88b09af639f859905d9fdf556825eaf77790ec8b96ab77ef5f43",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_1", "curve_name": "None", "root_bones": ["Bone_Piao015_R", "Bone_Piao022_R", "Bone_Piao009_L", "Bone_Piao002_L"], "shapes": [
             {"id": "6e4cf1c72ed053e2cbd71608dffbcdb6", "source_id": 1, "bone": "Bip001RThigh", "array": 0, "radius": 8.75, "length": 42.0, "offset": [24.811392, -0.310508, -1.588933], "rotation": [-87.41471, 1.90157, 0.003412], "enabled": true},
@@ -1332,7 +1302,6 @@
     },
     "femalem--jinxi--r2t1jinximd10011:/Game/Aki/Character/Role/FemaleM/Jinxi/R2T1JinxiMd10011/ABP_Performance_Jinxi_PC.ABP_Performance_Jinxi_PC_C": {
       "variant": "ABP_Performance_Jinxi_PC",
-      "export_sha256": "d9cf780555678824b04f4e217c87389ae659765a669cd06d00d66e7bfc3beac7",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "None", "root_bones": ["Bone_Hair038_R", "Bone_Hair030_M", "Bone_Hair034_L"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Bone_Hair011_L", "Bone_Hair021_R"], "shapes": [
@@ -1378,7 +1347,6 @@
     },
     "femalem--jinxi--r2t1jinximd20011:/Game/Aki/Character/Role/FemaleM/Jinxi/R2T1JinxiMd20011/ABP_Performance_Jinxi_PC.ABP_Performance_Jinxi_PC_C": {
       "variant": "ABP_Performance_Jinxi_PC",
-      "export_sha256": "c57b65755f7a87b44916611b5eb830233ffb8d2e127b1de671054d5e356e272e",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "None", "root_bones": ["Bone_Hair001_M", "Bone_Hair001_L", "Bone_Hair001_R", "Bone_Hair011_L", "Bone_Hair011_R"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "None", "root_bones": ["Bone_Piao022_L", "Bone_Piao022_R", "Bone_Piao001_L", "Bone_Piao001_R", "Bone_Piao042_L", "Bone_Piao042_R", "Bone_Piao011_L", "Bone_Piao011_R", "Bone_Piao012_L", "Bone_Piao012_R", "Bone_Piao051_L", "Bone_Piao014_L", "Bone_Piao111_L", "Bone_Piao111_R"], "shapes": [
@@ -1427,7 +1395,6 @@
     },
     "malem--xiangliyao--r2t1xiangliyaomd10011:/Game/Aki/Character/Role/MaleM/Xiangliyao/R2T1XiangLiYaoMd10011/ABP_Performance_XiangLiYao_PC.ABP_Performance_XiangLiYao_PC_C": {
       "variant": "ABP_Performance_XiangLiYao_PC",
-      "export_sha256": "c41bc53fb6081ae2f30f58fa1201bb52b52f7d2a15ff8cc3bfa1df38525515dd",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Bone_Piao033_R"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_6", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Skirt011_R", "Bone_Skirt011_L"], "shapes": [
@@ -1465,7 +1432,6 @@
     },
     "femalexl--aogusita--r2t1aogusitamd10011:/Game/Aki/Character/Role/FemaleXL/Aogusita/R2T1AogusitaMd10011/ABP_Performance_Aogusita_PC.ABP_Performance_Aogusita_PC_C": {
       "variant": "ABP_Performance_Aogusita_PC",
-      "export_sha256": "9cce371d733ed3166f368fa82c5b55061269050bde7c8ee2f5e738fd4634ee6c",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Skirt012_R", "Bone_Skirt012_L"], "shapes": [
             {"id": "38e2b6d131dc16ed70f2073b950a5b6c", "source_id": 1, "bone": "Bip001RThigh", "array": 0, "radius": 8.881511, "length": 36.26591, "offset": [14.4454975, 3.3864186, -0.1447608], "rotation": [-85.24691, 1.2879944, -4.0177555], "enabled": true},
@@ -1512,7 +1478,6 @@
     },
     "femalems--buling--r2t1bulingmd10011:/Game/Aki/Character/Role/FemaleMS/Buling/R2T1BulingMd10011/ABP_Performance_Buling_PC.ABP_Performance_Buling_PC_C": {
       "variant": "ABP_Performance_Buling_PC",
-      "export_sha256": "5c10a244a2162101b9265083b339917ccf57e97f39658fd3989dec8e494a4be3",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "Kawaii_alpha_S02", "root_bones": ["Bone_Skirt012_R", "Bone_Skirt022_R", "Bone_Skirt022_L", "Bone_Skirt012_L", "Bone_Piao083_L"], "shapes": [
             {"id": "3144048ad545af60a2dfeb45a3e5f3ac", "source_id": 1, "bone": "Bip001LThigh", "array": 0, "radius": 5.81738, "length": 20.686863, "offset": [13.797426, 0.64871013, 0.005134642], "rotation": [86.67657, 0.04987184, 0.012940723], "enabled": true},
@@ -1556,7 +1521,6 @@
     },
     "femalems--rebecca--r2t1rebeccamd10011:/Game/Aki/Character/Role/FemaleMS/Rebecca/R2T1RebeccaMd10011/ABP_Performance_Rebecca_PC.ABP_Performance_Rebecca_PC_C": {
       "variant": "ABP_Performance_Rebecca_PC",
-      "export_sha256": "9d7cf9dd1c3476554f26190353b13a0dda5c8526f7d1b44ae53e6c4f8f1913ca",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_12", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Piao200_M", "Bone_Piao202_M"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_11", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Piao200_R", "Bone_Piao200_L"], "shapes": []},
@@ -1590,7 +1554,6 @@
     },
     "malem--nanzhu--r2t1playermalemd10011:/Game/Aki/Character/Role/MaleM/Nanzhu/R2T1PlayerMaleMd10011/ABP_Performance_PlayerMale_PC.ABP_Performance_PlayerMale_PC_C": {
       "variant": "ABP_Performance_PlayerMale_PC",
-      "export_sha256": "850e0e7d000133e607bc13b0122625ef8f4fd4da964968d32ebee3d16bcf6355",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_5", "curve_name": "None", "root_bones": ["Piao_R_yiLing01", "Piao_L_yiLing01", "Piao_M_mingPai01"], "shapes": [
             {"id": "93969492d566e1287b56260fa2481ad6", "source_id": 1, "bone": "Bip001RClavicle", "array": 0, "radius": 3.0, "length": 3.25, "offset": [3.85736, 2.359226, 0.664106], "rotation": [-54.465916, 59.392277, -53.947838], "enabled": true},
@@ -1624,7 +1587,6 @@
     },
     "malem--nanzhu--r2t1playermalemd20011:/Game/Aki/Character/Role/MaleM/ThunderNanzhu/R2T1ThunderNanzhuMd20011/ABP_Performance_DarkNanzhu_PC.ABP_Performance_DarkNanzhu_PC_C": {
       "variant": "ABP_Performance_DarkNanzhu_PC",
-      "export_sha256": "d42207fef46aea79ef73c3c03ffaec6b7dbe942df2578a63c18ea0d348b23c59",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_5", "curve_name": "None", "root_bones": ["Piao_R_yiLing01", "Piao_L_yiLing01", "Piao_M_mingPai01"], "shapes": [
             {"id": "4c46bf225b15c0256c337cc89329a1b1", "source_id": 1, "bone": "Bip001RClavicle", "array": 0, "radius": 3.0, "length": 3.25, "offset": [3.85736, 2.359226, 0.664106], "rotation": [-54.465916, 59.392277, -53.947838], "enabled": true},
@@ -1658,7 +1620,6 @@
     },
     "femalem--nvzhu--r2t1playerfemalemd10011:/Game/Aki/Character/Role/FemaleM/Nvzhu/R2T1PlayerFemaleMd10011/ABP_Performance_PlayerFemale_PC.ABP_Performance_PlayerFemale_PC_C": {
       "variant": "ABP_Performance_PlayerFemale_PC",
-      "export_sha256": "70958962e9cc84b28be4b188decda7a3f933856c87ffbeb6d36a81f9972a5e52",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Hair_M_B00"], "shapes": [
             {"id": "8fb6d852ef59cd3d9d463e23ddf40618", "source_id": 1, "bone": "Bip001LClavicle", "array": 0, "radius": 4.0, "length": 7.75, "offset": [4.676539, 0.57764, 0.760725], "rotation": [80.021835, -0.029242, -7.917369], "enabled": true},
@@ -1697,7 +1658,6 @@
     },
     "femalem--nvzhu--r2t1playerfemalemd20011:/Game/Aki/Character/Role/FemaleM/ThunderNvzhu/R2T1ThunderNvzhuMd20011/ABP_Performance_ThunderNvzhu_PC.ABP_Performance_ThunderNvzhu_PC_C": {
       "variant": "ABP_Performance_ThunderNvzhu_PC",
-      "export_sha256": "6614f8f4079e6e80d0b16fbb9e0a8a9f5659f7588cc4b4963ecfa8befeb34543",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Hair001_M"], "shapes": [
             {"id": "ca9cfb6c2230a81b0f46f386d2a8633e", "source_id": 1, "bone": "Bip001LClavicle", "array": 0, "radius": 4.0, "length": 7.75, "offset": [4.676539, 0.5776402, 0.76072484], "rotation": [80.021835, -0.029242, -7.917369], "enabled": true},
@@ -1747,7 +1707,6 @@
     },
     "femalexl--xinyuehu--r2t1xinmd10011:/Game/Aki/Character/Role/FemaleXL/Xinyuehu/R2T1XinMd10011/ABP_Performance_Xinyuehu_PC.ABP_Performance_Xinyuehu_PC_C": {
       "variant": "ABP_Performance_Xinyuehu_PC",
-      "export_sha256": "99355ac25d94a256db3317e5198065672457d5b87df62ec0d7675e0065600c7c",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_14", "curve_name": "Kawaii_alpha_S08", "root_bones": ["Bone_Hair102_L", "Bone_Hair102_R", "Bone_Hair111_R", "Bone_Hair111_L"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_13", "curve_name": "Kawaii_alpha_S06", "root_bones": ["Bone_Skirt001_L", "Bone_Skirt001_R", "Bone_Piao101_L", "Bone_Piao101_R"], "shapes": [
@@ -1797,7 +1756,6 @@
     },
     "femalexl--xinyuehushen--r2t1shenxinmd10011:/Game/Aki/Character/Role/FemaleXL/XinyuehuShen/R2T1ShenXinMd10011/ABP_Performance_ShenXin_PC.ABP_Performance_ShenXin_PC_C": {
       "variant": "ABP_Performance_ShenXin_PC",
-      "export_sha256": "05e92e736ad455598f692336cbf2f5c9f8ad0ca420635c9ac06506e94abecde8",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup", "curve_name": "Kawaii_alpha_S05", "root_bones": ["Bone_Hair102_L", "Bone_Hair102_R", "Bone_Tail003_M"], "shapes": [
             {"id": "4c9c3ae1b338b329955fdb47479882fb", "source_id": 1, "bone": "Bip001RClavicle", "array": 0, "radius": 4.831544, "length": 7.5, "offset": [5.545142, 1.132258, -0.43826], "rotation": [-79.99983, 10.003645, 0.01813], "enabled": true},
@@ -1808,7 +1766,6 @@
     },
     "females--suoming--r2t1suomingmd10011:/Game/Aki/Character/Role/FemaleS/Suoming/R2T1SuomingMd10011/ABP_Performance_Suoming_PC.ABP_Performance_Suoming_PC_C": {
       "variant": "ABP_Performance_Suoming_PC",
-      "export_sha256": "64763fe73f6d70a7cd460a343f4bdff31b0396612a399080ec749ed0afe26aa6",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "Kawaii_alpha_S07", "root_bones": ["Bone_Hair002_M", "Bone_Hair002_R", "Bone_Hair006_M", "Bone_Hair002_M", "Bone_Hair004_M", "Bone_Hair002_L", "Bone_Hair005_L", "Bone_Hair005_R"], "shapes": [
             {"id": "977b833d202a08049e93f3cddbaa92ad", "source_id": 1, "bone": "Bip001Neck", "array": 0, "radius": 3.9917479, "length": 5.1382027, "offset": [5.475917, -1.4201962, -0.34209895], "rotation": [89.28126, 0.5477288, 14.84349], "enabled": true}
@@ -1860,7 +1817,6 @@
     },
     "femalem--yangyang--r2t1yangyangmd10011:/Game/Aki/Character/Role/FemaleM/Yangyang/R2T1YangyangMd10011/ABP_Performance_Yangyang_PC.ABP_Performance_Yangyang_PC_C": {
       "variant": "ABP_Performance_Yangyang_PC",
-      "export_sha256": "30fe2290c2c8cba77a99fe21ddcaadd095e93e1b662de43a6de1dbc8211559ac",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["L_ChestBone01", "R_ChestBone01"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_6", "curve_name": "None", "root_bones": ["HairF_Bone17", "HairF_Bone14", "HairF_Bone10", "HairF_Bone05", "HairF_Bone21", "HairF_Bone01"], "shapes": []},
@@ -1903,7 +1859,6 @@
     },
     "malexl--qiushui--r2t1qiushuimd10011:/Game/Aki/Character/Role/MaleXL/Qiushui/R2T1QiushuiMd10011/ABP_Performance_Qiushui_PC.ABP_Performance_Qiushui_PC_C": {
       "variant": "ABP_Performance_Qiushui_PC",
-      "export_sha256": "7ce3ef7a3e7bc5a5254edf0474e79cca2a771b9d829ea27f9196f67317f10993",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_5", "curve_name": "None", "root_bones": ["Piao_L_yiLing01", "Piao_L_yiLing02", "Piao_L_yiLing03", "Piao_M_yiLing02", "Piao_R_yiLing03", "Piao_R_yiLing02", "Piao_R_yiLing01", "Piao_M_yiLing01"], "shapes": [
             {"id": "55d6e4040142ce8e7ad442b8bb9950ea", "source_id": 1, "bone": "Bip001Neck", "array": 0, "radius": 4.75, "length": 5.75, "offset": [2.90064, -2.892468, 0.153732], "rotation": [90.0, -4.223522, -4.218628], "enabled": true}
@@ -1942,7 +1897,6 @@
     },
     "malexl--jiyan--r2t1jiyanmd10011:/Game/Aki/Character/Role/MaleXL/Jiyan/R2T1JiyanMd10011/ABP_Performance_Jiyan_PC.ABP_Performance_Jiyan_PC_C": {
       "variant": "ABP_Performance_Jiyan_PC",
-      "export_sha256": "82be5df0070f419589d637019ccd1c9e3ed212722b3fcd7afa3f3cbd39a1a68e",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "None", "root_bones": ["Hair_F_06", "Hair_F_08", "Hair_Back_03", "Hair_Back_17", "Hair_Back_12", "Hair_Back_22", "Hair_F_01", "Hair_F_07", "Hair_F_05"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Piao_L_clavicla02", "Piao_L_yiXiu02"], "shapes": [
@@ -1984,7 +1938,6 @@
     },
     "femalem--jianxin--r2t1jianxinmd10011:/Game/Aki/Character/Role/FemaleM/Jianxin/R2T1JianxinMd10011/ABP_Performance_Jianxin_PC.ABP_Performance_Jianxin_PC_C": {
       "variant": "ABP_Performance_Jianxin_PC",
-      "export_sha256": "1dc376cb25390263c8f181c9c89fc7527ab71e5389116af30c28a33bf7a04d76",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Hair021_M"], "shapes": [
             {"id": "33752a1aa3a295ca90c801f661b81a27", "source_id": 1, "bone": "Bip001Spine2", "array": 0, "radius": 7.0, "length": 5.25, "offset": [5.920845, 0.380208, -0.688098], "rotation": [0.0, 0.0, 0.0], "enabled": true},
@@ -2029,7 +1982,6 @@
     },
     "malem--nanzhu--r2t1playermalemd20011:/Game/Aki/Character/Role/MaleM/WindNanzhu/R2T1WindNanzhuMd20011/ABP_Performance_WindNanzhu_PC.ABP_Performance_WindNanzhu_PC_C": {
       "variant": "ABP_Performance_WindNanzhu_PC",
-      "export_sha256": "3fef25e508d008fc364dbe712c87730386eacc6e7b48d1e3bed77cddd57a6968",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_5", "curve_name": "None", "root_bones": ["Piao_R_yiLing01", "Piao_L_yiLing01", "Piao_M_mingPai01"], "shapes": [
             {"id": "e0cdb60370094cda6c46d8029bccce12", "source_id": 1, "bone": "Bip001RClavicle", "array": 0, "radius": 3.0, "length": 3.25, "offset": [3.85736, 2.359226, 0.664106], "rotation": [-54.465916, 59.392277, -53.947838], "enabled": true},
@@ -2063,7 +2015,6 @@
     },
     "femalem--xiakong--r2t1xiakongmd10011:/Game/Aki/Character/Role/FemaleM/Xiakong/R2T1XiakongMd10011/ABP_Performance_Xiakong_PC.ABP_Performance_Xiakong_PC_C": {
       "variant": "ABP_Performance_Xiakong_PC",
-      "export_sha256": "62931624b0fcd726dac14b40e00c6e05f516c001fc53a08d29172c4bcb34661e",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_13", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Piao016_L", "Bone_Piao016_R"], "shapes": [
             {"id": "92b07726dc4a70daa50ea27dfcb16c1f", "source_id": 1, "bone": "Bip001Spine1", "array": 0, "radius": 13.056972, "length": 10.204495, "offset": [-6.144294, 4.151711, 0.023638], "rotation": [0.0, 0.0, 0.0], "enabled": true},
@@ -2123,7 +2074,6 @@
     },
     "femalem--nvzhu--r2t1playerfemalemd20011:/Game/Aki/Character/Role/FemaleM/WindNvzhu/R2T1WindNvzhuMd20011/ABP_Performance_WindNvzhu_PC.ABP_Performance_WindNvzhu_PC_C": {
       "variant": "ABP_Performance_WindNvzhu_PC",
-      "export_sha256": "c4b778a13ca80f0648baae1e51dfcc9ab7f1b0c75e512074a8b07ee9f8439f83",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Hair001_M"], "shapes": [
             {"id": "3cb8aaca3c64b1e5c846d705136bd545", "source_id": 1, "bone": "Bip001LClavicle", "array": 0, "radius": 4.0, "length": 7.75, "offset": [4.676539, 0.5776402, 0.76072484], "rotation": [80.021835, -0.029242, -7.917369], "enabled": true},
@@ -2173,7 +2123,6 @@
     },
     "femalems--katixiya--r2t1katixiyamd10011:/Game/Aki/Character/Role/FemaleMS/Katixiya/R2T1KatixiyaMd10011/ABP_Performance_Katixiya_PC.ABP_Performance_Katixiya_PC_C": {
       "variant": "ABP_Performance_Katixiya_PC",
-      "export_sha256": "5bc10f785eb7a4726379d2a211338ef5b2a4d31e8ede7f7aeb13dceaafdbeeff",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Piao024_R", "Bone_Piao024_L"], "shapes": [
             {"id": "d7df6a52c88a7a601918822f693d85c8", "source_id": 1, "bone": "Bip001RThigh", "array": 0, "radius": 6.25, "length": 31.5, "offset": [16.005905, -0.18499376, 0.100361265], "rotation": [90.0, -90.0, -101.73663], "enabled": true},
@@ -2198,7 +2147,6 @@
     },
     "femalez--fuludelisi--r2t1fuludelisimd10011:/Game/Aki/Character/Role/FemaleZ/Fuludelisi/R2T1FuludelisiMd10011/ABP_Performance_Fuludelisi_PC_UI.ABP_Performance_Fuludelisi_PC_UI_C": {
       "variant": "ABP_Performance_Fuludelisi_PC_UI",
-      "export_sha256": "53a73e2d91dd3d4a8ffdc6c6b62ae042492cdd39c51b2b7a0a0f3f32d315b959",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_6", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Piao062_L", "Bone_Piao062_R"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_5", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Piao055_R", "Bone_Piao055_L", "Bone_Piao091_L", "Bone_Piao091_R"], "shapes": []},
@@ -2218,7 +2166,6 @@
     },
     "femalem--younuo--r2t1younuomd10011:/Game/Aki/Character/Role/FemaleM/Younuo/R2T1YounuoMd10011/ABP_Performance_Younuo_PC.ABP_Performance_Younuo_PC_C": {
       "variant": "ABP_Performance_Younuo_PC",
-      "export_sha256": "e6bae41fba237bb0b466c10d936fdbe6496237fcd9865c5945f6a4c5c24c220b",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Piao043_M"], "shapes": [
             {"id": "e4f5204bae16fae6985c012079297fb5", "source_id": 1, "bone": "Bip001Spine", "array": 0, "radius": 6.0, "length": 12.75, "offset": [2.4954445, 1.1032696, -0.66113615], "rotation": [0.0, 0.0, 0.0], "enabled": true},
@@ -2267,7 +2214,6 @@
     },
     "malexl--qiuyuan--r2t1qiuyuanmd10011:/Game/Aki/Character/Role/MaleXL/Qiuyuan/R2T1QiuyuanMd10011/ABP_Performance_Qiuyuan_PC.ABP_Performance_Qiuyuan_PC_C": {
       "variant": "ABP_Performance_Qiuyuan_PC",
-      "export_sha256": "bfd55f4d451f2c2836d28984b22205775862f9252445c6979fb5a3338914f28c",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Skirt002_L", "Bone_Skirt001_L", "Bone_Skirt001_R", "Bone_Skirt002_R", "Bone_Skirt009_R"], "shapes": [
             {"id": "454c632cc53bfe110f5dd4934231b5d6", "source_id": 1, "bone": "Bip001LThigh", "array": 0, "radius": 8.670507, "length": 31.352703, "offset": [22.28985, 0.5313267, 3.060891], "rotation": [-73.83982, 97.555145, -95.83836], "enabled": true},
@@ -2303,7 +2249,6 @@
     },
     "femalems--xigelika--r2t1xigelikamd10011:/Game/Aki/Character/Role/FemaleMS/Xigelika/R2T1XigelikaMd10011/ABP_Performance_Xigelika_PC.ABP_Performance_Xigelika_PC_C": {
       "variant": "ABP_Performance_Xigelika_PC",
-      "export_sha256": "fa8e6ca7c3ae670c97c0e47ec75456acbdc688dca91ad557e1cb4d003cf96bcb",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Piao038_L", "Bone_Piao038_R"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Skirt002_R", "Bone_Skirt002_L", "Bone_Skirt051_L", "Bone_Skirt051_R"], "shapes": [
@@ -2342,7 +2287,6 @@
     },
     "malem--nanzhu--r2t1playermalemd20011:/Game/Aki/Character/Role/MaleM/Nanzhu/R2T1PlayerMaleMd20011/ABP_Performance_PlayerMale_PC.ABP_Performance_PlayerMale_PC_C": {
       "variant": "ABP_Performance_PlayerMale_PC",
-      "export_sha256": "86dd80958d737a0928a3a6eff5bbe8be60a66836018c09cc42a8629eea254c0c",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_5", "curve_name": "None", "root_bones": ["Piao_R_yiLing01", "Piao_L_yiLing01", "Piao_M_mingPai01"], "shapes": [
             {"id": "5202174e597384621919f8d02cf64e05", "source_id": 1, "bone": "Bip001RClavicle", "array": 0, "radius": 3.0, "length": 3.25, "offset": [3.85736, 2.359226, 0.664106], "rotation": [-54.465916, 59.392277, -53.947838], "enabled": true},
@@ -2376,7 +2320,6 @@
     },
     "femalem--nvzhu--r2t1playerfemalemd20011:/Game/Aki/Character/Role/FemaleM/Nvzhu/R2T1PlayerFemaleMd20011/ABP_Performance_PlayerFemale_PC.ABP_Performance_PlayerFemale_PC_C": {
       "variant": "ABP_Performance_PlayerFemale_PC",
-      "export_sha256": "b4dcb1794a734193c7891fbfd21fde491207668567f53a297bc0c1d20a74dfd2",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Hair001_M"], "shapes": [
             {"id": "d6ba344379fced9c15816d1056d465ea", "source_id": 1, "bone": "Bip001LClavicle", "array": 0, "radius": 4.0, "length": 7.75, "offset": [4.676539, 0.5776402, 0.76072484], "rotation": [80.021835, -0.029242, -7.917369], "enabled": true},
@@ -2426,7 +2369,6 @@
     },
     "females--jueyuan--r2t1jueyuanmd10011:/Game/Aki/Character/Role/FemaleS/Jueyuan/R2T1JueyuanMd10011/ABP_Performance_Jueyuan_PC.ABP_Performance_Jueyuan_PC_C": {
       "variant": "ABP_Performance_Jueyuan_PC",
-      "export_sha256": "5095b9d22e104a6a9865ab69231d0e7f554284bf496f77deb48bd6e1e0a5162f",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "None", "root_bones": ["Bone_Hair021_R", "Bone_Hair021_L", "Bone_Piao041_R", "Bone_Piao041_L"], "shapes": [
             {"id": "a077afbc74d8602f71fe3b46c6c11917", "source_id": 1, "bone": "Bone_Hair031_R", "array": 0, "radius": 3.0, "length": 10.0, "offset": [7.68805, 0.149695, -3.403094], "rotation": [-61.23311, -0.090228, 3.585127], "enabled": true},
@@ -2476,7 +2418,6 @@
     },
     "femalems--dengdeng--r2t1dengdengmd10011:/Game/Aki/Character/Role/FemaleMS/Dengdeng/R2T1DengDengMd10011/ABP_Performance_DengDeng_PC.ABP_Performance_DengDeng_PC_C": {
       "variant": "ABP_Performance_DengDeng_PC",
-      "export_sha256": "010a3751703690ade9cd7a4583f252068db5e071edb43fb02c84c4bf3601a2ed",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Bone_Hair019_R", "Bone_Hair019_L"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_6", "curve_name": "None", "root_bones": ["Bone_Hair006_M", "Bone_Hair002_L", "Bone_Hair004_L", "Bone_Hair031_L", "Bone_Hair013_L", "Bone_Hair015_L", "Bone_Hair009_R", "Bone_Hair031_R", "Bone_Hair013_R", "Bone_Hair015_R"], "shapes": []},
@@ -2500,7 +2441,6 @@
     },
     "femalem--shouanren--r2t1shouanrenmd10011:/Game/Aki/Character/Role/FemaleM/Shouanren/R2T1ShouanrenMd10011/ABP_Performance_Shouanren_PC.ABP_Performance_Shouanren_PC_C": {
       "variant": "ABP_Performance_Shouanren_PC",
-      "export_sha256": "5f8390f8e9411509982a5e18281a85ece25d688116ff1f442cb65b5034d8b752",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "None", "root_bones": ["Bone_Hair053_M", "Bone_Piao023_R", "Bone_Piao023_L"], "shapes": [
             {"id": "05566ca55332dae2df0849e7e8013420", "source_id": 1, "bone": "Bip001Neck", "array": 0, "radius": 3.0, "length": 5.75, "offset": [1.476552, 5.9e-05, -0.178062], "rotation": [90.0, -89.89246, -89.894714], "enabled": true},
@@ -2543,7 +2483,6 @@
     },
     "femalems--feibi--r2t1feibimd10011:/Game/Aki/Character/Role/FemaleMS/Feibi/R2T1FeibiMd10011/ABP_Performance_FeiBi_PC.ABP_Performance_FeiBi_PC_C": {
       "variant": "ABP_Performance_FeiBi_PC",
-      "export_sha256": "e5199345831a2ef10199a9dad6101b567404807911afd77fae03e0f387640a6e",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Hair094_R", "Bone_Hair104_R", "Bone_Hair104_L", "Bone_Hair094_L"], "shapes": [
             {"id": "252158d49a369a196c2243249ebf935c", "source_id": 1, "bone": "Bip001LClavicle", "array": 0, "radius": 3.033326, "length": 7.5, "offset": [3.623308, 0.992173, 2.044329], "rotation": [68.40055, 71.91764, 62.221004], "enabled": true},
@@ -2578,7 +2517,6 @@
     },
     "femalexl--zanni--r2t1zannimd10011:/Game/Aki/Character/Role/FemaleXL/Zanni/R2T1ZanniMd10011/ABP_Performance_Zanni_PC.ABP_Performance_Zanni_PC_C": {
       "variant": "ABP_Performance_Zanni_PC",
-      "export_sha256": "a615342e7f2ce31cb71698d52b4eaba27bfd6ddb1a569130b1518777aa196dc5",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_13", "curve_name": "None", "root_bones": ["Bone_Hair018_L", "Bone_Hair011_L", "Bone_Hair030_R", "Bone_Hair034_R"], "shapes": [
             {"id": "89dca1d32b22d5d63065edd487445477", "source_id": 1, "bone": "Bip001Spine2", "array": 0, "radius": 8.932851, "length": 12.16855, "offset": [10.081667, 0.025131, -0.850721], "rotation": [0.000396, -20.000032, 0.003104], "enabled": true},
@@ -2630,7 +2568,6 @@
     },
     "femalexl--zanni--r2t1zannimd20011:/Game/Aki/Character/Role/FemaleXL/Zanni/R2T1ZanniMd20011/ABP_Performance_Zanni_PC.ABP_Performance_Zanni_PC_C": {
       "variant": "ABP_Performance_Zanni_PC",
-      "export_sha256": "6009471460202e2d9fe4bab3851262eef5842255b5a74bb6843f46eb30c3f1e6",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_13", "curve_name": "None", "root_bones": ["Bone_Hair018_L", "Bone_Hair011_L", "Bone_Hair030_R", "Bone_Hair034_R"], "shapes": [
             {"id": "c34f5b344b560b6d857f0ee529a51089", "source_id": 1, "bone": "Bip001Spine2", "array": 0, "radius": 8.932851, "length": 12.16855, "offset": [10.081667, 0.025131, -0.850721], "rotation": [0.000396, -20.000032, 0.003104], "enabled": true},
@@ -2682,7 +2619,6 @@
     },
     "femalem--qianxia--r2t1qianxiamd10011:/Game/Aki/Character/Role/FemaleM/Qianxia/R2T1QianXiaMd10011/ABP_Performance_QianXia_PC.ABP_Performance_QianXia_PC_C": {
       "variant": "ABP_Performance_QianXia_PC",
-      "export_sha256": "c98595c32d4e2af5a3d00ebb8891cdcf7887f49b96ae79e34a9025e6f6648f8d",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "None", "root_bones": ["Bone_Hair008_R", "Bone_Hair005_R", "Bone_Hair002_R", "Bone_Hair002_M", "Bone_Hair005_M", "Bone_Hair002_L", "Bone_Hair012_L", "Bone_Hair015_L"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Hair033_L", "Bone_Hair052_L", "Bone_Hair072_L", "Bone_Hair072_R", "Bone_Hair052_R", "Bone_Hair033_R", "Bone_Hair043_L"], "shapes": [
@@ -2727,7 +2663,6 @@
     },
     "femalem--qianxia--r2t1qianxiamd20011:/Game/Aki/Character/Role/FemaleM/Qianxia/R2T1QianXiaMd20011/ABP_Performance_QianXia_PC.ABP_Performance_QianXia_PC_C": {
       "variant": "ABP_Performance_QianXia_PC",
-      "export_sha256": "567e6e668a27a0b2571af56ae410fcc4dcf98329e51d7b89d971439a78614f75",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_5", "curve_name": "None", "root_bones": ["Bone_Hair008_R", "Bone_Hair005_R", "Bone_Hair002_R", "Bone_Hair002_M", "Bone_Hair005_M", "Bone_Hair002_L", "Bone_Hair012_L", "Bone_Hair015_L"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_4", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Hair052_L", "Bone_Hair052_R"], "shapes": [
@@ -2755,7 +2690,6 @@
     },
     "femalem--linnai--r2t1linnaimd10011:/Game/Aki/Character/Role/FemaleM/LinNai/R2T1LinnaiMd10011/ABP_Performance_Linnai_PC.ABP_Performance_Linnai_PC_C": {
       "variant": "ABP_Performance_Linnai_PC",
-      "export_sha256": "09566c4ea981107ea571dfbbbf2609d4d55d5ab48a31ddfff7dd042e1b32a98e",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Piao122_L", "Bone_Piao132_L", "Bone_Piao142_R"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Skirt002_L", "Bone_Skirt002_R", "Bone_Skirt012_L", "Bone_Skirt012_R", "Bone_Piao072_L"], "shapes": [
@@ -2791,7 +2725,6 @@
     },
     "femalem--linnai--r2t1linnaeamd20011:/Game/Aki/Character/Role/FemaleM/LinNai/R2T1LinnaeaMd20011/ABP_Performance_Linnai_PC.ABP_Performance_Linnai_PC_C": {
       "variant": "ABP_Performance_Linnai_PC",
-      "export_sha256": "0c6678f9732f53fd05b09c8ac7ba7ef6212d5004ada0fdd6cf9e519723863184",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_6", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Piao122_L", "Bone_Piao132_L", "Bone_Piao142_R"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_5", "curve_name": "Kawaii_alpha_S04", "root_bones": ["Bone_Hair203_L", "Bone_Hair204_R", "Bone_Piao003_L"], "shapes": [
@@ -2817,7 +2750,6 @@
     },
     "malexl--luhesi--r2t1luhesimd10011:/Game/Aki/Character/Role/MaleXL/Luhesi/R2T1LuhesiMd10011/ABP_Performance_Luhesi_PC.ABP_Performance_Luhesi_PC_C": {
       "variant": "ABP_Performance_Luhesi_PC",
-      "export_sha256": "c3e9b83eef7eed6a68a6d24b68574ef36343e01a4716cab0c18403e1de881e22",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_5", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Skirt002_L", "Bone_Skirt001_R", "Bone_Skirt061_R"], "shapes": [
             {"id": "a1f6b09294910ecfce0b036ecfe0945a", "source_id": 1, "bone": "Bip001Pelvis", "array": 0, "radius": 8.269454, "length": 7.430003, "offset": [2.867824, 1.180707, -0.311083], "rotation": [-4.798775, 2.410455, -10.171245], "enabled": true},
@@ -2848,7 +2780,6 @@
     },
     "femalem--lucy--r2t1lucymd10011:/Game/Aki/Character/Role/FemaleM/Lucy/R2T1LucyMd10011/ABP_Performance_Lucy_PC.ABP_Performance_Lucy_PC_C": {
       "variant": "ABP_Performance_Lucy_PC",
-      "export_sha256": "7bc9bab088c5def52b26e7260eb1e66852b4d203536b0cb16435bfbea81b9a2d",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_18", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Hair055_L", "Bone_Hair171_L", "Bone_Hair054_R"], "shapes": [
             {"id": "7ac386186cde0328533c753e433fb9ec", "source_id": 1, "bone": "Bip001LUpperArm", "array": 0, "radius": 3.589155, "length": 11.433127, "offset": [8.859469, 1.054199, -0.775671], "rotation": [-21.797606, 91.065, -102.51809], "enabled": true},
@@ -2917,7 +2848,6 @@
     },
     "femalems--lili--r2t1lilimd10011:/Game/Aki/Character/Role/FemaleMS/Lili/R2T1LiliMd10011/ABP_Performance_Lili_PC.ABP_Performance_Lili_PC_C": {
       "variant": "ABP_Performance_Lili_PC",
-      "export_sha256": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_12", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Skirt001_L", "Bone_Skirt001_R"], "shapes": [
             {"id": "57406e4bec526f4a012de963734abc0b", "source_id": 1, "bone": "Bip001Pelvis", "array": 0, "radius": 8.269454, "length": 7.430003, "offset": [2.867824, 1.180707, -0.311083], "rotation": [-4.798775, 2.410455, -10.171245], "enabled": true},
@@ -2979,7 +2909,6 @@
     },
     "femalem--taohua--r2t1taohuamd10011:/Game/Aki/Character/Role/FemaleM/Taohua/R2T1TaohuaMd10011/ABP_Performance_Taohua_PC.ABP_Performance_Taohua_PC_C": {
       "variant": "ABP_Performance_Taohua_PC",
-      "export_sha256": "c5eef9390aa3e2e28a23643c66b831856bdf4a3907ad1ee8ccac912ffe6a3205",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_8", "curve_name": "None", "root_bones": ["Hair_daiMao_short01", "Hair_daiMao_long00", "Piao_toushiB01", "Piao_toushiA01", "Hair_M_liuHai01", "Hair_R_ceBingA01", "Hair_R_back00", "Hair_L_ceBingA01", "Hair_L_back00", "Hair_M_back01"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["R_ChestBone01", "L_ChestBone01"], "shapes": []},
@@ -3015,7 +2944,6 @@
     },
     "femalem--micai--r2t1micaimd10011:/Game/Aki/Character/Role/FemaleM/Micai/R2T1MicaiMd10011/ABP_Performance_Micai_PC.ABP_Performance_Micai_PC_C": {
       "variant": "ABP_Performance_Micai_PC",
-      "export_sha256": "d7a6c7e6efe112d0701c24f6888c8f5e54b9893e6a51f69df036df64461f8fd9",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Hair_R_niMao01", "Hair_R_niMao02", "Hair_R_liuhai07", "Hair_L_liuhai12", "Hair_R_liuhai05", "Hair_R_liuhai02", "Hair_R_liuhai03", "Bone_Hair001_R", "Bone_Hair002_M", "Bone_Hair001_L", "Hair_L_liuhai03", "Hair_L_liuhai02", "Hair_L_liuhai05", "Hair_R_liuhai12", "Hair_L_liuhai07", "Hair_L_niMao01", "Hair_L_niMao02", "Hair_daiMao001"], "shapes": [
             {"id": "63935674ab71fc3e1cfa7278cbd1b253", "source_id": 1, "bone": "Bip001Head", "array": 0, "radius": 4.730906, "length": 10.0, "offset": [0.004193, -2.267433, -0.148238], "rotation": [88.53726, -179.95644, -178.74435], "enabled": true}
@@ -3060,7 +2988,6 @@
     },
     "femalem--chun--r2t1chunmd10011:/Game/Aki/Character/Role/FemaleM/Chun/R2T1ChunMd10011/ABP_Performance_Chun_PC.ABP_Performance_Chun_PC_C": {
       "variant": "ABP_Performance_Chun_PC",
-      "export_sha256": "60660eec8d2301dc53aee1a7f63b9eb56c925c52d8f6178193178c62d348c115",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_7", "curve_name": "None", "root_bones": ["Bone_Hair002_R", "Bone_Hair014_M", "Bone_Hair002_M", "Bone_Hair002_L", "Bone_Hair022_L", "Bone_Hair022_R"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_6", "curve_name": "None", "root_bones": ["Bone_Piao042_L", "Bone_Piao051_L", "Bone_Piao042_R"], "shapes": [
@@ -3087,7 +3014,6 @@
     },
     "femalem--nvzhu--r2t1playerfemalemd20011:/Game/Aki/Character/Role/FemaleM/DarkNvzhu/R2T1DarkNvzhuMd20011/ABP_Performance_DarkNvzhu_PC.ABP_Performance_DarkNvzhu_PC_C": {
       "variant": "ABP_Performance_DarkNvzhu_PC",
-      "export_sha256": "f8d64c90cfd222af072b9abed6c861c1e4942de0dfdeda804a6374d77f32d835",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "Kawaii_alpha_S01", "root_bones": ["Bone_Hair001_M"], "shapes": [
             {"id": "dd2aba3decdd19079912965ea870e56c", "source_id": 1, "bone": "Bip001LClavicle", "array": 0, "radius": 4.0, "length": 7.75, "offset": [4.676539, 0.5776402, 0.76072484], "rotation": [80.021835, -0.029242, -7.917369], "enabled": true},
@@ -3137,7 +3063,6 @@
     },
     "malem--nanzhu--r2t1playermalemd20011:/Game/Aki/Character/Role/MaleM/DarkNanzhu/R2T1DarkNanzhuMd20011/ABP_Performance_DarkNanzhu_PC.ABP_Performance_DarkNanzhu_PC_C": {
       "variant": "ABP_Performance_DarkNanzhu_PC",
-      "export_sha256": "0038d048944f0b403bd7e780f5610902eb28a375000825df15afbbf0c5c7eca6",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_5", "curve_name": "None", "root_bones": ["Piao_R_yiLing01", "Piao_L_yiLing01", "Piao_M_mingPai01"], "shapes": [
             {"id": "612632a7d9b6791b39c1e59556093412", "source_id": 1, "bone": "Bip001RClavicle", "array": 0, "radius": 3.0, "length": 3.25, "offset": [3.85736, 2.359226, 0.664106], "rotation": [-54.465916, 59.392277, -53.947838], "enabled": true},
@@ -3171,7 +3096,6 @@
     },
     "females--luokeke--r2t1luokekemd10011:/Game/Aki/Character/Role/FemaleS/Luokeke/R2T1LuokekeMd10011/ABP_Performance_Luokeke_PC.ABP_Performance_Luokeke_PC_C": {
       "variant": "ABP_Performance_Luokeke_PC",
-      "export_sha256": "2338b4654f695ea7555ddefc2d289cfb210fbd678886eb5a01186a008f806aa5",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_10", "curve_name": "None", "root_bones": ["Bone_Skirt004_L", "Bone_Skirt004_R"], "shapes": [
             {"id": "c90661bd1a50ea52ff7e6d2bb4b72218", "source_id": 1, "bone": "Bip001LThigh", "array": 0, "radius": 5.0, "length": 26.5, "offset": [13.070716, -0.117051, -0.751967], "rotation": [-89.558975, -0.084941, 0.103216], "enabled": true},
@@ -3210,7 +3134,6 @@
     },
     "femalexl--kanteleila--r2t1kanteleilamd10011:/Game/Aki/Character/Role/FemaleXL/Kanteleila/R2T1KanteleilaMd10011/ABP_Performance_Kanteleila_PC.ABP_Performance_Kanteleila_PC_C": {
       "variant": "ABP_Performance_Kanteleila_PC",
-      "export_sha256": "985472cf54fcce51ec307270bf2ced5dcdbdedd31aa03e75f0d39fe7391350e6",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_9", "curve_name": "Kawaii_alpha_chazhi", "root_bones": ["Bone_Skirt002_R", "Bone_Skirt002_L"], "shapes": [
             {"id": "184deb36630a23c0292f39781f9cbfd4", "source_id": 1, "bone": "Bip001RThigh", "array": 0, "radius": 8.271746, "length": 16.319326, "offset": [8.723015, 0.57485163, 0.081969805], "rotation": [-88.17457, 0.03209723, -7.4542375], "enabled": true},
@@ -3238,7 +3161,6 @@
     },
     "femalem--fuluoluo--r2t1fuluoluomd10011:/Game/Aki/Character/Role/FemaleM/Fuluoluo/R2T1FuluoluoMd10011/ABP_Performance_Fuluoluo_PC.ABP_Performance_Fuluoluo_PC_C": {
       "variant": "ABP_Performance_Fuluoluo_PC",
-      "export_sha256": "09dcdd5606ea71fcb26ff930f9d76f9468c9481ee8469cee6da0d5882057ef65",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_6", "curve_name": "None", "root_bones": ["Bone_Hair006_M", "Bone_Hair010_R", "Bone_Hair018_R", "Bone_Hair002_L", "Bone_Hair014_L"], "shapes": []},
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_5", "curve_name": "None", "root_bones": ["Bone_Piao001_L", "Bone_Piao011_R", "Bone_Piao013_R", "Bone_Piao015_R", "Bone_Piao009_R", "Bone_Piao007_L"], "shapes": [
@@ -3278,7 +3200,6 @@
     },
     "femalem--xuanling--r2t1xuanlingmd10011:/Game/Aki/Character/Role/FemaleM/Xuanling/R2T1XuanlingMd10011/ABP_Performance_Xuanling_PC.ABP_Performance_Xuanling_PC_C": {
       "variant": "ABP_Performance_Xuanling_PC",
-      "export_sha256": "e86b757fca595c4cb51b89cdae2d925f375f1517345a1c0d4a6f6c94400406cc",
       "groups": [
         {"node": "AnimGraphNode_KawaiiPhysicsGroup_14", "curve_name": "Kawaii_alpha_S03", "root_bones": ["Bone_Piao011_R", "Bone_Piao011_L"], "shapes": [
             {"id": "a4f625460b07f081b805e5f67c007bfc", "source_id": 1, "bone": "Bip001RForearm", "array": 0, "radius": 4.306926, "length": 15.309079, "offset": [9.815609, 0.047282, -0.001618], "rotation": [-87.1097, -177.97835, 177.93033], "enabled": true},

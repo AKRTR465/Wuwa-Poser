@@ -3,8 +3,7 @@ namespace WwPoser.Compat
 {
 internal static class GameCompat
 {
-    internal const string ProfileId = "wuwa-3.8.0-physics-check-v1";
-    internal const string SourceSha256 = "859664e37d424e8e4082f941f3ce4575f0fea95029f9a33427d7831ac8ac673e";
+    internal const string CompatibilityId = "wuwa-3.8.0-physics-check-v1:efa85b1efe130941a4ef37acb9e9538e0138cde6813edf98178332d252ffb5a0";
     internal const int EntityFlagRegistered = 16;
     internal const int EntityFlagRetired = 128;
     internal const int EntityHandleIndexShift = 16;

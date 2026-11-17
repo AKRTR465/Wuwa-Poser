@@ -44,7 +44,7 @@ pwsh -NoProfile -File tools/build_player.ps1 -Rebuild -PublicRelease -ReferenceD
 
 `-Rebuild` 编译托管桥、原生运行时、原生物理必需的身份登记和图观察模块，以及三个 VMD 编译器，随后发布自带 .NET 运行库的 WPF 程序。`-PublicRelease` 要求干净且已提交的源码及 `-Rebuild`，执行离线回归，并在包内记录公开源码地址。构建期间源码发生变化会拒绝完成公开包。输出位于 `dist/ww-mmd-player-csharp_<时间>/`。
 
-可用 `-OutputDirectory` 指定新的便携包目录；`-PublishDirectory` 可单独指定 WPF 中间发布目录。本地开发包在原生输出已准备好时可省略 `-Rebuild`；已有运行时包还可通过 `-OwnedMmdPackageDirectory` 指定。公开发布会重新构建该目录，并核对运行时 manifest 的源码提交、干净状态和逐文件 SHA-256。
+可用 `-OutputDirectory` 指定新的便携包目录，也可用 `-PublishDirectory` 指定 WPF 中间发布目录。本地开发包在原生输出已准备好时可省略 `-Rebuild`，并可通过 `-OwnedMmdPackageDirectory` 指定已有运行时包。重新构建时记录运行时文件清单、兼容 ID 和源码提交。复用运行时包时会校验已有清单和文件摘要。
 
 明确需要快速发布时可加 `-SkipOfflineChecks` 跳过离线回归；默认仍运行回归。此开关保留源码提交约束、全量重新编译及包完整性校验，不代表游戏内效果已验证。
 
@@ -56,13 +56,13 @@ pwsh -NoProfile -File tools/build_player.ps1 -Rebuild -PublicRelease -ReferenceD
 .\dist\<便携包目录>\WWPoser.exe --validate-bundle
 ```
 
-此命令只校验包与角色目录，不启动或操作游戏。schema 4 manifest 为每个文件记录字节数与 SHA-256，校验会拒绝其他清单版本、缺失、长度不符、内容损坏和不合法的相对路径。
+打包时，构建出的 `WWPoser.exe` 会逐个读取声明的文件，写入字节数和 SHA-256，并打开随包提供的角色目录。上述命令使用同一份 schema 4 清单核对解压后的文件。校验会拒绝不支持的清单版本、文件缺失、长度不符、内容损坏和非法或重复的相对路径。
 
 `data/` 中的证书和契约使用原始文件字节散列。仓库通过 `.gitattributes` 保留它们既有的字节与换行，避免 `core.autocrlf` 改变校验结果。编辑这些文件后仍需更新相关证书，不能仅转换换行而沿用旧散列。
 
 ## 构建输入清单
 
-`tools/player_build_inputs.psd1` 统一列出正式播放使用的原生构建脚本及其产物、运行包文件、便携包数据和文档。`build_player.ps1` 从这份清单构建和打包，`run_offline_checks.ps1` 复用其中的编译器与观察器分组，`build_owned_mmd.ps1` 复用运行包文件列表。运行包与最终便携包继续使用各自的既有 manifest 校验摘要和源码出处。
+`tools/player_build_inputs.psd1` 统一列出正式播放使用的原生构建脚本及其产物、运行包文件、便携包数据和文档。`build_player.ps1` 从这份清单构建和打包，`run_offline_checks.ps1` 复用其中的编译器与观察器分组，`build_owned_mmd.ps1` 复用运行包文件列表。构建目录用 `runtime_package.json` 校验可复用的运行时文件。便携包的顶层 `manifest.json` 统一记录包括这三个运行时文件在内的产物摘要和源码出处。
 
 原生产物由两个脚本构建，均以 `/W4 /WX` 编译：`probes/v20_recon/build_observers.bat` 生成原生物理播放依赖的 `hook_install_v20.exe`、`native_identity_bootstrap.dll` 和 `native_graph_discovery.dll`；`tools/build_compilers.bat` 生成三个 VMD 编译器。旧单人扫描、小队驻留和 roster 采样探针已从仓库移除，需要时可从 v0.2.9 及更早的 Git 历史恢复。
 
@@ -76,7 +76,7 @@ Windows 完整离线检查可通过统一入口运行，无需游戏参考 DLL�
 pwsh -NoProfile -File tools/run_offline_checks.ps1
 ```
 
-入口会构建观察器和三个 VMD 编译器（`-SkipNativeBuild` 可复用已有产物），使用合成素材检查演员准备，并运行下面的回归与数据证书检查。两个 WPF 检查项目共享构建目录，应串行执行。Windows/Linux 的 GitHub Actions 工作流会在提交和 PR 上执行相应离线检查。
+入口会构建观察器和三个 VMD 编译器（`-SkipNativeBuild` 可复用已有产物），使用合成素材检查演员准备，并运行下面的回归与数据证书检查。打包入口在便携包目录里统一执行角色和形态证书检查。两个 WPF 检查项目共享构建目录，应串行执行。Windows/Linux 的 GitHub Actions 工作流会在提交和 PR 上执行相应离线检查。
 
 也可以分别运行：
 

@@ -6,7 +6,7 @@
 namespace ww_game_object_anchors {
 inline Json Resolve(Reader& reader,uint64_t image,uint64_t preferred_go_rva,uint64_t preferred_pool_rva,Go& objects,Pool& names){
     objects={};names={};Go candidate_go;Pool candidate_pool;
-    Json report={{"compatibility_profile",ww_game_compat::ProfileId},{"compatibility_source_sha256",ww_game_compat::SourceSha256},
+    Json report={{"compatibility_id",ww_game_compat::CompatibilityId},
         {"status","unresolved"},{"runtime_layout_verified",false},{"game_memory_writes",0}};
     const auto valid_rva=[&](uint64_t rva){return rva&&image<=UINT64_MAX-rva;};
     if(valid_rva(preferred_go_rva)&&valid_rva(preferred_pool_rva)&&

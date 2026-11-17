@@ -47,10 +47,7 @@ inline uint64_t PayloadBytes(const Clip& clip) {
         throw std::runtime_error("Local clip provenance must contain two SHA-256 hex digests");
     return elements*kBoneBytes;
 }
-inline void ValidatePayload(const Clip& clip) {
-    const auto bytes=PayloadBytes(clip);
-    if(clip.frames.size()!=bytes/kBoneBytes)
-        throw std::runtime_error("Local clip payload dimensions differ");
+inline void ValidateCommands(const Clip& clip) {
     for(size_t i=0;i<clip.frames.size();++i){
         const auto& command=clip.frames[i];const size_t bone=i%clip.bone_count;
         if(command.mask&~(kRotation|kTranslationDelta))
@@ -94,16 +91,17 @@ inline Clip ReadFile(const std::filesystem::path& path) {
     if(!in.read(reinterpret_cast<char*>(clip.frames.data()),std::streamsize(bytes)))
         throw std::runtime_error("Truncated local clip payload");
     if(in.peek()!=std::char_traits<char>::eof())throw std::runtime_error("Local clip has trailing data");
-    ValidatePayload(clip);return clip;
+    ValidateCommands(clip);return clip;
 }
 inline void WriteFile(const std::filesystem::path& path,const Clip& c){
-    ValidatePayload(c);
+    if(c.frames.size()!=PayloadBytes(c)/kBoneBytes)throw std::runtime_error("Local clip payload dimensions differ");
+    ValidateCommands(c);
     std::ofstream out(path,std::ios::binary);if(!out)throw std::runtime_error("Cannot create clip");out.write("WWLOCAL1",8);Write(out,kVersion);Write(out,c.bone_count);Write(out,c.frame_count);Write(out,c.fps);Write(out,c.duration);
     if(c.omit_provenance){const std::array<char,128> empty{};out.write(empty.data(),empty.size());}
     else{out.write(c.source_sha256.data(),64);out.write(c.skeleton_sha256.data(),64);}
     out.write((const char*)c.frames.data(),std::streamsize(c.frames.size()*sizeof(BoneCommand)));if(!out)throw std::runtime_error("Cannot save complete clip");}
 inline bool Sample(const Clip& clip,double seconds,BoneCommand* out,size_t count) noexcept {
-    // ReadFile/ValidatePayload already bound the clip dimensions.
+    // ReadFile already bound the clip dimensions.
     if(!std::isfinite(seconds)||count!=clip.bone_count)return false;
     const double frame=(std::max)(0.,(std::min)(seconds,clip.duration))*clip.fps;
     const size_t last=clip.frame_count-1,a=(std::min)(size_t(frame),last),b=(std::min)(a+1,last);const float t=float(frame-a);

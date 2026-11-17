@@ -76,7 +76,7 @@ internal static class PhysicsEditorUiChecks
             {
                 if (File.Exists(commandPath))
                 {
-                    var bytes = new byte[64];
+                    var bytes = new byte[PlaybackCommands.WireBytes];
                     using (var file = new FileStream(commandPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) file.ReadExactly(bytes);
                     var sequence = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(24));
                     if (sequence > seen)
@@ -196,7 +196,7 @@ internal static class PhysicsEditorUiChecks
             {
                 if (File.Exists(commandPath))
                 {
-                    var bytes = new byte[64];
+                    var bytes = new byte[PlaybackCommands.WireBytes];
                     using (var f = new FileStream(commandPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) f.ReadExactly(bytes);
                     var sequence = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(24));
                     if (sequence > last)

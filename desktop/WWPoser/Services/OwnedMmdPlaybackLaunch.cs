@@ -41,13 +41,21 @@ public sealed partial class OwnedMmdPlaybackService
         var config = Config(prepared);
         config["session_epoch"] = NewEpoch();
         config["start_paused"] = startPaused;
-        var catalog = CharacterCatalog(); var registry = new CharacterRegistry(root);
-        foreach (var actor in ActorConfigs(config))
+        var catalog = CharacterCatalog();
+        var registry = new CharacterRegistry(root);
+        var actorConfigs = ActorConfigs(config);
+        var profileDigests = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var actor in actorConfigs)
         {
             var selected = catalog.Select(Contract.S(actor, "character_id"));
+            if (!profileDigests.TryGetValue(selected.ProfileId, out var profileDigest))
+            {
+                profileDigest = JsonData.Digest(registry.ProfilePath(registry.GetProfile(selected.ProfileId)));
+                profileDigests.Add(selected.ProfileId, profileDigest);
+            }
             Contract.Require(Contract.S(actor, "mesh_asset_name") == selected.ModelAssetName && Contract.S(actor, "profile_id") == selected.ProfileId
                 && Contract.I(actor, "role_id") == selected.RoleId && Contract.I(actor, "skin_id") == selected.SkinId
-                && Contract.S(actor, "character_profile_sha256") == JsonData.Digest(registry.ProfilePath(registry.GetProfile(selected.ProfileId))), "角色形态或适配数据已更改，请重新准备动作。");
+                && Contract.S(actor, "character_profile_sha256") == profileDigest, "角色形态或适配数据已更改，请重新准备动作。");
             actor["form"] = selected.Form?.DeepClone(); actor["independent_instance"] = selected.IndependentInstance;
             actor.Remove("gravity_parts");
             if (actor["native_physics"]?.GetValue<bool>() ?? true)
@@ -59,7 +67,7 @@ public sealed partial class OwnedMmdPlaybackService
         foreach (var key in SessionOnlyKeys) config.Remove(key);
         var directory = Path.Combine(prepared, "runtime_sessions", "actors_" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
         StageRuntime(directory, game);
-        foreach (var actor in ActorConfigs(config))
+        foreach (var actor in actorConfigs)
         {
             var relative = "actors/" + actor["slot"]!.GetValue<uint>().ToString(CultureInfo.InvariantCulture);
             var source = Path.Combine(prepared, Contract.S(actor, "actor_directory"));

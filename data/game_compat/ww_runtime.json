@@ -556,22 +556,6 @@
       "type": "u32",
       "value": "0xc"
     },
-    "FunctionAllocateSerialNumberRvaText": {
-      "type": "hexref",
-      "value": "@FunctionAllocateSerialNumberRva"
-    },
-    "FunctionAssignWeakObjectRvaText": {
-      "type": "hexref",
-      "value": "@FunctionAssignWeakObjectRva"
-    },
-    "FunctionAllocateSerialNumberSha256": {
-      "type": "string",
-      "value": "e9a45314af4ec25ab59d048ee1fda1a307f814817b3f1edbe19ecc792d5abd1f"
-    },
-    "FunctionAssignWeakObjectSha256": {
-      "type": "string",
-      "value": "5e11a1ff463285758fb363bf152428b82239081102613c8af31593e818486139"
-    },
     "FunctionPublishRva": {
       "type": "u64",
       "value": "0x4cfc880"

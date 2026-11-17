@@ -1,5 +1,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include "../playback/ww_face_clip.h"
 #include "../playback/ww_face_profile.h"
 #include "../playback/ww_gaze_profile.h"
 #include "../core_math/third_party/nlohmann/json.hpp"
@@ -44,7 +45,10 @@ int wmain(int argc,wchar_t** argv){
         if(gazeEnabled){Json ts=Json::array();for(const auto& name:gazeProfile.controlled){mappedTargets.insert(name);ts.push_back({{"morph",name},{"gain",1}});}
             gazeBindings.push_back({{"source","MMD eye rotations"},{"status","pupil_direction"},{"targets",ts}});}
         const double duration=(std::max)(clip.DurationSeconds(),gazeEnabled?gaze::Duration(gazeMotion):0.);
-        const uint32_t frames=uint32_t(std::ceil(duration*60))+1;
+        const uint32_t frames=wwp_mmd_compile::FrameCount60(duration);
+        if(targets.size()>wwp_playback::face_snapshot::kMaxMorphs||
+            (!targets.empty()&&(uint64_t(targets.size())+face::kEyeSamples)*frames*sizeof(float)>face::kMaximumExpressionBytes-face::kExpressionHeaderBytes))
+            throw std::runtime_error("expression clip exceeds the supported target or byte budget");
         if(!targets.empty()){std::ofstream binary(positional[3],std::ios::binary);if(!binary)throw std::runtime_error("cannot create expression binary");
             binary.write("WWEXPR01",8);Write<uint32_t>(binary,1);Write<uint32_t>(binary,uint32_t(targets.size()));Write<uint32_t>(binary,frames);Write<uint32_t>(binary,60);Write<double>(binary,(frames-1)/60.);
             for(uint32_t f=0;f<frames;++f){auto sample=face::Sample(clip.motion,profile,f/60.);

@@ -34,8 +34,8 @@ class Bridge {
         const auto klass=find_class(image(assembly),"WwPoser.ColdLoad","ManagedBridge");Require(klass,"owned helper class unavailable");
         for(size_t i=0;i<methods_.size();++i){methods_[i]=find_method(klass,kActionNames[i],0);Require(methods_[i],"loaded actor helper lacks a required action; restart the game once for this version");}
         // Mono can retain a helper from an earlier package with identical
-        // action names. Verify its compiled source before acquiring actors.
-        const auto compatibility=find_method(klass,"VerifyCompatibility",0);
+        // action names. Require the current handshake before acquiring actors.
+        const auto compatibility=find_method(klass,"VerifyCompatibilityId",0);
         Require(compatibility,"loaded actor helper lacks compatibility verification; restart the game once");
         const auto bind_session=find_method(klass,"BindSession",0);Require(bind_session,"loaded owned helper lacks session isolation; restart the game once");
         Call(compatibility,"loaded actor helper uses a different compatibility configuration; restart the game after updating Wuwa Poser");

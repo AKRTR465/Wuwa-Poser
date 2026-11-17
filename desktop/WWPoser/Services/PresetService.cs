@@ -72,7 +72,6 @@ public sealed class PresetService(string? cacheDirectory = null)
     public async Task<PresetLoadResult> LoadAsync(string path, CancellationToken token = default)
     {
         await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 131072, true);
-        var packageHash = Convert.ToHexStringLower(await SHA256.HashDataAsync(input, token)); input.Position = 0;
         using var zip = new ZipArchive(input, ZipArchiveMode.Read);
         if (zip.Entries.Count > 30001 || zip.Entries.Select(e => e.FullName).Distinct(StringComparer.OrdinalIgnoreCase).Count() != zip.Entries.Count)
             throw new InvalidDataException("预设包含重复条目或条目过多。");
@@ -99,6 +98,7 @@ public sealed class PresetService(string? cacheDirectory = null)
             if (total > MaxTotal) throw new InvalidDataException("预设素材总量超过 32 GB。");
         }
         var warnings = new List<string>(); var resolved = new Dictionary<string, string>(StringComparer.Ordinal);
+        var buffer = new byte[131072];
         foreach (var reference in Sources(document.Preset).Distinct(StringComparer.Ordinal))
         {
             token.ThrowIfCancellationRequested();
@@ -107,17 +107,26 @@ public sealed class PresetService(string? cacheDirectory = null)
             if (entry is null) { resolved.Add(reference, ""); warnings.Add("缺少素材：" + Path.GetFileName(reference)); continue; }
             if (entry.Length != asset.Bytes) throw new InvalidDataException("素材大小校验失败：" + reference);
             // Only canonical manifest paths are extracted; the ZIP never selects a filesystem target.
-            var destination = Path.Combine(cache, packageHash, reference.Replace('/', Path.DirectorySeparatorChar));
-            if (!await MatchesAsync(destination, asset, token))
+            var destination = Path.Combine(cache, reference.Replace('/', Path.DirectorySeparatorChar));
+            if (await MatchesAsync(destination, asset, token))
+            {
+                // Another archive may share this path. Verify its own entry even on a cache hit.
+                await ReadAssetAsync(entry, asset, buffer, Stream.Null, token);
+            }
+            else
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                 var temporary = destination + "." + Guid.NewGuid().ToString("N") + ".partial";
                 try
                 {
                     await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 131072, true))
-                    using (var source = entry.Open()) await source.CopyToAsync(output, token);
-                    if (!await MatchesAsync(temporary, asset, token)) throw new InvalidDataException("素材内容校验失败：" + reference);
-                    File.Move(temporary, destination, true);
+                        await ReadAssetAsync(entry, asset, buffer, output, token);
+                    try { File.Move(temporary, destination, true); }
+                    catch (IOException)
+                    {
+                        // A concurrent import can already have published the same asset.
+                        if (!await MatchesAsync(destination, asset, token)) throw;
+                    }
                 }
                 finally { if (File.Exists(temporary)) File.Delete(temporary); }
             }
@@ -128,6 +137,25 @@ public sealed class PresetService(string? cacheDirectory = null)
             if (preset.Playback.Actors[i].Enabled && string.IsNullOrEmpty(preset.Playback.Actors[i].BodySource)) warnings.Add($"演员 {i + 1} 尚未选择身体动作。");
         if (preset.Playback.CameraMode == 2 && string.IsNullOrEmpty(preset.Playback.CameraSource)) warnings.Add("VMD 镜头轨道尚未选择镜头素材。");
         return new(preset, warnings);
+    }
+
+    private static async Task ReadAssetAsync(ZipArchiveEntry entry, Asset asset, byte[] buffer, Stream output, CancellationToken token)
+    {
+        await using var source = entry.Open();
+        using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var remaining = asset.Bytes;
+        while (remaining > 0)
+        {
+            var count = await source.ReadAsync(buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining)), token);
+            if (count == 0) throw new InvalidDataException("素材大小校验失败：" + asset.Entry);
+            digest.AppendData(buffer, 0, count);
+            await output.WriteAsync(buffer.AsMemory(0, count), token);
+            remaining -= count;
+        }
+        if (await source.ReadAsync(buffer.AsMemory(0, 1), token) != 0)
+            throw new InvalidDataException("素材大小校验失败：" + asset.Entry);
+        if (Convert.ToHexStringLower(digest.GetHashAndReset()) != asset.Sha256)
+            throw new InvalidDataException("素材内容校验失败：" + asset.Entry);
     }
 
     private static async Task<bool> MatchesAsync(string path, Asset asset, CancellationToken token)

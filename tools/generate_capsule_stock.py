@@ -116,7 +116,7 @@ def layout(root, raw, profile, asset):
             })
         except (KeyError, TypeError, ValueError) as error:
             issues.append(f"{node}: {error}")
-    return {"variant": source["variant"], "export_sha256": digest(export), "groups": groups}, issues
+    return {"variant": source["variant"], "groups": groups}, issues
 
 
 def format_catalog(catalog):

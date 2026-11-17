@@ -4,4 +4,4 @@
 
 Runtime matching uses exact node, root, curve and instance evidence. Static provenance labels describe the saved source and never replace the current observation.
 
-The Python API is `load_registry()`, `get_profile(profile_id)` and `validate()`. Offline source reconstruction, generators and test entrypoints have been removed. Formal builds validate the retained runtime descriptors and their hashes.
+In schema 2, each descriptor assigns local numeric IDs to its candidate sources. Candidate groups reference those IDs. Formal builds validate each descriptor against its entry in the index.

@@ -423,19 +423,19 @@ inline void ValidateCanonicalPose(const ActorRuntime& a){
 // case) and parent table exactly.
 inline void VerifyReferenceSkeleton(ActorRuntime& a,::Reader& reader){
     ob::ArrayHead ref;std::array<unsigned char,fb::kLimit*ww_game_compat::ReferenceBoneInfoBytes> reference{};
-    Require(reader.Get(a.tokens[Asset].object+ww_game_compat::AssetRefBoneInfoOffset,ref)&&ref.num>0&&ref.num==int32_t(a.boneNames.size())&&
-        ref.num<=int32_t(fb::kLimit)&&reader.Read(ref.data,reference.data(),size_t(ref.num)*ww_game_compat::ReferenceBoneInfoBytes),"actor reference skeleton unreadable");
-    std::vector<std::string> names;std::vector<int32_t> parents;
-    for(int32_t i=0;i<ref.num;++i){
-        const auto* row=reference.data()+size_t(i)*ww_game_compat::ReferenceBoneInfoBytes;std::string name;
+    Require(reader.Get(a.tokens[Asset].object+ww_game_compat::AssetRefBoneInfoOffset,ref)&&ref.num>0&&ref.num<=int32_t(fb::kLimit)&&
+        size_t(ref.num)==a.boneNames.size()&&reader.Read(ref.data,reference.data(),size_t(ref.num)*ww_game_compat::ReferenceBoneInfoBytes),
+        "actor reference skeleton unreadable");
+    Require(a.parents.size()==a.boneNames.size(),"actor reference skeleton differs");
+    for(size_t i=0;i<a.boneNames.size();++i){
+        const auto* row=reference.data()+i*ww_game_compat::ReferenceBoneInfoBytes;std::string name;
         Require(FullName(reader,runtime.pool,At<uint32_t>(row,0),At<uint32_t>(row,ww_game_compat::NameNumberOffset),name),"actor bone name unavailable");
-        const auto& expected=a.boneNames[size_t(i)];
-        names.push_back(id::SameName(name,expected)?expected:std::move(name));
-        parents.push_back(At<int32_t>(row,ww_game_compat::ReferenceBoneParentOffset));
+        Require(id::SameName(name,a.boneNames[i])&&At<int32_t>(row,ww_game_compat::ReferenceBoneParentOffset)==a.parents[i],
+            "actor reference skeleton differs");
     }
-    Require(names==a.boneNames&&parents==a.parents&&fb::PrepareTopology(a.parents,&a.topology),"actor reference skeleton differs");
+    Require(fb::PrepareTopology(a.parents,&a.topology),"actor reference skeleton differs");
 }
-inline void InitializeActor(ActorRuntime& a,const Json& graph,const Json& profile){auto& r=runtime;const auto& config=a.config;auto reader=CurrentProcess();
+inline void InitializeActor(ActorRuntime& a,const Json& graph){auto& r=runtime;const auto& config=a.config;auto reader=CurrentProcess();
     for(uint32_t i=0;i<Objects;++i)Require(id::ReadStable(reader,r.go,id::Rva(graph.at(kObjectKeys[i])),&a.tokens[i]),"actor graph unreadable");
     const auto ownership=graph.at("ownership").get<std::string>();
     Require(ownership=="borrowed"||ownership=="created","unknown actor ownership");
@@ -453,9 +453,8 @@ inline void InitializeActor(ActorRuntime& a,const Json& graph,const Json& profil
     a.placement={p.value("offset_x_cm",0.0),p.value("offset_y_cm",0.0),p.value("height_cm",0.0),p.value("yaw_degrees",0.0),p.value("in_place",false)};
     features::PrepareActor(a.features,reader,r.go,r.pool,config,a.directory,a.tokens[Mesh].object,a.tokens[Asset].object,a.motion,a.topology,a.request,r.epoch);
     if(!a.nativePhysics)return;
-    Json targetConfig={{"character_profile_id",config.at("profile_id")},{"character_profile_sha256",config.at("character_profile_sha256")},
-        {"expected_bone_count",a.motion.bone_count},{"expected_bone_names",a.boneNames},{"expected_bone_parents",a.parents},
-        {"expected_skeleton_sha256",profile.at("skeleton_sha256")},{"expected_mesh_asset_name",config.at("mesh_asset_name")}};
+    Json targetConfig={{"character_profile_id",config.at("profile_id")},
+        {"expected_bone_count",a.motion.bone_count},{"expected_bone_names",a.boneNames},{"expected_bone_parents",a.parents}};
     auto target=native_target_publication::Export(reader,r.go,r.pool,targetConfig,a.tokens[Actor],a.tokens[Mesh],a.tokens[Asset],a.tokens[Skeleton],a.tokens[MainAnim],a.authority,a.ownership,r.epoch);
     const auto out=r.directory/L"native_targets"/std::to_string(a.slot);std::filesystem::create_directories(out);ww_report::Save(out/L"native_target.json",target);
 }
@@ -477,9 +476,7 @@ inline void Initialize(const std::filesystem::path& directory,const Json& graph,
             const Json* actorGraph=nullptr;
             for(const auto& row:graph.at("actors"))if(row.at("slot").get<uint32_t>()==a.slot){Require(!actorGraph,"duplicate graph actor slot");actorGraph=&row;}
             Require(actorGraph,"actor graph slot missing");
-            std::ifstream file(a.directory/std::filesystem::u8path(actorConfig.at("character_profile_file").get<std::string>()));Require(bool(file),"actor profile missing");
-            const auto profile=Json::parse(file);
-            r.actors.push_back(std::move(actor));InitializeActor(a,*actorGraph,profile);duration=(std::max)(duration,a.motion.duration);
+            r.actors.push_back(std::move(actor));InitializeActor(a,*actorGraph);duration=(std::max)(duration,a.motion.duration);
             if(a.features.face_enabled)duration=(std::max)(duration,a.features.face_clip.duration);
             if(a.nativePhysics)targets.push_back({{"slot",a.slot},{"native_target_file",std::string("native_targets/")+std::to_string(a.slot)+"/native_target.json"},
                 {"native_input_directory",std::string("native_inputs/")+std::to_string(a.slot)}});
@@ -532,7 +529,8 @@ inline bool Ready() noexcept {const auto& r=runtime;if(!r.observing.load()||r.cl
 inline void Start() noexcept {auto& r=runtime;r.lastWireSequence=++r.initialSequence;
     if(!r.startPaused&&!r.commands.Push({r.epoch,r.initialSequence,play::CommandKind::Play,0})){Fail(Error::Plan);return;}r.writing.store(true);}
 inline void PollCommands(){auto& r=runtime;std::ifstream stream(r.directory/L"control.dat",std::ios::binary);play::CommandWire wire{};play::Command command;
-    if(stream&&stream.read(reinterpret_cast<char*>(wire.data()),wire.size())&&play::DecodeCommandFrame(wire,command)&&command.sequence>r.lastWireSequence&&r.commands.Push(command))
+    if(stream.read(reinterpret_cast<char*>(wire.data()),wire.size())&&stream.peek()==std::char_traits<char>::eof()&&
+        !stream.bad()&&play::DecodeCommandFrame(wire,command)&&command.sequence>r.lastWireSequence&&r.commands.Push(command))
         r.lastWireSequence=command.sequence;}
 struct WorkerLock {std::lock_guard<std::mutex> lock{runtime.publicationMutex};};
 inline void SaveModelPreview(const std::filesystem::path& path,uint64_t& revision,uint64_t& frame){

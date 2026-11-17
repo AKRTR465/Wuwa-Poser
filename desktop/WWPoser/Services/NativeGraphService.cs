@@ -4,11 +4,40 @@ public sealed partial class NativeGraphService(string repoRoot)
     private readonly string root = Path.GetFullPath(repoRoot);
     private readonly CharacterRegistry registry = new(repoRoot);
     // Function byte evidence captured from the supported game build.
-    private JsonArray VersionedWitnesses()
+    internal FunctionEvidence LoadEvidence()
     {
         var witness = JsonData.ReadObject(Path.Combine(root, "data", "runtime_contracts", "native_functions_3_8.json"));
         Contract.Require(Contract.S(witness, "source_sha256") == GameCompat.SourceBuildSha256, "函数字节证据与当前游戏兼容配置的版本不符。");
-        return Contract.A(witness, "functions");
+        return new FunctionEvidence(Contract.A(witness, "functions"));
+    }
+
+    internal sealed class FunctionEvidence(JsonArray rows)
+    {
+        private readonly ILookup<string, string> byLabel = rows.ToLookup(row => Contract.S(row!, "label"),
+            row => Contract.S(row!, "function_bytes_hex").ToLowerInvariant(), StringComparer.Ordinal);
+
+        // Execution addresses come from the compiled compatibility definition.
+        public JsonArray Resolve(params (string Label, ulong Rva)[] functions) => new(functions.Select(function =>
+        {
+            var candidates = byLabel[function.Label];
+            var bytes = candidates.FirstOrDefault();
+            Contract.Require(bytes is not null && candidates.All(value => value == bytes), "函数字节证据缺失或存在冲突：" + function.Label);
+            return (JsonNode)new JsonObject { ["label"] = function.Label, ["rva"] = GameCompat.AddressHex(function.Rva), ["function_bytes_hex"] = bytes };
+        }).ToArray());
+
+        public JsonArray RootWitnesses() => Resolve(
+            ("GroupInitializeBoneReferences", GameCompat.FunctionGroupInitializeBoneReferencesRva),
+            ("GroupInitializeModifyBones", GameCompat.FunctionGroupInitializeModifyBonesRva));
+        public JsonArray InputWitnesses() => Resolve(
+            ("ConvertLocalToComponentEvaluate", GameCompat.FunctionLocalToComponentRva),
+            ("ComponentSpaceTransformGetter", GameCompat.FunctionComponentSpaceTransformGetterRva),
+            ("AnimInstanceRootEvaluationCounterWitness", GameCompat.FunctionAnimInstanceRootEvaluationCounterRva),
+            ("CachedPoseEvaluationCounterWitness", GameCompat.FunctionCachedPoseEvaluationCounterRva));
+        public JsonArray ActivationWitnesses() => Resolve(
+            ("SharedSkeletalControlUpdate", GameCompat.FunctionSharedSkeletalControlUpdateRva),
+            ("SkeletalControlLODAllowed", GameCompat.FunctionSkeletalControlLODAllowedRva),
+            ("GroupIsValidToEvaluate", GameCompat.FunctionGroupIsValidToEvaluateRva),
+            ("SharedUpdateInternal", GameCompat.FunctionSharedUpdateInternalRva));
     }
     private static readonly (string Label, ulong Rva)[] ObserverFunctions =
     [
@@ -18,76 +47,35 @@ public sealed partial class NativeGraphService(string repoRoot)
         ("GroupEvaluate", GameCompat.FunctionGroupEvaluateRva)
     ];
 
-    private JsonArray FunctionWitnesses(params (string Label, ulong Rva)[] functions) => ResolveFunctionWitnesses(VersionedWitnesses(), functions);
-
-    private static JsonArray ResolveFunctionWitnesses(IEnumerable<JsonNode?> rows, params (string Label, ulong Rva)[] functions)
+    internal void PrepareIdentity(string configPath, string output, FunctionEvidence evidence)
     {
-        // The saved contracts retain the byte evidence for each semantic
-        // function. Execution addresses come from the selected compatibility
-        // definition, so a relocated function need not rewrite its archive.
-        return new JsonArray(functions.Select(function =>
+        var cfg = JsonData.ReadObject(configPath);
+        cfg["native_identity_bootstrap"] = new JsonObject
         {
-            var witnesses = rows.Where(row => Contract.S(row!, "label") == function.Label)
-                .Select(row => Contract.S(row!, "function_bytes_hex").ToLowerInvariant()).Distinct(StringComparer.Ordinal).ToArray();
-            Contract.Require(witnesses.Length == 1, "函数字节证据缺失或存在冲突：" + function.Label);
-            return (JsonNode)new JsonObject { ["label"] = function.Label, ["rva"] = GameCompat.AddressHex(function.Rva), ["function_bytes_hex"] = witnesses[0] };
-        }).ToArray());
-    }
-    public JsonArray RootWitnesses() => FunctionWitnesses(
-        ("GroupInitializeBoneReferences", GameCompat.FunctionGroupInitializeBoneReferencesRva),
-        ("GroupInitializeModifyBones", GameCompat.FunctionGroupInitializeModifyBonesRva));
-    public JsonArray InputWitnesses() => FunctionWitnesses(
-        ("ConvertLocalToComponentEvaluate", GameCompat.FunctionLocalToComponentRva),
-        ("ComponentSpaceTransformGetter", GameCompat.FunctionComponentSpaceTransformGetterRva),
-        ("AnimInstanceRootEvaluationCounterWitness", GameCompat.FunctionAnimInstanceRootEvaluationCounterRva),
-        ("CachedPoseEvaluationCounterWitness", GameCompat.FunctionCachedPoseEvaluationCounterRva));
-    public JsonArray ActivationWitnesses() => FunctionWitnesses(
-        ("SharedSkeletalControlUpdate", GameCompat.FunctionSharedSkeletalControlUpdateRva),
-        ("SkeletalControlLODAllowed", GameCompat.FunctionSkeletalControlLODAllowedRva),
-        ("GroupIsValidToEvaluate", GameCompat.FunctionGroupIsValidToEvaluateRva),
-        ("SharedUpdateInternal", GameCompat.FunctionSharedUpdateInternalRva));
-
-    public void PrepareIdentity(string configPath, string output, int pid)
-    {
-        var cfg = JsonData.ReadObject(configPath);
-        var registration = Path.Combine(root, "data", "native_identity_registration_contract.json");
-        cfg.Remove("native_graph_discovery");
-        cfg["native_identity_bootstrap"] = new JsonObject { ["schema"] = 1, ["phase"] = "identity_registration", ["expected_pid"] = pid,
-            ["duration_ms"] = 2000, ["owner_limit"] = 32, ["function_witnesses"] = FunctionWitnesses(ObserverFunctions) };
-        StageObserver(cfg, output, "native_identity_bootstrap.dll", registration);
+            ["duration_ms"] = 2000, ["owner_limit"] = 32, ["function_witnesses"] = evidence.Resolve(ObserverFunctions),
+            ["allocator_witnesses"] = evidence.Resolve(
+                ("FUObjectArray_AllocateSerialNumber", GameCompat.FunctionAllocateSerialNumberRva),
+                ("FWeakObjectPtr_AssignObject", GameCompat.FunctionAssignWeakObjectRva))
+        };
+        StageObserver(cfg, output, "native_identity_bootstrap.dll");
     }
 
-    public void PrepareDiscovery(string configPath, string output, int pid)
+    internal void PrepareDiscovery(string configPath, string output, FunctionEvidence evidence)
     {
         var cfg = JsonData.ReadObject(configPath);
-        cfg.Remove("native_identity_bootstrap");
-        cfg["native_graph_discovery"] = new JsonObject { ["schema"] = 1, ["phase"] = "discovery", ["expected_pid"] = pid,
-            ["duration_ms"] = 6000, ["frame_limit"] = 8, ["node_limit"] = 128,
-            ["function_witnesses"] = FunctionWitnesses(ObserverFunctions), ["root_layout_witnesses"] = RootWitnesses() };
+        var discovery = new JsonObject { ["duration_ms"] = 6000, ["frame_limit"] = 8, ["node_limit"] = 128,
+            ["function_witnesses"] = evidence.Resolve(ObserverFunctions), ["root_layout_witnesses"] = evidence.RootWitnesses() };
         if (Environment.GetEnvironmentVariable("WWPOSER_OBSERVE_KAWAII_SETTINGS") == "1")
-            cfg["native_graph_discovery"]!["kawaii_settings_witnesses"] = FunctionWitnesses(
+            discovery["kawaii_settings_witnesses"] = evidence.Resolve(
                 ("GroupUpdatePhysicsSettings", GameCompat.FunctionGroupUpdatePhysicsSettingsRva), ("GroupSimulate", GameCompat.FunctionGroupSimulateRva));
+        cfg["native_graph_discovery"] = discovery;
         StageObserver(cfg, output, "native_graph_discovery.dll");
     }
 
-    private void StageObserver(JsonObject cfg, string output, string dll, string? registration = null)
+    private void StageObserver(JsonObject cfg, string output, string dll)
     {
         Directory.CreateDirectory(Path.Combine(output, "logs"));
-        cfg["compatibility_profile"] = GameCompat.ProfileId;
-        cfg["compatibility_source_sha256"] = GameCompat.SourceSha256;
-        if (registration != null)
-        {
-            var contract = JsonData.ReadObject(registration);
-            contract["functions"] = ResolveFunctionWitnesses(VersionedWitnesses(),
-                ("FUObjectArray_AllocateSerialNumber", GameCompat.FunctionAllocateSerialNumberRva),
-                ("FWeakObjectPtr_AssignObject", GameCompat.FunctionAssignWeakObjectRva));
-            contract["source_archive_sha256"] = JsonData.Digest(registration);
-            contract["compatibility_profile"] = GameCompat.ProfileId;
-            contract["compatibility_source_sha256"] = GameCompat.SourceSha256;
-            var stagedRegistration = Path.Combine(output, "native_identity_registration_contract.json");
-            JsonData.Write(stagedRegistration, contract);
-            Contract.O(cfg, "native_identity_bootstrap")["registration_contract_sha256"] = JsonData.Digest(stagedRegistration);
-        }
+        cfg["compatibility_id"] = GameCompat.CompatibilityId;
         JsonData.Write(Path.Combine(output, "observe_target.json"), cfg);
         File.Copy(Path.Combine(root, "probes", "v20_recon", dll), Path.Combine(output, "recon_carrier_v20.dll"));
         File.Copy(Path.Combine(root, "probes", "v20_recon", "hook_install_v20.exe"), Path.Combine(output, "hook_install_v20.exe"));
@@ -104,15 +92,15 @@ public sealed partial class NativeGraphService(string repoRoot)
         return cfg;
     }
 
-    public void AttachPlaybackBinding(JsonObject cfg, JsonObject binding)
+    internal void AttachPlaybackBinding(JsonObject cfg, JsonObject binding, FunctionEvidence evidence)
     {
         cfg["native_graph_binding"] = binding.DeepClone();
-        cfg["native_physics_witnesses"] = InputWitnesses();
-        cfg["native_physics_activation_witnesses"] = ActivationWitnesses();
-        cfg["native_physics_settings_witnesses"] = FunctionWitnesses(
+        cfg["native_physics_witnesses"] = evidence.InputWitnesses();
+        cfg["native_physics_activation_witnesses"] = evidence.ActivationWitnesses();
+        cfg["native_physics_settings_witnesses"] = evidence.Resolve(
             ("GroupEvaluate", GameCompat.FunctionGroupEvaluateRva), ("GroupUpdatePhysicsSettings", GameCompat.FunctionGroupUpdatePhysicsSettingsRva),
             ("GroupSimulate", GameCompat.FunctionGroupSimulateRva), ("GroupApplyResult", GameCompat.FunctionGroupApplyResultRva));
-        cfg["native_physics_capsule_witnesses"] = FunctionWitnesses(
+        cfg["native_physics_capsule_witnesses"] = evidence.Resolve(
             ("GroupUpdateCapsuleLimits", GameCompat.FunctionGroupUpdateCapsuleLimitsRva), ("GroupWorldCollision", GameCompat.FunctionGroupWorldCollisionRva),
             ("GroupCollisionCandidate", GameCompat.FunctionGroupCollisionCandidateRva), ("CapsuleContactsA", GameCompat.FunctionCapsuleContactsARva),
             ("CapsuleContactsB", GameCompat.FunctionCapsuleContactsBRva), ("CapsuleContactsC", GameCompat.FunctionCapsuleContactsCRva));

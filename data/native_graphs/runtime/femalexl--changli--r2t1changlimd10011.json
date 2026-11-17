@@ -25,7 +25,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "4248e186eaa0b3d79db4491027f1fe2f196e2c7203bb4370db30bbee8f6936a2",
+      "source_id": 3,
       "source_model_id": "R2T1ChangLiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_ChangLi_Phy"
@@ -43,7 +43,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "4248e186eaa0b3d79db4491027f1fe2f196e2c7203bb4370db30bbee8f6936a2",
+      "source_id": 3,
       "source_model_id": "R2T1ChangLiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_ChangLi_Phy"
@@ -60,7 +60,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "4248e186eaa0b3d79db4491027f1fe2f196e2c7203bb4370db30bbee8f6936a2",
+      "source_id": 3,
       "source_model_id": "R2T1ChangLiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_ChangLi_Phy"
@@ -79,7 +79,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "4248e186eaa0b3d79db4491027f1fe2f196e2c7203bb4370db30bbee8f6936a2",
+      "source_id": 3,
       "source_model_id": "R2T1ChangLiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_ChangLi_Phy"
@@ -97,7 +97,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "4248e186eaa0b3d79db4491027f1fe2f196e2c7203bb4370db30bbee8f6936a2",
+      "source_id": 3,
       "source_model_id": "R2T1ChangLiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_ChangLi_Phy"
@@ -115,7 +115,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "4248e186eaa0b3d79db4491027f1fe2f196e2c7203bb4370db30bbee8f6936a2",
+      "source_id": 3,
       "source_model_id": "R2T1ChangLiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_ChangLi_Phy"
@@ -133,7 +133,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "4248e186eaa0b3d79db4491027f1fe2f196e2c7203bb4370db30bbee8f6936a2",
+      "source_id": 3,
       "source_model_id": "R2T1ChangLiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_ChangLi_Phy"
@@ -153,7 +153,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "4248e186eaa0b3d79db4491027f1fe2f196e2c7203bb4370db30bbee8f6936a2",
+      "source_id": 3,
       "source_model_id": "R2T1ChangLiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_ChangLi_Phy"
@@ -172,7 +172,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "4248e186eaa0b3d79db4491027f1fe2f196e2c7203bb4370db30bbee8f6936a2",
+      "source_id": 3,
       "source_model_id": "R2T1ChangLiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_ChangLi_Phy"
@@ -196,13 +196,13 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "4248e186eaa0b3d79db4491027f1fe2f196e2c7203bb4370db30bbee8f6936a2",
+      "source_id": 3,
       "source_model_id": "R2T1ChangLiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_ChangLi_Phy"
     },
     {
-      "source_id": "2378d5be932b193efa831dbc2d4f9a9cb22ffe1ad29d3d7f63e44eae96877a1b",
+      "source_id": 4,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Performance_ChangLi_PC",
       "evidence_kind": "actual_nodes",
@@ -230,7 +230,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "2378d5be932b193efa831dbc2d4f9a9cb22ffe1ad29d3d7f63e44eae96877a1b",
+      "source_id": 4,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Performance_ChangLi_PC",
       "evidence_kind": "actual_nodes",
@@ -248,7 +248,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "2378d5be932b193efa831dbc2d4f9a9cb22ffe1ad29d3d7f63e44eae96877a1b",
+      "source_id": 4,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Performance_ChangLi_PC",
       "evidence_kind": "actual_nodes",
@@ -265,7 +265,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "2378d5be932b193efa831dbc2d4f9a9cb22ffe1ad29d3d7f63e44eae96877a1b",
+      "source_id": 4,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Performance_ChangLi_PC",
       "evidence_kind": "actual_nodes",
@@ -284,7 +284,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "2378d5be932b193efa831dbc2d4f9a9cb22ffe1ad29d3d7f63e44eae96877a1b",
+      "source_id": 4,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Performance_ChangLi_PC",
       "evidence_kind": "actual_nodes",
@@ -302,7 +302,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "2378d5be932b193efa831dbc2d4f9a9cb22ffe1ad29d3d7f63e44eae96877a1b",
+      "source_id": 4,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Performance_ChangLi_PC",
       "evidence_kind": "actual_nodes",
@@ -320,7 +320,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "2378d5be932b193efa831dbc2d4f9a9cb22ffe1ad29d3d7f63e44eae96877a1b",
+      "source_id": 4,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Performance_ChangLi_PC",
       "evidence_kind": "actual_nodes",
@@ -338,7 +338,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "2378d5be932b193efa831dbc2d4f9a9cb22ffe1ad29d3d7f63e44eae96877a1b",
+      "source_id": 4,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Performance_ChangLi_PC",
       "evidence_kind": "actual_nodes",
@@ -358,7 +358,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "2378d5be932b193efa831dbc2d4f9a9cb22ffe1ad29d3d7f63e44eae96877a1b",
+      "source_id": 4,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Performance_ChangLi_PC",
       "evidence_kind": "actual_nodes",
@@ -377,7 +377,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "2378d5be932b193efa831dbc2d4f9a9cb22ffe1ad29d3d7f63e44eae96877a1b",
+      "source_id": 4,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Performance_ChangLi_PC",
       "evidence_kind": "actual_nodes",
@@ -405,7 +405,7 @@
     {
       "kind": "bone_chains",
       "selection": "direct_model",
-      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_id": 1,
       "source_body_type": "FemaleXL",
       "source_character": "ChangLi",
       "source_model_id": "R2T1ChangLiMd10011"
@@ -421,7 +421,7 @@
       "group_signatures": [],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "90b7580196e0a68d735c9d417651761675e4d8b1553cb010e544720a6acb9068",
+      "source_id": 2,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Seq_ChangLi_Link_Skin01_Phy"
     },
@@ -560,13 +560,13 @@
       ],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "4248e186eaa0b3d79db4491027f1fe2f196e2c7203bb4370db30bbee8f6936a2",
+      "source_id": 3,
       "source_model_id": "R2T1ChangLiMd10011",
       "variant": "ABP_Seq_ChangLi_Phy"
     },
     {
       "kind": "ui_export",
-      "sha256": "2378d5be932b193efa831dbc2d4f9a9cb22ffe1ad29d3d7f63e44eae96877a1b",
+      "source_id": 4,
       "selection": "direct_model",
       "source_model_id": "R2T1ChangLiMd10011",
       "source_profile_id": "femalexl--changli--r2t1changlimd10011",
@@ -720,7 +720,6 @@
   "profile_id": "femalexl--changli--r2t1changlimd10011",
   "requires_live_discovery": true,
   "runtime_verified": false,
-  "schema": 1,
-  "skeleton_sha256": "ff640025a6483f67e2c4ff2f0400deec70a67f687b38f10b852c5fdd8d104282",
-  "source_profile_sha256": "236145650110c27161571c8f66ededa8b848d3fe7ead2477010e04fc04a4495c"
+  "schema": 2,
+  "skeleton_sha256": "ff640025a6483f67e2c4ff2f0400deec70a67f687b38f10b852c5fdd8d104282"
 }

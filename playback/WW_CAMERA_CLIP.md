@@ -1,8 +1,7 @@
 # Raw camera clip
 
 `ww_camera_clip.h` loads immutable `WWCAM001` version2 files on a worker and
-exposes `SampleKey(clip, seconds, mmd::CameraKey*)` and
-`Sample(clip, seconds, ww_camera::Settings, ww_camera::Frame*)`. Sampling has no
+exposes `Sample(clip, seconds, ww_camera::Settings, ww_camera::Frame*)`. Sampling has no
 heap allocation. Source coordinates are raw MMD target XYZ and signed orbit
 distance, with authored Euler radians, FOV and step perspective. Runtime world
 anchor, source basis and unit scale remain explicit caller settings.
@@ -35,10 +34,11 @@ callback times, avoiding linear approximation of nonlinear motion. The compiler
 and player use version2. Older files without the source-key tail must be compiled
 again from the original VMD.
 
-Loader checks hash characters, header version/extent/reserved bytes, counts,
-finite values, FOV1..179, perspective bits, known sample flags, strictly ordered
-source keys and finite Bezier controls in [0,1]. Source ends hold the final key;
-the player should use the longest duration across paired body/face/camera clips.
+The loader checks the version, record sizes, counts, exact file extent, and
+reserved header bytes before allocating source keys. It checks source key
+order, finite values, FOV1..179, projection, and Bezier controls in [0,1]. The
+runtime skips baked records and samples the source keys, holding the final key
+when the shared body/face/camera timeline extends beyond it.
 
 Build with `tools/build_compilers.bat`; invoke
 `mmd_camera_compile.exe CAMERA_VMD NEW_PROFILE_JSON NEW_WWCAM [TIMELINE_SECONDS]

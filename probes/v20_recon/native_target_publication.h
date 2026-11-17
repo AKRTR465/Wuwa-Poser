@@ -35,7 +35,7 @@ template<class R>Json Export(R& reader,const Go& go,const Pool& pool,const Json&
     cfg["class_address"]=Hex(mesh.cls);cfg["outer_address"]=Hex(mesh.outer);cfg["vtable"]=Hex(mesh.vtable);cfg["name_words"]=mesh.name;
     const auto image=uint64_t(GetModuleHandleW(nullptr));
     cfg["gobjects_rva"]=Hex(go.address-image);cfg["name_pool_rva"]=Hex(pool.address-image);
-    cfg["compatibility_profile"]=ww_game_compat::ProfileId;cfg["compatibility_source_sha256"]=ww_game_compat::SourceSha256;
+    cfg["compatibility_id"]=ww_game_compat::CompatibilityId;
     cfg["animation_target"]={{"schema",1},{"owner_policy",target::PolicyName(policy)},{"session_epoch",Hex(epoch)},
         {"authority_address",Hex(uint64_t(&authority))},
         {"actor",Token(reader,go,pool,actor)},{"mesh",Token(reader,go,pool,mesh)},{"mesh_asset",Token(reader,go,pool,asset)},

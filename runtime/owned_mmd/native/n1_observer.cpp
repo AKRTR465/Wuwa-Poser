@@ -35,8 +35,7 @@ static void CallOwned(owned::Action action){
         // for every operation, so a rejected second session cannot strand the
         // first session's pending Stop/CheckReleased operations.
     Require(SetEnvironmentVariableW(L"WWPOSER_OWNED_SESSION_DIR",caller_directory.c_str())!=0,"actor session environment binding failed");
-    Require(SetEnvironmentVariableA("WWPOSER_EXPECTED_COMPAT_PROFILE",ww_game_compat::ProfileId)!=0&&
-        SetEnvironmentVariableA("WWPOSER_EXPECTED_COMPAT_SOURCE_SHA256",ww_game_compat::SourceSha256)!=0,"actor compatibility environment binding failed");
+    Require(SetEnvironmentVariableA("WWPOSER_EXPECTED_COMPATIBILITY_ID",ww_game_compat::CompatibilityId)!=0,"actor compatibility environment binding failed");
     bridge.Run(caller_helper,action);
 }
 static bool Invoke(owned::Action action){
@@ -71,7 +70,7 @@ static DWORD WINAPI Worker(LPVOID){
     try{
         const auto mmd=ReadJson(dir/L"owned_mmd_config.json");display_requested=mmd.at("duration_ms");
         const auto host=reinterpret_cast<Address>(GetModuleHandleW(nullptr));
-        out["compatibility_profile"]=ww_game_compat::ProfileId;out["compatibility_source_sha256"]=ww_game_compat::SourceSha256;
+        out["compatibility_id"]=ww_game_compat::CompatibilityId;
         Reader threadReader{GetCurrentProcess()};
         uint32_t registeredThread=0;
         uint8_t threadInitialized=0;

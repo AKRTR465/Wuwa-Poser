@@ -16,7 +16,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "ea2e3ced8e988a19ff02593334eb1aa811d27e79a347cdd6d6780ee41a0249bb",
+      "source_id": 2,
       "source_model_id": "R2T1JinxiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Jinxi_Phy"
@@ -34,7 +34,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "ea2e3ced8e988a19ff02593334eb1aa811d27e79a347cdd6d6780ee41a0249bb",
+      "source_id": 2,
       "source_model_id": "R2T1JinxiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Jinxi_Phy"
@@ -53,7 +53,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "ea2e3ced8e988a19ff02593334eb1aa811d27e79a347cdd6d6780ee41a0249bb",
+      "source_id": 2,
       "source_model_id": "R2T1JinxiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Jinxi_Phy"
@@ -75,7 +75,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "ea2e3ced8e988a19ff02593334eb1aa811d27e79a347cdd6d6780ee41a0249bb",
+      "source_id": 2,
       "source_model_id": "R2T1JinxiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Jinxi_Phy"
@@ -94,7 +94,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "ea2e3ced8e988a19ff02593334eb1aa811d27e79a347cdd6d6780ee41a0249bb",
+      "source_id": 2,
       "source_model_id": "R2T1JinxiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Jinxi_Phy"
@@ -112,7 +112,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "ea2e3ced8e988a19ff02593334eb1aa811d27e79a347cdd6d6780ee41a0249bb",
+      "source_id": 2,
       "source_model_id": "R2T1JinxiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Jinxi_Phy"
@@ -130,7 +130,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "ea2e3ced8e988a19ff02593334eb1aa811d27e79a347cdd6d6780ee41a0249bb",
+      "source_id": 2,
       "source_model_id": "R2T1JinxiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Jinxi_Phy"
@@ -151,7 +151,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "ea2e3ced8e988a19ff02593334eb1aa811d27e79a347cdd6d6780ee41a0249bb",
+      "source_id": 2,
       "source_model_id": "R2T1JinxiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Jinxi_Phy"
@@ -169,13 +169,13 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "ea2e3ced8e988a19ff02593334eb1aa811d27e79a347cdd6d6780ee41a0249bb",
+      "source_id": 2,
       "source_model_id": "R2T1JinxiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Jinxi_Phy"
     },
     {
-      "source_id": "f203b95a5fede3c6500307fabbc5019e525ec6f3142d9cca9405ac2af1e2d2b7",
+      "source_id": 4,
       "source_model_id": "R2T1JinxiMd10011",
       "variant": "ABP_Performance_Jinxi_PC",
       "evidence_kind": "actual_nodes",
@@ -194,7 +194,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "f203b95a5fede3c6500307fabbc5019e525ec6f3142d9cca9405ac2af1e2d2b7",
+      "source_id": 4,
       "source_model_id": "R2T1JinxiMd10011",
       "variant": "ABP_Performance_Jinxi_PC",
       "evidence_kind": "actual_nodes",
@@ -212,7 +212,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "f203b95a5fede3c6500307fabbc5019e525ec6f3142d9cca9405ac2af1e2d2b7",
+      "source_id": 4,
       "source_model_id": "R2T1JinxiMd10011",
       "variant": "ABP_Performance_Jinxi_PC",
       "evidence_kind": "actual_nodes",
@@ -231,7 +231,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "f203b95a5fede3c6500307fabbc5019e525ec6f3142d9cca9405ac2af1e2d2b7",
+      "source_id": 4,
       "source_model_id": "R2T1JinxiMd10011",
       "variant": "ABP_Performance_Jinxi_PC",
       "evidence_kind": "actual_nodes",
@@ -253,7 +253,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "f203b95a5fede3c6500307fabbc5019e525ec6f3142d9cca9405ac2af1e2d2b7",
+      "source_id": 4,
       "source_model_id": "R2T1JinxiMd10011",
       "variant": "ABP_Performance_Jinxi_PC",
       "evidence_kind": "actual_nodes",
@@ -272,7 +272,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "f203b95a5fede3c6500307fabbc5019e525ec6f3142d9cca9405ac2af1e2d2b7",
+      "source_id": 4,
       "source_model_id": "R2T1JinxiMd10011",
       "variant": "ABP_Performance_Jinxi_PC",
       "evidence_kind": "actual_nodes",
@@ -290,7 +290,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "f203b95a5fede3c6500307fabbc5019e525ec6f3142d9cca9405ac2af1e2d2b7",
+      "source_id": 4,
       "source_model_id": "R2T1JinxiMd10011",
       "variant": "ABP_Performance_Jinxi_PC",
       "evidence_kind": "actual_nodes",
@@ -308,7 +308,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "f203b95a5fede3c6500307fabbc5019e525ec6f3142d9cca9405ac2af1e2d2b7",
+      "source_id": 4,
       "source_model_id": "R2T1JinxiMd10011",
       "variant": "ABP_Performance_Jinxi_PC",
       "evidence_kind": "actual_nodes",
@@ -329,7 +329,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "f203b95a5fede3c6500307fabbc5019e525ec6f3142d9cca9405ac2af1e2d2b7",
+      "source_id": 4,
       "source_model_id": "R2T1JinxiMd10011",
       "variant": "ABP_Performance_Jinxi_PC",
       "evidence_kind": "actual_nodes",
@@ -351,7 +351,7 @@
     {
       "kind": "bone_chains",
       "selection": "direct_model",
-      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_id": 1,
       "source_body_type": "FemaleM",
       "source_character": "Jinxi",
       "source_model_id": "R2T1JinxiMd10011"
@@ -470,7 +470,7 @@
       ],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "ea2e3ced8e988a19ff02593334eb1aa811d27e79a347cdd6d6780ee41a0249bb",
+      "source_id": 2,
       "source_model_id": "R2T1JinxiMd10011",
       "variant": "ABP_Seq_Jinxi_Phy"
     },
@@ -485,13 +485,13 @@
       "group_signatures": [],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "7a64696377ab4ef8b5a6200907085390e5517142fcbc66ce9c8fbb34ef8d401b",
+      "source_id": 3,
       "source_model_id": "R2T1JinxiMd10011",
       "variant": "ABP_Seq_Jinxi_Skin_1_Phy"
     },
     {
       "kind": "ui_export",
-      "sha256": "f203b95a5fede3c6500307fabbc5019e525ec6f3142d9cca9405ac2af1e2d2b7",
+      "source_id": 4,
       "selection": "direct_model",
       "source_model_id": "R2T1JinxiMd10011",
       "source_profile_id": "femalem--jinxi--r2t1jinximd10011",
@@ -624,7 +624,6 @@
   "profile_id": "femalem--jinxi--r2t1jinximd10011",
   "requires_live_discovery": true,
   "runtime_verified": false,
-  "schema": 1,
-  "skeleton_sha256": "37c3f46d98d7a17d8262a4a98e61c9b4da60dc2375237c67af157a972cf48565",
-  "source_profile_sha256": "92cfcac66d921054ee7db0909f07e5b66594558b277957af6b84278f9a71da9a"
+  "schema": 2,
+  "skeleton_sha256": "37c3f46d98d7a17d8262a4a98e61c9b4da60dc2375237c67af157a972cf48565"
 }

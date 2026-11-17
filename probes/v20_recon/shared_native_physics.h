@@ -154,7 +154,7 @@ inline const std::vector<ww_game_compat_witness::Function>& ActivationFunctionSp
 template<class Reader>inline bool VerifyNativeFunctionSets(Reader& r,uint64_t image,uint64_t imageBytes,const Json& cfg,Json& checks,std::string& error){
     auto read=[&](uint64_t address,void* out,size_t bytes){return r.Read(address,out,bytes);};
     std::string sourceError,inputError,activationError;
-    const bool source=ww_game_compat_witness::CompatibleSource(cfg,ww_game_compat::ProfileId,ww_game_compat::SourceSha256,checks,sourceError);
+    const bool source=ww_game_compat_witness::CompatibleId(cfg,ww_game_compat::CompatibilityId,checks,sourceError);
     const bool input=ww_game_compat_witness::VerifyFunctions(read,image,imageBytes,cfg.value("native_physics_witnesses",Json::array()),InputFunctionSpecs(),checks,"native_input",inputError);
     const bool activation=ww_game_compat_witness::VerifyFunctions(read,image,imageBytes,cfg.value("native_physics_activation_witnesses",Json::array()),ActivationFunctionSpecs(),checks,"native_activation",activationError);
     error=!sourceError.empty()?sourceError:!inputError.empty()?inputError:activationError;
@@ -199,8 +199,8 @@ template<class Reader>inline void VerifyNativeFunctions(Actor& a,Reader& r,const
     unsigned matched=0;for(const auto& row:checks)if(row.value("kind",std::string())=="function_bytes"&&row.value("matched",false))++matched;
     a.function_witnesses_matched.store(matched);
     std::filesystem::create_directories(directory);
-    ww_report::Save(directory/L"native_function_checks.json",{{"schema",1},{"compatibility_profile",ww_game_compat::ProfileId},
-        {"compatibility_source_sha256",ww_game_compat::SourceSha256},{"verified",verified},{"required_function_count",a.function_witnesses_required.load()},
+    ww_report::Save(directory/L"native_function_checks.json",{{"schema",1},{"compatibility_id",ww_game_compat::CompatibilityId},
+        {"verified",verified},{"required_function_count",a.function_witnesses_required.load()},
         {"matched_function_count",matched},{"checks",checks},{"error",error},{"settings_verified",a.settings_verified},
         {"settings_checks",settingsChecks},{"settings_error",settingsError},{"capsules_verified",a.capsules_verified},
         {"capsule_checks",capsuleChecks},{"capsule_error",capsuleError},{"gravity_verified",a.gravity_verified}});

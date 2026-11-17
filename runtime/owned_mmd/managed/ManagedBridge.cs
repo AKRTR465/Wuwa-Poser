@@ -193,10 +193,9 @@ namespace WwPoser.ColdLoad
             foreach (var saved in s_simpleSceneVisibility.Values) if (!saved.Released) return false;
             return s_playerVisibility == null || s_playerVisibility.Released;
         }
-        public static void VerifyCompatibility()
+        public static void VerifyCompatibilityId()
         {
-            if (!String.Equals(Environment.GetEnvironmentVariable("WWPOSER_EXPECTED_COMPAT_PROFILE"), GameCompat.ProfileId, StringComparison.Ordinal) ||
-                !String.Equals(Environment.GetEnvironmentVariable("WWPOSER_EXPECTED_COMPAT_SOURCE_SHA256"), GameCompat.SourceSha256, StringComparison.Ordinal))
+            if (!String.Equals(Environment.GetEnvironmentVariable("WWPOSER_EXPECTED_COMPATIBILITY_ID"), GameCompat.CompatibilityId, StringComparison.Ordinal))
                 throw new InvalidOperationException("Loaded actor helper uses a different compatibility configuration; restart the game after rebuilding the runtime.");
         }
         public static void VerifySession()
@@ -206,7 +205,7 @@ namespace WwPoser.ColdLoad
         }
         public static void BindSession()
         {
-            VerifyCompatibility();
+            VerifyCompatibilityId();
             var next = Path.GetFullPath(Environment.GetEnvironmentVariable(SessionVariable));
             if (String.Equals(next, s_session, StringComparison.OrdinalIgnoreCase)) return;
             if (!AllReleased()) throw new InvalidOperationException("Previous actors still require restoration.");

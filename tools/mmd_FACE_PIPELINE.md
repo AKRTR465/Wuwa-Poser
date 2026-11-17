@@ -12,8 +12,9 @@ channel, target list/gain, status and unmapped reason. It binds the VMD, census
 and compiled expression binary hashes. The 4,799,552-byte WWEXPR01 binary has
 9999 frames at 60fps: 105 target weights plus three source eye quaternions and
 presence flags. Source eye rotations are not target-rig rotations; they need
-explicit calibration before runtime use. `ww_face_clip.h` loads finite/unit
-values on a worker and samples into fixed outputs without allocating.
+explicit calibration before runtime use. `ww_face_clip.h` checks the header,
+size, and morph weights on a worker and samples into fixed outputs without
+allocating.
 
 Independent gaze import now uses `ww_gaze_profile.h` to convert source eye
 directions into existing named Pupil morph weights in the same WWEXPR01 clip.

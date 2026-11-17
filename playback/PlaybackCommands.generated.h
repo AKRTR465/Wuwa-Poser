@@ -3,6 +3,8 @@
 #include <cmath>
 #include <cstdint>
 namespace wwp_playback {
+inline constexpr char kCommandWireMagic[] = "WWPCTL2";
+inline constexpr uint32_t kCommandWireVersion = 2, kCommandWireBytes = 56;
 enum class CommandKind : uint32_t {
     Play=1,
     Pause=2,

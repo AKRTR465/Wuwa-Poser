@@ -12,7 +12,7 @@
     Files = @(
         'tools/recording_bin/ffmpeg.exe', 'tools/recording_bin/ffprobe.exe',
         'tools/recording_bin/LICENSE.txt', 'tools/recording_bin/README.txt', 'tools/recording_bin/source.json',
-        'data/bone_chains.json', 'data/native_identity_registration_contract.json',
+        'data/bone_chains.json',
         'data/native_graphs/index.json', 'data/native_graphs/owned_ui_source_certificate.json',
         'data/dependencies/ffmpeg.json', 'data/dependencies/ffmpeg.README.txt',
         'tools/MMD_PLAYER.md', 'playback/CONTROL_COMMANDS.md',

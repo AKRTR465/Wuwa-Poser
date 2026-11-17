@@ -2,6 +2,8 @@
 namespace WWPoser.Services;
 internal static class PlaybackCommands
 {
+    internal static System.ReadOnlySpan<byte> WireMagic => "WWPCTL2\0"u8;
+    internal const int WireVersion = 2, WireBytes = 56;
     internal static uint Validate(string kind, double value, uint targetSlot, uint targetGroup, uint targetChain)
     {
         var (id, minimum, maximum, integral, restore, slot, group, chain) = kind switch

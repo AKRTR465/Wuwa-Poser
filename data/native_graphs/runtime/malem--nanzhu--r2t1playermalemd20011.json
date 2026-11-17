@@ -16,7 +16,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "e4ccd9e17c68698acb8f8f009256d4616ec9255e950587b859d12046dbb00189",
+      "source_id": 2,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Md20011_Link_Phy"
@@ -37,7 +37,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "e4ccd9e17c68698acb8f8f009256d4616ec9255e950587b859d12046dbb00189",
+      "source_id": 2,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Md20011_Link_Phy"
@@ -55,7 +55,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "e4ccd9e17c68698acb8f8f009256d4616ec9255e950587b859d12046dbb00189",
+      "source_id": 2,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Md20011_Link_Phy"
@@ -73,7 +73,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "e4ccd9e17c68698acb8f8f009256d4616ec9255e950587b859d12046dbb00189",
+      "source_id": 2,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Md20011_Link_Phy"
@@ -90,7 +90,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "e4ccd9e17c68698acb8f8f009256d4616ec9255e950587b859d12046dbb00189",
+      "source_id": 2,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Md20011_Link_Phy"
@@ -120,7 +120,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "e4ccd9e17c68698acb8f8f009256d4616ec9255e950587b859d12046dbb00189",
+      "source_id": 2,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Md20011_Link_Phy"
@@ -139,7 +139,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "836e249747d33087401e137a36404e2e15d225956e6dd2c87144f2bf1098a368",
+      "source_id": 4,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Phy"
@@ -160,7 +160,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "836e249747d33087401e137a36404e2e15d225956e6dd2c87144f2bf1098a368",
+      "source_id": 4,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Phy"
@@ -178,7 +178,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "836e249747d33087401e137a36404e2e15d225956e6dd2c87144f2bf1098a368",
+      "source_id": 4,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Phy"
@@ -196,7 +196,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "836e249747d33087401e137a36404e2e15d225956e6dd2c87144f2bf1098a368",
+      "source_id": 4,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Phy"
@@ -213,7 +213,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "836e249747d33087401e137a36404e2e15d225956e6dd2c87144f2bf1098a368",
+      "source_id": 4,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Phy"
@@ -243,13 +243,13 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "836e249747d33087401e137a36404e2e15d225956e6dd2c87144f2bf1098a368",
+      "source_id": 4,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Nanzhu_Phy"
     },
     {
-      "source_id": "c9678a8e92ee5aa3f224dc15b80d2303ad1be74364d048a70e22f82eb1d93838",
+      "source_id": 6,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -268,7 +268,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "c9678a8e92ee5aa3f224dc15b80d2303ad1be74364d048a70e22f82eb1d93838",
+      "source_id": 6,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -289,7 +289,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "c9678a8e92ee5aa3f224dc15b80d2303ad1be74364d048a70e22f82eb1d93838",
+      "source_id": 6,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -307,7 +307,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "c9678a8e92ee5aa3f224dc15b80d2303ad1be74364d048a70e22f82eb1d93838",
+      "source_id": 6,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -325,7 +325,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "c9678a8e92ee5aa3f224dc15b80d2303ad1be74364d048a70e22f82eb1d93838",
+      "source_id": 6,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -342,7 +342,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "c9678a8e92ee5aa3f224dc15b80d2303ad1be74364d048a70e22f82eb1d93838",
+      "source_id": 6,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -372,7 +372,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "8adefc6b6802a4848c889e83ee91aafba0eb6783ffbc362dff5cc4249ad329db",
+      "source_id": 7,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_PlayerMale_PC",
       "evidence_kind": "actual_nodes",
@@ -391,7 +391,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "8adefc6b6802a4848c889e83ee91aafba0eb6783ffbc362dff5cc4249ad329db",
+      "source_id": 7,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_PlayerMale_PC",
       "evidence_kind": "actual_nodes",
@@ -412,7 +412,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "8adefc6b6802a4848c889e83ee91aafba0eb6783ffbc362dff5cc4249ad329db",
+      "source_id": 7,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_PlayerMale_PC",
       "evidence_kind": "actual_nodes",
@@ -430,7 +430,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "8adefc6b6802a4848c889e83ee91aafba0eb6783ffbc362dff5cc4249ad329db",
+      "source_id": 7,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_PlayerMale_PC",
       "evidence_kind": "actual_nodes",
@@ -448,7 +448,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "8adefc6b6802a4848c889e83ee91aafba0eb6783ffbc362dff5cc4249ad329db",
+      "source_id": 7,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_PlayerMale_PC",
       "evidence_kind": "actual_nodes",
@@ -465,7 +465,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "8adefc6b6802a4848c889e83ee91aafba0eb6783ffbc362dff5cc4249ad329db",
+      "source_id": 7,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_PlayerMale_PC",
       "evidence_kind": "actual_nodes",
@@ -495,7 +495,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "005950c7d994cc9f6ea986cf68bb7dbba2844f86a820c0fde18fcd13755d0d62",
+      "source_id": 8,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -514,7 +514,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "005950c7d994cc9f6ea986cf68bb7dbba2844f86a820c0fde18fcd13755d0d62",
+      "source_id": 8,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -535,7 +535,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "005950c7d994cc9f6ea986cf68bb7dbba2844f86a820c0fde18fcd13755d0d62",
+      "source_id": 8,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -553,7 +553,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "005950c7d994cc9f6ea986cf68bb7dbba2844f86a820c0fde18fcd13755d0d62",
+      "source_id": 8,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -571,7 +571,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "005950c7d994cc9f6ea986cf68bb7dbba2844f86a820c0fde18fcd13755d0d62",
+      "source_id": 8,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -588,7 +588,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "005950c7d994cc9f6ea986cf68bb7dbba2844f86a820c0fde18fcd13755d0d62",
+      "source_id": 8,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_DarkNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -618,7 +618,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "89f03531b9ccf436216251315eb6e24e03e45f8d66a062268b07d6192f54174c",
+      "source_id": 9,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_WindNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -637,7 +637,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "89f03531b9ccf436216251315eb6e24e03e45f8d66a062268b07d6192f54174c",
+      "source_id": 9,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_WindNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -658,7 +658,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "89f03531b9ccf436216251315eb6e24e03e45f8d66a062268b07d6192f54174c",
+      "source_id": 9,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_WindNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -676,7 +676,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "89f03531b9ccf436216251315eb6e24e03e45f8d66a062268b07d6192f54174c",
+      "source_id": 9,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_WindNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -694,7 +694,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "89f03531b9ccf436216251315eb6e24e03e45f8d66a062268b07d6192f54174c",
+      "source_id": 9,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_WindNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -711,7 +711,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "89f03531b9ccf436216251315eb6e24e03e45f8d66a062268b07d6192f54174c",
+      "source_id": 9,
       "source_model_id": "R2T1PlayerMaleMd20011",
       "variant": "ABP_Performance_WindNanzhu_PC",
       "evidence_kind": "actual_nodes",
@@ -745,7 +745,7 @@
     {
       "kind": "bone_chains",
       "selection": "base_alias",
-      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_id": 1,
       "source_body_type": "MaleM",
       "source_character": "Nanzhu",
       "source_model_id": "R2T1PlayerMaleMd10011"
@@ -839,7 +839,7 @@
       ],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "e4ccd9e17c68698acb8f8f009256d4616ec9255e950587b859d12046dbb00189",
+      "source_id": 2,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "variant": "ABP_Seq_Nanzhu_Md20011_Link_Phy"
     },
@@ -854,7 +854,7 @@
       "group_signatures": [],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "a400badb45979f415ab12651fc954856d22ccf6ddaf834fa18fff0f39fb8e57b",
+      "source_id": 3,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "variant": "ABP_Seq_Nanzhu_Md20011_Phy"
     },
@@ -947,7 +947,7 @@
       ],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "836e249747d33087401e137a36404e2e15d225956e6dd2c87144f2bf1098a368",
+      "source_id": 4,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "variant": "ABP_Seq_Nanzhu_Phy"
     },
@@ -962,13 +962,13 @@
       "group_signatures": [],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "f3bb28b41b71ead671b607b9ab26b207c00db5a5e63e200a5fe4ede5f38dc4b9",
+      "source_id": 5,
       "source_model_id": "R2T1PlayerMaleMd10011",
       "variant": "ABP_Seq_Nanzhu_NPC_Phy"
     },
     {
       "kind": "ui_export",
-      "sha256": "c9678a8e92ee5aa3f224dc15b80d2303ad1be74364d048a70e22f82eb1d93838",
+      "source_id": 6,
       "selection": "direct_model",
       "source_model_id": "R2T1PlayerMaleMd20011",
       "source_profile_id": "malem--nanzhu--r2t1playermalemd20011",
@@ -1067,7 +1067,7 @@
     },
     {
       "kind": "ui_export",
-      "sha256": "8adefc6b6802a4848c889e83ee91aafba0eb6783ffbc362dff5cc4249ad329db",
+      "source_id": 7,
       "selection": "direct_model",
       "source_model_id": "R2T1PlayerMaleMd20011",
       "source_profile_id": "malem--nanzhu--r2t1playermalemd20011",
@@ -1166,7 +1166,7 @@
     },
     {
       "kind": "ui_export",
-      "sha256": "005950c7d994cc9f6ea986cf68bb7dbba2844f86a820c0fde18fcd13755d0d62",
+      "source_id": 8,
       "selection": "direct_model",
       "source_model_id": "R2T1PlayerMaleMd20011",
       "source_profile_id": "malem--nanzhu--r2t1playermalemd20011",
@@ -1265,7 +1265,7 @@
     },
     {
       "kind": "ui_export",
-      "sha256": "89f03531b9ccf436216251315eb6e24e03e45f8d66a062268b07d6192f54174c",
+      "source_id": 9,
       "selection": "direct_model",
       "source_model_id": "R2T1PlayerMaleMd20011",
       "source_profile_id": "malem--nanzhu--r2t1playermalemd20011",
@@ -1373,7 +1373,6 @@
   "profile_id": "malem--nanzhu--r2t1playermalemd20011",
   "requires_live_discovery": true,
   "runtime_verified": false,
-  "schema": 1,
-  "skeleton_sha256": "6054f4a14441bceca1c9ae65fa6ca7c2aa4088f2107f1756a28b14a583a174ba",
-  "source_profile_sha256": "17d498ac44ac3f6bfce53677916fcf20c3144695b013ed6f92294f56238c1a4b"
+  "schema": 2,
+  "skeleton_sha256": "6054f4a14441bceca1c9ae65fa6ca7c2aa4088f2107f1756a28b14a583a174ba"
 }

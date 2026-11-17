@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "profile_id": "femalexl--qingxiao--r2t1qingxiaomd10011",
   "character": "Qingxiao",
   "model_id": "R2T1QingxiaoMd10011",
@@ -13,11 +13,10 @@
   "requires_live_discovery": true,
   "pc_binding": null,
   "kind": "native_graph_runtime_descriptor",
-  "source_profile_sha256": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
   "candidate_sources": [
     {
       "kind": "bone_chains",
-      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_id": 1,
       "selection": "direct_model",
       "source_model_id": "R2T1QingxiaoMd10011",
       "source_body_type": "FemaleXL",
@@ -25,7 +24,7 @@
     },
     {
       "kind": "seq_export",
-      "sha256": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "selection": "direct_model",
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
@@ -223,7 +222,7 @@
     },
     {
       "kind": "ui_export",
-      "sha256": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "selection": "direct_model",
       "source_model_id": "R2T1QingxiaoMd10011",
       "source_profile_id": "femalexl--qingxiao--r2t1qingxiaomd10011",
@@ -427,7 +426,7 @@
   ],
   "candidate_groups": [
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -445,7 +444,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -468,7 +467,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -486,7 +485,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -509,7 +508,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -533,7 +532,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -551,7 +550,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -573,7 +572,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -593,7 +592,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -611,7 +610,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -628,7 +627,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -646,7 +645,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -668,7 +667,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -687,7 +686,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "cf16e8a7c0ac7e48a1daae408481431e4d1c9bd1897739d022a7e55ed26f4db4",
+      "source_id": 2,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Seq_Qingxiao_Phy",
       "evidence_kind": "actual_nodes",
@@ -707,7 +706,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -725,7 +724,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -748,7 +747,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -766,7 +765,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -789,7 +788,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -813,7 +812,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -831,7 +830,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -853,7 +852,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -873,7 +872,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -891,7 +890,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -908,7 +907,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -926,7 +925,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -948,7 +947,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",
@@ -967,7 +966,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "9ee77ce400813e41853ab683a970c368df06c63c12f8cb270dfcc4586d76bdf2",
+      "source_id": 3,
       "source_model_id": "R2T1QingxiaoMd10011",
       "variant": "ABP_Performance_Qingxiao_PC",
       "evidence_kind": "actual_nodes",

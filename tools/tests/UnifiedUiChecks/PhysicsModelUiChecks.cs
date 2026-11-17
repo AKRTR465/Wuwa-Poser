@@ -151,7 +151,7 @@ internal static class PhysicsModelUiChecks
                         try
                         {
                             using var input = new FileStream(commandFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                            var candidate = new byte[64];
+                            var candidate = new byte[PlaybackCommands.WireBytes];
                             input.ReadExactly(candidate);
                             if (BinaryPrimitives.ReadUInt64LittleEndian(candidate.AsSpan(24)) == last) return false;
                             command = candidate;

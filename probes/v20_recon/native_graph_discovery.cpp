@@ -82,7 +82,7 @@ static void Detour(unsigned hook,void* node,void* context,void* out){
 using Trampolines=oc::Trampolines<&Detour>;
 struct Config {
     unsigned duration_ms=5000,node_limit=ng::kNodes,frame_limit=ng::kFrames;
-    uint64_t go_rva=0,pool_rva=0;std::string profile,skeleton_sha;
+    uint64_t go_rva=0,pool_rva=0;std::string profile;
     unsigned bone_count=0;std::vector<std::string> bone_names;std::vector<int32_t> parents;
     Json root_witnesses;
 };
@@ -90,7 +90,6 @@ static Config ParseConfig(const Json& j){Config c;
     const auto& d=j.at("native_graph_discovery");
     c.duration_ms=d.at("duration_ms");c.node_limit=d.at("node_limit");c.frame_limit=d.at("frame_limit");
     c.go_rva=oc::Address(j.at("gobjects_rva"));c.pool_rva=oc::Address(j.at("name_pool_rva"));c.profile=j.at("character_profile_id");c.bone_count=j.at("expected_bone_count");
-    c.skeleton_sha=j.at("expected_skeleton_sha256");
     c.bone_names=j.at("expected_bone_names").get<std::vector<std::string>>();c.parents=j.at("expected_bone_parents").get<std::vector<int32_t>>();
     c.root_witnesses=d.at("root_layout_witnesses");
     if(!c.bone_count||c.bone_count>ng::kBones||c.parents.size()!=c.bone_count||c.bone_names.size()!=c.bone_count)throw std::runtime_error("reference topology bounds differ");
@@ -217,7 +216,7 @@ static DWORD WINAPI Worker(LPVOID){
         {"readonly_animation",true},{"pose_writes",0},{"alpha_writes",0},{"native_update_calls",0},{"engine_getter_calls",0},{"vtable_writes_only",true},
         {"dll_retained_until_process_exit",true},{"hooks",Json::array()},{"all_hooks_restored",true},{"callbacks_quiescent",false},
         {"truncated",false},{"reasons",Json::array()},{"scope","Executed callbacks in one bounded frame window; unexecuted branches are not covered."},
-        {"compatibility_profile",compat::ProfileId},{"compatibility_source_sha256",compat::SourceSha256},
+        {"compatibility_id",compat::CompatibilityId},
         {"checks_performed",Json::array()},{"root_layout_verified",false}};
     oc::Session session;Pool pool;bool bound=false,ran=false;
     try{
@@ -225,7 +224,6 @@ static DWORD WINAPI Worker(LPVOID){
         const auto& cfg=session.config;const auto& discovery=cfg.at("native_graph_discovery");
         std::string verificationError;
         const auto config=ParseConfig(cfg);
-        report["host_sha256"]=compat::SourceBuildSha256;
         if(discovery.contains("kawaii_settings_witnesses")){
             const std::vector<witness::Function> functions={{"GroupUpdatePhysicsSettings",kawaii::kUpdateRva,kawaii::kUpdateBytes},
                 {"GroupSimulate",kawaii::kSimulateRva,kawaii::kSimulateBytes}};
@@ -245,7 +243,7 @@ static DWORD WINAPI Worker(LPVOID){
         Reader reader{GetCurrentProcess()};Go go;if(!ValidateGo(reader,goAddress,go)||!ValidatePool(reader,poolAddress,pool))throw std::runtime_error("fresh anchors invalid");
         binding=Bind(reader,pool,go,config,cfg,session.image);bound=true;report["identity"]=BindingJson(reader,pool,binding);
         referenceBoneNames=config.bone_names;
-        report["profile_id"]=config.profile;report["bone_count"]=config.bone_count;report["skeleton_sha256"]=config.skeleton_sha;report["watch_mesh"]=Hex(binding.mesh.address);
+        report["profile_id"]=config.profile;report["bone_count"]=config.bone_count;report["watch_mesh"]=Hex(binding.mesh.address);
         report["reference_bone_names"]=config.bone_names;report["reference_bone_parents"]=config.parents;
         recorder.node_limit=config.node_limit;recorder.frame_limit=config.frame_limit;
         hooks.Resolve(session,report);

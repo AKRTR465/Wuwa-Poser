@@ -76,7 +76,8 @@ public sealed partial class PlaybackSessionService
     private string CompilationFingerprint(PlaybackSessionRequest request)
     {
         request = AssignSlots(request);
-        string? Digest(string? file) => string.IsNullOrWhiteSpace(file) ? null : JsonData.Digest(file);
+        var inputs = new InputFileDigests();
+        string? Digest(string? file) => string.IsNullOrWhiteSpace(file) ? null : inputs.Read(file);
         var actors = new JsonArray(request.Actors.Select(actor => (JsonNode)new JsonObject
         {
             ["slot"] = actor.Slot, ["character"] = actor.CharacterId, ["enabled"] = actor.Enabled,

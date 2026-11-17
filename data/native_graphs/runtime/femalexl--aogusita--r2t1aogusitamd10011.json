@@ -15,7 +15,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "c6924dda047abec80b6fa278afab6a8a32eff350875530e3285c795a8ce0728a",
+      "source_id": 2,
       "source_model_id": "R2T1AogusitaMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Aogusita_Phy"
@@ -34,7 +34,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "c6924dda047abec80b6fa278afab6a8a32eff350875530e3285c795a8ce0728a",
+      "source_id": 2,
       "source_model_id": "R2T1AogusitaMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Aogusita_Phy"
@@ -54,7 +54,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "c6924dda047abec80b6fa278afab6a8a32eff350875530e3285c795a8ce0728a",
+      "source_id": 2,
       "source_model_id": "R2T1AogusitaMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Aogusita_Phy"
@@ -88,7 +88,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "c6924dda047abec80b6fa278afab6a8a32eff350875530e3285c795a8ce0728a",
+      "source_id": 2,
       "source_model_id": "R2T1AogusitaMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Aogusita_Phy"
@@ -111,7 +111,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "c6924dda047abec80b6fa278afab6a8a32eff350875530e3285c795a8ce0728a",
+      "source_id": 2,
       "source_model_id": "R2T1AogusitaMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Aogusita_Phy"
@@ -130,7 +130,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "c6924dda047abec80b6fa278afab6a8a32eff350875530e3285c795a8ce0728a",
+      "source_id": 2,
       "source_model_id": "R2T1AogusitaMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Aogusita_Phy"
@@ -154,7 +154,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "c6924dda047abec80b6fa278afab6a8a32eff350875530e3285c795a8ce0728a",
+      "source_id": 2,
       "source_model_id": "R2T1AogusitaMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Aogusita_Phy"
@@ -181,7 +181,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "c6924dda047abec80b6fa278afab6a8a32eff350875530e3285c795a8ce0728a",
+      "source_id": 2,
       "source_model_id": "R2T1AogusitaMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Aogusita_Phy"
@@ -201,7 +201,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "c6924dda047abec80b6fa278afab6a8a32eff350875530e3285c795a8ce0728a",
+      "source_id": 2,
       "source_model_id": "R2T1AogusitaMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Aogusita_Phy"
@@ -219,13 +219,13 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "c6924dda047abec80b6fa278afab6a8a32eff350875530e3285c795a8ce0728a",
+      "source_id": 2,
       "source_model_id": "R2T1AogusitaMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Aogusita_Phy"
     },
     {
-      "source_id": "ada2e89be6cef49967116bd848023a74821ad61ecec2bfda7f526a38aeef5a13",
+      "source_id": 3,
       "source_model_id": "R2T1AogusitaMd10011",
       "variant": "ABP_Performance_Aogusita_PC",
       "evidence_kind": "actual_nodes",
@@ -243,7 +243,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ada2e89be6cef49967116bd848023a74821ad61ecec2bfda7f526a38aeef5a13",
+      "source_id": 3,
       "source_model_id": "R2T1AogusitaMd10011",
       "variant": "ABP_Performance_Aogusita_PC",
       "evidence_kind": "actual_nodes",
@@ -262,7 +262,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ada2e89be6cef49967116bd848023a74821ad61ecec2bfda7f526a38aeef5a13",
+      "source_id": 3,
       "source_model_id": "R2T1AogusitaMd10011",
       "variant": "ABP_Performance_Aogusita_PC",
       "evidence_kind": "actual_nodes",
@@ -282,7 +282,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ada2e89be6cef49967116bd848023a74821ad61ecec2bfda7f526a38aeef5a13",
+      "source_id": 3,
       "source_model_id": "R2T1AogusitaMd10011",
       "variant": "ABP_Performance_Aogusita_PC",
       "evidence_kind": "actual_nodes",
@@ -316,7 +316,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ada2e89be6cef49967116bd848023a74821ad61ecec2bfda7f526a38aeef5a13",
+      "source_id": 3,
       "source_model_id": "R2T1AogusitaMd10011",
       "variant": "ABP_Performance_Aogusita_PC",
       "evidence_kind": "actual_nodes",
@@ -339,7 +339,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ada2e89be6cef49967116bd848023a74821ad61ecec2bfda7f526a38aeef5a13",
+      "source_id": 3,
       "source_model_id": "R2T1AogusitaMd10011",
       "variant": "ABP_Performance_Aogusita_PC",
       "evidence_kind": "actual_nodes",
@@ -358,7 +358,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ada2e89be6cef49967116bd848023a74821ad61ecec2bfda7f526a38aeef5a13",
+      "source_id": 3,
       "source_model_id": "R2T1AogusitaMd10011",
       "variant": "ABP_Performance_Aogusita_PC",
       "evidence_kind": "actual_nodes",
@@ -382,7 +382,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ada2e89be6cef49967116bd848023a74821ad61ecec2bfda7f526a38aeef5a13",
+      "source_id": 3,
       "source_model_id": "R2T1AogusitaMd10011",
       "variant": "ABP_Performance_Aogusita_PC",
       "evidence_kind": "actual_nodes",
@@ -409,7 +409,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ada2e89be6cef49967116bd848023a74821ad61ecec2bfda7f526a38aeef5a13",
+      "source_id": 3,
       "source_model_id": "R2T1AogusitaMd10011",
       "variant": "ABP_Performance_Aogusita_PC",
       "evidence_kind": "actual_nodes",
@@ -433,7 +433,7 @@
     {
       "kind": "bone_chains",
       "selection": "direct_model",
-      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_id": 1,
       "source_body_type": "FemaleXL",
       "source_character": "Aogusita",
       "source_model_id": "R2T1AogusitaMd10011"
@@ -598,13 +598,13 @@
       ],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "c6924dda047abec80b6fa278afab6a8a32eff350875530e3285c795a8ce0728a",
+      "source_id": 2,
       "source_model_id": "R2T1AogusitaMd10011",
       "variant": "ABP_Seq_Aogusita_Phy"
     },
     {
       "kind": "ui_export",
-      "sha256": "ada2e89be6cef49967116bd848023a74821ad61ecec2bfda7f526a38aeef5a13",
+      "source_id": 3,
       "selection": "direct_model",
       "source_model_id": "R2T1AogusitaMd10011",
       "source_profile_id": "femalexl--aogusita--r2t1aogusitamd10011",
@@ -773,7 +773,6 @@
   "profile_id": "femalexl--aogusita--r2t1aogusitamd10011",
   "requires_live_discovery": true,
   "runtime_verified": false,
-  "schema": 1,
-  "skeleton_sha256": "218665deac7db91294ef329887c0dfb98126aec0bf15e043ac04b455bb9e2e4d",
-  "source_profile_sha256": "9f6787a6e4749e3f24c5c8c7172e831e4c14fa18a637d76eb1a9d2b349eb8d2f"
+  "schema": 2,
+  "skeleton_sha256": "218665deac7db91294ef329887c0dfb98126aec0bf15e043ac04b455bb9e2e4d"
 }

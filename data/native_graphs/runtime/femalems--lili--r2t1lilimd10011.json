@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "kind": "native_graph_runtime_descriptor",
   "profile_id": "femalems--lili--r2t1lilimd10011",
   "model_id": "R2T1LiliMd10011",
@@ -13,7 +13,7 @@
   "candidate_sources": [
     {
       "kind": "ui_export",
-      "sha256": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "selection": "direct_model",
       "source_model_id": "R2T1LiliMd10011",
       "source_profile_id": "femalems--lili--r2t1lilimd10011",
@@ -218,7 +218,7 @@
   ],
   "candidate_groups": [
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -236,7 +236,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -258,7 +258,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -281,7 +281,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -303,7 +303,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -321,7 +321,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -339,7 +339,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -356,7 +356,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -379,7 +379,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -399,7 +399,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -419,7 +419,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -443,7 +443,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",
@@ -465,7 +465,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "b13288ccff3902a7501c2fc7564780a171b6176a1ab7e1312123b02b52a74d5f",
+      "source_id": 1,
       "source_model_id": "R2T1LiliMd10011",
       "variant": "ABP_Performance_Lili_PC",
       "evidence_kind": "actual_nodes",

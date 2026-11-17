@@ -1,5 +1,6 @@
 #pragma once
 #include "../runtime/generated/GameCompat.generated.h"
+#include "scoped_restore.h"
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -64,11 +65,8 @@ void EvaluateGravity(State& state,uintptr_t node,const Access& access,bool feed,
             if(!Restore(state,address,access)){fault();return;}
             fault();evaluate();return;
         }
-        struct Recovery {
-            State& state;uintptr_t address;const Access& access;Fault& fault;Sample& sample;
-            ~Recovery(){if(Restore(state,address,access))++sample.restored;else fault();}
-        };
-        {Recovery recovery{state,address,access,fault,sample};evaluate();++sample.applied;}
+        ScopedRestore recovery([&]{if(Restore(state,address,access))++sample.restored;else fault();});
+        evaluate();++sample.applied;
     }else evaluate();
     std::lock_guard<std::mutex> lock(state.edit);state.sample=sample;
 }

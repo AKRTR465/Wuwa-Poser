@@ -68,9 +68,9 @@ static void PEAndWitnesses(){
     const std::vector<w::Function> dataRequirement={{"DataImpersonatingCode",0x820,4}};
     witness[0]["rva"]="0x820";checks=Json::array();
     Check(!w::VerifyFunctions(read,memory.base,memory.bytes.size(),witness,dataRequirement,checks,"synthetic",error)&&checks[0]["executable_section_verified"]==false,"matching data bytes cannot authorize function calls");
-    Json cfg={{"compatibility_profile","p"},{"compatibility_source_sha256","digest"}};checks=Json::array();
-    Check(w::CompatibleSource(cfg,"p","digest",checks,error)&&checks[0]["game_abi_verified"]==false,"same-source check never claims game ABI validation");
-    cfg.erase("compatibility_source_sha256");Check(!w::CompatibleSource(cfg,"p","digest",checks,error),"missing compiled-source fingerprint rejects");
+    Json cfg={{"compatibility_id","p:identity"}};checks=Json::array();
+    Check(w::CompatibleId(cfg,"p:identity",checks,error)&&checks[0]["game_abi_verified"]==false,"component identity alone leaves the game ABI unverified");
+    cfg.erase("compatibility_id");Check(!w::CompatibleId(cfg,"p:identity",checks,error),"missing compiled compatibility ID rejects");
     memory.Put32(0x188+12,0xff0);Check(!r::ExecutableRanges(read,memory.base,memory.bytes.size(),ranges,error)&&ranges.empty(),"executable section crossing image end rejects without partial ranges");
     memory.PE();memory.Put32(0x1b0+36,0x60000020);memory.Put32(0x1b0+12,0x500);
     Check(!r::ExecutableRanges(read,memory.base,memory.bytes.size(),ranges,error),"overlapping executable PE sections reject");

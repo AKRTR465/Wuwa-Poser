@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <vector>
 #include "ue_memory.h"
+#include "scoped_restore.h"
 
 namespace wwp_playback::kawaii_parameters {
 // Layout from the settings updater and solver. The host verifies both
@@ -148,6 +149,7 @@ void EvaluateGroup(Group& group,uintptr_t node,const Access& access,bool feed,Ev
     const bool group_override=feed&&sample.read&&HasOverride(requested);
     const bool changed=chain_overrides||group_override;
     const Settings input=group_override?WithOverrides(original,requested):original;
+    const auto failed_override=[&]{Restore(group,node,access,refresh);fault();evaluate();};
     if(changed){
         if(!access.Get(node+kRefresh,refresh_flag)||refresh_flag>1||
            !access.writable(access.user,node+kNodeSettings,sizeof(Settings))||!access.writable(access.user,node+kRefresh,1)){
@@ -157,7 +159,7 @@ void EvaluateGroup(Group& group,uintptr_t node,const Access& access,bool feed,Ev
         const uint8_t update=chain_overrides?0:1;
         if(!access.write(access.user,node+kNodeSettings,&input,sizeof(Settings))||
            (refresh_flag!=update&&!access.write(access.user,node+kRefresh,&update,1))){
-            Restore(group,node,access,refresh);fault();evaluate();return;
+            failed_override();return;
         }
         if(chain_overrides){
             bool ok=refresh(node);
@@ -172,15 +174,11 @@ void EvaluateGroup(Group& group,uintptr_t node,const Access& access,bool feed,Ev
             for(const auto& patch:group.patches){
                 ok=ok&&access.writable(access.user,patch.cache,sizeof(Settings))&&access.write(access.user,patch.cache,&patch.effective,sizeof(Settings));
             }
-            if(!ok){Restore(group,node,access,refresh);fault();evaluate();return;}
+            if(!ok){failed_override();return;}
         }
     }
-    struct Recovery {
-        Group& group;uintptr_t node;const Access& access;Refresh& refresh;Fault& fault;bool changed;
-        ~Recovery(){if(changed&&!Restore(group,node,access,refresh))fault();}
-    };
     {
-        Recovery recovery{group,node,access,refresh,fault,changed};
+        ScopedRestore recovery([&]{if(changed&&!Restore(group,node,access,refresh))fault();});
         evaluate();
         sample.effective_read=ReadSettingsCache(access,node,sample);
         if(!chains.empty()&&map())for(const auto& patch:group.patches){

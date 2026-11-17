@@ -12,9 +12,9 @@ internal static class NativePhysicsPreset
     public static bool HasOverrides(JsonObject? preset) => preset?["groups"] is JsonArray { Count: > 0 } ||
         preset?["sleeves"] is JsonArray { Count: > 0 } || preset?["disabled_capsules"] is JsonArray { Count: > 0 } ||
         preset?["gravity"] is JsonArray { Count: > 0 } || preset?["part_gravity"] is JsonArray { Count: > 0 } ||
-        preset?["capsule_groups"] is JsonArray { Count: > 0 };
+        preset?[CapsuleAuthoring.PropertyName] is JsonArray { Count: > 0 };
 
-    public static void ValidateDraft(JsonObject preset, string? characterId, string? profileId = null)
+    public static IReadOnlyList<CapsuleDraftGroup> ValidateDraft(JsonObject preset, string? characterId, string? profileId = null)
     {
         if (preset["schema"]?.GetValue<int>() != 1 || preset["kind"]?.GetValue<string>() != "native_physics_group_preset" ||
             string.IsNullOrEmpty(characterId) || preset["character_id"]?.GetValue<string>() != characterId ||
@@ -45,7 +45,7 @@ internal static class NativePhysicsPreset
             Contract.Require(double.IsFinite(strength) && strength is >= 0 and <= GravityMaximum, "预设中的重力强度越界。");
         }
         _ = ReadPartGravity(preset);
-        _ = CapsuleAuthoring.Read(preset);
+        return CapsuleAuthoring.Read(preset);
 
         static void ValidateTarget(JsonNode entry)
         {

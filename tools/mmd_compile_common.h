@@ -12,17 +12,32 @@
 #include <stdexcept>
 #include <cwchar>
 #include <cmath>
+#include <cstdint>
 namespace wwp_mmd_compile {
 inline std::string Sha256(const std::filesystem::path& path) {
-    BCRYPT_ALG_HANDLE algorithm=nullptr;BCRYPT_HASH_HANDLE hash=nullptr;DWORD size=0,got=0;
-    if(BCryptOpenAlgorithmProvider(&algorithm,BCRYPT_SHA256_ALGORITHM,nullptr,0)<0)throw std::runtime_error("SHA provider unavailable");
-    BCryptGetProperty(algorithm,BCRYPT_OBJECT_LENGTH,(PUCHAR)&size,sizeof(size),&got,0);std::vector<uint8_t> object(size);std::array<uint8_t,32> digest{};
-    if(BCryptCreateHash(algorithm,&hash,object.data(),size,nullptr,0,0)<0){BCryptCloseAlgorithmProvider(algorithm,0);throw std::runtime_error("SHA init failed");}
-    std::ifstream file(path,std::ios::binary);std::array<char,65536> block{};
-    while(file){file.read(block.data(),block.size());if(file.gcount()&&BCryptHashData(hash,(PUCHAR)block.data(),(ULONG)file.gcount(),0)<0)throw std::runtime_error("SHA update failed");}
-    if(!file.eof()||BCryptFinishHash(hash,digest.data(),(ULONG)digest.size(),0)<0)throw std::runtime_error("SHA final failed");
-    BCryptDestroyHash(hash);BCryptCloseAlgorithmProvider(algorithm,0);std::string text;static const char hex[]="0123456789abcdef";
+    struct HashHandle {
+        BCRYPT_HASH_HANDLE value=nullptr;
+        ~HashHandle(){if(value)BCryptDestroyHash(value);}
+    } hash;
+    if(BCryptCreateHash(BCRYPT_SHA256_ALG_HANDLE,&hash.value,nullptr,0,nullptr,0,0)<0)
+        throw std::runtime_error("SHA init failed");
+    std::ifstream file(path,std::ios::binary);
+    std::array<char,65536> block{};
+    while(file){
+        file.read(block.data(),block.size());
+        if(file.gcount()&&BCryptHashData(hash.value,reinterpret_cast<PUCHAR>(block.data()),ULONG(file.gcount()),0)<0)
+            throw std::runtime_error("SHA update failed");
+    }
+    std::array<uint8_t,32> digest{};
+    if(!file.eof()||BCryptFinishHash(hash.value,digest.data(),ULONG(digest.size()),0)<0)
+        throw std::runtime_error("SHA final failed");
+    std::string text;static const char hex[]="0123456789abcdef";
     for(auto byte:digest){text+=hex[byte>>4];text+=hex[byte&15];}return text;
+}
+inline uint32_t FrameCount60(double duration){
+    const double frames=std::ceil(duration*60)+1;
+    if(!(frames>=1&&frames<=UINT32_MAX))throw std::runtime_error("motion exceeds the 60 fps frame budget");
+    return uint32_t(frames);
 }
 // A full-width VMD name may end in a cut-off CP932 lead byte; it is kept as a
 // distinct name instead of failing the whole motion.

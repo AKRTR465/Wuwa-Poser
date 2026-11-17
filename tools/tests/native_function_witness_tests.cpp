@@ -35,7 +35,7 @@ struct Image {
     }
 };
 static unsigned Matched(const Json& checks){unsigned count=0;for(const auto& row:checks)if(row.value("kind",std::string())=="function_bytes"&&row.value("matched",false))++count;return count;}
-static Json Source(){return {{"compatibility_profile",ww_game_compat::ProfileId},{"compatibility_source_sha256",ww_game_compat::SourceSha256}};}
+static Json Source(){return {{"compatibility_id",ww_game_compat::CompatibilityId}};}
 static void RequiredSets(){
     Image image;auto cfg=Source();cfg["native_physics_witnesses"]=image.Rows(native::InputFunctionSpecs());
     cfg["native_physics_activation_witnesses"]=image.Rows(native::ActivationFunctionSpecs());
@@ -51,7 +51,7 @@ static void RequiredSets(){
     Check(!native::VerifyNativeFunctionSets(image,image.base,image.image_bytes,cfg,checks,error),"changed configured native function rejects execution");
     Check(checks[1]["execution_authorized"]==false,"failed byte check cannot authorize a new address");
     image.functions[0].bytes[0]^=0xff;
-    auto foreign=cfg;foreign["compatibility_source_sha256"]="different-source";checks=Json::array();
+    auto foreign=cfg;foreign["compatibility_id"]="different-source";checks=Json::array();
     Check(!native::VerifyNativeFunctionSets(image,image.base,image.image_bytes,foreign,checks,error)&&Matched(checks)==8,"matching code does not bypass compatibility source mismatch");
 }
 static void PreparationRejects(const std::filesystem::path& output){

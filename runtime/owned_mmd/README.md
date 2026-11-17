@@ -21,7 +21,7 @@ Place the six DLLs named in `managed/references.json` in `local/owned_mmd_refere
 
 `WWPOSER_MANAGED_REFERENCE_DIR` can supply the reference directory when `-ReferenceDirectory` is omitted. `-Compiler` selects a different Roslyn `csc.exe`; the C++ compiler setup uses the repository's `tools/msvc_env.bat` and its `WW_VCVARS64` override. Reference assemblies remain local compile inputs and are never included in the runtime package.
 
-The package contains three files at its root plus `runtime_package.json`:
+The runtime build directory contains `runtime_package.json` and these three files:
 
 - `ownedmmd_lite_observer.dll`
 - `ownedmmd_lite_installer.exe`
@@ -35,7 +35,7 @@ To rebuild and stage the self-contained desktop player, including the flat owned
 ./tools/build_player.ps1 -Rebuild -ReferenceDirectory 'D:\owned-mmd-references'
 ```
 
-Use `-OwnedMmdPackageDirectory` on `build_player.ps1` to select another runtime package directory. Without `-Rebuild`, the player build checks and copies existing runtime artifacts. The portable player includes its .NET runtime and does not require Python.
+Use `-OwnedMmdPackageDirectory` on `build_player.ps1` to select another runtime build directory. Without `-Rebuild`, the player build checks the existing runtime manifest before copying the three binaries. The portable player's top-level `manifest.json` records those binaries along with the rest of the package. The portable player includes its .NET runtime.
 
 ## Current behavior
 

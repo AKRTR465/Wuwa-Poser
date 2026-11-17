@@ -28,13 +28,13 @@
         "Bone_Piao007_R"
       ],
       "runtime_verified": false,
-      "source_id": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_id": 1,
       "source_model_id": "R2T1KakaluoMd10011",
       "unmatched_root_bones": [],
       "variant": "skeleton_heuristic"
     },
     {
-      "source_id": "ccdede1fae3d2513a88321fd48ca4f05d9b6ee2e1e66eecdca7bf59c7ed92126",
+      "source_id": 3,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_R2T1KakaluoMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -52,7 +52,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ccdede1fae3d2513a88321fd48ca4f05d9b6ee2e1e66eecdca7bf59c7ed92126",
+      "source_id": 3,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_R2T1KakaluoMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -69,7 +69,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ccdede1fae3d2513a88321fd48ca4f05d9b6ee2e1e66eecdca7bf59c7ed92126",
+      "source_id": 3,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_R2T1KakaluoMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -87,7 +87,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ccdede1fae3d2513a88321fd48ca4f05d9b6ee2e1e66eecdca7bf59c7ed92126",
+      "source_id": 3,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_R2T1KakaluoMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -106,7 +106,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ccdede1fae3d2513a88321fd48ca4f05d9b6ee2e1e66eecdca7bf59c7ed92126",
+      "source_id": 3,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_R2T1KakaluoMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -124,7 +124,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ccdede1fae3d2513a88321fd48ca4f05d9b6ee2e1e66eecdca7bf59c7ed92126",
+      "source_id": 3,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_R2T1KakaluoMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -142,7 +142,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ccdede1fae3d2513a88321fd48ca4f05d9b6ee2e1e66eecdca7bf59c7ed92126",
+      "source_id": 3,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_R2T1KakaluoMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -160,7 +160,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "ccdede1fae3d2513a88321fd48ca4f05d9b6ee2e1e66eecdca7bf59c7ed92126",
+      "source_id": 3,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_R2T1KakaluoMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -179,7 +179,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "5ba1839a516d574763f90c314d8ec4247bfe4622c8626a35aeb42629313823a5",
+      "source_id": 4,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_Performance_Kakaluo_PC",
       "evidence_kind": "actual_nodes",
@@ -197,7 +197,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "5ba1839a516d574763f90c314d8ec4247bfe4622c8626a35aeb42629313823a5",
+      "source_id": 4,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_Performance_Kakaluo_PC",
       "evidence_kind": "actual_nodes",
@@ -214,7 +214,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "5ba1839a516d574763f90c314d8ec4247bfe4622c8626a35aeb42629313823a5",
+      "source_id": 4,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_Performance_Kakaluo_PC",
       "evidence_kind": "actual_nodes",
@@ -232,7 +232,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "5ba1839a516d574763f90c314d8ec4247bfe4622c8626a35aeb42629313823a5",
+      "source_id": 4,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_Performance_Kakaluo_PC",
       "evidence_kind": "actual_nodes",
@@ -251,7 +251,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "5ba1839a516d574763f90c314d8ec4247bfe4622c8626a35aeb42629313823a5",
+      "source_id": 4,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_Performance_Kakaluo_PC",
       "evidence_kind": "actual_nodes",
@@ -269,7 +269,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "5ba1839a516d574763f90c314d8ec4247bfe4622c8626a35aeb42629313823a5",
+      "source_id": 4,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_Performance_Kakaluo_PC",
       "evidence_kind": "actual_nodes",
@@ -287,7 +287,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "5ba1839a516d574763f90c314d8ec4247bfe4622c8626a35aeb42629313823a5",
+      "source_id": 4,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_Performance_Kakaluo_PC",
       "evidence_kind": "actual_nodes",
@@ -305,7 +305,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "5ba1839a516d574763f90c314d8ec4247bfe4622c8626a35aeb42629313823a5",
+      "source_id": 4,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_Performance_Kakaluo_PC",
       "evidence_kind": "actual_nodes",
@@ -328,7 +328,7 @@
     {
       "kind": "bone_chains",
       "selection": "direct_model",
-      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_id": 1,
       "source_body_type": "MaleXL",
       "source_character": "Kakaluo",
       "source_model_id": "R2T1KakaluoMd10011"
@@ -344,13 +344,13 @@
       "group_signatures": [],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "83e0c743f774f164840deb96d77377fe29f4b62ea4c30b381a928b62d660bbd8",
+      "source_id": 2,
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_Seq_Kakaluo_Phy"
     },
     {
       "kind": "pc_export",
-      "sha256": "ccdede1fae3d2513a88321fd48ca4f05d9b6ee2e1e66eecdca7bf59c7ed92126",
+      "source_id": 3,
       "selection": "direct_model",
       "source_model_id": "R2T1KakaluoMd10011",
       "variant": "ABP_R2T1KakaluoMd10011_PC",
@@ -452,7 +452,7 @@
     },
     {
       "kind": "ui_export",
-      "sha256": "5ba1839a516d574763f90c314d8ec4247bfe4622c8626a35aeb42629313823a5",
+      "source_id": 4,
       "selection": "direct_model",
       "source_model_id": "R2T1KakaluoMd10011",
       "source_profile_id": "malexl--kakaluo--r2t1kakaluomd10011",
@@ -568,7 +568,6 @@
   "profile_id": "malexl--kakaluo--r2t1kakaluomd10011",
   "requires_live_discovery": true,
   "runtime_verified": false,
-  "schema": 1,
-  "skeleton_sha256": "1396589d1ba444379c7b49ed946c0a60699d5a8ef4cb00ac19077ee958b88745",
-  "source_profile_sha256": "5e8dc18ea755ab3818f0f53449c19d8a824cb55e5eef2296b15f9eafc8ee060e"
+  "schema": 2,
+  "skeleton_sha256": "1396589d1ba444379c7b49ed946c0a60699d5a8ef4cb00ac19077ee958b88745"
 }

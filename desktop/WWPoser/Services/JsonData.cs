@@ -46,3 +46,21 @@ public static class JsonData
     }
     public static string CanonicalDigest(JsonNode value) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value.ToJsonString(Compact))));
 }
+
+// Reuse reads only within a single comparison of its inputs. Later operations
+// must detect a replacement even when the file size and timestamp agree.
+internal sealed class InputFileDigests
+{
+    private readonly Dictionary<string, string> values = new(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+
+    public string Read(string path)
+    {
+        path = Path.GetFullPath(path);
+        if (!values.TryGetValue(path, out var value))
+        {
+            value = JsonData.Digest(path);
+            values.Add(path, value);
+        }
+        return value;
+    }
+}

@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 namespace WWPoser.Services;
 
 // Validate the immutable files that will be loaded before starting any game-side
-// module. The native reader independently enforces the same WWLOCAL1 bounds.
+// module. The native reader validates the individual samples when it loads them.
 internal static class CompiledMotionValidation
 {
     private const int HeaderBytes = 160, BoneBytes = 32, MaximumBones = 1024, MaximumFrames = 100000;
@@ -48,13 +48,13 @@ internal static class CompiledMotionValidation
         ValidateCanonical(config, header.BoneCount, "canonical_position_mask", "canonical_local_positions", 3);
         ValidateCanonical(config, header.BoneCount, "canonical_rotation_mask", "canonical_local_rotations", 4);
         var skeletonHash = HashField(profile, "skeleton_sha256");
-        Require(Digest(skeletonPath).Equals(skeletonHash, StringComparison.OrdinalIgnoreCase), "准备目录中的骨架文件已更改。");
+        Require(JsonData.Digest(skeletonPath).Equals(skeletonHash, StringComparison.OrdinalIgnoreCase), "准备目录中的骨架文件已更改。");
         // --omit-provenance writes two entirely zeroed fields. It remains a
         // supported format; the complete clip and profile hashes still bind it.
         if (header.SourceHash.Length != 0)
         {
             Require(header.SkeletonHash.Equals(skeletonHash, StringComparison.OrdinalIgnoreCase), "动作绑定的骨架与角色适配数据不一致。");
-            Require(Digest(sourcePath).Equals(header.SourceHash, StringComparison.OrdinalIgnoreCase), "准备目录中的源动作与编译结果不一致。");
+            Require(JsonData.Digest(sourcePath).Equals(header.SourceHash, StringComparison.OrdinalIgnoreCase), "准备目录中的源动作与编译结果不一致。");
         }
     }
 
@@ -83,32 +83,8 @@ internal static class CompiledMotionValidation
         var skeletonHash = omitted ? "" : Encoding.ASCII.GetString(bytes[96..160]);
         Require(omitted || IsHash(sourceHash) && IsHash(skeletonHash), "动作来源散列必须是两个完整的 SHA-256 值。");
 
-        using var digest = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); digest.AppendData(bytes);
-        var buffer = new byte[65536]; var masks = new uint[bones]; long element = 0, remaining = payloadBytes;
-        while (remaining > 0)
-        {
-            var count = (int)Math.Min(remaining, buffer.Length);
-            stream.ReadExactly(buffer.AsSpan(0, count)); digest.AppendData(buffer, 0, count);
-            for (var offset = 0; offset < count; offset += BoneBytes, element++)
-            {
-                var command = buffer.AsSpan(offset, BoneBytes);
-                var mask = BinaryPrimitives.ReadUInt32LittleEndian(command[28..]); var bone = (int)(element % bones);
-                Require((mask & ~3u) == 0 && ((mask & 2u) == 0 || bone == 0), "动作包含不支持的骨骼命令。");
-                if (element < bones) masks[bone] = mask;
-                else Require(masks[bone] == mask, "动作的骨骼控制掩码在帧间发生变化。");
-                double norm = 0;
-                for (var component = 0; component < 7; component++)
-                {
-                    var value = BinaryPrimitives.ReadSingleLittleEndian(command[(component * 4)..]);
-                    Require(float.IsFinite(value), "动作包含无效的平移或旋转数值。");
-                    if (component >= 3) norm += (double)value * value;
-                }
-                Require((mask & 1u) == 0 || Math.Abs(norm - 1) <= 1e-3, "动作包含非单位旋转四元数。");
-            }
-            remaining -= count;
-        }
-        Require(stream.ReadByte() == -1, "动作文件含有多余数据。");
-        Require(Convert.ToHexStringLower(digest.GetHashAndReset()).Equals(expectedHash, StringComparison.OrdinalIgnoreCase),
+        stream.Position = 0;
+        Require(Convert.ToHexStringLower(SHA256.HashData(stream)).Equals(expectedHash, StringComparison.OrdinalIgnoreCase),
             "编译后的动作文件已更改或损坏，请重新准备动作。");
         return new(bones, frames, fps, duration, sourceHash, skeletonHash);
     }
@@ -148,11 +124,6 @@ internal static class CompiledMotionValidation
         Require(config[key] is null || Text(config[key], key) == filename, "准备配置中的文件名无效：" + key);
         var path = Path.Combine(root, filename);
         Require(File.Exists(path), "准备目录缺少文件：" + filename); return path;
-    }
-    private static string Digest(string path)
-    {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Convert.ToHexStringLower(SHA256.HashData(stream));
     }
     private static JsonArray Array(JsonObject config, string key, uint count)
     {

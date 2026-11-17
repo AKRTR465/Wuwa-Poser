@@ -34,6 +34,8 @@ public sealed partial class MainWindow
     private readonly HashSet<Guid> selectedDraftCapsules = [];
     private PhysicsPartProfile? capsuleDraftProfile;
     private CapsuleStockCatalog? capsuleStockCatalog;
+    private JsonNode? displayedCapsuleLayout;
+    private IReadOnlyList<CapsuleDraftGroup> displayedCapsuleGroups = [];
     private PhysicsSelection? capsuleTreeSelection;
     private CapsuleGroupChoice[] capsuleGroupChoices = [];
     private IReadOnlyList<CapsuleDraftGroup> capsuleStock = [];
@@ -159,7 +161,13 @@ public sealed partial class MainWindow
         var selected = SelectedPhysicsActor();
         var allowed = editable && CanDraftPhysics && selected is not null && capsuleDraftProfile is not null;
         var preset = selected is { } actor ? actor.Card.PhysicsPresets.GetValueOrDefault(actor.Character.CharacterId) : null;
-        var overrides = CapsuleAuthoring.Read(preset);
+        var layout = preset?[CapsuleAuthoring.PropertyName];
+        if (!ReferenceEquals(displayedCapsuleLayout, layout))
+        {
+            displayedCapsuleGroups = CapsuleAuthoring.Read(preset);
+            displayedCapsuleLayout = layout;
+        }
+        var overrides = displayedCapsuleGroups;
         refreshingCapsuleDraft = true;
         try
         {

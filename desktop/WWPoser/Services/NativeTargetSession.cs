@@ -99,16 +99,17 @@ public sealed class NativeTargetSession
         WithObservationAsync(async token =>
         {
             Directory.CreateDirectory(outputDirectory);
+            var evidence = graph.LoadEvidence();
             var registration = Path.Combine(outputDirectory, "identity");
-            graph.PrepareIdentity(targetConfigPath, registration, pid);
+            graph.PrepareIdentity(targetConfigPath, registration, evidence);
             await Observe(registration, "native_identity_bootstrap.json", pid, token);
             var promotedPath = Path.Combine(outputDirectory, "promoted_target.json");
             JsonData.Write(promotedPath, NativeGraphService.PromoteTargetIdentity(targetConfigPath, registration));
             var discovery = Path.Combine(outputDirectory, "graph");
-            graph.PrepareDiscovery(promotedPath, discovery, pid);
+            graph.PrepareDiscovery(promotedPath, discovery, evidence);
             await Observe(discovery, "native_graph_discovery.json", pid, token);
             var playback = JsonData.ReadObject(Path.Combine(discovery, "observe_target.json"));
-            graph.AttachPlaybackBinding(playback, graph.Bind(discovery));
+            graph.AttachPlaybackBinding(playback, graph.Bind(discovery), evidence);
             JsonData.Write(Path.Combine(outputDirectory, "native_playback.json"), playback);
             return playback;
         }, cancellation);

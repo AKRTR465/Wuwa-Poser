@@ -9,9 +9,10 @@ static void Check(bool condition,const char* message){++assertions;if(!condition
 static bool Close(double a,double b){return std::fabs(a-b)<1e-8;}
 static void Put32(CommandWire& wire,unsigned offset,uint32_t value){for(unsigned n=0;n<4;++n)wire[offset+n]=uint8_t(value>>(8*n));}
 static void Put64(CommandWire& wire,unsigned offset,uint64_t value){for(unsigned n=0;n<8;++n)wire[offset+n]=uint8_t(value>>(8*n));}
-static CommandWire Wire(Command command){CommandWire wire{};std::memcpy(wire.data(),"WWPCTL1",7);Put32(wire,8,1);Put32(wire,12,64);
+static CommandWire Wire(Command command){CommandWire wire{};std::memcpy(wire.data(),kCommandWireMagic,sizeof(kCommandWireMagic));
+    Put32(wire,8,kCommandWireVersion);Put32(wire,12,kCommandWireBytes);
     Put64(wire,16,command.clip_epoch);Put64(wire,24,command.sequence);Put32(wire,32,uint32_t(command.kind));Put32(wire,36,command.target_slot);
-    uint64_t bits=0;std::memcpy(&bits,&command.value,8);Put64(wire,40,bits);Put32(wire,48,command.target_group);Put32(wire,52,command.target_chain);Put32(wire,60,WireChecksum(wire));return wire;}
+    uint64_t bits=0;std::memcpy(&bits,&command.value,8);Put64(wire,40,bits);Put32(wire,48,command.target_group);Put32(wire,52,command.target_chain);return wire;}
 static bool DecodeCommand(const CommandWire& wire,Command* output){return DecodeCommandFrame(wire,*output)&&ValidCommand(*output);}
 int main(){
     Command decoded;
@@ -25,7 +26,7 @@ int main(){
     Check(DecodeCommand(Wire({42,1,CommandKind::SetCameraTrackHeight,-150.5}),&decoded)&&decoded.value==-150.5,"signed camera track height survives wire decoding");
     Check(!ValidCommand({42,1,CommandKind::SetCameraTrackHeight,10001})&&!ValidCommand({42,1,CommandKind::SetCameraTrackHeight,20,1}),"track height is bounded and global, never actor-routed");
     Check(DecodeCommand(Wire({42,1,CommandKind::SetPlacementX,0,UINT32_MAX}),&decoded)&&decoded.target_slot==UINT32_MAX,"full positive uint32 actor slot range accepted");
-    wire[48]=1;Put32(wire,60,WireChecksum(wire));Check(!DecodeCommand(wire,&decoded),"group index is reserved for native settings commands");
+    Put32(wire,48,1);Check(!DecodeCommand(wire,&decoded),"group index is reserved for native settings commands");
     Check(DecodeCommand(Wire({42,4,CommandKind::SetNativeDamping,.4,3,12}),&decoded)&&decoded.target_slot==3&&decoded.target_group==12&&Close(decoded.value,.4),"native damping targets one group on one actor");
     Check(DecodeCommand(Wire({42,4,CommandKind::SetNativeDamping,.4,3,12,2}),&decoded)&&decoded.target_chain==2,"one parameter command targets a verified chain inside its group");
     Check(ValidCommand({42,7,CommandKind::SetNativeLimitAngle,-1,1,2})&&!ValidCommand({42,7,CommandKind::SetNativeLimitAngle,-.5,1,2})&&
@@ -39,7 +40,10 @@ int main(){
         ValidCommand({42,7,CommandKind::SetNativeGravity,-1,3,12})&&!ValidCommand({42,7,CommandKind::SetNativeGravity,-.5,3,12})&&
         !ValidCommand({42,7,CommandKind::SetNativeGravity,100,3,12,1})&&!ValidCommand({42,7,CommandKind::SetNativeGravity,1501,3,12}),
         "gravity is group-scoped with an explicit restore sentinel");
-    wire=Wire({42,1,CommandKind::SetTimeLimit,0});wire[40]^=1;Check(!DecodeCommand(wire,&decoded),"modified payload checksum rejected");
+    wire=Wire({42,1,CommandKind::SetTimeLimit,0});Put32(wire,12,kCommandWireBytes+8);
+    Check(!DecodeCommandFrame(wire,decoded),"incorrect declared wire size rejected");
+    wire=Wire({42,1,CommandKind::SetTimeLimit,0});Put32(wire,8,1);
+    Check(!DecodeCommandFrame(wire,decoded),"old control protocol version rejected");
     wire=Wire({42,2,CommandKind::SetSpeed,5});
     Check(DecodeCommandFrame(wire,decoded)&&decoded.sequence==2&&!ValidCommand(decoded),"a valid frame preserves rejected command identity without weakening strict validation");
     Check(ValidCommand({42,1,CommandKind::SetSpeed,.1})&&ValidCommand({42,1,CommandKind::SetSpeed,4}),"unified speed endpoints accepted");

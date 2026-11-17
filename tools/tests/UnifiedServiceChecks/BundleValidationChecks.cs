@@ -13,11 +13,7 @@ internal static class BundleValidationChecks
         var manifest = new JsonObject
         {
             ["schema"] = 4,
-            ["files"] = new JsonArray(new JsonObject
-            {
-                ["path"] = "payload.dat", ["bytes"] = new FileInfo(asset).Length,
-                ["sha256"] = JsonData.Digest(asset)
-            })
+            ["files"] = new JsonArray(new JsonObject { ["path"] = "payload.dat" })
         };
         var manifestPath = Path.Combine(root, "manifest.json");
         void Save() => JsonData.Write(manifestPath, manifest);
@@ -31,6 +27,8 @@ internal static class BundleValidationChecks
         }
 
         Save();
+        BundleValidation.ValidateManifest(root, writeHashes: true);
+        manifest = JsonData.ReadObject(manifestPath);
         BundleValidation.ValidateManifest(root);
         checks++;
         File.WriteAllText(asset, "modified");

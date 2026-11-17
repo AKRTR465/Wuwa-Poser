@@ -9,54 +9,49 @@ param(
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-& (Join-Path $PSScriptRoot 'generate_game_compat.ps1') -Check:$Check
+$compatibilityId=& (Join-Path $PSScriptRoot 'generate_game_compat.ps1') -Check:$Check -PassIdentity
 & (Join-Path $PSScriptRoot 'generate_playback_control.ps1') -Check:$Check
-$compatibilitySource=Get-Content -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-$compatibilityDigest=(Get-FileHash -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Algorithm SHA256).Hash.ToLowerInvariant()
 if(-not $PackageDirectory){$PackageDirectory=Join-Path $repo 'build\owned_mmd'}
 $packageRoot=[IO.Path]::GetFullPath($PackageDirectory)
 $purpose='owned_mmd_scene'
 $files=(Import-PowerShellDataFile (Join-Path $PSScriptRoot 'player_build_inputs.psd1')).OwnedRuntimeFiles
 $manifestPath=Join-Path $packageRoot 'runtime_package.json'
 
-function Assert-RuntimeFiles {
- foreach($file in $files){
-  if(-not (Test-Path -LiteralPath (Join-Path $packageRoot $file) -PathType Leaf)){throw ('Owned MMD runtime artifact missing: '+$file)}
+function Assert-SourceRevision([string]$Revision,[bool]$Dirty) {
+ if($ExpectedSourceRevision -and ($Revision -cne $ExpectedSourceRevision -or $Dirty)){
+  throw 'Owned MMD runtime was not built from the expected clean source revision; rebuild it.'
  }
+}
+function Read-RuntimeFile([string]$File) {
+ $item=Get-Item -LiteralPath (Join-Path $packageRoot $File)
+ if($item.PSIsContainer){throw ('Owned MMD runtime artifact must be a file: '+$File)}
+ [ordered]@{path=$File;bytes=$item.Length;sha256=(Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
 }
 function Assert-RuntimeManifest {
  if(-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)){throw 'Owned MMD runtime manifest missing; run tools/build_owned_mmd.ps1.'}
  $manifest=Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
- if($manifest.schema -ne 2 -or $manifest.purpose -ne $purpose){throw 'Owned MMD runtime requires the current schema 2 manifest; rebuild the runtime package.'}
- $listed=@($manifest.files)
- if($listed.Count -ne $files.Count -or @($listed | Select-Object -Unique).Count -ne $files.Count){throw ('Owned MMD runtime manifest must list exactly '+$files.Count+' files.')}
- foreach($file in $listed){if($file -isnot [string] -or $file -cnotin $files){throw ('Unexpected owned MMD runtime file: '+$file)}}
- if($manifest.compatibility_profile -cne $compatibilitySource.profile_id -or $manifest.compatibility_source_sha256 -cne $compatibilityDigest){throw 'Owned MMD runtime compatibility profile is stale; rebuild it.'}
- $artifacts=@($manifest.artifacts)
+ if($manifest.schema -ne 3 -or $manifest.purpose -ne $purpose){throw 'Owned MMD runtime requires the current schema 3 manifest; rebuild the runtime package.'}
+ if($manifest.compatibility_id -cne $compatibilityId){throw 'Owned MMD runtime compatibility ID is stale; rebuild it.'}
+ Assert-SourceRevision $manifest.source_revision $manifest.source_dirty
+ $artifacts=@($manifest.files)
  if($artifacts.Count -ne $files.Count){throw 'Owned MMD runtime digest list is incomplete.'}
  foreach($file in $files){
   $record=@($artifacts | Where-Object path -CEQ $file)
   if($record.Count -ne 1){throw ('Owned MMD runtime digest is missing or duplicated: '+$file)}
-  $path=Join-Path $packageRoot $file
-  if((Get-Item -LiteralPath $path).Length -ne $record[0].bytes -or
-     (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $record[0].sha256){
+  $actual=Read-RuntimeFile $file
+  if($actual.bytes -ne $record[0].bytes -or $actual.sha256 -cne $record[0].sha256){
    throw ('Owned MMD runtime integrity check failed: '+$file)
-  }
- }
- if($ExpectedSourceRevision){
-  if($manifest.source_revision -cne $ExpectedSourceRevision -or $manifest.source_dirty){
-   throw 'Owned MMD runtime was not built from the expected clean source revision; rebuild it.'
   }
  }
 }
 
 if($Check){
  Assert-RuntimeManifest
- Assert-RuntimeFiles
 }else{
  $buildRevision=(& git -C $repo rev-parse HEAD 2>$null)
  if($LASTEXITCODE -ne 0){$buildRevision='uncommitted'}
  $buildDirty=@(& git -C $repo status --porcelain --untracked-files=normal 2>$null).Count -ne 0
+ Assert-SourceRevision $buildRevision $buildDirty
  if(-not $ReferenceDirectory){$ReferenceDirectory=$env:WWPOSER_MANAGED_REFERENCE_DIR}
  if(-not $ReferenceDirectory){$ReferenceDirectory=Join-Path $repo 'local\owned_mmd_references'}
  $referenceRoot=[IO.Path]::GetFullPath($ReferenceDirectory)
@@ -91,16 +86,13 @@ if($Check){
  if($LASTEXITCODE -ne 0){throw 'Owned MMD helper build failed.'}
  & $nativeScript $packageRoot
  if($LASTEXITCODE -ne 0){throw 'Owned MMD native build failed.'}
- Assert-RuntimeFiles
+ $artifacts=@($files | ForEach-Object { Read-RuntimeFile $_ })
  $endRevision=(& git -C $repo rev-parse HEAD 2>$null)
  if($LASTEXITCODE -ne 0){$endRevision='uncommitted'}
  $buildDirty=$buildDirty -or $endRevision -cne $buildRevision -or
      @(& git -C $repo status --porcelain --untracked-files=normal 2>$null).Count -ne 0
- $artifacts=@($files | ForEach-Object {
-  $path=Join-Path $packageRoot $_
-  [ordered]@{path=$_;bytes=(Get-Item -LiteralPath $path).Length;sha256=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()}
- })
- $manifest=[ordered]@{schema=2;purpose=$purpose;source_revision=$buildRevision;source_dirty=$buildDirty;compatibility_profile=$compatibilitySource.profile_id;compatibility_source_sha256=$compatibilityDigest;files=$files;artifacts=$artifacts}
+ Assert-SourceRevision $buildRevision $buildDirty
+ $manifest=[ordered]@{schema=3;purpose=$purpose;source_revision=$buildRevision;source_dirty=$buildDirty;compatibility_id=$compatibilityId;files=$artifacts}
  [IO.File]::WriteAllText($manifestPath,($manifest|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
 }
 [ordered]@{status=if($Check){'owned_mmd_runtime_files_present'}else{'owned_mmd_runtime_built'};files=$files.Count;runtime_executed=$false;package=$packageRoot}|ConvertTo-Json -Compress

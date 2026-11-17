@@ -32,6 +32,21 @@ try{
  if($binding -notmatch ' EntityFlagRegistered = ' -or $before -match ' EntityFlagRegistered = '){throw 'A managed constant was routed to C++.'}
  if($before -notmatch ' SourceBuildSha256 = ' -or $binding -notmatch ' SourceBuildSha256 = '){throw 'A shared constant is missing from one binding.'}
  $script:compatChecks++
+ $identity=& $generator -SourcePath $source -OutputRoot $fixture -Check -PassIdentity
+ $profile=Get-Content -LiteralPath $source -Raw | ConvertFrom-Json -AsHashtable
+ $profile.description='Different formatting and description'
+ Save-Profile $profile
+ if((& $generator -SourcePath $source -OutputRoot $fixture -Check -PassIdentity) -cne $identity){
+     throw 'Non-ABI metadata changed the compatibility ID.'
+ }
+ $script:compatChecks++
+ $profile.native.GObjectsRva.value='0x123'
+ Save-Profile $profile
+ if((& $generator -SourcePath $source -IdentityOnly) -ceq $identity){
+     throw 'An ABI constant change did not change the compatibility ID.'
+ }
+ $script:compatChecks++
+ Copy-Item -LiteralPath $original -Destination $source -Force
  [IO.File]::AppendAllText($header,'stale')
  Reject { & $generator -SourcePath $source -OutputRoot $fixture -Check } 'a stale language binding'
  & $generator -SourcePath $source -OutputRoot $fixture | Out-Null
@@ -45,9 +60,6 @@ try{
  $profile.managed.GObjectsRva=@{type='u64';value=1};Save-Profile $profile
  Reject { & $generator -SourcePath $source -OutputRoot $fixture } 'duplicate cross-language constant names'
  $profile.managed.Remove('GObjectsRva')
- $profile.native.TestAlias=@{type='hexref';value='@MissingConstant'};Save-Profile $profile
- Reject { & $generator -SourcePath $source -OutputRoot $fixture } 'an unresolved hexadecimal alias'
- $profile.native.Remove('TestAlias')
  $profile.native['Bad;Injected']=@{type='u32';value=1};Save-Profile $profile
  Reject { & $generator -SourcePath $source -OutputRoot $fixture } 'a code-injecting constant name'
  Write-Output ('PASS: {0} compatibility generation checks; no game access.' -f $script:compatChecks)

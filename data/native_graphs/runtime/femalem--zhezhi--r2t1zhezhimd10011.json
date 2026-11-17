@@ -43,13 +43,13 @@
         "R_ChestBone01"
       ],
       "runtime_verified": false,
-      "source_id": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_id": 1,
       "source_model_id": "R2T1ZhezhiMd10011",
       "unmatched_root_bones": [],
       "variant": "skeleton_heuristic"
     },
     {
-      "source_id": "a599de0487c885d61dfd3103ee0589a19dfc3de0b2c6c8bebfc97c4c0af514bd",
+      "source_id": 3,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_R2T1ZhezhiMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -79,7 +79,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "a599de0487c885d61dfd3103ee0589a19dfc3de0b2c6c8bebfc97c4c0af514bd",
+      "source_id": 3,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_R2T1ZhezhiMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -99,7 +99,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "a599de0487c885d61dfd3103ee0589a19dfc3de0b2c6c8bebfc97c4c0af514bd",
+      "source_id": 3,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_R2T1ZhezhiMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -121,7 +121,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "a599de0487c885d61dfd3103ee0589a19dfc3de0b2c6c8bebfc97c4c0af514bd",
+      "source_id": 3,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_R2T1ZhezhiMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -138,7 +138,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "a599de0487c885d61dfd3103ee0589a19dfc3de0b2c6c8bebfc97c4c0af514bd",
+      "source_id": 3,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_R2T1ZhezhiMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -155,7 +155,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "a599de0487c885d61dfd3103ee0589a19dfc3de0b2c6c8bebfc97c4c0af514bd",
+      "source_id": 3,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_R2T1ZhezhiMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -173,7 +173,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "a599de0487c885d61dfd3103ee0589a19dfc3de0b2c6c8bebfc97c4c0af514bd",
+      "source_id": 3,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_R2T1ZhezhiMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -190,7 +190,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "a599de0487c885d61dfd3103ee0589a19dfc3de0b2c6c8bebfc97c4c0af514bd",
+      "source_id": 3,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_R2T1ZhezhiMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -208,7 +208,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "a599de0487c885d61dfd3103ee0589a19dfc3de0b2c6c8bebfc97c4c0af514bd",
+      "source_id": 3,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_R2T1ZhezhiMd10011_PC",
       "evidence_kind": "actual_nodes",
@@ -227,7 +227,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "231b647cad7f0e318f91a85d297fd06292133f9d49faef1aa4a0251697f3e1e4",
+      "source_id": 4,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_Performance_Zhezhi_PC",
       "evidence_kind": "actual_nodes",
@@ -257,7 +257,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "231b647cad7f0e318f91a85d297fd06292133f9d49faef1aa4a0251697f3e1e4",
+      "source_id": 4,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_Performance_Zhezhi_PC",
       "evidence_kind": "actual_nodes",
@@ -277,7 +277,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "231b647cad7f0e318f91a85d297fd06292133f9d49faef1aa4a0251697f3e1e4",
+      "source_id": 4,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_Performance_Zhezhi_PC",
       "evidence_kind": "actual_nodes",
@@ -299,7 +299,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "231b647cad7f0e318f91a85d297fd06292133f9d49faef1aa4a0251697f3e1e4",
+      "source_id": 4,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_Performance_Zhezhi_PC",
       "evidence_kind": "actual_nodes",
@@ -316,7 +316,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "231b647cad7f0e318f91a85d297fd06292133f9d49faef1aa4a0251697f3e1e4",
+      "source_id": 4,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_Performance_Zhezhi_PC",
       "evidence_kind": "actual_nodes",
@@ -333,7 +333,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "231b647cad7f0e318f91a85d297fd06292133f9d49faef1aa4a0251697f3e1e4",
+      "source_id": 4,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_Performance_Zhezhi_PC",
       "evidence_kind": "actual_nodes",
@@ -351,7 +351,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "231b647cad7f0e318f91a85d297fd06292133f9d49faef1aa4a0251697f3e1e4",
+      "source_id": 4,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_Performance_Zhezhi_PC",
       "evidence_kind": "actual_nodes",
@@ -368,7 +368,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "231b647cad7f0e318f91a85d297fd06292133f9d49faef1aa4a0251697f3e1e4",
+      "source_id": 4,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_Performance_Zhezhi_PC",
       "evidence_kind": "actual_nodes",
@@ -386,7 +386,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "231b647cad7f0e318f91a85d297fd06292133f9d49faef1aa4a0251697f3e1e4",
+      "source_id": 4,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_Performance_Zhezhi_PC",
       "evidence_kind": "actual_nodes",
@@ -409,7 +409,7 @@
     {
       "kind": "bone_chains",
       "selection": "direct_model",
-      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_id": 1,
       "source_body_type": "FemaleM",
       "source_character": "Zhezhi",
       "source_model_id": "R2T1ZhezhiMd10011"
@@ -425,13 +425,13 @@
       "group_signatures": [],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "463a5737f672c903eec369efe010a7fb3e53ed03ee12d943ec4c898a06050cb9",
+      "source_id": 2,
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_Seq_Zhezhi_Phy"
     },
     {
       "kind": "pc_export",
-      "sha256": "a599de0487c885d61dfd3103ee0589a19dfc3de0b2c6c8bebfc97c4c0af514bd",
+      "source_id": 3,
       "selection": "direct_model",
       "source_model_id": "R2T1ZhezhiMd10011",
       "variant": "ABP_R2T1ZhezhiMd10011_PC",
@@ -558,7 +558,7 @@
     },
     {
       "kind": "ui_export",
-      "sha256": "231b647cad7f0e318f91a85d297fd06292133f9d49faef1aa4a0251697f3e1e4",
+      "source_id": 4,
       "selection": "direct_model",
       "source_model_id": "R2T1ZhezhiMd10011",
       "source_profile_id": "femalem--zhezhi--r2t1zhezhimd10011",
@@ -699,7 +699,6 @@
   "profile_id": "femalem--zhezhi--r2t1zhezhimd10011",
   "requires_live_discovery": true,
   "runtime_verified": false,
-  "schema": 1,
-  "skeleton_sha256": "e9101cdcbfe06cec11ee5a02dfdd8dbcb62440dca2c94eecfe21d655b918663b",
-  "source_profile_sha256": "e3470daec2f82039204522535c1544316aeae5c54202a872b02ef16aeb6eb243"
+  "schema": 2,
+  "skeleton_sha256": "e9101cdcbfe06cec11ee5a02dfdd8dbcb62440dca2c94eecfe21d655b918663b"
 }

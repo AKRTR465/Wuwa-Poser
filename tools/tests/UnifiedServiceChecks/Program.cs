@@ -74,9 +74,9 @@ var standalone = Path.Combine(Path.GetTempPath(), "wwposer-portable-" + Guid.New
 Save(Path.Combine(standalone, "manifest.json"), new JsonObject { ["source_root"] = localWorkspace });
 Check(RecordingService.DefaultOutputDirectory(standalone) == Path.Combine(standalone, "playback", "recordings"), "standalone portable recordings stay local even with a stale source workspace in the manifest");
 var wire = PlaybackControl.Encode(123, 45, "offset_x", 0, 3);
-Check(wire.Length == 64 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(32)) == 10 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(36)) == 3, "wire fields");
-uint checksum = 2166136261; foreach (var b in wire.AsSpan(0, 60)) checksum = unchecked((checksum ^ b) * 16777619);
-Check(BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(60)) == checksum, "wire checksum");
+Check(wire.Length == 56 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(32)) == 10 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(36)) == 3, "wire fields");
+Check(wire.AsSpan(0, 8).SequenceEqual("WWPCTL2\0"u8) &&
+    BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(8)) == 2 && BinaryPrimitives.ReadUInt32LittleEndian(wire.AsSpan(12)) == wire.Length, "wire version and length");
 foreach (var slot in new uint[] { 4, 17, 40, 4096, uint.MaxValue }) Check(BinaryPrimitives.ReadUInt32LittleEndian(PlaybackControl.Encode(123, 46, "offset_x", 12, slot).AsSpan(36)) == slot, "dynamic actor slot roundtrip");
 foreach (var invalid in new (string Kind, double Value, uint Slot)[] { ("speed", double.NaN, 0), ("step", .5, 0), ("camera", 3, 0), ("camera_track_height", 0, 1), ("time_limit", 0, 3) })
 {

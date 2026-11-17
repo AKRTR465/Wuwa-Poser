@@ -2,8 +2,7 @@
 #pragma once
 #include <cstdint>
 namespace ww_game_compat {
-inline constexpr const char* ProfileId = "wuwa-3.8.0-physics-check-v1";
-inline constexpr const char* SourceSha256 = "859664e37d424e8e4082f941f3ce4575f0fea95029f9a33427d7831ac8ac673e";
+inline constexpr const char* CompatibilityId = "wuwa-3.8.0-physics-check-v1:efa85b1efe130941a4ef37acb9e9538e0138cde6813edf98178332d252ffb5a0";
 inline constexpr uint32_t AnimContextBoneContainerOffset = 0x30u;
 inline constexpr uint32_t AnimContextExtraVectorsActiveOffset = 0x28u;
 inline constexpr uint32_t AnimContextExtraVectorsOffset = 0x18u;
@@ -57,12 +56,8 @@ inline constexpr uint32_t CurveNameOffset = 0x88u;
 inline constexpr uint64_t EngineFrameRva = 0x9698458ull;
 inline constexpr uint32_t FloatBytes = 0x4u;
 inline constexpr uint32_t FunctionAllocateSerialNumberBytes = 0xa9u;
-inline constexpr const char* FunctionAllocateSerialNumberRvaText = "0x30f3e80";
-inline constexpr const char* FunctionAllocateSerialNumberSha256 = "e9a45314af4ec25ab59d048ee1fda1a307f814817b3f1edbe19ecc792d5abd1f";
 inline constexpr uint32_t FunctionAnimInstanceRootEvaluationCounterBytes = 0x6f1u;
 inline constexpr uint32_t FunctionAssignWeakObjectBytes = 0x3bu;
-inline constexpr const char* FunctionAssignWeakObjectRvaText = "0x3106f30";
-inline constexpr const char* FunctionAssignWeakObjectSha256 = "5e11a1ff463285758fb363bf152428b82239081102613c8af31593e818486139";
 inline constexpr uint32_t FunctionCachedPoseEvaluationCounterBytes = 0x25eu;
 inline constexpr uint32_t FunctionCapsuleContactsABytes = 0x262u;
 inline constexpr uint32_t FunctionCapsuleContactsBBytes = 0x2afu;

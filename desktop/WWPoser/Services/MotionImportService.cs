@@ -22,26 +22,26 @@ public sealed class MotionImportService(string repoRoot)
         var targets = registry.MorphNames(profile, mesh);
         var bodyTool = Path.Combine(root, "tools", "mmd_outputs", "mmd_vmd_cli.exe");
         var faceTool = Path.Combine(root, "tools", "mmd_outputs", "mmd_face_compile.exe");
-        var sourceSha = JsonData.Digest(source);
-        var faceSha = JsonData.Digest(face);
-        var context = new JsonObject
+        string? cachePath = null;
+        if (request.CacheDirectory is { } cacheDirectory)
         {
-            ["schema"] = 1,
-            ["build"] = "csharp-motion-import-v1",
-            ["profile_id"] = Contract.S(profile, "profile_id"),
-            ["profile_sha256"] = JsonData.Digest(registry.ProfilePath(profile)),
-            ["skeleton_sha256"] = JsonData.Digest(skeleton),
-            ["mesh_asset_name"] = mesh,
-            ["source_sha256"] = sourceSha,
-            ["face_source_sha256"] = faceSha,
-            ["gaze_source_sha256"] = gaze is null ? null : JsonData.Digest(gaze),
-            ["gaze_strength"] = request.GazeStrength,
-            ["scale"] = request.Scale,
-            ["body_compiler_sha256"] = JsonData.Digest(bodyTool),
-            ["face_compiler_sha256"] = JsonData.Digest(faceTool),
-            ["implementation_sha256"] = JsonData.CanonicalDigest(new JsonObject { ["algorithm"] = "csharp-motion-import-v1", ["assembly_mvid"] = typeof(MotionImportService).Assembly.ManifestModule.ModuleVersionId.ToString("D") })
-        };
-        var cachePath = request.CacheDirectory == null ? null : Path.Combine(Path.GetFullPath(request.CacheDirectory), JsonData.CanonicalDigest(context));
+            var inputs = new InputFileDigests();
+            var context = new JsonObject
+            {
+                ["assembly"] = typeof(MotionImportService).Module.ModuleVersionId.ToString("D"),
+                ["profile"] = inputs.Read(registry.ProfilePath(profile)),
+                ["skeleton"] = inputs.Read(skeleton),
+                ["mesh"] = mesh,
+                ["body"] = inputs.Read(source),
+                ["face"] = inputs.Read(face),
+                ["gaze"] = gaze is null ? null : inputs.Read(gaze),
+                ["gaze_strength"] = request.GazeStrength,
+                ["scale"] = request.Scale,
+                ["body_compiler"] = inputs.Read(bodyTool),
+                ["face_compiler"] = inputs.Read(faceTool)
+            };
+            cachePath = Path.Combine(Path.GetFullPath(cacheDirectory), JsonData.CanonicalDigest(context));
+        }
         var cacheHit = cachePath != null && File.Exists(Path.Combine(cachePath, "manifest.json"));
         var bodyPath = Path.Combine(output, "motion.wwlocal");
         var reportPath = Path.Combine(output, "body_report.json");
@@ -70,16 +70,12 @@ public sealed class MotionImportService(string repoRoot)
         var report = JsonData.ReadObject(reportPath);
         var expression = JsonData.ReadObject(expressionProfile);
         expression["source"] = face;
-        expression["source_sha256"] = sourceSha;
-        expression["body_source_sha256"] = sourceSha;
-        expression["expression_source_sha256"] = faceSha;
         expression["separate_expression_source"] = source != face;
         // Compiler cache stores paths from its original preparation; bind to this request.
         if (Contract.True(expression, "gaze_enabled"))
         {
             var selectedGaze = gaze ?? (expression["gaze_source_kind"]?.GetValue<string>() == "body" ? source : face);
             expression["gaze_source"] = selectedGaze;
-            expression["gaze_source_sha256"] = JsonData.Digest(selectedGaze);
         }
         expression["character_profile_id"] = Contract.S(profile, "profile_id");
         expression["expression_binary"] = targets.Count > 0 ? expressionPath : null;
@@ -97,7 +93,7 @@ public sealed class MotionImportService(string repoRoot)
             Directory.CreateDirectory(cachePath);
             foreach (var leaf in CacheFiles.Where(x => File.Exists(Path.Combine(output, x))))
                 File.Copy(Path.Combine(output, leaf), Path.Combine(cachePath, leaf), true);
-            JsonData.Write(Path.Combine(cachePath, "manifest.json"), new JsonObject { ["schema"] = 1, ["context"] = context });
+            JsonData.Write(Path.Combine(cachePath, "manifest.json"), new JsonObject { ["schema"] = 1 });
         }
 
         return new JsonObject

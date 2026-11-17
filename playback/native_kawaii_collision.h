@@ -1,6 +1,7 @@
 #pragma once
 
 #include "native_kawaii_parameters.h"
+#include "scoped_restore.h"
 #include <chrono>
 #include <optional>
 
@@ -209,6 +210,10 @@ void EvaluateCapsules(State& state,uintptr_t node,const Access& access,bool feed
     std::vector<Driver> requested;std::vector<Shape> geometry;bool available=false;
     {std::lock_guard<std::mutex> lock(state.edit);requested=state.drivers;geometry=state.shapes;available=state.available;}
     const bool authoring=feed&&state.layout.has_value();
+    const auto unavailable=[&](const char* reason){
+        if(authoring&&!WaitForLayout(state,reason))fault();
+        evaluate();
+    };
     const bool edits=feed&&(authoring||std::any_of(requested.begin(),requested.end(),[](const auto& d){return !d.enabled;})||
         std::any_of(geometry.begin(),geometry.end(),[](const auto& shape){return !shape.enabled||shape.edited;}));
     const bool needs_prototype=state.prototype_bank&&!state.prototype_bank->available.load(std::memory_order_acquire);
@@ -221,20 +226,21 @@ void EvaluateCapsules(State& state,uintptr_t node,const Access& access,bool feed
         return;
     }
     if(authoring&&!initialized_stock){
-        if(!WaitForLayout(state,"capsule layout requires an initialized native physics group"))fault();
-        evaluate();return;
+        unavailable("capsule layout requires an initialized native physics group");return;
     }
     parameters::Array simulation{};
     std::array<int32_t,1024> compact_to_skeleton{};
     if(!access.Get(node+parameters::kBoneArray,simulation)||!parameters::ValidArray(simulation)||!simulation.num||!map(compact_to_skeleton)){
-        if(authoring&&!WaitForLayout(state,"capsule layout requires an available native skeleton pose"))fault();
-        evaluate();return;
+        unavailable("capsule layout requires an available native skeleton pose");return;
     }
     std::vector<Driver> observed;
     std::vector<Shape> shapes;
     std::array<bool,2> changed{};
     std::array<std::vector<StockShape>,2> stock;
     const bool replace=authoring&&state.layout->replace_stock;
+    const auto prior_shape=[&](const Shape& shape){
+        return std::find_if(geometry.begin(),geometry.end(),[&](const auto& entry){return SameShape(entry,shape);});
+    };
     const auto observe_driver=[&](const Shape& shape,bool original,bool active){
         if(shape.bone<0)return;
         const auto bone=unsigned(shape.bone);
@@ -250,16 +256,14 @@ void EvaluateCapsules(State& state,uintptr_t node,const Access& access,bool feed
     for(unsigned i=0;i<state.buffers.size();++i){
         auto& buffer=state.buffers[i];buffer.records.clear();
         if(!access.Get(node+kCapsuleArrays[i],buffer.original)||!parameters::ValidArray(buffer.original)){
-            if(authoring&&!WaitForLayout(state,"capsule layout could not read original capsule arrays"))fault();
-            evaluate();return;
+            unavailable("capsule layout could not read original capsule arrays");return;
         }
         if(edits)buffer.records.reserve(size_t(buffer.original.num));
         bool offered=false;
         for(int32_t index=0;index<buffer.original.num;++index){
             Capsule record{};
             if(!access.Get(buffer.original.data+size_t(index)*kCapsuleBytes,record)){
-                if(authoring&&!WaitForLayout(state,"capsule layout could not read an original capsule record"))fault();
-                evaluate();return;
+                unavailable("capsule layout could not read an original capsule record");return;
             }
             const auto original=ReadStockShape(record,i*kArraySpan+unsigned(index)+1,compact_to_skeleton);
             if(needs_prototype&&initialized_stock&&!offered&&PortablePrototype(original)){
@@ -269,7 +273,7 @@ void EvaluateCapsules(State& state,uintptr_t node,const Access& access,bool feed
             if(authoring)stock[i].push_back(original);
             auto shape=original.shape;
             if(replace){observe_driver(shape,true,false);continue;}
-            const auto prior=std::find_if(geometry.begin(),geometry.end(),[&](const auto& entry){return SameShape(entry,shape);});
+            const auto prior=prior_shape(shape);
             const bool disabled=!driver_enabled(shape.bone)||(edits&&prior!=geometry.end()&&!prior->enabled);
             observe_driver(shape,true,!disabled);
             if(edits&&prior!=geometry.end()&&shape.geometry_available&&prior->edited&&!disabled){
@@ -284,12 +288,11 @@ void EvaluateCapsules(State& state,uintptr_t node,const Access& access,bool feed
     if(authoring){
         const char* error=nullptr;
         if(const auto& baseline=state.layout->stock_baseline;replace&&baseline&&!MatchesStock(*baseline,stock)){
-            if(!WaitForLayout(state,"capsule layout stock baseline does not match this actor's original runtime capsules"))fault();
-            evaluate();return;
+            unavailable("capsule layout stock baseline does not match this actor's original runtime capsules");return;
         }
         for(const auto& row:state.layout->shapes){
             auto shape=row.shape;
-            const auto prior=std::find_if(geometry.begin(),geometry.end(),[&](const auto& entry){return SameShape(entry,shape);});
+            const auto prior=prior_shape(shape);
             if(prior!=geometry.end()){
                 shape.enabled=prior->enabled;shape.requested=prior->requested;shape.edited=prior->edited;
             }
@@ -308,26 +311,23 @@ void EvaluateCapsules(State& state,uintptr_t node,const Access& access,bool feed
             buffer.records.push_back(AuthoredRecord(source?*source:*sibling,shape,!source));
             changed[row.array]=true;
         }
-        if(error){
-            if(!WaitForLayout(state,error))fault();
-            evaluate();return;
-        }
+        if(error){unavailable(error);return;}
     }
+    const auto failed_swap=[&]{Restore(state,node,access);fault();evaluate();};
     for(unsigned i=0;edits&&i<state.buffers.size();++i){
         auto& buffer=state.buffers[i];
         if(!changed[i]&&buffer.records.size()==size_t(buffer.original.num))continue;
         const auto address=node+kCapsuleArrays[i];parameters::Array current{};
-        if(!access.Get(address,current)||!parameters::SameArray(current,buffer.original)||!access.writable(access.user,address,sizeof(current))){Restore(state,node,access);fault();evaluate();return;}
+        if(!access.Get(address,current)||!parameters::SameArray(current,buffer.original)||!access.writable(access.user,address,sizeof(current))){failed_swap();return;}
         const auto count=int32_t(buffer.records.size());
         buffer.filtered={count?reinterpret_cast<uintptr_t>(buffer.records.data()):0,count,count};
         buffer.swapped=true;state.restore_pending.store(true,std::memory_order_release);
-        if(!access.write(access.user,address,&buffer.filtered,sizeof(buffer.filtered))){Restore(state,node,access);fault();evaluate();return;}
+        if(!access.write(access.user,address,&buffer.filtered,sizeof(buffer.filtered))){failed_swap();return;}
     }
-    struct Recovery {
-        State& state;uintptr_t node;const Access& access;Fault& fault;
-        ~Recovery(){if(state.restore_pending.load(std::memory_order_acquire)&&!Restore(state,node,access))fault();}
-    };
-    {Recovery recovery{state,node,access,fault};evaluate();}
+    {
+        ScopedRestore recovery([&]{if(state.restore_pending.load(std::memory_order_acquire)&&!Restore(state,node,access))fault();});
+        evaluate();
+    }
     std::lock_guard<std::mutex> lock(state.edit);
     for(auto& driver:observed){const auto current=std::find_if(state.drivers.begin(),state.drivers.end(),[&](const auto& d){return d.bone==driver.bone;});
         if(current!=state.drivers.end())driver.enabled=current->enabled;}

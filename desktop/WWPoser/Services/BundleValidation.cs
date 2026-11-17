@@ -2,23 +2,26 @@ namespace WWPoser.Services;
 
 public static class BundleValidation
 {
-    public static void Validate(string root)
+    public static void Validate(string root) => InspectBundle(root, writeHashes: false);
+    internal static void WriteManifest(string root) => InspectBundle(root, writeHashes: true);
+
+    private static void InspectBundle(string root, bool writeHashes)
     {
-        var registry = new CharacterRegistry(root);
-        var profiles = Contract.A(registry.Index(), "profiles");
-        var catalog = OwnedCharacterCatalog.Load(root);
-        ValidateManifest(root);
-        JsonData.Write(Path.Combine(root, "bundle_validation.json"), new JsonObject { ["state"] = "validated", ["profiles"] = profiles.Count,
-            ["character_configurations"] = catalog.CharacterConfigurationCount, ["character_skin_selections"] = catalog.Characters.Count(character => character.Form is null),
-            ["additional_forms"] = catalog.Characters.Count(character => character.Form is not null), ["character_form_selections"] = catalog.Characters.Count, ["default_mmd_backend"] = "game_native" });
+        _ = Contract.A(new CharacterRegistry(root).Index(), "profiles");
+        _ = OwnedCharacterCatalog.Load(root);
+        ValidateManifest(root, writeHashes);
     }
 
-    internal static void ValidateManifest(string root)
+    internal static void ValidateManifest(string root, bool writeHashes = false)
     {
         root = Path.GetFullPath(root);
         var manifestPath = Path.Combine(root, "manifest.json");
         // Source checkouts have no bundle manifest. Portable packages do.
-        if (!File.Exists(manifestPath)) return;
+        if (!File.Exists(manifestPath))
+        {
+            Contract.Require(!writeHashes, "打包文件清单缺失。");
+            return;
+        }
         var manifest = JsonData.ReadObject(manifestPath);
         Contract.Require(Contract.I(manifest, "schema") == 4, "包清单版本不受支持。");
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -30,6 +33,13 @@ public static class BundleValidation
                 seen.Add(relative), "包清单路径无效或重复：" + relative);
             var file = new FileInfo(Path.Combine(root, relative));
             Contract.Require(file.Exists, "包文件缺失：" + relative);
+            if (writeHashes)
+            {
+                Contract.Require(!row!.AsObject().ContainsKey("sha256"), "包文件已有 SHA-256：" + relative);
+                row["bytes"] = file.Length;
+                row["sha256"] = JsonData.Digest(file.FullName);
+                continue;
+            }
             Contract.Require(file.Length == Contract.I(row!, "bytes"), "包文件大小不符：" + relative);
             var digest = Contract.S(row!, "sha256");
             Contract.Require(digest.Length == 64 && digest.All(Uri.IsHexDigit), "包清单 SHA-256 无效：" + relative);
@@ -37,5 +47,6 @@ public static class BundleValidation
                 "包文件 SHA-256 不符：" + relative);
         }
         Contract.Require(seen.Count > 0, "包清单没有文件。");
+        if (writeHashes) JsonData.Write(manifestPath, manifest);
     }
 }

@@ -618,12 +618,14 @@ public sealed partial class MainWindow
     {
         if (editingPhysics || SelectedPhysicsActor() is not { } selected) return;
         var preset = JsonData.ReadObject(path);
-        NativePhysicsPreset.ValidateDraft(preset, selected.Character.CharacterId, selected.Character.ProfileId);
+        var capsuleGroups = NativePhysicsPreset.ValidateDraft(preset, selected.Character.CharacterId, selected.Character.ProfileId);
         if (capsuleDraftProfile is { } profile)
-            CapsuleAuthoring.ValidateTargets(CapsuleAuthoring.Read(preset), profile);
+            CapsuleAuthoring.ValidateTargets(capsuleGroups, profile);
         if (CanDraftPhysics)
         {
             KeepPhysicsDraft(selected.Card, selected.Character, preset);
+            displayedCapsuleLayout = preset[CapsuleAuthoring.PropertyName];
+            displayedCapsuleGroups = capsuleGroups;
             capsuleHistory.Remove((selected.Card, selected.Character.CharacterId));
             RefreshDraftInputs();
             status.Text = "已载入物理预设。用原生物理开演时会自动应用。";

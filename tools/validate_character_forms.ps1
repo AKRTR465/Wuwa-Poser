@@ -2,9 +2,9 @@
 param([string]$Root = (Join-Path $PSScriptRoot '..'), [switch]$CheckSources, [string]$ReportPath)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'catalog_validation.ps1')
 $resolvedRoot = [IO.Path]::GetFullPath($Root)
 function ReadJson([string]$Relative) { Get-Content -LiteralPath (Join-Path $resolvedRoot $Relative) -Raw -Encoding utf8 | ConvertFrom-Json }
-function Digest([string]$Relative) { (Get-FileHash -LiteralPath (Join-Path $resolvedRoot $Relative) -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Require([bool]$Value, [string]$Message) { if (-not $Value) { throw $Message } }
 $catalog = ReadJson 'data/characters/owned_character_catalog.json'
 $forms = ReadJson 'data/characters/character_forms.json'
@@ -14,7 +14,7 @@ Require ($forms.schema -eq 1 -and $forms.runtime_verified -eq $false -and $forms
 Require ($forms.forms.Count -eq $forms.counts.additional_forms -and $catalog.characters.Count + $forms.forms.Count -eq $forms.counts.combined_selections) 'Form coverage differs.'
 $ids = @($catalog.characters.character_id) + @($forms.forms.character_id)
 Require (@($ids | Select-Object -Unique).Count -eq $ids.Count) 'Duplicate form selection ID.'
-if ($CheckSources) { foreach ($source in $forms.sources) { Require ((Digest $source.path) -ceq $source.sha256) ('Form raw source digest differs: '+$source.path) } }
+if ($CheckSources) { foreach ($source in $forms.sources) { Require ((Get-CatalogFileDigest (Join-Path $resolvedRoot $source.path)) -ceq $source.sha256) ('Form raw source digest differs: '+$source.path) } }
 $results = @()
 foreach ($form in $forms.forms) {
     $base = @($catalog.characters | Where-Object character_id -CEQ $form.base_character_id)
@@ -23,17 +23,17 @@ foreach ($form in $forms.forms) {
     Require ($load.id -match '^[a-z0-9_-]+$' -and $load.strategy -in @('role_morph','mesh_parts') -and $load.base_model_id -ceq $base[0].model_id) 'Form load contract differs.'
     $profile = @($index.profiles | Where-Object profile_id -CEQ $form.profile_id)
     Require ($profile.Count -eq 1 -and $profile[0].mesh_asset_names -ccontains $form.model_asset_name) 'Form mesh profile is missing.'
-    $profilePath = 'data/characters/'+$profile[0].profile_path
-    Require ((Digest $profilePath) -ceq $profile[0].profile_sha256) 'Form profile digest differs.'
-    $character = ReadJson $profilePath
-    Require ((Digest ('data/characters/'+$character.skeleton_path)) -ceq $character.skeleton_sha256) 'Form skeleton digest differs.'
+    $profileFile = Read-CatalogJsonWithDigest (Join-Path $resolvedRoot ('data/characters/'+$profile[0].profile_path))
+    Require ($profileFile.Sha256 -ceq $profile[0].profile_sha256) 'Form profile digest differs.'
+    $character = $profileFile.Json
+    Require ((Get-CatalogFileDigest (Join-Path $resolvedRoot ('data/characters/'+$character.skeleton_path))) -ceq $character.skeleton_sha256) 'Form skeleton digest differs.'
     Require ($character.bone_names.Count -eq $character.bone_count -and $character.bone_parents.Count -eq $character.bone_count) 'Form skeleton is incomplete.'
     $row = @($native.profiles | Where-Object profile_id -CEQ $form.profile_id)
     Require ($row.Count -eq 1) 'Form native descriptor is missing.'
-    $descriptorPath = 'data/native_graphs/'+$row[0].runtime_path
-    Require ((Digest $descriptorPath) -ceq $row[0].runtime_sha256) 'Form native descriptor digest differs.'
-    $descriptor = ReadJson $descriptorPath
-    Require ($descriptor.character_profile_sha256 -ceq (Digest $profilePath) -and $descriptor.skeleton_sha256 -ceq $character.skeleton_sha256 -and
+    $descriptorFile = Read-CatalogJsonWithDigest (Join-Path $resolvedRoot ('data/native_graphs/'+$row[0].runtime_path))
+    Require ($descriptorFile.Sha256 -ceq $row[0].runtime_sha256) 'Form native descriptor digest differs.'
+    $descriptor = $descriptorFile.Json
+    Require ($descriptor.character_profile_sha256 -ceq $profileFile.Sha256 -and $descriptor.skeleton_sha256 -ceq $character.skeleton_sha256 -and
         $descriptor.requires_live_discovery -eq $true -and $descriptor.runtime_verified -eq $false) 'Form native identity scope differs.'
     $graphs = @($descriptor.candidate_sources | Where-Object {
         $_.kind -eq 'ui_export' -and $_.ui_class_asset -ceq $load.anim_class_path -and $_.evidence_kind -eq 'actual_nodes'

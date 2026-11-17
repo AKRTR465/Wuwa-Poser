@@ -102,11 +102,7 @@ static class CompiledMotionValidationChecks
         Reject(f => f.WriteMotion([.. File.ReadAllBytes(f.MotionPath), 0]), "trailing data rejected");
         Reject(f => f.Motion(bytes => bytes[32] = (byte)'g'), "non-hex provenance rejected");
         Reject(f => f.Motion(bytes => bytes.AsSpan(32, 64).Clear()), "one omitted provenance digest rejected");
-        Reject(f => f.Motion(bytes => BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(188), 4)), "unknown command mask rejected");
-        Reject(f => f.Motion(bytes => BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(220), 3)), "translation on non-root bone rejected");
-        Reject(f => f.Motion(bytes => BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(252), 1)), "changing masks rejected");
-        Reject(f => f.Motion(bytes => BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(160), float.NaN)), "NaN payload rejected");
-        Reject(f => f.Motion(bytes => BinaryPrimitives.WriteSingleLittleEndian(bytes.AsSpan(184), 0)), "zero active quaternion rejected");
+        // The local_clip_tests cover sample masks, channel values and joint quaternions.
         Reject(f => f.Config["bone_count"] = 3, "config bone count must match clip");
         Reject(f => f.Config["frame_count"] = 3, "config frame count must match clip");
         Reject(f => f.Config["fps"] = 30, "config fps must match clip");

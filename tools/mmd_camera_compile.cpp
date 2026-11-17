@@ -8,26 +8,19 @@
 using Json=nlohmann::json;namespace vmd=wwp_playback::vmd;namespace cc=wwp_playback::camera_clip;
 using wwp_mmd_compile::Decode;
 using wwp_mmd_compile::Sha256;
-template<class T>void Put(uint8_t* p,size_t offset,T value){std::memcpy(p+offset,&value,sizeof(value));}
 int wmain(int argc,wchar_t** argv){if(argc<4||argc>6){std::fprintf(stderr,"usage: mmd_camera_compile CAMERA_VMD NEW_REPORT_JSON NEW_WWCAM [TIMELINE_SECONDS] [continuous]\n");return 2;}
     try{const auto sourceHash=Sha256(argv[1]);const auto clip=vmd::ReadFile(argv[1],Decode);const auto& keys=clip.motion.cameras;if(keys.empty())throw std::runtime_error("VMD has no camera keys");
         const bool cuts=argc<6;const double sourceDuration=keys.back().frame/30.;
         const double timeline=argc>=5?wwp_mmd_compile::Number(argv[4]):sourceDuration;
-        const double duration=(std::max)(timeline,sourceDuration);const uint32_t frames=uint32_t(std::ceil(duration*60))+1;
-        std::array<uint8_t,cc::kHeaderBytes> header{};
-        std::memcpy(header.data(),"WWCAM001",8);
-        Put(header.data(),8,uint32_t(2));               // binary version
-        Put(header.data(),12,uint32_t(60));             // fps
-        Put(header.data(),16,frames);
-        Put(header.data(),20,cc::kRecordBytes);
-        Put(header.data(),24,(frames-1)/60.);           // duration seconds
-        Put(header.data(),32,keys.back().frame);        // source last frame
-        Put(header.data(),36,uint32_t(keys.size()));    // source key count
-        std::memcpy(header.data()+40,sourceHash.data(),64);
-        Put(header.data(),104,uint32_t(1));             // basis tag: raw MMD
-        Put(header.data(),108,uint32_t(cuts));
-        Put(header.data(),112,cc::kSourceKeyBytes);
-        std::ofstream file(argv[3],std::ios::binary);file.write((char*)header.data(),header.size());
+        const uint32_t frames=wwp_mmd_compile::FrameCount60((std::max)(timeline,sourceDuration));
+        if(keys.size()>cc::kMaximumSourceBytes/cc::kSourceKeyBytes)throw std::runtime_error("camera source keys exceed the supported byte budget");
+        cc::Header header;
+        header.frame_count=frames;header.duration=(frames-1)/60.;
+        header.last_source_frame=keys.back().frame;header.source_key_count=uint32_t(keys.size());
+        std::copy_n(sourceHash.begin(),header.source_digest.size(),header.source_digest.begin());
+        header.adjacent_cuts=cuts;
+        std::ofstream file(argv[3],std::ios::binary);
+        file.write(reinterpret_cast<const char*>(&header),sizeof(header));
         uint32_t previousSource=0;
         for(uint32_t f=0;f<frames;++f){
             const double sourceFrame=f/2.;const auto key=mmd::SampleCamera(keys,sourceFrame,cuts);
@@ -39,16 +32,13 @@ int wmain(int argc,wchar_t** argv){if(argc<4||argc>6){std::fprintf(stderr,"usage
             previousSource=uint32_t(sourceIndex);file.write((char*)&sample,sizeof(sample));
         }
         for(const auto& key:keys){
-            std::array<uint8_t,cc::kSourceKeyBytes> row{};
-            Put(row.data(),0,key.frame);Put(row.data(),4,key.distance);Put(row.data(),8,key.fov);
-            std::memcpy(row.data()+12,&key.target,12);std::memcpy(row.data()+24,&key.rotation,12);
-            Put(row.data(),36,uint32_t(key.perspective));std::memcpy(row.data()+40,key.curves.data(),96);
-            file.write((char*)row.data(),row.size());
+            const cc::SourceRecord row{key.frame,key.distance,key.fov,key.target,key.rotation,uint32_t(key.perspective),key.curves};
+            file.write(reinterpret_cast<const char*>(&row),sizeof(row));
         }
         if(!file)throw std::runtime_error("camera binary write failed");
         file.close();
         Json report={{"schema",1},
-            {"source_camera_vmd",std::filesystem::path(argv[1]).u8string()},{"source_sha256",sourceHash},
+            {"source_camera_vmd",std::filesystem::path(argv[1]).u8string()},
             {"camera_key_count",keys.size()},{"source_last_frame",keys.back().frame},
             {"timeline_duration_seconds",(frames-1)/60.},{"fps",60},{"frame_count",frames},
             {"binary",std::filesystem::path(argv[3]).u8string()},{"binary_sha256",Sha256(argv[3])},

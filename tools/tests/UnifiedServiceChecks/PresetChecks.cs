@@ -74,7 +74,7 @@ internal static class PresetChecks
             var entry = zip.Entries.First(e => e.FullName.StartsWith("assets/")); var name = entry.FullName; var length = entry.Length; entry.Delete();
             using var stream = zip.CreateEntry(name).Open(); stream.Write(new byte[length]);
         });
-        await Rejected(() => service.LoadAsync(corrupt), "corrupt resource accepted");
+        await Rejected(() => service.LoadAsync(corrupt), "valid cached resource hid a corrupt archive entry");
         var future = Variant("future", zip => ChangeManifest(zip, doc => doc["schema"] = 99));
         await Rejected(() => service.LoadAsync(future), "future schema accepted");
         var legacyRecording = Variant("legacy-recording", zip => ChangeManifest(zip, doc => doc["preset"]!["recording"]!.AsObject().Remove("format")));

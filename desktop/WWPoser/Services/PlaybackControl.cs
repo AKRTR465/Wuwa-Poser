@@ -10,14 +10,15 @@ public static class PlaybackControl
     {
         if (epoch == 0 || sequence == 0) throw new ArgumentException("控制命令的 epoch 和 sequence 必须为正数");
         var id = PlaybackCommands.Validate(kind, value, targetSlot, targetGroup, targetChain);
-        var bytes = new byte[64]; "WWPCTL1\0"u8.CopyTo(bytes);
-        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(8), 1); BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(12), 64);
+        var bytes = new byte[PlaybackCommands.WireBytes];
+        PlaybackCommands.WireMagic.CopyTo(bytes);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(8), PlaybackCommands.WireVersion);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(12), PlaybackCommands.WireBytes);
         BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(16), epoch); BinaryPrimitives.WriteUInt64LittleEndian(bytes.AsSpan(24), sequence);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(32), id); BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(36), targetSlot); BinaryPrimitives.WriteDoubleLittleEndian(bytes.AsSpan(40), value);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(48), targetGroup);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(52), targetChain);
-        uint checksum = 2166136261; foreach (var b in bytes.AsSpan(0, 60)) checksum = unchecked((checksum ^ b) * 16777619);
-        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(60), checksum); return bytes;
+        return bytes;
     }
     public static JsonObject Status(string session) => PlaybackSessionStatus.Read(session).State;
     public static async Task<JsonObject> SendAsync(string session, string kind, double value = 0, CancellationToken cancellation = default, uint targetSlot = 0, uint targetGroup = 0, uint targetChain = 0)

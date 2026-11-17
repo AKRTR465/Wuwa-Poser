@@ -11,13 +11,13 @@ using Json=nlohmann::json;
 using Address=resolution::Address;
 struct Function {const char* label;Address rva;size_t bytes;};
 using ue_memory::Hex;
-inline bool CompatibleSource(const Json& cfg,const char* profile,const char* digest,Json& checks,std::string& error){
+inline bool CompatibleId(const Json& cfg,const char* identity,Json& checks,std::string& error){
     error.clear();
-    const bool valid=cfg.contains("compatibility_profile")&&cfg["compatibility_profile"].is_string()&&cfg["compatibility_profile"]==profile&&
-        cfg.contains("compatibility_source_sha256")&&cfg["compatibility_source_sha256"].is_string()&&cfg["compatibility_source_sha256"]==digest;
-    checks.push_back({{"kind","compatibility_source"},{"performed",true},{"matched",valid},{"game_abi_verified",false},
-        {"expected_profile",profile},{"expected_source_sha256",digest}});
-    if(!valid)error="compatibility configuration and compiled carrier have different sources";
+    const auto id=cfg.find("compatibility_id");
+    const bool valid=id!=cfg.end()&&*id==identity;
+    checks.push_back({{"kind","compatibility_id"},{"performed",true},{"matched",valid},{"game_abi_verified",false},
+        {"expected_id",identity}});
+    if(!valid)error="compatibility configuration differs from compiled carrier";
     return valid;
 }
 template<class Read> bool VerifyFunctions(Read&& read,Address image,Address imageBytes,const Json& witnesses,const std::vector<Function>& required,Json& checks,const char* group,std::string& error){

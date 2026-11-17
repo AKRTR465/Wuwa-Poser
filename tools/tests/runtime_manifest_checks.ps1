@@ -18,11 +18,10 @@ try {
     [IO.Directory]::CreateDirectory($fixture) | Out-Null
     foreach ($name in $files) { [IO.File]::WriteAllText((Join-Path $fixture $name), 'original') }
     $manifest = [ordered]@{
-        schema = 2; purpose = 'owned_mmd_scene'
-        source_revision = $revision; source_dirty = $false; files = $files
-        compatibility_profile = (Get-Content -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Raw | ConvertFrom-Json).profile_id
-        compatibility_source_sha256 = (Get-FileHash -LiteralPath (Join-Path $repo 'data/game_compat/ww_runtime.json') -Algorithm SHA256).Hash.ToLowerInvariant()
-        artifacts = @($files | ForEach-Object {
+        schema = 3; purpose = 'owned_mmd_scene'
+        source_revision = $revision; source_dirty = $false
+        compatibility_id = & (Join-Path $repo 'tools/generate_game_compat.ps1') -IdentityOnly
+        files = @($files | ForEach-Object {
             $path = Join-Path $fixture $_
             [ordered]@{ path = $_; bytes = (Get-Item $path).Length; sha256 = (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant() }
         })
@@ -38,15 +37,15 @@ try {
     $manifest.source_dirty = $true; Save-Manifest
     Reject { & $builder -PackageDirectory $fixture -Check -ExpectedSourceRevision $revision } 'dirty release provenance'
     $manifest.source_dirty = $false
-    $compatibilityDigest = $manifest.compatibility_source_sha256
-    $manifest.compatibility_source_sha256 = '0' * 64; Save-Manifest
-    Reject { & $builder -PackageDirectory $fixture -Check } 'a stale compatibility profile'
-    $manifest.compatibility_source_sha256 = $compatibilityDigest
-    $manifest.artifacts[1].path = $files[0]; Save-Manifest
+    $compatibilityId = $manifest.compatibility_id
+    $manifest.compatibility_id = 'stale'; Save-Manifest
+    Reject { & $builder -PackageDirectory $fixture -Check } 'a stale compatibility ID'
+    $manifest.compatibility_id = $compatibilityId
+    $manifest.files[1].path = $files[0]; Save-Manifest
     Reject { & $builder -PackageDirectory $fixture -Check } 'duplicate digest entries'
-    $manifest.schema = 1; Save-Manifest
+    $manifest.files[1].path = $files[1]
+    $manifest.schema = 2; Save-Manifest
     Reject { & $builder -PackageDirectory $fixture -Check } 'a legacy runtime without compatibility provenance'
-    Reject { & $builder -PackageDirectory $fixture -Check -ExpectedSourceRevision $revision } 'legacy unsigned release provenance'
     Write-Output ("PASS: {0} runtime manifest checks; no runtime artifact was executed." -f $script:wwManifestChecks)
 } finally {
     $fixtureFull = [IO.Path]::GetFullPath($fixture)

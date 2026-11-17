@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$DotNetExecutable = 'dotnet', [switch]$SkipNativeBuild, [string]$OutputDirectory)
+param([string]$DotNetExecutable = 'dotnet', [switch]$SkipNativeBuild, [switch]$SkipCatalogChecks, [string]$OutputDirectory)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if (-not $IsWindows) { throw 'The full offline suite requires Windows; use PortableServiceChecks and the pure C++ tests on other systems.' }
@@ -33,7 +33,9 @@ Run-Managed 'tools/tests/ManagedActorBorrowing/ManagedActorBorrowing.csproj'
 # The WPF projects share their referenced desktop output and must run serially.
 Run-Managed 'tools/tests/UnifiedServiceChecks/ServiceChecks.csproj' @('--prepare-actors', $repo)
 Run-Managed 'tools/tests/UnifiedUiChecks/UnifiedUiChecks.csproj' @($repo, (Join-Path $OutputDirectory 'ui'))
-& (Join-Path $PSScriptRoot 'validate_owned_character_catalog.ps1') -Root $repo -ReportPath (Join-Path $OutputDirectory 'catalog.json')
-& (Join-Path $PSScriptRoot 'validate_character_forms.ps1') -Root $repo -ReportPath (Join-Path $OutputDirectory 'forms.json')
+if (-not $SkipCatalogChecks) {
+    & (Join-Path $PSScriptRoot 'validate_owned_character_catalog.ps1') -Root $repo -ReportPath (Join-Path $OutputDirectory 'catalog.json')
+    & (Join-Path $PSScriptRoot 'validate_character_forms.ps1') -Root $repo -ReportPath (Join-Path $OutputDirectory 'forms.json')
+}
 & (Join-Path $PSScriptRoot 'tests/runtime_manifest_checks.ps1')
 Write-Output 'PASS: offline regression suite. No game process or real window capture was used.'

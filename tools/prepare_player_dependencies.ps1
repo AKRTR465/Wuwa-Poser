@@ -14,10 +14,12 @@ if(-not $Check){
  $package=[IO.Compression.ZipFile]::OpenRead([IO.Path]::GetFullPath($FfmpegArchive))
  try{
   New-Item -ItemType Directory -Path $destination -Force|Out-Null
-  foreach($property in $lock.files.PSObject.Properties){$target=Join-Path $destination $property.Name;$entry=$package.GetEntry($property.Value.archive_member);if(-not $entry){throw 'Pinned ZIP member missing'};[IO.Compression.ZipFileExtensions]::ExtractToFile($entry,$target,$true);Verify-Dependency $target $property.Value}
+  foreach($property in $lock.files.PSObject.Properties){$target=Join-Path $destination $property.Name;$entry=$package.GetEntry($property.Value.archive_member);if(-not $entry){throw 'Pinned ZIP member missing'};[IO.Compression.ZipFileExtensions]::ExtractToFile($entry,$target,$true)}
  }finally{$package.Dispose()}
+}
+foreach($property in $lock.files.PSObject.Properties){Verify-Dependency (Join-Path $destination $property.Name) $property.Value}
+if(-not $Check){
  Copy-Item -LiteralPath (Join-Path $repo 'data\dependencies\ffmpeg.README.txt') -Destination (Join-Path $destination 'README.txt')
  Copy-Item -LiteralPath (Join-Path $repo 'data\dependencies\ffmpeg.json') -Destination (Join-Path $destination 'source.json')
 }
-foreach($property in $lock.files.PSObject.Properties){Verify-Dependency (Join-Path $destination $property.Name) $property.Value}
 [ordered]@{state='dependencies_verified';directory=$destination}|ConvertTo-Json -Compress

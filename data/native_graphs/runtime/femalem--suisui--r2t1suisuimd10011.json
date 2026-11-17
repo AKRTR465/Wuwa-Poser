@@ -33,7 +33,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "d8728a06b68cea1fbe2a88120a14ba0027ae09d50d2b059ebfe5176c16a2535e",
+      "source_id": 2,
       "source_model_id": "R2T1SuisuiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Suisui_Phy"
@@ -70,7 +70,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "d8728a06b68cea1fbe2a88120a14ba0027ae09d50d2b059ebfe5176c16a2535e",
+      "source_id": 2,
       "source_model_id": "R2T1SuisuiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Suisui_Phy"
@@ -88,7 +88,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "d8728a06b68cea1fbe2a88120a14ba0027ae09d50d2b059ebfe5176c16a2535e",
+      "source_id": 2,
       "source_model_id": "R2T1SuisuiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Suisui_Phy"
@@ -109,7 +109,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "d8728a06b68cea1fbe2a88120a14ba0027ae09d50d2b059ebfe5176c16a2535e",
+      "source_id": 2,
       "source_model_id": "R2T1SuisuiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Suisui_Phy"
@@ -126,7 +126,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "d8728a06b68cea1fbe2a88120a14ba0027ae09d50d2b059ebfe5176c16a2535e",
+      "source_id": 2,
       "source_model_id": "R2T1SuisuiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Suisui_Phy"
@@ -144,7 +144,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "d8728a06b68cea1fbe2a88120a14ba0027ae09d50d2b059ebfe5176c16a2535e",
+      "source_id": 2,
       "source_model_id": "R2T1SuisuiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Suisui_Phy"
@@ -163,7 +163,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "d8728a06b68cea1fbe2a88120a14ba0027ae09d50d2b059ebfe5176c16a2535e",
+      "source_id": 2,
       "source_model_id": "R2T1SuisuiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Suisui_Phy"
@@ -180,7 +180,7 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "d8728a06b68cea1fbe2a88120a14ba0027ae09d50d2b059ebfe5176c16a2535e",
+      "source_id": 2,
       "source_model_id": "R2T1SuisuiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Suisui_Phy"
@@ -197,13 +197,13 @@
       ],
       "runtime_verified": false,
       "simulate_default": true,
-      "source_id": "d8728a06b68cea1fbe2a88120a14ba0027ae09d50d2b059ebfe5176c16a2535e",
+      "source_id": 2,
       "source_model_id": "R2T1SuisuiMd10011",
       "unmatched_root_bones": [],
       "variant": "ABP_Seq_Suisui_Phy"
     },
     {
-      "source_id": "69e881c68aa4754663f389e9e710c627a6b76b3ef9a825b3109d7f7b764d3483",
+      "source_id": 3,
       "source_model_id": "R2T1SuisuiMd10011",
       "variant": "ABP_Performance_Suisui_PC",
       "evidence_kind": "actual_nodes",
@@ -239,7 +239,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "69e881c68aa4754663f389e9e710c627a6b76b3ef9a825b3109d7f7b764d3483",
+      "source_id": 3,
       "source_model_id": "R2T1SuisuiMd10011",
       "variant": "ABP_Performance_Suisui_PC",
       "evidence_kind": "actual_nodes",
@@ -276,7 +276,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "69e881c68aa4754663f389e9e710c627a6b76b3ef9a825b3109d7f7b764d3483",
+      "source_id": 3,
       "source_model_id": "R2T1SuisuiMd10011",
       "variant": "ABP_Performance_Suisui_PC",
       "evidence_kind": "actual_nodes",
@@ -294,7 +294,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "69e881c68aa4754663f389e9e710c627a6b76b3ef9a825b3109d7f7b764d3483",
+      "source_id": 3,
       "source_model_id": "R2T1SuisuiMd10011",
       "variant": "ABP_Performance_Suisui_PC",
       "evidence_kind": "actual_nodes",
@@ -315,7 +315,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "69e881c68aa4754663f389e9e710c627a6b76b3ef9a825b3109d7f7b764d3483",
+      "source_id": 3,
       "source_model_id": "R2T1SuisuiMd10011",
       "variant": "ABP_Performance_Suisui_PC",
       "evidence_kind": "actual_nodes",
@@ -332,7 +332,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "69e881c68aa4754663f389e9e710c627a6b76b3ef9a825b3109d7f7b764d3483",
+      "source_id": 3,
       "source_model_id": "R2T1SuisuiMd10011",
       "variant": "ABP_Performance_Suisui_PC",
       "evidence_kind": "actual_nodes",
@@ -350,7 +350,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "69e881c68aa4754663f389e9e710c627a6b76b3ef9a825b3109d7f7b764d3483",
+      "source_id": 3,
       "source_model_id": "R2T1SuisuiMd10011",
       "variant": "ABP_Performance_Suisui_PC",
       "evidence_kind": "actual_nodes",
@@ -369,7 +369,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "69e881c68aa4754663f389e9e710c627a6b76b3ef9a825b3109d7f7b764d3483",
+      "source_id": 3,
       "source_model_id": "R2T1SuisuiMd10011",
       "variant": "ABP_Performance_Suisui_PC",
       "evidence_kind": "actual_nodes",
@@ -386,7 +386,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "69e881c68aa4754663f389e9e710c627a6b76b3ef9a825b3109d7f7b764d3483",
+      "source_id": 3,
       "source_model_id": "R2T1SuisuiMd10011",
       "variant": "ABP_Performance_Suisui_PC",
       "evidence_kind": "actual_nodes",
@@ -407,7 +407,7 @@
     {
       "kind": "bone_chains",
       "selection": "direct_model",
-      "sha256": "e8062d9f026237d63758188c3033bc8fc607dcad30e0efe07d240bd283a0d964",
+      "source_id": 1,
       "source_body_type": "FemaleM",
       "source_character": "Suisui",
       "source_model_id": "R2T1SuisuiMd10011"
@@ -561,13 +561,13 @@
       ],
       "kind": "seq_export",
       "runtime_verified": false,
-      "sha256": "d8728a06b68cea1fbe2a88120a14ba0027ae09d50d2b059ebfe5176c16a2535e",
+      "source_id": 2,
       "source_model_id": "R2T1SuisuiMd10011",
       "variant": "ABP_Seq_Suisui_Phy"
     },
     {
       "kind": "ui_export",
-      "sha256": "69e881c68aa4754663f389e9e710c627a6b76b3ef9a825b3109d7f7b764d3483",
+      "source_id": 3,
       "selection": "direct_model",
       "source_model_id": "R2T1SuisuiMd10011",
       "source_profile_id": "femalem--suisui--r2t1suisuimd10011",
@@ -735,7 +735,6 @@
   "profile_id": "femalem--suisui--r2t1suisuimd10011",
   "requires_live_discovery": true,
   "runtime_verified": false,
-  "schema": 1,
-  "skeleton_sha256": "a7b10143171578f1a42714031750492cb029415e0dea04c1a23369880e39a3cd",
-  "source_profile_sha256": "5038bc5a0b92710a44b5f481c3b9d3bc951fcfbcd733921cb77b4faf0f47c278"
+  "schema": 2,
+  "skeleton_sha256": "a7b10143171578f1a42714031750492cb029415e0dea04c1a23369880e39a3cd"
 }

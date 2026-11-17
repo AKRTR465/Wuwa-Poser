@@ -33,8 +33,12 @@ public sealed partial class NativeGraphService
                 return Contract.I(e, "frame_id") == Contract.I(frame!, "id") && kind != "group_update" &&
                     !(kind == "local_to_component" && Contract.S(phases[Contract.I(e, "id")], "owner_role") == "linked");
             }
-            var cycles = events.Where(CycleEvent).GroupBy(e => JsonData.CanonicalDigest(
-                Contract.Select(phases[Contract.I(e, "id")], ["proxy", "main_proxy", "frame", "counter", "main_frame", "main_counter"])));
+            var cycles = events.Where(CycleEvent).GroupBy(e =>
+            {
+                var phase = phases[Contract.I(e, "id")];
+                return (Contract.S(phase, "proxy"), Contract.S(phase, "main_proxy"), Contract.N(phase, "frame").GetValue<ulong>(),
+                    Contract.I(phase, "counter"), Contract.N(phase, "main_frame").GetValue<ulong>(), Contract.I(phase, "main_counter"));
+            });
             foreach (var cycle in cycles)
             {
                 var group = new Dictionary<ulong, JsonObject>();
@@ -91,6 +95,9 @@ public sealed partial class NativeGraphService
     {
         var curves = groups.Values.Where(p => Contract.I(Contract.O(p, "node_fields"), "alpha_type") == GameCompat.AlphaTypeCurve)
             .Select(p => Contract.S(Contract.O(p, "node_fields"), "curve_name")).Order().ToArray();
+        var curveGroups = Contract.A(candidate, "candidate_groups")
+            .Where(group => Contract.S(group!, "alpha_input_type") == "Curve")
+            .ToLookup(group => Contract.I(group!, "source_id"));
         // An exported animation graph whose actual nodes have the same group count
         // and curve names, with every curve group simulating and fully rooted.
         bool SameSignature(JsonNode source)
@@ -100,8 +107,7 @@ public sealed partial class NativeGraphService
                 Contract.I(signature, "kawaii_group_count") == groups.Count &&
                 Contract.A(signature, "curve_names").Select(x => x!.GetValue<string>()).Order().SequenceEqual(curves);
         }
-        bool CurveGroupsUsable(JsonNode source) => Contract.A(candidate, "candidate_groups")
-            .Where(g => Contract.Equal(g!["source_id"], source["sha256"]) && Contract.S(g!, "alpha_input_type") == "Curve")
+        bool CurveGroupsUsable(JsonNode source) => curveGroups[Contract.I(source, "source_id")]
             .All(g => Contract.True(g!, "simulate_default") && Contract.A(g!, "unmatched_root_bones").Count == 0 && Contract.S(g!, "extraction_kind") == "actual_nodes");
         var matches = Contract.A(candidate, "candidate_sources").Where(s => SameSignature(s!) && CurveGroupsUsable(s!)).ToArray();
         if (groups.Count == 0 || matches.Length == 0 || groups.Values.Any(p => !Contract.True(Contract.O(p, "node_fields"), "root_bones_verified")))

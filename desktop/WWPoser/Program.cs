@@ -5,7 +5,7 @@ namespace WWPoser;
 
 public static class Program
 {
-    private static readonly HashSet<string> HeadlessCommands = new(StringComparer.Ordinal) { "--prepare-owned-mmd", "--validate-bundle", "--run-owned-mmd" };
+    private static readonly HashSet<string> HeadlessCommands = new(StringComparer.Ordinal) { "--prepare-owned-mmd", "--validate-bundle", "--write-bundle-manifest", "--run-owned-mmd" };
 
     [STAThread]
     public static int Main(string[] args)
@@ -16,6 +16,7 @@ public static class Program
             if (args.Contains("--run-owned-mmd")) return OwnedMmdCommandLine.RunAsync(root, args).GetAwaiter().GetResult();
             if (args.Contains("--prepare-owned-mmd")) return OwnedMmdCommandLine.PrepareAsync(root, args).GetAwaiter().GetResult();
             if (args.Contains("--validate-bundle")) { BundleValidation.Validate(root); return 0; }
+            if (args.Contains("--write-bundle-manifest")) { BundleValidation.WriteManifest(root); return 0; }
             var application = new Application();
             application.Run(new MainWindow(root));
             return 0;

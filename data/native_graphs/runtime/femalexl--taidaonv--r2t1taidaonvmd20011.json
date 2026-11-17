@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "kind": "native_graph_runtime_descriptor",
   "profile_id": "femalexl--taidaonv--r2t1taidaonvmd20011",
   "model_id": "R2T1TaidaonvMd20011",
@@ -13,7 +13,7 @@
   "candidate_sources": [
     {
       "kind": "ui_export",
-      "sha256": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "selection": "direct_model",
       "source_model_id": "R2T1TaidaonvMd20011",
       "source_profile_id": "femalexl--taidaonv--r2t1taidaonvmd20011",
@@ -188,7 +188,7 @@
   ],
   "candidate_groups": [
     {
-      "source_id": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "source_model_id": "R2T1TaidaonvMd20011",
       "variant": "ABP_Performance_Feixue_PC",
       "evidence_kind": "actual_nodes",
@@ -211,7 +211,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "source_model_id": "R2T1TaidaonvMd20011",
       "variant": "ABP_Performance_Feixue_PC",
       "evidence_kind": "actual_nodes",
@@ -231,7 +231,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "source_model_id": "R2T1TaidaonvMd20011",
       "variant": "ABP_Performance_Feixue_PC",
       "evidence_kind": "actual_nodes",
@@ -253,7 +253,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "source_model_id": "R2T1TaidaonvMd20011",
       "variant": "ABP_Performance_Feixue_PC",
       "evidence_kind": "actual_nodes",
@@ -271,7 +271,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "source_model_id": "R2T1TaidaonvMd20011",
       "variant": "ABP_Performance_Feixue_PC",
       "evidence_kind": "actual_nodes",
@@ -290,7 +290,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "source_model_id": "R2T1TaidaonvMd20011",
       "variant": "ABP_Performance_Feixue_PC",
       "evidence_kind": "actual_nodes",
@@ -318,7 +318,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "source_model_id": "R2T1TaidaonvMd20011",
       "variant": "ABP_Performance_Feixue_PC",
       "evidence_kind": "actual_nodes",
@@ -336,7 +336,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "source_model_id": "R2T1TaidaonvMd20011",
       "variant": "ABP_Performance_Feixue_PC",
       "evidence_kind": "actual_nodes",
@@ -354,7 +354,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "source_model_id": "R2T1TaidaonvMd20011",
       "variant": "ABP_Performance_Feixue_PC",
       "evidence_kind": "actual_nodes",
@@ -381,7 +381,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "source_model_id": "R2T1TaidaonvMd20011",
       "variant": "ABP_Performance_Feixue_PC",
       "evidence_kind": "actual_nodes",
@@ -402,7 +402,7 @@
       "simulate_default": true
     },
     {
-      "source_id": "228a0ec4318c6e0d7bc76157ab40cf58fc0b3196c7ceda4950ced3b4a7ca9b02",
+      "source_id": 1,
       "source_model_id": "R2T1TaidaonvMd20011",
       "variant": "ABP_Performance_Feixue_PC",
       "evidence_kind": "actual_nodes",
