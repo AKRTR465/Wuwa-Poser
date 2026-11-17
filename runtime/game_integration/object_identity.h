@@ -1,5 +1,5 @@
 #pragma once
-#include "../../runtime/generated/GameCompat.generated.h"
+#include "../generated/GameCompat.generated.h"
 #include "shared_readonly.h"
 #include <array>
 

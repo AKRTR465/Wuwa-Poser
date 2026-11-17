@@ -1,5 +1,5 @@
 // Synthetic mapped images only. No game access, injection, hooks or game calls.
-#include "../../probes/v20_recon/game_compat_witness.h"
+#include "../../runtime/game_integration/game_compat_witness.h"
 #include <cstdlib>
 #include <cstring>
 #include <iostream>

@@ -1,5 +1,5 @@
 #pragma once
-#include "../../runtime/generated/GameCompat.generated.h"
+#include "../generated/GameCompat.generated.h"
 // One carrier owns the shared VMT slots. Single/owned/SceneTeam adapters all
 // use this hub.
 #include "shared_readonly.h"
@@ -10,19 +10,19 @@
 #include <filesystem>
 #include <cctype>
 
-namespace v20_shared_native_physics {
+namespace shared_native_physics {
 namespace core=wwp_playback::native_physics;
 namespace settings=wwp_playback::kawaii_parameters;
 namespace collision=wwp_playback::kawaii_collision;
 namespace gravity=wwp_playback::kawaii_gravity;
-namespace graph=v20_native_graph_binding;
+namespace graph=native_graph_binding;
 using Actor=core::Actor;
 using Access=core::Access;
 using AuthorityCheck=bool(*)(void*,const Access&);
 using ue_memory::Require;
 struct HookHub {
     core::Registry registry;
-    v20_vmt_slot_patch::State converter_patch,group_patch,settings_patch;
+    vmt_slot_patch::State converter_patch,group_patch,settings_patch;
     void (*original_converter)(void*,void*)=nullptr;
     void (*original_group)(void*,void*)=nullptr;
     void (*original_evaluate)(void*,void*,void*)=nullptr;
@@ -314,16 +314,16 @@ inline void Install(){
     hub.getter=(const void*(*)(void*,int32_t))(hub.image+ww_game_compat::FunctionComponentSpaceTransformGetterRva);hub.lod=(bool(*)(void*,void*))(hub.image+ww_game_compat::FunctionSkeletalControlLODAllowedRva);
     hub.valid=(bool(*)(void*,void*,void*))(hub.image+ww_game_compat::FunctionGroupIsValidToEvaluateRva);hub.internal=(void(*)(void*,void*))(hub.image+ww_game_compat::FunctionSharedUpdateInternalRva);
     hub.observing.store(true);
-    Require(v20_vmt_slot_patch::Install(hub.converter_patch,(void**)(hub.converter_vtable+ww_game_compat::SlotLocalToComponentEvaluateCS),(void*)hub.original_converter,(void*)&ConverterDetour).code==v20_vmt_slot_patch::Code::Ok,"native shared converter installation failed");
+    Require(vmt_slot_patch::Install(hub.converter_patch,(void**)(hub.converter_vtable+ww_game_compat::SlotLocalToComponentEvaluateCS),(void*)hub.original_converter,(void*)&ConverterDetour).code==vmt_slot_patch::Code::Ok,"native shared converter installation failed");
     if(groups){hub.group_observing.store(true,std::memory_order_release);
-        Require(v20_vmt_slot_patch::Install(hub.group_patch,(void**)(hub.group_vtable+ww_game_compat::SlotSkeletalControlUpdate),(void*)hub.original_group,(void*)&GroupDetour).code==v20_vmt_slot_patch::Code::Ok,"native shared group installation failed");}
+        Require(vmt_slot_patch::Install(hub.group_patch,(void**)(hub.group_vtable+ww_game_compat::SlotSkeletalControlUpdate),(void*)hub.original_group,(void*)&GroupDetour).code==vmt_slot_patch::Code::Ok,"native shared group installation failed");}
     const bool edit=std::any_of(hub.registry.actors.begin(),hub.registry.actors.end(),[](const auto* actor){return actor->settings_verified&&actor->binding.group_count;});
     if(edit){
         hub.original_evaluate=reinterpret_cast<void(*)(void*,void*,void*)>(hub.image+ww_game_compat::FunctionGroupEvaluateRva);
         hub.update_settings=reinterpret_cast<void(*)(void*)>(hub.image+settings::kUpdateRva);
         hub.settings_observing.store(true,std::memory_order_release);
-        Require(v20_vmt_slot_patch::Install(hub.settings_patch,(void**)(hub.group_vtable+ww_game_compat::SlotKawaiiGroupEvaluate),
-            (void*)hub.original_evaluate,(void*)&EvaluateDetour).code==v20_vmt_slot_patch::Code::Ok,"native settings installation failed");
+        Require(vmt_slot_patch::Install(hub.settings_patch,(void**)(hub.group_vtable+ww_game_compat::SlotKawaiiGroupEvaluate),
+            (void*)hub.original_evaluate,(void*)&EvaluateDetour).code==vmt_slot_patch::Code::Ok,"native settings installation failed");
     }
 }
 inline bool CloseDispatchForRestore(uint64_t deadline){
@@ -341,7 +341,7 @@ inline bool Uninstall(){
         for(unsigned i=0;i<hub.registry.count;++i)core::CloseAdmission(*hub.registry.actors[i]);}
     if(!CloseDispatchForRestore(GetTickCount64()+5000))return false;bool ok=true;
     for(auto* patch:{&hub.converter_patch,&hub.group_patch,&hub.settings_patch})
-        if(patch->changed||patch->protection_pending)ok=v20_vmt_slot_patch::Restore(*patch).code==v20_vmt_slot_patch::Code::Ok&&ok;
+        if(patch->changed||patch->protection_pending)ok=vmt_slot_patch::Restore(*patch).code==vmt_slot_patch::Code::Ok&&ok;
     const auto deadline=GetTickCount64()+5000;Sleep(200);while((hub.active.load()||hub.group_active.load())&&GetTickCount64()<deadline)Sleep(1);
     ok=ok&&!hub.active.load()&&!hub.group_active.load()&&!hub.dispatch_active.load()&&hub.registry.RestoredAll();if(ok)hub.registry.Thaw();return ok;
 }
@@ -407,4 +407,4 @@ inline void Stats(const Actor& a,Json& j){
         }
         j["native_physics_groups"].push_back(group);if(b.alpha_type==ww_game_compat::AlphaTypeCurve){group.erase("settings");group.erase("chains");group.erase("capsules");group.erase("capsule_shapes");j["native_curve_groups"].push_back(group);}}
 }
-} // namespace v20_shared_native_physics
+} // namespace shared_native_physics

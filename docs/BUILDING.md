@@ -62,9 +62,9 @@ pwsh -NoProfile -File tools/build_player.ps1 -Rebuild -PublicRelease -ReferenceD
 
 ## 构建输入清单
 
-`tools/player_build_inputs.psd1` 统一列出正式播放使用的原生构建脚本及其产物、运行包文件、便携包数据和文档。`build_player.ps1` 从这份清单构建和打包，`run_offline_checks.ps1` 复用其中的编译器与观察器分组，`build_owned_mmd.ps1` 复用运行包文件列表。构建目录用 `runtime_package.json` 校验可复用的运行时文件。便携包的顶层 `manifest.json` 统一记录包括这三个运行时文件在内的产物摘要和源码出处。
+`tools/player_build_inputs.psd1` 统一列出正式播放使用的原生构建脚本及其产物、运行包文件、便携包数据和文档。`build_player.ps1` 从这份清单构建和打包，`run_offline_checks.ps1` 复用其中的编译器与观察器分组，`build_owned_mmd.ps1` 复用运行包文件列表。默认构建目录 `build/scene_playback/` 用 `runtime_package.json` 校验可复用的运行时文件。便携包的 `runtime/scene_playback/` 包含三个运行时文件，顶层 `manifest.json` 记录产物摘要和源码出处。
 
-原生产物由两个脚本构建，均以 `/W4 /WX` 编译：`probes/v20_recon/build_observers.bat` 生成原生物理播放依赖的 `hook_install_v20.exe`、`native_identity_bootstrap.dll` 和 `native_graph_discovery.dll`；`tools/build_compilers.bat` 生成三个 VMD 编译器。旧单人扫描、小队驻留和 roster 采样探针已从仓库移除，需要时可从 v0.2.9 及更早的 Git 历史恢复。
+`runtime/game_integration/build_observers.bat` 生成原生物理播放依赖的 `observer_installer.exe`、`native_identity_bootstrap.dll` 和 `native_graph_discovery.dll`。`tools/build_compilers.bat` 生成 `mmd_body_compile.exe`、`mmd_face_compile.exe` 和 `mmd_camera_compile.exe`。两个脚本均以 `/W4 /WX` 编译。旧单人扫描、小队驻留和 roster 采样探针可从 v0.2.9 及更早的 Git 历史恢复。
 
 播放控制命令定义在 `playback/control_commands.json`。修改后运行 `tools/generate_playback_control.ps1`，同步生成 C#、C++ 绑定和 [命令文档](../playback/CONTROL_COMMANDS.md)。完整构建生成绑定，离线检查与 CI 使用 `-Check` 拒绝未同步的生成物。
 
@@ -108,7 +108,7 @@ dotnet run --project tools/tests/ManagedActorBorrowing/ManagedActorBorrowing.csp
 | --- | --- |
 | `desktop/WWPoser/` | WPF 界面、时间轴、媒体与会话编排 |
 | `runtime/owned_mmd/` | 原生加载、托管角色生命周期、物理和恢复逻辑 |
-| `probes/v20_recon/` | 运行身份检查、原生图绑定和共享播放功能 |
+| `runtime/game_integration/` | 游戏对象身份检查、原生图绑定和共享播放功能 |
 | `playback/`、`core_math/` | 动作与镜头格式、重定向、IK 和播放数学 |
 | `data/` | 角色适配数据、运行契约与第三方依赖锁定信息 |
 | `tools/` | 构建脚本、VMD 编译器、回归检查和使用指南 |

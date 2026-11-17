@@ -5,7 +5,7 @@
 #include <fstream>
 #pragma comment(lib,"user32.lib")
 int wmain(int argc,wchar_t** argv) {
-    if(argc!=3||wcscmp(argv[1],L"--timeout-seconds")){fprintf(stderr,"usage: hook_install_v20 --timeout-seconds 1..60\n");return 2;}
+    if(argc!=3||wcscmp(argv[1],L"--timeout-seconds")){fprintf(stderr,"usage: observer_installer --timeout-seconds 1..60\n");return 2;}
     unsigned long timeout=wcstoul(argv[2],nullptr,10);
     wchar_t exe[32768];DWORD n=GetModuleFileNameW(nullptr,exe,32768);
     std::wstring dir(exe,n);dir.resize(dir.find_last_of(L'\\'));
@@ -16,7 +16,7 @@ int wmain(int argc,wchar_t** argv) {
             <<",\"disarmed\":"<<(unhooked?"true":"false")<<",\"last_error\":"<<error
             <<",\"observer_early_stop_protocol\":"<<observer_stop_protocol<<"}\n";
     };
-    HMODULE dll=LoadLibraryW((dir+L"\\recon_carrier_v20.dll").c_str());
+    HMODULE dll=LoadLibraryW((dir+L"\\observer_carrier.dll").c_str());
     if(!dll){DWORD error=GetLastError();report("load_library_failed",false,true,error);fprintf(stderr,"LoadLibrary failed: %lu\n",error);return 1;}
     observer_stop_protocol=GetProcAddress(dll,"WwPoserObserverRecoveryV1")?1u:0u;
     auto callback=(HOOKPROC)GetProcAddress(dll,"HookProc");

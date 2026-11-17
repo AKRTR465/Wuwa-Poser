@@ -1,7 +1,7 @@
 #pragma once
 // Initialization-only discovery. No hooks, engine calls, or game writes.
 #include "shared_readonly.h"
-#include "../../runtime/generated/GameCompat.generated.h"
+#include "../generated/GameCompat.generated.h"
 
 namespace ww_game_object_anchors {
 inline Json Resolve(Reader& reader,uint64_t image,uint64_t preferred_go_rva,uint64_t preferred_pool_rva,Go& objects,Pool& names){

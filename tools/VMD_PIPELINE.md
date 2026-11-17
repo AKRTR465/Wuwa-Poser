@@ -19,12 +19,12 @@ and reports them instead of dropping tracks or guessing their spelling.
 Build with `tools/build_compilers.bat`; use:
 
 ```
-mmd_outputs/mmd_vmd_cli.exe --source <VMD> --output <new report.json> --frames <new source_frames.jsonl> --start 0 --step 0.0166666666667 --count 60
+tools/mmd_outputs/mmd_body_compile.exe --source <VMD> --output <report.json>
 ```
 
-The report includes every bone, morph and IK track name/count/time range and five
-sampled source frames. Outputs are never overwritten. This import is separate
-from target retargeting and the game callback.
+The report records the source, frame rate and duration. The command prints the
+bone, morph, IK and camera track counts. This import is separate from target
+retargeting and the game callback.
 
 `playback/vmd_local_clip.h` defines the worker/runtime boundary. `WWLOCAL1`
 little-endian header is exactly 160 bytes: magic[8], version/boneCount/frameCount/
@@ -45,7 +45,7 @@ before serialization; no callback-time source parsing or rig IK is needed.
 To compile the complete target clip:
 
 ```
-mmd_outputs/mmd_vmd_cli.exe --source <VMD> --output <new report.json> --target-skeleton <raw skeleton export.json> --compiled <new motion.wwlocal>
+tools/mmd_outputs/mmd_body_compile.exe --source <VMD> --output <report.json> --target-skeleton <raw skeleton export.json> --compiled <motion.wwlocal>
 ```
 
 This uses `playback/ww_retarget.h` and the established core Retargeter. The

@@ -1,5 +1,5 @@
 // Synthetic in-process memory only: no game process, windows, hooks or engine calls.
-#include "../../probes/v20_recon/unified_player_features.h"
+#include "../../runtime/game_integration/unified_player_features.h"
 #include "../../playback/ww_gaze_profile.h"
 #include "../../playback/native_kawaii_parameters.h"
 #include <cstdlib>
@@ -42,7 +42,7 @@ struct Fixture {
         Put(uint64_t(weight_row.data())+12,.2f);
         Transform(uint64_t(first_pose.data()),20);Transform(uint64_t(second_pose.data()),200);
         for(unsigned mesh:{3u,4u}){const auto pose=mesh==3?uint64_t(first_pose.data()):uint64_t(second_pose.data());
-            Put(Object(mesh)+0x630,v20_publish_observer::ArrayHead{pose,1,1});Put(Object(mesh)+0x640,v20_publish_observer::ArrayHead{pose,1,1});
+            Put(Object(mesh)+0x630,publish_observer::ArrayHead{pose,1,1});Put(Object(mesh)+0x640,publish_observer::ArrayHead{pose,1,1});
             Put(Object(mesh)+0x6c0,int32_t(0));Put(Object(mesh)+0x6c4,int32_t(0));}
         NativeCamera({0,10,20});
     }
@@ -350,7 +350,7 @@ static void SelectedPartGravityTest(const std::filesystem::path& data) {
             Transform(uint64_t(pose[index].data()),float(parent[0])+5,float(parent[1])+(branch?5.f:0.f),0);
         }
     const auto original=pose;
-    const auto head=v20_publish_observer::ArrayHead{uint64_t(pose.data()),int32_t(names.size()),int32_t(names.size())};
+    const auto head=publish_observer::ArrayHead{uint64_t(pose.data()),int32_t(names.size()),int32_t(names.size())};
     Put(actor->mesh.object+ww_game_compat::ComponentPoseBuffer0Offset,head);
     play::PlayerState state;state.mode=play::PlayerMode::Paused;
     part.strength=980;part.sequence=32;
@@ -406,7 +406,7 @@ static void SelectedPartGravityTest(const std::filesystem::path& data) {
     pose[edge]=original[edge];
     const auto previous_publication=pose;
     auto next_pose=original;
-    const auto next_head=v20_publish_observer::ArrayHead{uint64_t(next_pose.data()),int32_t(names.size()),int32_t(names.size())};
+    const auto next_head=publish_observer::ArrayHead{uint64_t(next_pose.data()),int32_t(names.size()),int32_t(names.size())};
     Put(actor->mesh.object+ww_game_compat::ComponentPoseBuffer1Offset,next_head);
     Put(actor->mesh.object+ww_game_compat::ComponentPosePreviousIndexOffset,int32_t(1));
     part.strength=opposite.strength=120;

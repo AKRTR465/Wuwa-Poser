@@ -17,7 +17,7 @@ const auto& state = transport.State();
 
 控制帧采用 56 字节 little-endian 的 `WWPCTL2` 格式。字段为 0–7 magic `WWPCTL2\0`、8 version=2、12 length=56、16 clip epoch u64、24 sequence u64、32 command u32、36 target slot u32、40 value IEEE754 binary64、48 target group u32、52 target chain u32。宿主只接收长度恰好为 56 字节的当前版本文件。命令编号、参数类型、单位、范围、作用域与演员、物理组、部件目标规则集中在 [`control_commands.json`](control_commands.json)，由 `tools/generate_playback_control.ps1` 生成两端定义和[完整命令表](CONTROL_COMMANDS.md)，用 `-Check` 检查产物是否同步。epoch 必须与当前 clip 一致，sequence 严格递增。恢复未完成时拒绝重新播放及切换相关设置。
 
-正式宿主 `owned_mmd_body.h` 在 worker 上读取控制帧，以 `DecodeCommandFrame` 验证封装、版本、保留字节和校验和，再将命令入队；游戏回调校验参数和运行条件。损坏帧不确认，合法帧的参数或目标被拒绝时发布明确结果。
+正式宿主 `scene_playback.h` 在 worker 上读取控制帧，以 `DecodeCommandFrame` 验证帧标识、版本、长度、会话 epoch 和序号，再将命令入队。游戏回调校验参数和运行条件。损坏帧不确认，合法帧的参数或目标被拒绝时发布明确结果。
 
 外部工具先写临时文件再替换 `control.dat`；中间被覆盖的命令不会自动排队，发送方须串行等待确认。正式宿主在同一状态快照中发布 `last_control_sequence` 与 `last_control_code`（0 接受，非 0 拒绝，枚举见 `ControlCode`）。`last_sequence` 保留“最后成功接受序号”的 V1 含义，拒绝不会推进它。C# 对当前序号的明确拒绝立即报错，3 秒内没有结果则报超时。队列实际可容纳 Capacity−1 条，满时留待下次 worker 重试。回调使用预分配数据，不进行文件 I/O；worker 在既有回调锁下读取一致状态，再发布状态文件。
 

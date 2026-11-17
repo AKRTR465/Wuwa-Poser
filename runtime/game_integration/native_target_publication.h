@@ -1,6 +1,6 @@
 #pragma once
 #include "object_identity.h"
-#include "../../runtime/generated/GameCompat.generated.h"
+#include "../generated/GameCompat.generated.h"
 #include "../../playback/native_animation_target.h"
 
 // Only the creator or the SceneTeam adapter publishes this permission. A

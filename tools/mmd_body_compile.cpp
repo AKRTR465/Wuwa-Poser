@@ -17,7 +17,7 @@ int wmain(int argc,wchar_t** argv){std::filesystem::path source,output,targetPat
         else if(arg==L"--target-skeleton"&&i+1<argc)targetPath=argv[++i];
         else if(arg==L"--compiled"&&i+1<argc)compiledPath=argv[++i];else if(arg==L"--scale"&&i+1<argc)scale=wwp_mmd_compile::Number(argv[++i]);
         else if(arg==L"--omit-provenance")omitProvenance=true;
-        else throw std::runtime_error("Usage: mmd_vmd_cli --source PATH --output NEW_JSON [--target-skeleton EXPORT --compiled NEW_WWLOCAL1 --scale MMD_TO_UE] [--omit-provenance]");}
+        else throw std::runtime_error("Usage: mmd_body_compile --source PATH --output NEW_JSON [--target-skeleton EXPORT --compiled NEW_WWLOCAL1 --scale MMD_TO_UE] [--omit-provenance]");}
         if(source.empty()||output.empty())throw std::runtime_error("Source and output required");
         auto clip=vmd::ReadFile(source,Decode);
         Json report={{"schema",1},{"source",Decode(source.string(),CP_ACP,false)},{"fps",30},{"duration_seconds",clip.DurationSeconds()}};

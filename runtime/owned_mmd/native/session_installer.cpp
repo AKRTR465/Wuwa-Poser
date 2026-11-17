@@ -1,8 +1,8 @@
 // --run-session is the only mode that installs a hook.
-#include "n1_common.h"
-using namespace ui_n1_host;
+#include "session_host.h"
+using namespace session_host;
 int wmain(int argc,wchar_t** argv){
-    if(argc!=3||wcscmp(argv[1],L"--run-session")){fputs("ownedmmd_lite_installer --run-session SESSION_DIRECTORY\n",stderr);return 2;}
+    if(argc!=3||wcscmp(argv[1],L"--run-session")){fputs("scene_playback_installer --run-session SESSION_DIRECTORY\n",stderr);return 2;}
     const auto dir=std::filesystem::absolute(argv[2]);const auto start_tick=GetTickCount64();
     Json out={{"schema",1},{"status","error"},{"runtime_executed",true}};
     HMODULE carrier=nullptr;HHOOK hook=nullptr;HANDLE process=nullptr;int result=1;

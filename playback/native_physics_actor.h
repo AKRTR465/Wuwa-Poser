@@ -10,7 +10,7 @@
 #include "native_animation_target.h"
 #include "vmd_local_clip.h"
 #include "ww_mmd_placement.h"
-#include "../probes/v20_recon/native_graph_binding.h"
+#include "../runtime/game_integration/native_graph_binding.h"
 #include <atomic>
 #include <cmath>
 #include <mutex>
@@ -18,7 +18,7 @@
 
 namespace wwp_playback { namespace native_physics {
 namespace input=native_kawaii;
-namespace graph=v20_native_graph_binding;
+namespace graph=native_graph_binding;
 namespace body=wwp_ue::full_body;
 namespace sub=wwp_ue::subtree_rotation;
 enum class Gate:uint32_t {Allowed,LodDenied,ValidityDenied,Exception};

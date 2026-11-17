@@ -1,6 +1,6 @@
 # Dynamic actor MMD runtime
 
-This host now manages a dynamic mixture of borrowed current-team actors and newly created actors. Requests use one actor list, timeline, camera and native-physics hub. The installed catalog provides 64 role configurations and 80 role/skin selections. The historical locations `build/owned_mmd` / `runtime/owned_mmd_lite` and the `ownedmmd_lite_*` file names no longer imply one actor or created-only playback. The package manifest purpose is `owned_mmd_scene`.
+The scene playback host manages borrowed current-team actors and newly created actors on a shared timeline, with a shared camera and native-physics hub. It builds to `build/scene_playback/` and ships in the portable player's `runtime/scene_playback/` directory. Its runtime build manifest uses the purpose `owned_mmd_scene`.
 
 ## Build
 
@@ -15,19 +15,19 @@ Place the six DLLs named in `managed/references.json` in `local/owned_mmd_refere
 
 ```powershell
 ./tools/build_owned_mmd.ps1 -ReferenceDirectory 'D:\owned-mmd-references'
-./tools/build_owned_mmd.ps1 -ReferenceDirectory 'D:\owned-mmd-references' -PackageDirectory 'D:\owned-mmd-runtime'
-./tools/build_owned_mmd.ps1 -PackageDirectory 'D:\owned-mmd-runtime' -Check
+./tools/build_owned_mmd.ps1 -ReferenceDirectory 'D:\owned-mmd-references' -PackageDirectory 'D:\scene-playback-runtime'
+./tools/build_owned_mmd.ps1 -PackageDirectory 'D:\scene-playback-runtime' -Check
 ```
 
 `WWPOSER_MANAGED_REFERENCE_DIR` can supply the reference directory when `-ReferenceDirectory` is omitted. `-Compiler` selects a different Roslyn `csc.exe`; the C++ compiler setup uses the repository's `tools/msvc_env.bat` and its `WW_VCVARS64` override. Reference assemblies remain local compile inputs and are never included in the runtime package.
 
 The runtime build directory contains `runtime_package.json` and these three files:
 
-- `ownedmmd_lite_observer.dll`
-- `ownedmmd_lite_installer.exe`
-- `WwPoser.ColdLoad.ManagedBridge.OwnedMmdLite.dll`
+- `scene_playback_observer.dll`
+- `scene_playback_installer.exe`
+- `WwPoser.ScenePlayback.ManagedBridge.dll`
 
-Game addresses and layouts are compiled into the observer from `data/game_compat/ww_runtime.json`; there is no separate layout file. Compiler intermediate files go to the ignored `build/owned_mmd_compile` directory. `-Check` verifies the existing manifest and three runtime files without compiling or loading them.
+The observer compiles game addresses and layouts from `data/game_compat/ww_runtime.json`. Compiler intermediates go to the ignored `build/scene_playback_compile/` directory. `-Check` verifies the existing manifest and three runtime files without compiling or loading them.
 
 To rebuild and stage the self-contained desktop player, including the flat owned runtime package:
 
@@ -36,6 +36,8 @@ To rebuild and stage the self-contained desktop player, including the flat owned
 ```
 
 Use `-OwnedMmdPackageDirectory` on `build_player.ps1` to select another runtime build directory. Without `-Rebuild`, the player build checks the existing runtime manifest before copying the three binaries. The portable player's top-level `manifest.json` records those binaries along with the rest of the package. The portable player includes its .NET runtime.
+
+Restart the game before using the renamed runtime if the previous playback host has already been loaded into that game process.
 
 ## Current behavior
 
@@ -52,7 +54,7 @@ WWPoser.exe --run-owned-mmd NEW_OUTPUT_DIRECTORY --result RESULT.json
 
 That example selects Brant's default skin. Changing the character or source VMD requires preparing again; speed, loop and duration are written into the prepared `owned_mmd_config.json` at start.
 
-Native body input is applied at the observed pre-physics converter while secondary bones preserve upstream local transforms. Curve groups use `force_when_zero`; Float/Bool groups use `observe_natural`. Direct pose, expression and scene camera reuse `probes/v20_recon/unified_player_features.h`.
+Native body input is applied at the observed pre-physics converter while secondary bones preserve upstream local transforms. Curve groups use `force_when_zero` and Float/Bool groups use `observe_natural`. Direct pose, expression and scene camera reuse `runtime/game_integration/unified_player_features.h`.
 
 Sessions run sequentially in the same game process, each with its own carrier copy. Mono retains the loaded managed helper, so BindSession selects the next session directory. Upgrading from an already-loaded older helper requires one game restart to load the new helper, including its fresh player/controller exports for the scene camera. This is distinct from requiring a restart between sessions of the same version.
 

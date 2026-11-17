@@ -20,7 +20,7 @@ public sealed class MotionImportService(string repoRoot)
         var model = Contract.S(profile, "model_id");
         var mesh = request.MeshAssetName;
         var targets = registry.MorphNames(profile, mesh);
-        var bodyTool = Path.Combine(root, "tools", "mmd_outputs", "mmd_vmd_cli.exe");
+        var bodyTool = Path.Combine(root, "tools", "mmd_outputs", "mmd_body_compile.exe");
         var faceTool = Path.Combine(root, "tools", "mmd_outputs", "mmd_face_compile.exe");
         string? cachePath = null;
         if (request.CacheDirectory is { } cacheDirectory)

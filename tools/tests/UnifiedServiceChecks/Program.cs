@@ -25,7 +25,7 @@ Directory.CreateDirectory(Path.Combine(compilerWorkspace, "tools", "mmd_outputs"
 File.WriteAllText(Path.Combine(compilerWorkspace, "data", "characters", "index.json"), "{}");
 File.WriteAllText(Path.Combine(compilerWorkspace, OwnedCharacterCatalog.RelativePath), "{}");
 var motionForFingerprint = Path.Combine(compilerWorkspace, "source.vmd"); File.WriteAllText(motionForFingerprint, "unchanged source");
-var compilers = new[] { "mmd_vmd_cli.exe", "mmd_face_compile.exe", "mmd_camera_compile.exe" };
+var compilers = new[] { "mmd_body_compile.exe", "mmd_face_compile.exe", "mmd_camera_compile.exe" };
 foreach (var compiler in compilers) File.WriteAllText(Path.Combine(compilerWorkspace, "tools", "mmd_outputs", compiler), "original compiler");
 var compilerService = new PlaybackSessionService(compilerWorkspace);
 var compilerRequest = new PlaybackSessionRequest([new PlaybackActorRequest(motionForFingerprint)]);
@@ -322,8 +322,9 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     var gazeRequest = service.ReadPreparation(firstPreparation!);
     firstPreparation = (await service.PrepareAsync(gazeRequest with { Actors = gazeRequest.Actors.Select((actor, index) =>
         index == 0 ? actor with { GazeSource = Path.Combine(fixture, "gaze-7s.vmd.moved") } : actor).ToArray() }))["session_dir"]!.GetValue<string>();
-    var fakePackage = Path.Combine(fixture, "build", "owned_mmd"); Directory.CreateDirectory(fakePackage);
-    foreach (var file in new[] { "ownedmmd_lite_observer.dll", "ownedmmd_lite_installer.exe", OwnedMmdPlaybackService.HelperFilename }) File.WriteAllText(Path.Combine(fakePackage, file), "offline package fixture");
+    var fakePackage = Path.Combine(fixture, "build", "scene_playback"); Directory.CreateDirectory(fakePackage);
+    var runtimeFiles = new[] { "scene_playback_observer.dll", "scene_playback_installer.exe", OwnedMmdPlaybackService.HelperFilename };
+    foreach (var file in runtimeFiles) File.WriteAllText(Path.Combine(fakePackage, file), "source build fixture");
     var isolation = new OwnedMmdPlaybackService(fixture);
     foreach (var section in new[] { "characters", "native_graphs" })
     {
@@ -341,8 +342,12 @@ if (args.Length >= 2 && args[0] is "--prepare-actors" or "--prepare-owned")
     Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig); File.WriteAllText(Path.Combine(firstPreparation!, "owned_mmd_graph.json"), "stale identity fixture");
     var fakeGame = new GameIdentity(42, "0x1234", 567);
     var snapshotA = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, false])!;
+    var portableRuntime = Path.Combine(fixture, "runtime", "scene_playback"); Directory.CreateDirectory(portableRuntime);
+    foreach (var file in runtimeFiles) File.WriteAllText(Path.Combine(portableRuntime, file), "portable fixture");
     sourceConfig["start_paused"] = false; Save(Path.Combine(firstPreparation!, "owned_mmd_config.json"), sourceConfig);
     var snapshotB = (string)prepareRuntime.Invoke(isolation, [firstPreparation!, fakeGame, true])!;
+    Check(runtimeFiles.All(file => File.ReadAllText(Path.Combine(snapshotA, file)) == "source build fixture" &&
+        File.ReadAllText(Path.Combine(snapshotB, file)) == "portable fixture"), "source and portable sessions stage the renamed runtime files");
     var snapshotConfigA = OwnedMmdPlaybackService.Config(snapshotA); var snapshotConfigB = OwnedMmdPlaybackService.Config(snapshotB);
     Check(!snapshotConfigA["start_paused"]!.GetValue<bool>() && snapshotConfigB["start_paused"]!.GetValue<bool>(), "runtime start-paused selection overrides the opposite stale value in prepared material");
     Check(snapshotA != snapshotB && snapshotConfigA["session_epoch"]!.GetValue<ulong>() != snapshotConfigB["session_epoch"]!.GetValue<ulong>() && snapshotConfigA["session_epoch"]!.GetValue<ulong>() != sourceConfig["session_epoch"]!.GetValue<ulong>(), "every runtime snapshot has a fresh directory and session epoch");

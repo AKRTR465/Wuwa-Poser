@@ -27,13 +27,13 @@
 
 **现象。** 莉莉关闭原生物理后可以播放并恢复，开启后卡在身份登记和动画图准备。最初有 4 个旧版动画函数未通过字节校验。更新入口后，主动画实例能够完成登记，但莉莉的关联动画实例仍触发身份校验失败。
 
-**定位与修复。** 用虚表槽位关系和函数展开记录定位 3 张虚表，再在实机核对 18 个槽位、采集 14 个原生物理相关函数的完整字节。运行时按游戏版本摘要选择函数证据，并在使用前比对实际字节。根据实机指令更新动画代理里的网格、骨架、帧号和计数器字段。对主实例，交叉核对网格、骨架与当前主动画实例。对关联实例，核对其所属网格，再重验同一会话中从主实例观察到的代理。这样可以识别莉莉的主动画实例 `ABP_Performance_Lili_PC_C` 和关联实例 `ABP_Performance_Lili_C`。[3.8.0 原生函数证据](../data/runtime_contracts/native_functions_3_8.json) · [动画图校验实现](../probes/v20_recon/native_graph_discovery.h)
+**定位与修复。** 用虚表槽位关系和函数展开记录定位 3 张虚表，再在实机核对 18 个槽位、采集 14 个原生物理相关函数的完整字节。运行时按游戏版本摘要选择函数证据，并在使用前比对实际字节。根据实机指令更新动画代理里的网格、骨架、帧号和计数器字段。对主实例，交叉核对网格、骨架与当前主动画实例。对关联实例，核对其所属网格，再重验同一会话中从主实例观察到的代理。这样可以识别莉莉的主动画实例 `ABP_Performance_Lili_PC_C` 和关联实例 `ABP_Performance_Lili_C`。[3.8.0 原生函数证据](../data/runtime_contracts/native_functions_3_8.json) · [动画图校验实现](../runtime/game_integration/native_graph_discovery.h)
 
 ## VMD 镜头加载后画面没有跟随
 
 **现象。** 用户的会话里 `camera_mode=2`，镜头文件已加载，`camera_failed=false`，但画面没有跟随 VMD 轨道。前一轮验收记录了入口和错误状态，漏查了画面实际读取的缓存。
 
-**定位与修复。** 实机核对 `PlayerCameraManager` 的当前帧、上一帧 POV 读取函数，以及引擎写入缓存的函数。两份缓存基址分别从 `0x2e40`、`0x38e0` 改为 `0x2f00`、`0x39d0`。播放器改为写入新版使用的位置，并新增 `camera_applied_frames` 记录镜头应用帧数。用用户原 VMD 复跑 8.079 秒，日志记录应用 184 帧，双人原生物理继续运行，停止后恢复通过。画面构图和轨道效果以实机画面观察为准。[镜头兼容配置](../data/game_compat/ww_runtime.json#L591) · [会话状态实现](../runtime/owned_mmd/native/owned_mmd_body.h#L489)
+**定位与修复。** 实机核对 `PlayerCameraManager` 的当前帧、上一帧 POV 读取函数，以及引擎写入缓存的函数。两份缓存基址分别从 `0x2e40`、`0x38e0` 改为 `0x2f00`、`0x39d0`。播放器改为写入新版使用的位置，并新增 `camera_applied_frames` 记录镜头应用帧数。用用户原 VMD 复跑 8.079 秒，日志记录应用 184 帧，双人原生物理继续运行，停止后恢复通过。画面构图和轨道效果以实机画面观察为准。[镜头兼容配置](../data/game_compat/ww_runtime.json#L591) · [会话状态实现](../runtime/owned_mmd/native/scene_playback.h#L626)
 
 ## 后台复测与正式发布
 
@@ -69,7 +69,7 @@
 | `AssetMorphArrayOffset` | `0x368` | `0x378` | 网格资产的 Morph 目标数组，实机目标名单与角色配置匹配 |
 | `FunctionSetMorphTargetRva` | `0x5009b50` | `0x4d13810` | 设置 Morph 权重的入口，签名及其对组件权重表的引用匹配 |
 
-实机还复核了 `ComponentAssetOffset=0x5d0`、`ComponentMainAnimOffset=0x910`、`ComponentMorphMapOffset=0xef0` 和 `SlotComponentPublish=0xab8`。参考骨条目仍为 `0x10` 字节，父索引在条目内的 `0xc`。发布槽位的 RVA 与虚表内的相对偏移是两个不同字段。[骨架只读诊断实现](../runtime/owned_mmd/native/owned_mmd_body.h)
+实机还复核了 `ComponentAssetOffset=0x5d0`、`ComponentMainAnimOffset=0x910`、`ComponentMorphMapOffset=0xef0` 和 `SlotComponentPublish=0xab8`。参考骨条目仍为 `0x10` 字节，父索引在条目内的 `0xc`。发布槽位的 RVA 与虚表内的相对偏移是两个不同字段。[参考骨架校验实现](../runtime/owned_mmd/native/scene_playback.h#L424)
 
 ### 原生物理虚表与动画代理
 
@@ -84,7 +84,7 @@
 | `AnimProxyCounterOffset` | `0x530` | `0x538` | 动画代理求值计数器 |
 | `AnimProxyObservationBytes` | `0x538` | `0x540` | 观察器读取范围，覆盖新版计数器 |
 
-`AnimProxyOwnerOffset=0xa0`、`AnimProxyOwnerAltOffset=0xa8`、`AnimProxyMainProxyOffset=0xd0` 和 `AnimProxyBoneContainerOffset=0x5a0` 的配置值沿用。实际修复点是主代理的判定方式。主实例直接验证自己的代理。关联实例优先使用同会话中已观察到的主代理，再核对网格、骨架和实例归属。缺少这份观察记录时，仍检查配置的反向指针关系。[主代理校验](../probes/v20_recon/native_graph_discovery.h#L32)
+`AnimProxyOwnerOffset=0xa0`、`AnimProxyOwnerAltOffset=0xa8`、`AnimProxyMainProxyOffset=0xd0` 和 `AnimProxyBoneContainerOffset=0x5a0` 的配置值沿用。实际修复点是主代理的判定方式。主实例直接验证自己的代理。关联实例优先使用同会话中已观察到的主代理，再核对网格、骨架和实例归属。缺少这份观察记录时，仍检查配置的反向指针关系。[主代理校验](../runtime/game_integration/native_graph_discovery.h#L33)
 
 ### 原生物理与身份登记函数
 
@@ -161,7 +161,7 @@
 | 镜头状态 | 从镜头回调计数发布 `camera_applied_frames` | 联合查看 `camera_mode`、`camera_clip_available`、`camera_applied_frames` 和 `camera_failed` |
 | 单演员 CLI 兼容 | 旧版单演员准备目录转换为多演员会话时，以 `UInt32` 写入 `slot` 和 `target_slot`，修复后续读取类型冲突 | `slot=1`、`target_slot=1` |
 
-离线回归覆盖线程定位和错误提示、函数证据版本选择、主代理身份及错误骨架拒绝、角色搜索、单演员 CLI 转换、镜头轨道位置与恢复。镜头测试的合成缓存采用生成后的布局值，实机的缓存读写函数证据独立确认了这些值。[离线测试入口](../tools/run_offline_checks.ps1) · [桌面启动与 CLI 兼容实现](../desktop/WWPoser/Services/OwnedMmdPlaybackLaunch.cs)
+离线回归覆盖线程定位和错误提示、函数证据版本选择、主代理身份及错误骨架拒绝、角色搜索、单演员 CLI 转换、镜头轨道位置与恢复。镜头测试的合成缓存采用生成后的布局值，实机的缓存读写函数证据独立确认了这些值。[离线测试入口](../tools/run_offline_checks.ps1) · [桌面启动与 CLI 兼容实现](../desktop/WWPoser/Services/OwnedMmdPlaybackService.Launch.cs)
 
 ### 排查时读取的会话报告
 

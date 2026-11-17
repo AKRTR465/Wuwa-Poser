@@ -1,5 +1,5 @@
 #pragma once
-#include "../../runtime/generated/GameCompat.generated.h"
+#include "../generated/GameCompat.generated.h"
 // Allocation-free observation helpers. Read callbacks never materialize a pose
 // or invoke engine getters. Caller owns hook lifetime.
 #include <array>

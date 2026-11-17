@@ -1,5 +1,5 @@
 #pragma once
-#include "../../runtime/generated/GameCompat.generated.h"
+#include "../generated/GameCompat.generated.h"
 // Shared per-actor expression/direct-pose features and scene camera overlay.
 // Preparation performs file IO and fresh catalog capture. The caller selects
 // the matching skeletal publication phase for its part-gravity input.
@@ -29,7 +29,7 @@ namespace sub=wwp_ue::subtree_rotation;
 namespace fr=play::face_runtime;
 namespace fs=play::face_snapshot;
 namespace cr=play::camera_runtime;
-namespace obs=v20_publish_observer;
+namespace obs=publish_observer;
 using ue_memory::Require;
 inline bool Write(uint64_t address,const void* source,size_t bytes){SIZE_T n=0;
     return WriteProcessMemory(GetCurrentProcess(),(void*)address,source,bytes,&n)&&n==bytes;}
@@ -303,7 +303,7 @@ struct CameraFeatures {
     std::atomic<uint64_t> applied_frames{0};
     std::atomic<uint64_t> version{0};std::atomic<double> seconds{0},x{0},y{0},height{0},yaw{0},track_height{0};
     std::atomic<unsigned> mode{0},player_mode{0};std::atomic<bool> restore{false};
-    play::PlayerState last_published;v20_vmt_slot_patch::State hook;void(*original)(void*,float)=nullptr;
+    play::PlayerState last_published;vmt_slot_patch::State hook;void(*original)(void*,float)=nullptr;
     play::camera_diagnostics::Mailbox diagnostics;
 };
 inline cr::Token CameraToken(const ww_object::Identity& v){return {v.object,v.item,v.cls,v.vtable,v.outer,v.index,v.serial};}
@@ -425,14 +425,14 @@ inline void CameraDetour(void* object,float delta){auto* camera=owned_camera;if(
 }
 inline bool InstallCamera(CameraFeatures& c){if(!c.available)return true;if(owned_camera&&owned_camera!=&c)return false;
     owned_camera=&c;c.original=(void(*)(void*,float))c.prepared.expected_update_target;c.observing.store(true);
-    const auto result=v20_vmt_slot_patch::Install(c.hook,(void**)(c.prepared.snapshot.pcm.vtable+ww_game_compat::SlotUpdateCamera),(void*)c.original,(void*)&CameraDetour);
-    return result.code==v20_vmt_slot_patch::Code::Ok;
+    const auto result=vmt_slot_patch::Install(c.hook,(void**)(c.prepared.snapshot.pcm.vtable+ww_game_compat::SlotUpdateCamera),(void*)c.original,(void*)&CameraDetour);
+    return result.code==vmt_slot_patch::Code::Ok;
 }
 inline bool UninstallCamera(CameraFeatures& c){if(!c.available)return true;c.feed.store(false);
     c.observing.store(false);if(c.work.load()||c.callbacks.load()){c.observing.store(true);return false;}
     if(CameraPending(c)){c.observing.store(true);return false;}
-    const auto result=v20_vmt_slot_patch::Restore(c.hook);
-    if((result.code!=v20_vmt_slot_patch::Code::Ok&&result.code!=v20_vmt_slot_patch::Code::NotInstalled)||c.callbacks.load())return false;
+    const auto result=vmt_slot_patch::Restore(c.hook);
+    if((result.code!=vmt_slot_patch::Code::Ok&&result.code!=vmt_slot_patch::Code::NotInstalled)||c.callbacks.load())return false;
     // The carrier stays loaded. A thread may already hold the detour address
     // after its slot is restored, so retain the original forwarding target.
     return true;

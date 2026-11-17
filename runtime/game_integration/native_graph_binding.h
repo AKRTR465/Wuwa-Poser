@@ -1,5 +1,5 @@
 #pragma once
-#include "../../runtime/generated/GameCompat.generated.h"
+#include "../generated/GameCompat.generated.h"
 // Worker-side immutable native graph binding derived from the session discovery.
 #include "../../core_math/third_party/nlohmann/json.hpp"
 #include "../../playback/ue_memory.h"
@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace v20_native_graph_binding {
+namespace native_graph_binding {
 using Json=nlohmann::json;
 constexpr uint32_t kMaxGroups=32;
 constexpr uint64_t kConverterVtableRva=ww_game_compat::VtableLocalToComponentRva,kGroupVtableRva=ww_game_compat::VtableKawaiiPhysicsGroupRva;
@@ -36,4 +36,4 @@ inline Binding Parse(const Json& j){
         for(unsigned k=0;k<ww_game_compat::NameWordCount;++k)group.curve_name_words[k]=U32(source.at("curve_name_words")[k]);}
     return b;
 }
-} // namespace v20_native_graph_binding
+} // namespace native_graph_binding

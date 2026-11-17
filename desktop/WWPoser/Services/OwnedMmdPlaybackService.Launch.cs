@@ -6,10 +6,11 @@ namespace WWPoser.Services;
 public sealed partial class OwnedMmdPlaybackService
 {
     private readonly NativeTargetSession nativeTarget = new(repoRoot);
-    public const string HelperFilename = "WwPoser.ColdLoad.ManagedBridge.OwnedMmdLite.dll";
-    private static readonly string[] RuntimeFiles = ["ownedmmd_lite_observer.dll", "ownedmmd_lite_installer.exe", HelperFilename];
+    public const string HelperFilename = "WwPoser.ScenePlayback.ManagedBridge.dll";
+    private const string InstallerFilename = "scene_playback_installer.exe";
+    private static readonly string[] RuntimeFiles = ["scene_playback_observer.dll", InstallerFilename, HelperFilename];
     private static readonly string[] SessionOnlyKeys = ["camera_observation", "controller_address", "camera_controller_address", "camera_pawn_address", "native_graph_binding", "animation_target"];
-    private string NativePackageDirectory => Directory.Exists(Path.Combine(root, "runtime", "owned_mmd_lite")) ? Path.Combine(root, "runtime", "owned_mmd_lite") : Path.Combine(root, "build", "owned_mmd");
+    private string NativePackageDirectory => Directory.Exists(Path.Combine(root, "runtime", "scene_playback")) ? Path.Combine(root, "runtime", "scene_playback") : Path.Combine(root, "build", "scene_playback");
     private Process? installer;
     public string? ActiveSession { get; private set; }
     public string LaunchStage { get; private set; } = "not_started";
@@ -28,7 +29,7 @@ public sealed partial class OwnedMmdPlaybackService
     {
         await GameProcess.WaitForForegroundAsync(game, cancellation);
         Progress?.Invoke(message);
-        var info = new ProcessStartInfo(Path.Combine(directory, "ownedmmd_lite_installer.exe")) { WorkingDirectory = directory, UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden };
+        var info = new ProcessStartInfo(Path.Combine(directory, InstallerFilename)) { WorkingDirectory = directory, UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden };
         info.ArgumentList.Add("--run-session"); info.ArgumentList.Add(directory);
         LaunchStage = "owned_installer_launch";
         var process = Process.Start(info)!;

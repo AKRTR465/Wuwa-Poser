@@ -1,5 +1,5 @@
 // Synthetic heap-backed PE/object/name data only. Never loads or hooks a game.
-#include "../../probes/v20_recon/game_object_anchors.h"
+#include "../../runtime/game_integration/game_object_anchors.h"
 #include <cstdlib>
 #include <iostream>
 static unsigned checks=0;

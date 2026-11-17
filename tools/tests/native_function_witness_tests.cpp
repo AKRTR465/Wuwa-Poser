@@ -1,10 +1,10 @@
 // Synthetic mapped code and this test process only. No game, hooks or engine calls.
-#include "../../probes/v20_recon/shared_native_physics.h"
+#include "../../runtime/game_integration/shared_native_physics.h"
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 
-namespace native=v20_shared_native_physics;
+namespace native=shared_native_physics;
 namespace witness=ww_game_compat_witness;
 static unsigned assertions=0;
 static void Check(bool value,const char* message){++assertions;if(!value){std::cerr<<"FAIL: "<<message<<'\n';std::exit(1);}}

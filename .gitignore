@@ -61,7 +61,7 @@ __pycache__/
 /probes/logs/
 /probes/pin_validation_*/
 /probes/proxy_out/
-/probes/v20_recon/test_outputs/
+/runtime/game_integration/test_outputs/
 /test_outputs/
 /local/
 /repro.i

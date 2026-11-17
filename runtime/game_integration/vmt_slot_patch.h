@@ -7,7 +7,7 @@
 #include <windows.h>
 #include <cstdint>
 
-namespace v20_vmt_slot_patch {
+namespace vmt_slot_patch {
 enum class Code : uint8_t {Ok, InvalidArgument, ProtectFailed, ExpectedMismatch, ProtectionRestoreFailed, NotInstalled};
 struct State {
     void** slot = nullptr;
@@ -74,4 +74,4 @@ inline Outcome Restore(State& state) noexcept {
     FinishProtection(state, restore_protection, outcome);
     return outcome;
 }
-} // namespace v20_vmt_slot_patch
+} // namespace vmt_slot_patch

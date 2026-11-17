@@ -1,10 +1,10 @@
 #pragma once
-#include "../../runtime/generated/GameCompat.generated.h"
+#include "../generated/GameCompat.generated.h"
 // Callback-safe sampler of the skeletal publication metadata. No hooks, writes,
 // heap allocation or file IO; the caller owns the result.
 #include "../../playback/ue_memory.h"
 
-namespace v20_publish_observer {
+namespace publish_observer {
 using ue_memory::ArrayHead;
 constexpr uint32_t kMaxBones=4096;
 constexpr uint32_t kHeadOffsets[4]{ww_game_compat::ComponentPoseBuffer0Offset,ww_game_compat::ComponentPoseBuffer1Offset,
@@ -28,4 +28,4 @@ bool ReadMetadata(Reader& reader, uint64_t object, Metadata& values) {
         reader.Read(object + ww_game_compat::ComponentPoseGenerationOffset, &values.generation, 4) &&
         reader.Read(object + ww_game_compat::ComponentPoseFlagsOffset, &values.flags, 1);
 }
-} // namespace v20_publish_observer
+} // namespace publish_observer

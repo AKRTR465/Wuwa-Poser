@@ -87,7 +87,7 @@ public sealed partial class PlaybackSessionService
         }).ToArray());
         var forms = Path.Combine(root, "data", "characters", "character_forms.json");
         return JsonData.CanonicalDigest(new JsonObject { ["character_loading_version"] = 2,
-            ["body_compiler_sha256"] = Digest(Path.Combine(root, "tools", "mmd_outputs", "mmd_vmd_cli.exe")),
+            ["body_compiler_sha256"] = Digest(Path.Combine(root, "tools", "mmd_outputs", "mmd_body_compile.exe")),
             ["face_compiler_sha256"] = Digest(Path.Combine(root, "tools", "mmd_outputs", "mmd_face_compile.exe")),
             ["camera_compiler_sha256"] = Digest(Path.Combine(root, "tools", "mmd_outputs", "mmd_camera_compile.exe")),
             ["catalog"] = Digest(Path.Combine(root, OwnedCharacterCatalog.RelativePath)), ["character_index"] = Digest(Path.Combine(root, "data", "characters", "index.json")),

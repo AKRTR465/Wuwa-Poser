@@ -1,5 +1,5 @@
 #pragma once
-#include "../../runtime/generated/GameCompat.generated.h"
+#include "../generated/GameCompat.generated.h"
 // Identity registration is separate from native_graph_discovery. A weak token
 // here is only a candidate for the engine's allocator, never a graph binding.
 #include "native_graph_discovery.h"

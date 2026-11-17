@@ -31,7 +31,7 @@ class Bridge {
         const auto find_method=Export<Method* (__cdecl*)(Klass*,const char*,int32_t)>(module,ww_game_compat::MonoExportClassGetMethodFromName);
         invoke_=Export<Object* (__cdecl*)(Method*,void*,void**,Object**)>(module,ww_game_compat::MonoExportRuntimeInvoke);
         int32_t status=-1;const auto assembly=open(helper.c_str(),&status);Require(assembly&&status==0,"owned helper open failed");
-        const auto klass=find_class(image(assembly),"WwPoser.ColdLoad","ManagedBridge");Require(klass,"owned helper class unavailable");
+        const auto klass=find_class(image(assembly),"WwPoser.ScenePlayback","ManagedBridge");Require(klass,"owned helper class unavailable");
         for(size_t i=0;i<methods_.size();++i){methods_[i]=find_method(klass,kActionNames[i],0);Require(methods_[i],"loaded actor helper lacks a required action; restart the game once for this version");}
         // Mono can retain a helper from an earlier package with identical
         // action names. Require the current handshake before acquiring actors.

@@ -2,17 +2,17 @@
 #include "../../generated/GameCompat.generated.h"
 // One scene coordinator, one clock and camera, and any number of stable actors.
 // Actor/index storage is prepared before callbacks and never grows while live.
-#include "../../../probes/v20_recon/object_identity.h"
-#include "../../../probes/v20_recon/game_object_anchors.h"
-#include "../../../probes/v20_recon/publish_observer.h"
-#include "../../../probes/v20_recon/vmt_slot_patch.h"
+#include "../../game_integration/object_identity.h"
+#include "../../game_integration/game_object_anchors.h"
+#include "../../game_integration/publish_observer.h"
+#include "../../game_integration/vmt_slot_patch.h"
 #include "../../../playback/vmd_local_clip.h"
 #include "../../../playback/player_transport.h"
 #include "../../../playback/model_preview_frame.h"
-#include "../../../probes/v20_recon/json_report.h"
-#include "../../../probes/v20_recon/native_target_publication.h"
-#include "../../../probes/v20_recon/shared_native_physics.h"
-#include "../../../probes/v20_recon/unified_player_features.h"
+#include "../../game_integration/json_report.h"
+#include "../../game_integration/native_target_publication.h"
+#include "../../game_integration/shared_native_physics.h"
+#include "../../game_integration/unified_player_features.h"
 #include "../../../engine_ue4/pose_full_body.h"
 #include <algorithm>
 #include <atomic>
@@ -24,16 +24,16 @@
 #include <mutex>
 #include <vector>
 
-namespace owned_mmd_body {
-namespace ob=v20_publish_observer;
+namespace scene_playback {
+namespace ob=publish_observer;
 namespace id=ww_object;
 namespace fb=wwp_ue::full_body;
 namespace clip=wwp_playback::local_clip;
 namespace collision=wwp_playback::kawaii_collision;
 namespace play=wwp_playback;
-namespace vmt=v20_vmt_slot_patch;
+namespace vmt=vmt_slot_patch;
 namespace features=unified_player_features;
-namespace native=v20_shared_native_physics;
+namespace native=shared_native_physics;
 using ue_memory::Require;
 enum Object:uint32_t {Actor,Mesh,Asset,Skeleton,MainAnim,Objects};
 constexpr const char* kObjectKeys[Objects]={"actor","mesh","asset","skeleton","main_anim"};
@@ -679,4 +679,4 @@ inline bool ReleaseRetiredPayload(Json& terminal){auto& r=runtime;WorkerLock loc
     decltype(camera.clip.source_keys){}.swap(camera.clip.source_keys);
     r.payloadReleased=true;return true;
 }
-} // namespace owned_mmd_body
+} // namespace scene_playback

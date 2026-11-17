@@ -28,7 +28,7 @@ if ($PublicRelease) {
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repo ('dist\ww-mmd-player-csharp_' + (Get-Date -Format 'yyyyMMdd_HHmmss')) }
 $destination = [IO.Path]::GetFullPath($OutputDirectory)
 if (Test-Path -LiteralPath $destination) { throw 'Bundle directory already exists; choose a fresh destination.' }
-if (-not $OwnedMmdPackageDirectory) { $OwnedMmdPackageDirectory = Join-Path $repo 'build\owned_mmd' }
+if (-not $OwnedMmdPackageDirectory) { $OwnedMmdPackageDirectory = Join-Path $repo 'build\scene_playback' }
 $releaseRevision = if ($PublicRelease) { $sourceRevision } else { $null }
 $runtimeBuilder = Join-Path $PSScriptRoot 'build_owned_mmd.ps1'
 if ($Rebuild) {
@@ -65,7 +65,8 @@ foreach ($file in $files) {
 }
 
 $ownedSource = [IO.Path]::GetFullPath($OwnedMmdPackageDirectory)
-$ownedTarget = Join-Path $destination 'runtime\owned_mmd_lite'
+$sceneRuntimePath = 'runtime/scene_playback'
+$ownedTarget = Join-Path $destination $sceneRuntimePath
 New-Item -ItemType Directory -Path $ownedTarget | Out-Null
 foreach ($relative in $buildInputs.OwnedRuntimeFiles) {
     Copy-Item -LiteralPath (Join-Path $ownedSource $relative) -Destination (Join-Path $ownedTarget $relative)
@@ -83,7 +84,7 @@ $notice = "Wuwa Poser - Windows x64 portable package (AGPL-3.0).`n$sourceLine`nP
     "Python is not required. .NET Windows Desktop runtime is included.`nUser VMD, music and game reference assemblies are not included.`n"
 [IO.File]::WriteAllText((Join-Path $destination 'SOURCE_NOTICE.txt'), $notice, [Text.UTF8Encoding]::new($false))
 $bundleFiles = @('WWPoser.exe', 'start.cmd', 'SOURCE_NOTICE.txt') + $files +
-    @($buildInputs.OwnedRuntimeFiles | ForEach-Object { 'runtime/owned_mmd_lite/' + $_ })
+    @($buildInputs.OwnedRuntimeFiles | ForEach-Object { "$sceneRuntimePath/$_" })
 $manifest = [ordered]@{
     schema = 4; state = 'local_bundle_staged'; created_at = (Get-Date).ToString('o')
     source_url = $sourceUrl; source_revision = $sourceRevision; license = 'AGPL-3.0'

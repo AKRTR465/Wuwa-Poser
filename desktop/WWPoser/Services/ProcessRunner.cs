@@ -70,7 +70,7 @@ public static class CarrierLoader
     // a caller's wait must neither kill an armed installer nor lose its exit proof.
     internal static Task<int> StartInstallation(string sessionDirectory)
     {
-        var process = Process.Start(new ProcessStartInfo(Path.Combine(sessionDirectory, "hook_install_v20.exe")) { WorkingDirectory = sessionDirectory, Arguments = "--timeout-seconds 30", UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden })!;
+        var process = Process.Start(new ProcessStartInfo(Path.Combine(sessionDirectory, "observer_installer.exe")) { WorkingDirectory = sessionDirectory, Arguments = "--timeout-seconds 30", UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden })!;
         return WaitForInstallationExitAsync(process);
     }
     internal static async Task<int> WaitForInstallationExitAsync(Process process)

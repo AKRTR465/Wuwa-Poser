@@ -1,14 +1,14 @@
 // Synthetic session state and forwarding callbacks; no hooks or game APIs.
-#include "../../runtime/owned_mmd/native/n1_common.h"
-#include "../../runtime/owned_mmd/native/owned_mmd_body.h"
+#include "../../runtime/owned_mmd/native/session_host.h"
+#include "../../runtime/owned_mmd/native/scene_playback.h"
 #include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <limits>
 
-namespace scene=owned_mmd_body;
+namespace scene=scene_playback;
 namespace feature=unified_player_features;
-namespace native=v20_shared_native_physics;
+namespace native=shared_native_physics;
 namespace play=wwp_playback;
 static unsigned assertions=0,bodyCalls=0,cameraCalls=0,converterCalls=0,groupCalls=0;
 static void Check(bool condition,const char* message){++assertions;if(!condition){std::cerr<<message<<'\n';std::exit(1);}}

@@ -77,8 +77,8 @@ public sealed partial class NativeGraphService(string repoRoot)
         Directory.CreateDirectory(Path.Combine(output, "logs"));
         cfg["compatibility_id"] = GameCompat.CompatibilityId;
         JsonData.Write(Path.Combine(output, "observe_target.json"), cfg);
-        File.Copy(Path.Combine(root, "probes", "v20_recon", dll), Path.Combine(output, "recon_carrier_v20.dll"));
-        File.Copy(Path.Combine(root, "probes", "v20_recon", "hook_install_v20.exe"), Path.Combine(output, "hook_install_v20.exe"));
+        File.Copy(Path.Combine(root, "runtime", "game_integration", dll), Path.Combine(output, "observer_carrier.dll"));
+        File.Copy(Path.Combine(root, "runtime", "game_integration", "observer_installer.exe"), Path.Combine(output, "observer_installer.exe"));
     }
 
     public static JsonObject PromoteTargetIdentity(string configPath, string identityDirectory)

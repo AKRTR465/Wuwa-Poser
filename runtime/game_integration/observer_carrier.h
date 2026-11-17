@@ -1,6 +1,6 @@
 #pragma once
-#include "../../runtime/generated/GameCompat.generated.h"
-// Shared lifecycle of the two observer carriers. hook_install_v20 loads a
+#include "../generated/GameCompat.generated.h"
+// Shared lifecycle of the two observer carriers. observer_installer loads a
 // carrier through a WH_GETMESSAGE hook; the carrier then patches the fixed
 // animation vtable slots, forwards every callback to the engine original
 // exactly once, and restores the slots before reporting.
@@ -24,7 +24,7 @@ inline bool Read(uint64_t address,void* out,size_t bytes) noexcept {
 }
 inline uint64_t Address(const Json& j){uint64_t parsed=0;std::string error;
     if(!j.is_string()||!ww_game_compat_resolution::ParseHexU64(j.get<std::string>(),parsed,error))throw std::runtime_error("invalid hexadecimal address: "+error);return parsed;}
-inline Json Outcome(const v20_vmt_slot_patch::Outcome& o){return {{"code",v20_vmt_slot_patch::Name(o.code)},{"error",o.error},
+inline Json Outcome(const vmt_slot_patch::Outcome& o){return {{"code",vmt_slot_patch::Name(o.code)},{"error",o.error},
     {"pointer_changed",o.pointer_changed},{"protection_restored",o.protection_restored}};}
 inline std::filesystem::path ModuleDirectory(HMODULE module){wchar_t path[32768]{};GetModuleFileNameW(module,path,32768);return std::filesystem::path(path).parent_path();}
 inline bool StopRequested(const std::filesystem::path& directory){return std::filesystem::exists(directory/L"stop.flag");}
@@ -66,7 +66,7 @@ inline void Save(const Session& session,Json& report){
 struct Hooks {
     std::array<std::atomic<uint64_t>,ng::kHooks> calls{};
     std::array<Fn2,ng::kHooks> originals2{};std::array<Fn3,ng::kHooks> originals3{};
-    std::array<v20_vmt_slot_patch::State,ng::kHooks> patches{};std::array<uint64_t,ng::kHooks> slots{};
+    std::array<vmt_slot_patch::State,ng::kHooks> patches{};std::array<uint64_t,ng::kHooks> slots{};
     std::atomic<unsigned> active{0};
     void Forward(unsigned hook,void* node,void* context,void* out){if(ng::kSpecs[hook].arity==2)originals2[hook](node,context);else originals3[hook](node,context,out);}
     void* Original(unsigned hook) const {return ng::kSpecs[hook].arity==2?reinterpret_cast<void*>(originals2[hook]):reinterpret_cast<void*>(originals3[hook]);}
@@ -85,15 +85,15 @@ struct Hooks {
     }
     void Install(void* (*detour)(unsigned),Json& report){
         for(unsigned i=0;i<ng::kHooks;++i){
-            const auto outcome=v20_vmt_slot_patch::Install(patches[i],reinterpret_cast<void**>(slots[i]),Original(i),detour(i));
+            const auto outcome=vmt_slot_patch::Install(patches[i],reinterpret_cast<void**>(slots[i]),Original(i),detour(i));
             report["hooks"][i]["install"]=Outcome(outcome);
-            if(outcome.code!=v20_vmt_slot_patch::Code::Ok)throw std::runtime_error("hook installation refused");
+            if(outcome.code!=vmt_slot_patch::Code::Ok)throw std::runtime_error("hook installation refused");
         }
     }
     bool Restore(Json& report){bool restored=true;
         for(unsigned i=ng::kHooks;i-->0;){auto& patch=patches[i];if(!patch.slot)continue;
-            const auto outcome=v20_vmt_slot_patch::Restore(patch);
-            const bool ok=outcome.code==v20_vmt_slot_patch::Code::Ok&&!patch.changed&&!patch.protection_pending;
+            const auto outcome=vmt_slot_patch::Restore(patch);
+            const bool ok=outcome.code==vmt_slot_patch::Code::Ok&&!patch.changed&&!patch.protection_pending;
             report["hooks"][i]["restore"]=Outcome(outcome);report["hooks"][i]["fully_restored"]=ok;restored=restored&&ok;
         }
         return restored;

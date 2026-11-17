@@ -1,5 +1,5 @@
 #pragma once
-#include "../../runtime/generated/GameCompat.generated.h"
+#include "../generated/GameCompat.generated.h"
 // In-process readers for the GObjects table and Kuro name pool. The anchors are
 // located by scanning the main image's writable sections once per scan session.
 #define WIN32_LEAN_AND_MEAN

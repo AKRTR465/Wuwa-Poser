@@ -37,7 +37,7 @@ static class GameCompatibilityChecks
 
         var root = Path.Combine(fixture, "compatibility-relocated-functions");
         var contracts = Path.Combine(root, "data", "runtime_contracts");
-        var observers = Path.Combine(root, "probes", "v20_recon");
+        var observers = Path.Combine(root, "runtime", "game_integration");
         Directory.CreateDirectory(contracts); Directory.CreateDirectory(observers);
         var labels = new[]
         {
@@ -79,15 +79,17 @@ static class GameCompatibilityChecks
         }), "root witnesses also use generated addresses");
         Check(evidence.ActivationWitnesses().Count == 4, "matching duplicated byte evidence is accepted independently of archive addresses");
 
-        File.WriteAllText(Path.Combine(observers, "native_graph_discovery.dll"), "offline fixture");
-        File.WriteAllText(Path.Combine(observers, "hook_install_v20.exe"), "offline fixture");
+        File.WriteAllText(Path.Combine(observers, "native_graph_discovery.dll"), "discovery fixture");
+        File.WriteAllText(Path.Combine(observers, "observer_installer.exe"), "installer fixture");
         var source = Path.Combine(root, "target.json"); JsonData.Write(source, new JsonObject());
         var staged = Path.Combine(root, "staged"); service.PrepareDiscovery(source, staged, evidence);
         var config = JsonData.ReadObject(Path.Combine(staged, "observe_target.json"));
         Check(Contract.S(config, "compatibility_id") == GameCompat.CompatibilityId,
             "observer staging carries the compiled compatibility ID");
+        Check(File.ReadAllText(Path.Combine(staged, "observer_carrier.dll")) == "discovery fixture" &&
+            File.ReadAllText(Path.Combine(staged, "observer_installer.exe")) == "installer fixture", "graph observer stages under the installer filenames");
 
-        File.WriteAllText(Path.Combine(observers, "native_identity_bootstrap.dll"), "offline fixture");
+        File.WriteAllText(Path.Combine(observers, "native_identity_bootstrap.dll"), "identity fixture");
         var identityStaged = Path.Combine(root, "identity-staged"); service.PrepareIdentity(source, identityStaged, evidence);
         var identityConfig = JsonData.ReadObject(Path.Combine(identityStaged, "observe_target.json"));
         var stagedFunctions = Contract.A(Contract.O(identityConfig, "native_identity_bootstrap"), "allocator_witnesses");
@@ -100,6 +102,8 @@ static class GameCompatibilityChecks
         Check(Contract.S(identityConfig, "compatibility_id") == GameCompat.CompatibilityId &&
             !File.Exists(Path.Combine(identityStaged, "native_identity_registration_contract.json")),
             "identity and allocator evidence are staged in one compatible configuration");
+        Check(File.ReadAllText(Path.Combine(identityStaged, "observer_carrier.dll")) == "identity fixture",
+            "identity observer uses the same session filename as graph discovery");
 
         SaveArchive("different-build");
         Reject(() => service.LoadEvidence(), "a witness archive for a different game build is rejected");

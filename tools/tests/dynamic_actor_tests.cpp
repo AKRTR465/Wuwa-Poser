@@ -1,11 +1,11 @@
 // Synthetic storage and clocks only. No game process, windows, hooks or engine calls.
-#include "../../runtime/owned_mmd/native/n1_common.h"
-#include "../../runtime/owned_mmd/native/owned_mmd_body.h"
+#include "../../runtime/owned_mmd/native/session_host.h"
+#include "../../runtime/owned_mmd/native/scene_playback.h"
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 
-namespace scene=owned_mmd_body;
+namespace scene=scene_playback;
 namespace play=wwp_playback;
 namespace native=play::native_physics;
 static unsigned assertions=0;

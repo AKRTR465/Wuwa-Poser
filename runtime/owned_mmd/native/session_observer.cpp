@@ -1,12 +1,12 @@
-#include "n1_common.h"
+#include "session_host.h"
 #include "mono_owned_public_facade.h"
-#include "owned_mmd_body.h"
+#include "scene_playback.h"
 #include "owned_recovery.h"
 #include <atomic>
 #include <functional>
 
 namespace owned_carrier {
-using namespace ui_n1_host;
+using namespace session_host;
 namespace owned=mono_owned;
 // Single-flight GameThread dispatch: the hook runs at most one requested action.
 class Gate {
@@ -68,6 +68,8 @@ static DWORD WINAPI Worker(LPVOID){
     };
     const auto run=[&](owned::Action action){if(!dispatch(action))throw std::runtime_error(std::string(owned::kActionNames[static_cast<size_t>(action)])+": "+completed_reason);};
     try{
+        // The old carrier stays pinned and owns a differently named managed assembly.
+        Require(!GetModuleHandleW(L"ownedmmd_lite_observer.dll"),"previous playback runtime is loaded; restart the game after updating Wuwa Poser");
         const auto mmd=ReadJson(dir/L"owned_mmd_config.json");display_requested=mmd.at("duration_ms");
         const auto host=reinterpret_cast<Address>(GetModuleHandleW(nullptr));
         out["compatibility_id"]=ww_game_compat::CompatibilityId;
@@ -104,31 +106,31 @@ static DWORD WINAPI Worker(LPVOID){
             }
             display_elapsed=GetTickCount64()-display_started;
         }else{
-            owned_mmd_body::Initialize(dir,ReadJson(dir/L"owned_mmd_graph.json"),mmd,host,reinterpret_cast<uint64_t>(config.window));
-            Require(owned_mmd_body::InstallSceneMaintenance(&MaintainScene,nullptr),"scene maintenance camera installation failed");
-            if(owned_mmd_body::NeedsNative()){
+            scene_playback::Initialize(dir,ReadJson(dir/L"owned_mmd_graph.json"),mmd,host,reinterpret_cast<uint64_t>(config.window));
+            Require(scene_playback::InstallSceneMaintenance(&MaintainScene,nullptr),"scene maintenance camera installation failed");
+            if(scene_playback::NeedsNative()){
                 const auto readyFlag=dir/L"native_inputs_ready.flag";
-                while(!std::filesystem::exists(readyFlag)&&!Cancelled()&&!owned_mmd_body::Failed())Sleep(20);
-                Require(!Cancelled()&&!owned_mmd_body::Failed()&&std::filesystem::exists(readyFlag),"scene native graph preparation incomplete");
-                owned_mmd_body::PrepareNative();
+                while(!std::filesystem::exists(readyFlag)&&!Cancelled()&&!scene_playback::Failed())Sleep(20);
+                Require(!Cancelled()&&!scene_playback::Failed()&&std::filesystem::exists(readyFlag),"scene native graph preparation incomplete");
+                scene_playback::PrepareNative();
             }
-            Require(owned_mmd_body::Install(),"owned MMD publication installation failed");mmd_started=true;
-            while(!owned_mmd_body::Ready()&&!owned_mmd_body::Failed()&&!Cancelled())Sleep(10);
-            Require(owned_mmd_body::Ready(),"owned MMD publication preflight failed");
-            display_started=GetTickCount64();owned_mmd_body::Start();
+            Require(scene_playback::Install(),"owned MMD publication installation failed");mmd_started=true;
+            while(!scene_playback::Ready()&&!scene_playback::Failed()&&!Cancelled())Sleep(10);
+            Require(scene_playback::Ready(),"owned MMD publication preflight failed");
+            display_started=GetTickCount64();scene_playback::Start();
             auto next_status=display_started;
             auto next_preview=display_started;uint64_t preview_revision=0,preview_frame=0;
             const auto preview_path=dir/L"model_pose.dat";
-            while(!owned_mmd_body::Finished()&&!Cancelled()&&!owned_mmd_body::Failed()){
-                owned_mmd_body::PollCommands();owned_mmd_body::CheckTimeLimit();
+            while(!scene_playback::Finished()&&!Cancelled()&&!scene_playback::Failed()){
+                scene_playback::PollCommands();scene_playback::CheckTimeLimit();
                 const auto now=GetTickCount64();
-                if(now>=next_preview){owned_mmd_body::SaveModelPreview(preview_path,preview_revision,preview_frame);next_preview=now+30;}
-                if(now>=next_status){ww_report::Save(dir/L"mmd_status.json",owned_mmd_body::Status());next_status+=250;}
+                if(now>=next_preview){scene_playback::SaveModelPreview(preview_path,preview_revision,preview_frame);next_preview=now+30;}
+                if(now>=next_status){ww_report::Save(dir/L"mmd_status.json",scene_playback::Status());next_status+=250;}
                 Sleep(10);
             }
             display_elapsed=GetTickCount64()-display_started;
-            const auto finalState=owned_mmd_body::Status();display_requested=uint64_t(finalState.value("time_limit_seconds",0.0)*1000.0);
-            display_completed=finalState.value("time_limit_reached",false)&&!owned_mmd_body::Failed();
+            const auto finalState=scene_playback::Status();display_requested=uint64_t(finalState.value("time_limit_seconds",0.0)*1000.0);
+            display_completed=finalState.value("time_limit_reached",false)&&!scene_playback::Failed();
         }
     }catch(const std::exception& error){out["reason"]=error.what();}
     began=bridge.BeginEntered();
@@ -138,7 +140,7 @@ static DWORD WINAPI Worker(LPVOID){
     std::string recoveryReason;
     recoveryHeartbeat=[&]{
         try{
-            auto status=owned_mmd_body::Status();const auto phase=recovery.Current();
+            auto status=scene_playback::Status();const auto phase=recovery.Current();
             status["mode"]="stopped";status["status"]="restore_pending";status["phase"]="restore_pending";
             status["session_active"]=false;status["restore_requested"]=true;status["restoration_complete"]=false;
             status["native_restoration_complete"]=recovery.native_restored;status["managed_owner_retirement_checked"]=recovery.managed_released;
@@ -155,9 +157,9 @@ static DWORD WINAPI Worker(LPVOID){
         recoveryHeartbeat();
         try{
             recovery.Advance(GetTickCount64(),
-                [&]{const bool ok=owned_mmd_body::CloseAndRestore(GetTickCount64()+1000);if(!ok)recoveryReason="body, expression, camera, or hook restoration remains pending";return ok;},
+                [&]{const bool ok=scene_playback::CloseAndRestore(GetTickCount64()+1000);if(!ok)recoveryReason="body, expression, camera, or hook restoration remains pending";return ok;},
                 [&]{const bool ok=!std::filesystem::exists(dir/L"native_observation_started.flag")||std::filesystem::exists(dir/L"native_observers_restored.flag");
-                    if(!ok)recoveryReason="native observation cleanup remains pending";else owned_mmd_body::RevokeTargets();return ok;},
+                    if(!ok)recoveryReason="native observation cleanup remains pending";else scene_playback::RevokeTargets();return ok;},
                 [&]{run(owned::Action::Stop);return true;},
                 [&]{run(owned::Action::CheckReleased);return true;});
         }catch(const std::exception& error){recoveryReason=error.what();}
@@ -172,7 +174,7 @@ static DWORD WINAPI Worker(LPVOID){
     if(!recoveryReason.empty())out["last_recovery_issue"]=recoveryReason;
     gate.Close();calls_ready.store(false,std::memory_order_release);
     while(gate.Busy())Sleep(10);
-    auto body=owned_mmd_body::Status();
+    auto body=scene_playback::Status();
     body["managed_owner_retirement_checked"]=released;body["cleanup_complete"]=recovery.Complete();
     body["restore_service_retained"]=false;body["recovery_attempts"]=recovery.attempts;
     const bool native_input_observed=body.value("native_input_frames",uint64_t(0))>0&&body.value("native_input_error",uint64_t(1))==0;
@@ -188,7 +190,7 @@ static DWORD WINAPI Worker(LPVOID){
     // Reports retain the final actor counts and evidence after heavy per-session
     // buffers are released. The DLL and original forwarding targets stay pinned.
     body["retired_payload_released"]=false;
-    owned_mmd_body::ReleaseRetiredPayload(body);out["mmd_result"]=body;
+    scene_playback::ReleaseRetiredPayload(body);out["mmd_result"]=body;
     // worker_result.json is the installer's signal that dispatch is closed and drained.
     try{ww_report::Save(dir/L"mmd_status.json",body);ww_report::Save(dir/L"mmd_result.json",body);ww_report::Save(dir/L"worker_result.json",out);}catch(...){return ERROR_WRITE_FAULT;}
     return full?ERROR_SUCCESS:ERROR_INVALID_DATA;

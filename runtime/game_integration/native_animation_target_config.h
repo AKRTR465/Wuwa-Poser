@@ -22,7 +22,7 @@ inline nt::AuthorityTarget Parse(const Json& cfg,const ng::Token& actor,const ng
     nt::AuthorityTarget result;result.policy=Policy(cfg);
     if(!cfg.contains("animation_target"))return result;
     const auto& target=cfg.at("animation_target");
-    result.epoch=v20_native_graph_binding::Address(target.at("session_epoch"));result.authority_address=v20_native_graph_binding::Address(target.at("authority_address"));
+    result.epoch=native_graph_binding::Address(target.at("session_epoch"));result.authority_address=native_graph_binding::Address(target.at("authority_address"));
     result.actor=actor.address;result.mesh=mesh.address;result.mesh_asset=asset.address;result.skeleton_asset=skeleton.address;result.main_anim=main.address;
     result.actor_index=ng::Index(actor);result.actor_serial=ng::Serial(actor);result.mesh_index=ng::Index(mesh);result.mesh_serial=ng::Serial(mesh);
     return result;

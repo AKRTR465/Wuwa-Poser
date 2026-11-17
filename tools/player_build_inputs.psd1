@@ -1,13 +1,13 @@
 @{
     # Native physics uses the observers in ordinary playback; the compilers
     # prepare motion, expression and camera tracks.
-    NativeBuilds = @('probes/v20_recon/build_observers.bat', 'tools/build_compilers.bat')
+    NativeBuilds = @('runtime/game_integration/build_observers.bat', 'tools/build_compilers.bat')
     NativeOutputs = @(
-        'probes/v20_recon/hook_install_v20.exe', 'probes/v20_recon/native_identity_bootstrap.dll', 'probes/v20_recon/native_graph_discovery.dll',
-        'tools/mmd_outputs/mmd_vmd_cli.exe', 'tools/mmd_outputs/mmd_face_compile.exe', 'tools/mmd_outputs/mmd_camera_compile.exe'
+        'runtime/game_integration/observer_installer.exe', 'runtime/game_integration/native_identity_bootstrap.dll', 'runtime/game_integration/native_graph_discovery.dll',
+        'tools/mmd_outputs/mmd_body_compile.exe', 'tools/mmd_outputs/mmd_face_compile.exe', 'tools/mmd_outputs/mmd_camera_compile.exe'
     )
     OwnedRuntimeFiles = @(
-        'ownedmmd_lite_observer.dll', 'ownedmmd_lite_installer.exe', 'WwPoser.ColdLoad.ManagedBridge.OwnedMmdLite.dll'
+        'scene_playback_observer.dll', 'scene_playback_installer.exe', 'WwPoser.ScenePlayback.ManagedBridge.dll'
     )
     Files = @(
         'tools/recording_bin/ffmpeg.exe', 'tools/recording_bin/ffprobe.exe',

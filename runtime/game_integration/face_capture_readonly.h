@@ -1,5 +1,5 @@
 #pragma once
-#include "../../runtime/generated/GameCompat.generated.h"
+#include "../generated/GameCompat.generated.h"
 // Include after shared_readonly.h's Reader/Go/Pool/Decode helpers.
 // Reads the live mesh asset morph catalog; no native engine calls or writes.
 #include "../../playback/ww_face_snapshot.h"

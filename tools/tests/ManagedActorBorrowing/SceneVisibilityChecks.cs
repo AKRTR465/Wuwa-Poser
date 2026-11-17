@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 using UnrealEngine;
-using WwPoser.ColdLoad;
+using WwPoser.ScenePlayback;
 
 internal static class SceneVisibilityChecks
 {

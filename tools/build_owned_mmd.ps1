@@ -11,7 +11,7 @@ Set-StrictMode -Version Latest
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $compatibilityId=& (Join-Path $PSScriptRoot 'generate_game_compat.ps1') -Check:$Check -PassIdentity
 & (Join-Path $PSScriptRoot 'generate_playback_control.ps1') -Check:$Check
-if(-not $PackageDirectory){$PackageDirectory=Join-Path $repo 'build\owned_mmd'}
+if(-not $PackageDirectory){$PackageDirectory=Join-Path $repo 'build\scene_playback'}
 $packageRoot=[IO.Path]::GetFullPath($PackageDirectory)
 $purpose='owned_mmd_scene'
 $files=(Import-PowerShellDataFile (Join-Path $PSScriptRoot 'player_build_inputs.psd1')).OwnedRuntimeFiles
@@ -66,16 +66,16 @@ if($Check){
  $referencePaths=@($references | ForEach-Object {Join-Path $referenceRoot $_})
  $sourcePath=Join-Path $managedDirectory 'ManagedBridge.cs'
  $generatedSourcePath=Join-Path $repo 'runtime/generated/GameCompat.generated.cs'
- $nativeScript=Join-Path $nativeDirectory 'build_observer.bat'
+ $nativeScript=Join-Path $nativeDirectory 'build_session_host.bat'
  foreach($path in @($compilerPath,$sourcePath,$generatedSourcePath,$nativeScript)+$referencePaths){
   if(-not (Test-Path -LiteralPath $path -PathType Leaf)){throw ('Owned MMD build input missing: '+$path)}
  }
  New-Item -ItemType Directory -Path $packageRoot -Force|Out-Null
  # A failed rebuild must not leave a previous success manifest.
  if(Test-Path -LiteralPath $manifestPath -PathType Leaf){Remove-Item -LiteralPath $manifestPath}
- $compileDirectory=Join-Path $repo 'build\owned_mmd_compile\managed'
+ $compileDirectory=Join-Path $repo 'build\scene_playback_compile\managed'
  New-Item -ItemType Directory -Path $compileDirectory -Force|Out-Null
- $outputPath=Join-Path $packageRoot 'WwPoser.ColdLoad.ManagedBridge.OwnedMmdLite.dll'
+ $outputPath=Join-Path $packageRoot 'WwPoser.ScenePlayback.ManagedBridge.dll'
  $arguments=@('/nologo','/utf8output','/target:library','/platform:anycpu','/langversion:latest','/nullable:disable','/nostdlib+','/optimize+','/deterministic+','/unsafe-','/warn:4','/warnaserror+',('/out:"'+$outputPath+'"'))
  $arguments+=@($referencePaths | ForEach-Object {'/reference:"'+$_+'"'})
  $arguments+='"'+$sourcePath+'"'

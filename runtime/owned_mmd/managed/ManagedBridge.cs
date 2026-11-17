@@ -9,7 +9,7 @@ using System.Text;
 using UnrealEngine;
 using WwPoser.Compat;
 
-namespace WwPoser.ColdLoad
+namespace WwPoser.ScenePlayback
 {
     public static class ManagedBridge
     {
