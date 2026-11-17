@@ -102,9 +102,10 @@ public sealed partial class NativeGraphService
         // and curve names, with every curve group simulating and fully rooted.
         bool SameSignature(JsonNode source)
         {
+            if (Contract.S(source, "kind") is not ("seq_export" or "pc_export" or "ui_export") ||
+                Contract.S(source, "evidence_kind") != "actual_nodes") return false;
             var signature = Contract.O(source, "group_signature");
-            return Contract.S(source, "kind") is "seq_export" or "pc_export" or "ui_export" && Contract.S(source, "evidence_kind") == "actual_nodes" &&
-                Contract.I(signature, "kawaii_group_count") == groups.Count &&
+            return Contract.I(signature, "kawaii_group_count") == groups.Count &&
                 Contract.A(signature, "curve_names").Select(x => x!.GetValue<string>()).Order().SequenceEqual(curves);
         }
         bool CurveGroupsUsable(JsonNode source) => curveGroups[Contract.I(source, "source_id")]

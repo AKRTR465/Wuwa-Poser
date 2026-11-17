@@ -271,7 +271,8 @@ public sealed class RecordingService
                     if (stopSent is null)
                     {
                         problem = windowProblem();
-                        if (problem is null && ((frameCount == 0 && now - captureStart > 20) || (frameCount > 0 && now - lastProgress > 10))) problem = "未收到持续游戏画面，请使用窗口或无边框模式";
+                        if (problem is null && frameCount == 0 && now - captureStart > 20) problem = "录屏未收到游戏画面";
+                        if (problem is null && frameCount > 0 && now - lastProgress > 10) problem = "录屏未再收到新的游戏画面";
                         if (problem is not null || requestStop.IsCancellationRequested)
                         { try { await process.StandardInput.WriteLineAsync("q"); await process.StandardInput.FlushAsync(); } catch (IOException) { } stopSent = now; }
                     }
@@ -319,31 +320,33 @@ public sealed class RecordingService
 
     private static class GameWindows
     {
-        private delegate bool EnumCallback(nint hwnd, nint parameter);
         [StructLayout(LayoutKind.Sequential)] private struct Rect { public int Left, Top, Right, Bottom; }
-        [DllImport("user32.dll", SetLastError = true)] private static extern bool EnumWindows(EnumCallback callback, nint parameter);
         [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hwnd, out uint pid);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowTextW(nint hwnd, StringBuilder text, int capacity);
         [DllImport("user32.dll")] private static extern bool GetClientRect(nint hwnd, out Rect rect);
-        [DllImport("user32.dll")] private static extern bool IsWindowVisible(nint hwnd);
-        [DllImport("user32.dll")] private static extern bool IsWindow(nint hwnd);
-        [DllImport("user32.dll")] private static extern bool IsIconic(nint hwnd);
         internal static WindowTarget Find()
         {
-            var pids = new HashSet<uint>();
-            foreach (var process in Process.GetProcessesByName("Client-Win64-Shipping")) using (process) pids.Add((uint)process.Id);
+            var processes = Process.GetProcessesByName("Client-Win64-Shipping");
             var targets = new List<WindowTarget>();
-            EnumWindows((hwnd, _) => { GetWindowThreadProcessId(hwnd, out uint pid); if (!pids.Contains(pid) || !IsWindowVisible(hwnd)) return true;
-                var title = new StringBuilder(512); GetWindowTextW(hwnd, title, 512); if (GetClientRect(hwnd, out Rect rect) && rect.Right - rect.Left >= 320 && rect.Bottom - rect.Top >= 240 && title.Length > 0)
-                    targets.Add(new WindowTarget(hwnd, pid, title.ToString(), rect.Right - rect.Left, rect.Bottom - rect.Top)); return true; }, 0);
-            if (targets.Count == 0) throw new IOException("请保留一个可见鸣潮游戏窗口");
-            var selected = targets.OrderByDescending(x => (long)x.Width * x.Height).First(); string? problem = Problem(selected); if (problem is not null) throw new IOException(problem); return selected;
+            try
+            {
+                foreach (var process in processes)
+                {
+                    var hwnd = process.MainWindowHandle;
+                    if (hwnd == 0 || GetWindowThreadProcessId(hwnd, out uint pid) == 0 || pid != process.Id) continue;
+                    var title = new StringBuilder(512);
+                    GetWindowTextW(hwnd, title, title.Capacity);
+                    // A minimized window can report an empty client area. Capture only needs its handle.
+                    if (!GetClientRect(hwnd, out Rect rect)) rect = default;
+                    targets.Add(new WindowTarget(hwnd, pid, title.ToString(), rect.Right - rect.Left, rect.Bottom - rect.Top));
+                }
+            }
+            finally { foreach (var process in processes) process.Dispose(); }
+            return targets.OrderByDescending(target => (long)target.Width * target.Height).FirstOrDefault()
+                ?? throw new IOException("找不到鸣潮主窗口");
         }
-        internal static string? Problem(WindowTarget target)
-        {
-            if (!IsWindow(target.Hwnd)) return "鸣潮窗口已关闭";
-            return IsIconic(target.Hwnd) ? "鸣潮窗口已最小化，请使用窗口或无边框模式" : null;
-        }
+        internal static string? Problem(WindowTarget target) =>
+            GetWindowThreadProcessId(target.Hwnd, out uint pid) == 0 || pid != target.Pid ? "鸣潮窗口已关闭" : null;
     }
 }
 

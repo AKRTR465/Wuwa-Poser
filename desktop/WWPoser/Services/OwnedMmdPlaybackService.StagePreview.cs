@@ -34,7 +34,8 @@ public sealed partial class OwnedMmdPlaybackService
         StageRuntime(directory, game);
         JsonData.Write(Path.Combine(directory, "owned_mmd_config.json"), config);
         WriteActorsFile(directory, config);
-        installer = await StartInstallerAsync(directory, game, "正在请演员上台预览站位", cancellation);
+        installer = StartInstaller(directory, "正在请演员上台预览站位", cancellation);
+        long? slowActorsNoticeAt = Environment.TickCount64 + 15000;
         try
         {
             while (true)
@@ -54,6 +55,7 @@ public sealed partial class OwnedMmdPlaybackService
                     return new JsonObject { ["session_dir"] = directory, ["loaded"] = true, ["state"] = "stage_preview", ["actor_count"] = count,
                         ["message"] = $"{count} 位演员已站到设定位置。切回鸣潮看看吧，看完点「结束预览」。" };
                 }
+                ReportSlowActorLoading(directory, ref slowActorsNoticeAt);
                 await Task.Delay(100, cancellation);
             }
         }

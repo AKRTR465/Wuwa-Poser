@@ -12,7 +12,7 @@ internal static class NativePhysicsPreset
     public static bool HasOverrides(JsonObject? preset) => preset?["groups"] is JsonArray { Count: > 0 } ||
         preset?["sleeves"] is JsonArray { Count: > 0 } || preset?["disabled_capsules"] is JsonArray { Count: > 0 } ||
         preset?["gravity"] is JsonArray { Count: > 0 } || preset?["part_gravity"] is JsonArray { Count: > 0 } ||
-        preset?[CapsuleAuthoring.PropertyName] is JsonArray { Count: > 0 };
+        preset?[CapsuleAuthoring.PropertyName] is JsonArray { Count: > 0 } || CapsulePresetEdits.HasEdits(preset);
 
     public static IReadOnlyList<CapsuleDraftGroup> ValidateDraft(JsonObject preset, string? characterId, string? profileId = null)
     {
@@ -45,6 +45,7 @@ internal static class NativePhysicsPreset
             Contract.Require(double.IsFinite(strength) && strength is >= 0 and <= GravityMaximum, "预设中的重力强度越界。");
         }
         _ = ReadPartGravity(preset);
+        CapsulePresetEdits.Validate(preset);
         return CapsuleAuthoring.Read(preset);
 
         static void ValidateTarget(JsonNode entry)
@@ -125,6 +126,19 @@ internal static class NativePhysicsPreset
         var entry = DraftTarget(group, root);
         entry["follow"] = follow;
         rows.Add(entry);
+    }
+
+    public static void SetDraftCapsuleDriver(JsonObject preset, JsonObject group, string driver, bool enabled)
+    {
+        var rows = preset["disabled_capsules"] as JsonArray;
+        if (rows is null) { rows = new(); preset["disabled_capsules"] = rows; }
+        var curve = Contract.S(group, "curve_name");
+        var roots = Contract.A(group, "root_bones");
+        var names = roots.Select(root => root!.GetValue<string>()).ToArray();
+        var previous = rows.OfType<JsonObject>().SingleOrDefault(row => Matches(row, curve, names) &&
+            string.Equals(Contract.S(row, "driver"), driver, StringComparison.OrdinalIgnoreCase));
+        if (previous is not null) rows.Remove(previous);
+        if (!enabled) rows.Add(new JsonObject { ["curve_name"] = curve, ["root_bones"] = roots.DeepClone(), ["driver"] = driver });
     }
 
     private static JsonObject? FindDraft(JsonArray? rows, PhysicsGroup group, string? root) => rows?.OfType<JsonObject>().FirstOrDefault(row =>

@@ -248,7 +248,7 @@ public sealed partial class MainWindow
 
         var idle = new StackPanel();
         var check = new StackPanel(); check.Children.Add(readiness);
-        check.Children.Add(Tip("点「开始播放」后请切回鸣潮窗口，演员会出现在你的角色身边。"));
+        check.Children.Add(Tip("进入鸣潮角色场景后即可开始播放，演员会出现在你的角色身边。"));
         var start = new StackPanel { Orientation = Orientation.Horizontal, Margin = new(0, 18, 0, 0) };
         var hero = Action("开始播放", StartAsync, "\uE768", "HeroButton"); hero.Margin = new(0, 0, 18, 0); start.Children.Add(hero);
         var extra = new StackPanel { VerticalAlignment = VerticalAlignment.Center };

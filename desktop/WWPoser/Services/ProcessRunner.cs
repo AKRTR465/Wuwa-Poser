@@ -30,7 +30,6 @@ public static class GameProcess
     [DllImport("kernel32.dll", SetLastError = true)] private static extern uint WaitForSingleObject(nint process, uint milliseconds);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern bool CloseHandle(nint process);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hwnd, out uint pid);
-    [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     public static GameIdentity Current()
     {
         var games = Process.GetProcessesByName("Client-Win64-Shipping");
@@ -38,22 +37,11 @@ public static class GameProcess
         {
             if (games.Length != 1) throw new InvalidOperationException("需要一个鸣潮实例并进入角色场景");
             var game = games[0]; var hwnd = game.MainWindowHandle;
-            if (hwnd == 0) throw new InvalidOperationException("鸣潮主窗口不可见");
+            if (hwnd == 0) throw new InvalidOperationException("找不到鸣潮主窗口");
             var thread = GetWindowThreadProcessId(hwnd, out _);
             return new(game.Id, "0x" + hwnd.ToInt64().ToString("x"), thread);
         }
         finally { foreach (var game in games) game.Dispose(); }
-    }
-    public static async Task WaitForForegroundAsync(GameIdentity identity, CancellationToken cancellation = default)
-    {
-        var deadline = Environment.TickCount64 + 15000;
-        while (Environment.TickCount64 < deadline)
-        {
-            GetWindowThreadProcessId(GetForegroundWindow(), out var pid);
-            if (pid == identity.Pid) return;
-            await Task.Delay(100, cancellation);
-        }
-        throw new TimeoutException("等待鸣潮前台超时；请切换到游戏后重新准备本次操作");
     }
     public static bool Exited(int pid)
     {

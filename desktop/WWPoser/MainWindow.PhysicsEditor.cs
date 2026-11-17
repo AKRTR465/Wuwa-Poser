@@ -508,12 +508,17 @@ public sealed partial class MainWindow
     private async Task SetCapsuleAsync(uint driver, bool enabled)
     {
         if (editingPhysics || busy || player.IsBusy || session is not { } directory || player.Snapshot is not { } snapshot ||
-            LivePhysicsGroup(snapshot.State) is not { } target) return;
+            SelectedLivePhysicsActor() is not { } actor || LivePhysicsGroup(snapshot.State) is not { } target) return;
+        var row = (target.Group["capsules"] as JsonArray)?.OfType<JsonObject>()
+            .SingleOrDefault(capsule => capsule["driver_id"]!.GetValue<uint>() == driver);
+        if (row is null) return;
         editingPhysics = true;
         try
         {
             await PlaybackControl.SendAsync(directory, "native_capsule_collision", enabled ? 1 : 0, Token,
                 target.Slot, target.Group["group_id"]!.GetValue<uint>(), driver);
+            RememberPhysicsDraft(directory, actor.Slot, actor.Character.CharacterId,
+                preset => NativePhysicsPreset.SetDraftCapsuleDriver(preset, target.Group, Contract.S(row, "driver"), enabled));
         }
         catch (Exception error) { status.Text = error.Message; }
         finally { editingPhysics = false; RefreshPhysicsSettings(); }
@@ -584,15 +589,22 @@ public sealed partial class MainWindow
         else card.PhysicsPresets.Remove(character.CharacterId);
     }
 
+    private void RememberPhysicsDraft(string directory, uint slot, string characterId, Action<JsonObject> update)
+    {
+        if (session != directory || !liveActorCards.TryGetValue(slot, out var card) || !actors.Contains(card) ||
+            card.Character.SelectedItem is not OwnedCharacterSelection character || character.CharacterId != characterId) return;
+        var preset = card.PhysicsPresets.GetValueOrDefault(character.CharacterId)?.DeepClone().AsObject()
+            ?? NativePhysicsPreset.Create(character, []);
+        update(preset);
+        KeepPhysicsDraft(card, character, preset);
+    }
+
     private void SavePhysicsPreset()
     {
         if (SelectedPhysicsActor() is not { } selected) return;
         var live = sessionControllable && player.Snapshot is { } snapshot ? LivePhysicsActor(snapshot.State) : null;
         if (!CanDraftPhysics && live is null) return;
-        var preset = live is not null ? NativePhysicsPreset.Create(live.Character, live.Groups, live.Parts)
-            : selected.Card.PhysicsPresets.GetValueOrDefault(selected.Character.CharacterId) ?? NativePhysicsPreset.Create(selected.Character, []);
-        if (live is not null && selected.Card.PhysicsPresets.GetValueOrDefault(selected.Character.CharacterId)?["capsule_groups"] is { } capsuleLayout)
-            preset["capsule_groups"] = capsuleLayout.DeepClone();
+        var preset = selected.Card.PhysicsPresets.GetValueOrDefault(selected.Character.CharacterId) ?? NativePhysicsPreset.Create(selected.Character, []);
         var dialog = new SaveFileDialog { Filter = "Kawaii 物理预设|*.wwphysics", FileName = selected.Character.DisplayName + ".wwphysics", AddExtension = true };
         if (dialog.ShowDialog(this) != true) return;
         try
@@ -639,7 +651,7 @@ public sealed partial class MainWindow
             await ApplyPhysicsPresetAsync(directory, target, preset);
             KeepPhysicsDraft(selected.Card, selected.Character, preset);
             adjustedPhysics.Remove(target.Slot);
-            status.Text = preset["capsule_groups"] is JsonArray { Count: > 0 }
+            status.Text = preset[CapsuleAuthoring.PropertyName] is JsonArray { Count: > 0 } || CapsulePresetEdits.HasEdits(preset)
                 ? "物理参数已提交，胶囊布局将在下次开演时应用。"
                 : "已提交预设，参数会在下一次求值时生效。";
         }
@@ -675,13 +687,14 @@ public sealed partial class MainWindow
             return;
         }
         var group = LivePhysicsGroup(snapshot.State)?.Group;
+        var liveSelection = physicsSelection;
         var selected = command switch
         {
             NativePhysicsPreset.GravityCommand => physicsSelection?.Chain is null ? group?["gravity"] as JsonObject : null,
             "native_shoulder_follow" => FindLiveSleeve(group),
             _ => FindLiveParameterTarget(group)
         };
-        if (selected is null) return;
+        if (selected is null || liveSelection is null) return;
         var chain = selected["chain_id"]?.GetValue<uint>() ?? 0;
         editingPhysics = true;
         RefreshPhysicsSettings();
@@ -689,6 +702,14 @@ public sealed partial class MainWindow
         {
             var received = await PlaybackControl.SendAsync(directory, command, value, Token, target.Slot,
                 group!["group_id"]!.GetValue<uint>(), chain);
+            RememberPhysicsDraft(directory, target.Slot, target.Character.CharacterId, preset =>
+            {
+                if (command == NativePhysicsPreset.GravityCommand) NativePhysicsPreset.SetDraftGravity(preset, liveSelection.Group, value);
+                else if (command == "native_shoulder_follow" && liveSelection.Chain is { } sleeve)
+                    NativePhysicsPreset.SetDraftFollow(preset, liveSelection.Group, sleeve.Root, value);
+                else if (Array.IndexOf(NativePhysicsPreset.Commands, command) is var index && index >= 0)
+                    NativePhysicsPreset.SetDraftValue(preset, liveSelection.Group, liveSelection.Chain?.Root, index, value);
+            });
             var current = LivePhysicsGroup(received)?.Group;
             var revision = received["last_control_sequence"]?.GetValue<ulong>();
             var observed = command switch
@@ -725,6 +746,8 @@ public sealed partial class MainWindow
                 attempted.Add(edit);
                 await PlaybackControl.SendAsync(directory, NativePhysicsPreset.PartGravityCommand, value, Token, target.Slot, 0, edit.Id);
             }
+            RememberPhysicsDraft(directory, target.Slot, target.Character.CharacterId,
+                preset => NativePhysicsPreset.SetDraftPartGravity(preset, parts.Select(part => part.Root), value));
             status.Text = "部件重力已提交，等待下一次求值。";
         }
         catch (Exception error)

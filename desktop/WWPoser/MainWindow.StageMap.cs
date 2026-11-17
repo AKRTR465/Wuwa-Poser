@@ -139,7 +139,7 @@ public sealed partial class MainWindow
         previewButton.Content = on ? "按现在的站位重新预览" : "在游戏里预览站位";
         endPreviewButton.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         previewState.Text = on ? "演员正站在游戏里一动不动，方便你对照。改了站位后点「重新预览」，看完点「结束预览」。"
-            : "不用准备动作：只请角色站到设定位置上，不跳舞。点完请切回鸣潮窗口。预览时每位演员都会另外创建；正式播放时，队伍里有的角色会直接用原角色上台。";
+            : "不用准备动作：只请角色站到设定位置上，不跳舞。预览时每位演员都会另外创建；正式播放时，队伍里有的角色会直接用原角色上台。";
         UpdateSessionView();
     }
 

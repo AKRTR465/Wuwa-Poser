@@ -15,10 +15,12 @@ public sealed partial class MainWindow
         public string Label => View.Label;
     }
 
+    private sealed record CapsuleDraftSnapshot(CapsuleDraftGroup[] Layout, JsonNode? LiveEdits);
+
     private sealed class CapsuleHistory
     {
-        public Stack<CapsuleDraftGroup[]> Undo { get; } = new();
-        public Stack<CapsuleDraftGroup[]> Redo { get; } = new();
+        public Stack<CapsuleDraftSnapshot> Undo { get; } = new();
+        public Stack<CapsuleDraftSnapshot> Redo { get; } = new();
     }
 
     private readonly StackPanel capsuleDraftTools = new();
@@ -146,10 +148,14 @@ public sealed partial class MainWindow
     private static string GroupSignature(PhysicsGroup group) =>
         (group.Curve ?? "None") + "\n" + string.Join("\n", group.Chains.Select(chain => chain.Root).Order(StringComparer.OrdinalIgnoreCase));
 
-    private CapsuleDraftGroup DraftCapsuleGroup(PhysicsGroup group, IReadOnlyList<CapsuleDraftGroup> overrides) =>
-        overrides.FirstOrDefault(row => CapsuleAuthoring.Matches(row, group)) ??
-        capsuleStock.FirstOrDefault(row => CapsuleAuthoring.Matches(row, group)) ??
-        new(group.Curve ?? "None", group.Chains.Select(chain => chain.Root).ToArray(), [], ReplaceStock: false);
+    private CapsuleDraftGroup DraftCapsuleGroup(PhysicsGroup group, IReadOnlyList<CapsuleDraftGroup> overrides, JsonObject? preset)
+    {
+        if (overrides.FirstOrDefault(row => CapsuleAuthoring.Matches(row, group)) is { } authored)
+            return CapsulePresetEdits.Overlay(preset, authored, referenceStock: false);
+        if (capsuleStock.FirstOrDefault(row => CapsuleAuthoring.Matches(row, group)) is { } stock)
+            return CapsulePresetEdits.Overlay(preset, stock, referenceStock: true);
+        return new(group.Curve ?? "None", group.Chains.Select(chain => chain.Root).ToArray(), [], ReplaceStock: false);
+    }
 
     private bool RefreshDraftCapsuleEditor(bool editable)
     {
@@ -186,8 +192,8 @@ public sealed partial class MainWindow
                 }
             }
             var currentGroup = (capsuleGroupPicker.SelectedItem as CapsuleGroupChoice)?.Group;
-            var currentDraft = currentGroup is null ? null : DraftCapsuleGroup(currentGroup, overrides);
-            PopulateDraftCapsuleRows(overrides);
+            var currentDraft = currentGroup is null ? null : DraftCapsuleGroup(currentGroup, overrides, preset);
+            PopulateDraftCapsuleRows(overrides, preset);
             var rows = currentGroup is null ? [] : capsuleDraftRows.Values
                 .Where(row => row.View.Key.Group == (uint)capsuleGroupPicker.SelectedIndex + 1).ToArray();
             selectedDraftCapsules.IntersectWith(rows.Select(row => row.Shape.Id));
@@ -212,7 +218,8 @@ public sealed partial class MainWindow
             capsuleDraftAdd.IsEnabled = capsuleDraftPaste.IsEnabled = allowed && currentGroup is not null;
             capsuleDraftDuplicate.IsEnabled = capsuleDraftCopy.IsEnabled = capsuleDraftSplit.IsEnabled = capsuleDraftDelete.IsEnabled = canEdit;
             capsuleDraftMerge.IsEnabled = canEdit && count >= 2;
-            capsuleDraftReset.IsEnabled = allowed && currentGroup is not null && overrides.Any(row => CapsuleAuthoring.Matches(row, currentGroup));
+            capsuleDraftReset.IsEnabled = allowed && currentGroup is not null &&
+                (overrides.Any(row => CapsuleAuthoring.Matches(row, currentGroup)) || CapsulePresetEdits.HasGroupEdits(preset, currentGroup));
             var history = selected is { } active ? capsuleHistory.GetValueOrDefault((active.Card, active.Character.CharacterId)) : null;
             capsuleDraftUndo.IsEnabled = allowed && history?.Undo.Count > 0;
             capsuleDraftRedo.IsEnabled = allowed && history?.Redo.Count > 0;
@@ -246,7 +253,7 @@ public sealed partial class MainWindow
         return true;
     }
 
-    private void PopulateDraftCapsuleRows(IReadOnlyList<CapsuleDraftGroup> overrides)
+    private void PopulateDraftCapsuleRows(IReadOnlyList<CapsuleDraftGroup> overrides, JsonObject? preset)
     {
         capsuleDraftRows.Clear();
         var bones = capsuleDraftProfile?.Bones.Select((bone, index) => (bone.Name, index))
@@ -254,7 +261,7 @@ public sealed partial class MainWindow
         for (var groupIndex = 0; groupIndex < capsuleGroupChoices.Length; groupIndex++)
         {
             var group = capsuleGroupChoices[groupIndex];
-            var shapes = DraftCapsuleGroup(group.Group, overrides).Shapes;
+            var shapes = DraftCapsuleGroup(group.Group, overrides, preset).Shapes;
             for (var i = 0; i < shapes.Count; i++)
             {
                 var shape = shapes[i];
@@ -308,15 +315,18 @@ public sealed partial class MainWindow
         var preset = actor.Card.PhysicsPresets.GetValueOrDefault(actor.Character.CharacterId)?.DeepClone().AsObject()
             ?? NativePhysicsPreset.Create(actor.Character, []);
         var before = CapsuleAuthoring.Read(preset).ToArray();
-        var next = operation(DraftCapsuleGroup(selected.Group, before));
+        var previous = new CapsuleDraftSnapshot(before, preset[CapsulePresetEdits.PropertyName]?.DeepClone());
+        var current = DraftCapsuleGroup(selected.Group, before, preset);
+        var next = operation(current);
         var result = before.Where(row => !CapsuleAuthoring.Matches(row, selected.Group)).ToList();
         if (next is not null && (next.ReplaceStock || next.Shapes.Count != 0)) result.Add(next);
         CapsuleAuthoring.ValidateTargets(result, profile);
         CapsuleAuthoring.Write(preset, result);
+        CapsulePresetEdits.RemoveBakedEdits(preset, current, next is null || next.ReplaceStock);
         KeepPhysicsDraft(actor.Card, actor.Character, preset);
         var key = (actor.Card, actor.Character.CharacterId);
         if (!capsuleHistory.TryGetValue(key, out var history)) capsuleHistory.Add(key, history = new());
-        history.Undo.Push(before);
+        history.Undo.Push(previous);
         history.Redo.Clear();
         if (selection is not null)
         {
@@ -333,11 +343,13 @@ public sealed partial class MainWindow
         if (SelectedPhysicsActor() is not { } actor || !capsuleHistory.TryGetValue((actor.Card, actor.Character.CharacterId), out var history)) return;
         var from = undo ? history.Undo : history.Redo;
         var to = undo ? history.Redo : history.Undo;
-        if (!from.TryPop(out var layout)) return;
+        if (!from.TryPop(out var snapshot)) return;
         var preset = actor.Card.PhysicsPresets.GetValueOrDefault(actor.Character.CharacterId)?.DeepClone().AsObject()
             ?? NativePhysicsPreset.Create(actor.Character, []);
-        to.Push(CapsuleAuthoring.Read(preset).ToArray());
-        CapsuleAuthoring.Write(preset, layout);
+        to.Push(new(CapsuleAuthoring.Read(preset).ToArray(), preset[CapsulePresetEdits.PropertyName]?.DeepClone()));
+        CapsuleAuthoring.Write(preset, snapshot.Layout);
+        if (snapshot.LiveEdits is { } liveEdits) preset[CapsulePresetEdits.PropertyName] = liveEdits;
+        else preset.Remove(CapsulePresetEdits.PropertyName);
         KeepPhysicsDraft(actor.Card, actor.Character, preset);
         lastCapsuleValues = [];
         RefreshPhysicsSettings();

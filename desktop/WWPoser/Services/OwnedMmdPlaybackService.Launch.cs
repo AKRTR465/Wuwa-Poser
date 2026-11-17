@@ -25,16 +25,24 @@ public sealed partial class OwnedMmdPlaybackService
             ["session_id"] = Guid.NewGuid().ToString("N"), ["expected_pid"] = game.Pid, ["window_handle"] = game.WindowHandle, ["window_thread_id"] = game.WindowThread
         });
     }
-    private async Task<Process> StartInstallerAsync(string directory, GameIdentity game, string message, CancellationToken cancellation)
+    private Process StartInstaller(string directory, string message, CancellationToken cancellation)
     {
-        await GameProcess.WaitForForegroundAsync(game, cancellation);
         Progress?.Invoke(message);
+        cancellation.ThrowIfCancellationRequested();
         var info = new ProcessStartInfo(Path.Combine(directory, InstallerFilename)) { WorkingDirectory = directory, UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden };
         info.ArgumentList.Add("--run-session"); info.ArgumentList.Add(directory);
         LaunchStage = "owned_installer_launch";
         var process = Process.Start(info)!;
         ActiveSession = directory;
         return process;
+    }
+
+    private void ReportSlowActorLoading(string directory, ref long? noticeAt)
+    {
+        if (noticeAt is not long due || Environment.TickCount64 < due) return;
+        noticeAt = null;
+        if (!File.Exists(Path.Combine(directory, "owned_display_shown.json")))
+            Progress?.Invoke("仍在等待鸣潮加载演员。如果游戏画面停住了，可以恢复游戏窗口后继续等待。");
     }
 
     private string PrepareRuntime(string prepared, GameIdentity game, bool startPaused)
@@ -124,10 +132,10 @@ public sealed partial class OwnedMmdPlaybackService
         LaunchStage = "runtime_preparation";
         var game = GameProcess.Current();
         var directory = PrepareRuntime(Path.GetFullPath(prepared), game, startPaused);
-        cancellation.ThrowIfCancellationRequested();
-        installer = await StartInstallerAsync(directory, game, "正在加载演员：优先使用编队里的原角色，其余另行创建", cancellation);
+        installer = StartInstaller(directory, "正在加载演员：优先使用编队里的原角色，其余另行创建", cancellation);
         LaunchStage = "owned_target_export";
         var nativePrepared = false;
+        long? slowActorsNoticeAt = Environment.TickCount64 + 15000;
         long? initialPoseWait = null;
         var routes = NativeTargetRoutes(Config(directory), directory);
         try
@@ -175,6 +183,7 @@ public sealed partial class OwnedMmdPlaybackService
                     LaunchStage = startPaused ? "actors_paused" : "actors_playing";
                     return new JsonObject { ["session_dir"] = directory, ["loaded"] = true, ["state"] = LaunchStage, ["start_paused"] = startPaused, ["actor_count"] = ActorConfigs(Config(directory)).Count };
                 }
+                ReportSlowActorLoading(directory, ref slowActorsNoticeAt);
                 initialPoseWait = CheckInitialPoseReadyTimeout(startPaused, state, Environment.TickCount64, initialPoseWait);
                 await Task.Delay(100, cancellation);
             }

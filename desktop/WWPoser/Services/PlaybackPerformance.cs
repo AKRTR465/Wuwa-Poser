@@ -21,7 +21,6 @@ public sealed partial class PlaybackSessionService
             Phase = PlaybackSessionPhase.Preparing;
             preparedDirectory = Contract.S(await PrepareCoreAsync(request, token), "session_dir");
         }
-        Progress?.Invoke("请切回鸣潮，正在加载演员并准备播放…");
         var result = await LaunchCoreAsync(preparedDirectory, request, token, recording.Automatic || HasLaunchPhysics(request));
         await CompletePlaybackStartAsync(result, music, recording, token);
         return result;

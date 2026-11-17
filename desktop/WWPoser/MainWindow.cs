@@ -136,7 +136,7 @@ public sealed partial class MainWindow : Window
     private async Task PreviewAsync()
     {
         var request = BuildRequest(motion: false);
-        status.Text = "请切回鸣潮窗口，演员马上会站到你设定的位置…";
+        status.Text = "正在准备站位预览…";
         try
         {
             var result = await Task.Run(() => player.PreviewAsync(request, Token), Token);

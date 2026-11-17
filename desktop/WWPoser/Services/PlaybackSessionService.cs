@@ -144,8 +144,10 @@ public sealed partial class PlaybackSessionService
             {
                 if (!actors.TryGetValue(actor.Slot, out var live) || !Contract.True(live, "native_physics_settings_verified") || live["native_physics_groups"] is not JsonArray groups)
                     throw new InvalidDataException("未匹配到本次播放的原生物理组。");
-                plans.Add((actor.Slot, NativePhysicsPreset.Plan(actor.PhysicsPreset!, character, groups.OfType<JsonObject>(),
-                    (live["gravity_parts"] as JsonArray)?.OfType<JsonObject>())));
+                var liveGroups = groups.OfType<JsonObject>().ToArray();
+                var controls = NativePhysicsPreset.Plan(actor.PhysicsPreset!, character, liveGroups,
+                    (live["gravity_parts"] as JsonArray)?.OfType<JsonObject>());
+                plans.Add((actor.Slot, controls.Concat(CapsulePresetEdits.Plan(actor.PhysicsPreset!, liveGroups)).ToArray()));
             }
             catch (InvalidDataException error) { throw new InvalidDataException(character.DisplayName + " · " + error.Message, error); }
         }

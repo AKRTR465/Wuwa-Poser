@@ -161,6 +161,10 @@ internal static class PhysicsEditorUiChecks
         var gravity = new JsonObject { ["requested"] = 250d, ["original"] = new JsonArray(0d, 0d, 0d), ["effective"] = new JsonArray(0d, 0d, -250d) };
         var group = new JsonObject { ["group_id"] = 7u, ["curve_name"] = "Kawaii_alpha_S03", ["settings"] = settings, ["gravity"] = gravity,
             ["root_bones"] = new JsonArray("Bone_Skirt001_L", "Bone_Skirt001_R") };
+        var capsule = new JsonObject { ["id"] = 2u, ["bone"] = 0, ["driver"] = "Bip001Pelvis", ["editable"] = true,
+            ["enabled"] = true, ["active"] = true, ["baseline"] = new JsonArray(5, 10, 0, 0, 0),
+            ["values"] = new JsonArray(5, 10, 0, 0, 0), ["rotation"] = new JsonArray(0, 0, 0) };
+        group["capsule_shapes"] = new JsonArray(capsule);
         var sleeveGroup = new JsonObject { ["group_id"] = 5u, ["curve_name"] = "Kawaii_alpha_S08",
             ["settings"] = new JsonObject { ["requested"] = new JsonArray(-1d, -1d, -1d) },
             ["root_bones"] = new JsonArray("Bone_Piao201_L", "Bone_Piao201_R") };
@@ -192,7 +196,7 @@ internal static class PhysicsEditorUiChecks
         var acknowledge = Task.Run(async () => {
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             ulong last = 0;
-            while (commands.Count < 10 || partCommands.Count < 6)
+            while (commands.Count < 13 || partCommands.Count < 6)
             {
                 if (File.Exists(commandPath))
                 {
@@ -219,6 +223,8 @@ internal static class PhysicsEditorUiChecks
                             commands.Add((kind, slot, groupId, value));
                             if (kind is 19 or 21) settings["requested"]![kind == 19 ? 0 : 2] = value;
                             if (kind == 28) gravity["requested"] = value;
+                            if (kind == 30) capsule["values"]![0] = value;
+                            if (kind == 36) capsule["enabled"] = value != 0;
                             state["last_control_code"] = 0u;
                         }
                         state["last_sequence"] = sequence;
@@ -241,17 +247,63 @@ internal static class PhysicsEditorUiChecks
             wait((Task)Call("EditPhysicsParameterAsync", "part_gravity", 980d)!);
             UiSessionFixture.Own(window, directory, request, JsonData.ReadObject(statusPath));
             wait((Task)Call("EditPhysicsParameterAsync", "part_gravity", 720d)!);
+            skirt.IsSelected = true;
+            wait((Task)Call("EditPhysicsParameterAsync", "native_damping", .61)!);
+            typeof(MainWindow).GetField("capsuleMode", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(window, true);
+            Call("RefreshPhysicsSettings");
+            wait((Task)Call("SendCapsuleEditAsync", new CapsuleKey(7, 2), "native_capsule_radius", 8d)!);
+            wait((Task)Call("SendCapsuleEditAsync", new CapsuleKey(7, 2), "native_capsule_active", 0d)!);
             wait(acknowledge);
             var slot = request.Actors[0].Slot;
-            Check(commands.SequenceEqual(new[] { (19u,slot,7u,-1d), (21u,slot,7u,-1d), (28u,slot,7u,-1d), (3u,0u,0u,1.25), (1u,0u,0u,0d),
+            Check(commands.Take(10).SequenceEqual(new[] { (19u,slot,7u,-1d), (21u,slot,7u,-1d), (28u,slot,7u,-1d), (3u,0u,0u,1.25), (1u,0u,0u,0d),
                 (19u,slot,7u,.05), (21u,slot,7u,65d), (28u,slot,7u,250d), (3u,0u,0u,1.25), (1u,0u,0u,0d) }),
                 "A/B resets and reapplies the selected actor's parameters then replays the same loop start");
             Check(partCommands.SequenceEqual(new[] { (slot,0u,7u,980d), (slot,0u,8u,980d), (slot,0u,7u,720d), (slot,0u,8u,720d),
                 (slot,0u,8u,980d), (slot,0u,7u,980d) }) && sleeveParts.All(row => row!["strength"]!.GetValue<double>() == 980),
                 "the native sleeve group edits both scoped parts and restores them if the second edit is rejected");
         }
-        finally { UiSessionFixture.Own(window, null); Call("UpdateLiveActors"); Call("UpdateActions"); }
+        finally
+        {
+            typeof(MainWindow).GetField("capsuleMode", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(window, false);
+            UiSessionFixture.Own(window, null); Call("UpdateLiveActors"); Call("UpdateActions");
+        }
         Check(Field<TextBlock>("physicsPreviewHeading").Text.StartsWith("参考骨架", StringComparison.Ordinal), "closing the session releases the live preview");
+        var saved = (ShowPreset)Call("CapturePreset")!;
+        var file = Path.Combine(directory, "live-edits.wwpreset");
+        var presets = new PresetService(Path.Combine(directory, "preset-cache"));
+        wait(presets.SaveAsync(file, saved));
+        var load = presets.LoadAsync(file);
+        wait(load);
+        var physics = load.Result.Preset.Playback.Actors[0].PhysicsPreset!;
+        Check(physics["groups"]![0]!["parameters"]![0]!.GetValue<double>() == .61 &&
+            NativePhysicsPreset.DraftPartGravity(physics, ["Bone_Piao201_L", "Bone_Piao201_R"]).SequenceEqual([980d, 980d]),
+            "a show preset saved after stop includes acknowledged live parameter edits and excludes rejected values");
+        var newGroup = JsonNode.Parse(group.ToJsonString())!.AsObject();
+        newGroup["group_id"] = 11u;
+        var edits = CapsulePresetEdits.Plan(physics, [newGroup]).ToArray();
+        Check(edits.SequenceEqual(new[] { new NativePhysicsPreset.Control("native_capsule_radius", 8, 11, 2),
+            new NativePhysicsPreset.Control("native_capsule_active", 0, 11, 2) }),
+            "show preset round-trips live capsule geometry and activation to the new group ID");
+
+        var added = new CapsuleDraftShape(Guid.NewGuid(), null, "Bip001Pelvis", 0, 5, 10, default, default, true);
+        var neighbor = added with { Id = Guid.NewGuid() };
+        var layout = new CapsuleDraftGroup("Kawaii_alpha_S03", ["Bone_Skirt001_L", "Bone_Skirt001_R"], [added, neighbor], false);
+        CapsuleAuthoring.Write(physics, [layout]);
+        var liveAdded = JsonNode.Parse(capsule.ToJsonString())!.AsObject();
+        liveAdded["id"] = 131073u;
+        liveAdded["layout_index"] = 1;
+        liveAdded["values"] = JsonNode.Parse("[9,10,0,0,0]");
+        liveAdded["enabled"] = true;
+        newGroup["capsule_shapes"]!.AsArray().Add(liveAdded);
+        CapsulePresetEdits.Remember(physics, physics, newGroup, 131073);
+        CapsuleAuthoring.Write(physics, [layout with { Shapes = [neighbor, added] }]);
+        liveAdded["layout_index"] = 2;
+        liveAdded["id"] = 131074u;
+        Check(CapsulePresetEdits.Plan(physics, [newGroup]).Last() == new NativePhysicsPreset.Control("native_capsule_radius", 9, 11, 131074),
+            "live edits to a pre-authored capsule follow that shape when the layout order changes");
+        var reference = layout with { Shapes = [added with { SourceId = 2 }], ReplaceStock = true };
+        var projected = CapsulePresetEdits.Overlay(physics, reference, referenceStock: true);
+        Check(projected.Shapes.Single() is { Radius: 8, Enabled: false }, "pre-play editor shows recorded live edits on the matching stock reference");
         return checks;
     }
 }

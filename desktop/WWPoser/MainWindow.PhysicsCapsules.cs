@@ -9,8 +9,7 @@ namespace WWPoser;
 
 public sealed partial class MainWindow
 {
-    private static readonly string[] CapsuleFields = ["native_capsule_radius", "native_capsule_length",
-        "native_capsule_offset_x", "native_capsule_offset_y", "native_capsule_offset_z"];
+    private static readonly string[] CapsuleFields = CapsulePresetEdits.Fields;
     private readonly StackPanel capsuleInspector = new() { Visibility = Visibility.Collapsed, Margin = new(0, 0, 0, 12) };
     private readonly ComboBox capsulePicker = new() { SelectedValuePath = nameof(CapsuleViewItem.Key), MaxDropDownHeight = 330 };
     private readonly CheckBox capsuleAll = new() { Content = "显示全身胶囊", IsChecked = true };
@@ -212,7 +211,13 @@ public sealed partial class MainWindow
         editingPhysics = true;
         try
         {
-            await PlaybackControl.SendAsync(directory, command, value, Token, actor.Slot, key.Group, key.Id);
+            var launchPreset = activeRequest?.Actors.FirstOrDefault(entry => entry.Slot == actor.Slot)?.PhysicsPreset;
+            var state = await PlaybackControl.SendAsync(directory, command, value, Token, actor.Slot, key.Group, key.Id);
+            var row = Contract.A(state, "actors").OfType<JsonObject>().Single(entry => entry["slot"]!.GetValue<uint>() == actor.Slot);
+            var group = Contract.A(row, "native_physics_groups").OfType<JsonObject>().Single(entry => entry["group_id"]!.GetValue<uint>() == key.Group);
+            RememberPhysicsDraft(directory, actor.Slot, actor.Character.CharacterId,
+                preset => CapsulePresetEdits.Remember(preset, launchPreset, group, key.Id));
+            if (liveActorCards.TryGetValue(actor.Slot, out var card)) capsuleHistory.Remove((card, actor.Character.CharacterId));
             lastCapsuleValues = [];
         }
         catch (Exception error) when (error is IOException or TimeoutException or InvalidOperationException or ArgumentException)
