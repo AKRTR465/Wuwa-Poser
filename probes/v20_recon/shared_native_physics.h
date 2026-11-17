@@ -397,6 +397,7 @@ inline void Stats(const Actor& a,Json& j){
                 Json item={{"id",shape.id},{"bone",shape.bone},{"enabled",shape.enabled},{"active",shape.active},
                     {"driver",shape.bone>=0&&size_t(shape.bone)<a.physics_bone_names.size()?a.physics_bone_names[size_t(shape.bone)]:std::string{}},
                     {"editable",shape.geometry_available}};
+                if(shape.id>=collision::kFirstAuthoredId)item["layout_index"]=shape.id-collision::kFirstAuthoredId+1;
                 if(shape.geometry_available){item["baseline"]=shape.baseline;item["values"]=collision::Effective(shape);item["rotation"]=shape.rotation;}
                 group["capsule_shapes"].push_back(std::move(item));
             }

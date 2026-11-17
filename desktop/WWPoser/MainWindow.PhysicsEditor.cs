@@ -34,7 +34,7 @@ public sealed partial class MainWindow
         var layout = new Grid { Margin = new(24, 0, 24, 0), MinHeight = 340 };
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(208) });
         layout.ColumnDefinitions.Add(new ColumnDefinition());
-        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(184) });
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(244) });
 
         var parts = new DockPanel { Margin = new(0, 0, 10, 0) };
         var listHeader = new StackPanel { Margin = new(0, 0, 0, 10) };
@@ -93,6 +93,7 @@ public sealed partial class MainWindow
         Grid.SetColumn(inspector, 2); layout.Children.Add(inspector);
         physicsActor.SelectionChanged += (_, _) => LoadPhysicsActor();
         physicsTree.SelectedItemChanged += (_, e) => ShowPhysicsSelection((e.NewValue as TreeViewItem)?.Tag as PhysicsSelection);
+        layout.PreviewKeyDown += OnCapsuleEditorKeyDown;
         return Page("物理编辑器", "选中物理组或骨链，在模型上查看它影响的部位。", layout, NavButton("返回表演", 2, primary: false), fill: true);
     }
 
@@ -106,12 +107,14 @@ public sealed partial class MainWindow
 
     private void LoadPhysicsActor()
     {
+        SetCapsuleDraftProfile(null, null);
         physicsTree.Items.Clear(); physicsSkeleton.SetBones([]); ShowPhysicsSelection(null);
         ResetPhysicsModel();
         if ((physicsActor.SelectedItem as ActorCard)?.Character.SelectedItem is not OwnedCharacterSelection character) return;
         try
         {
             var profile = physicsParts.Read(character);
+            SetCapsuleDraftProfile(character, profile);
             physicsSkeleton.SetBones(profile.Bones);
             _ = LoadPhysicsModelAsync(character, profile.Bones);
             var parts = PartGravityCatalog.Build(root, character, profile).OfType<JsonObject>()
@@ -320,7 +323,9 @@ public sealed partial class MainWindow
         var actor = (state["actors"] as JsonArray)?.OfType<JsonObject>().FirstOrDefault(row => row["slot"]?.GetValue<uint>() == selected.Slot);
         return actor?["native_physics_settings_verified"]?.GetValue<bool>() == true && actor["native_physics_groups"] is JsonArray groups
             ? new LivePhysicsTarget(selected.Slot, selected.Character, groups.OfType<JsonObject>().ToArray(), actor["native_preview"] as JsonObject,
-                (actor["gravity_parts"] as JsonArray ?? []).OfType<JsonObject>().ToArray()) : null;
+                (actor["gravity_parts"] as JsonArray ?? []).OfType<JsonObject>().ToArray(),
+                actor["capsule_layout_error"]?.GetValue<string>(), Contract.True(actor, "capsule_layout_pending"),
+                Contract.True(actor, "capsule_layout_applied")) : null;
     }
 
     private (ActorCard Card, OwnedCharacterSelection Character)? SelectedPhysicsActor() =>
@@ -346,7 +351,8 @@ public sealed partial class MainWindow
         var draft = draftActor is { } selected ? selected.Card.PhysicsPresets.GetValueOrDefault(selected.Character.CharacterId) : null;
         physicsSavePreset.IsEnabled = physicsLoadPreset.IsEnabled = idle || targets is not null && !editingPhysics && !busy && !player.IsBusy;
         comparePhysics.IsEnabled = targets is not null && !editingPhysics && !busy && !player.IsBusy;
-        comparePhysics.Content = targets is not null && adjustedPhysics.ContainsKey(targets.Slot) ? "回到调整值" : "原厂对照";
+        comparePhysics.Content = targets is not null && adjustedPhysics.ContainsKey(targets.Slot) ? "回到调整值" :
+            targets is { CapsuleLayoutApplied: true } ? "原厂参数对照" : "原厂对照";
         togglePhysicsPreview.IsEnabled = live is not null && !editingPhysics;
         var preview = targets?.Preview;
         var selectedPreview = live is not null && preview?["group_id"]?.GetValue<uint>() == live.Value.Group["group_id"]?.GetValue<uint>();
@@ -585,6 +591,8 @@ public sealed partial class MainWindow
         if (!CanDraftPhysics && live is null) return;
         var preset = live is not null ? NativePhysicsPreset.Create(live.Character, live.Groups, live.Parts)
             : selected.Card.PhysicsPresets.GetValueOrDefault(selected.Character.CharacterId) ?? NativePhysicsPreset.Create(selected.Character, []);
+        if (live is not null && selected.Card.PhysicsPresets.GetValueOrDefault(selected.Character.CharacterId)?["capsule_groups"] is { } capsuleLayout)
+            preset["capsule_groups"] = capsuleLayout.DeepClone();
         var dialog = new SaveFileDialog { Filter = "Kawaii 物理预设|*.wwphysics", FileName = selected.Character.DisplayName + ".wwphysics", AddExtension = true };
         if (dialog.ShowDialog(this) != true) return;
         try
@@ -611,9 +619,12 @@ public sealed partial class MainWindow
         if (editingPhysics || SelectedPhysicsActor() is not { } selected) return;
         var preset = JsonData.ReadObject(path);
         NativePhysicsPreset.ValidateDraft(preset, selected.Character.CharacterId, selected.Character.ProfileId);
+        if (capsuleDraftProfile is { } profile)
+            CapsuleAuthoring.ValidateTargets(CapsuleAuthoring.Read(preset), profile);
         if (CanDraftPhysics)
         {
             KeepPhysicsDraft(selected.Card, selected.Character, preset);
+            capsuleHistory.Remove((selected.Card, selected.Character.CharacterId));
             RefreshDraftInputs();
             status.Text = "已载入物理预设。用原生物理开演时会自动应用。";
             return;
@@ -626,7 +637,9 @@ public sealed partial class MainWindow
             await ApplyPhysicsPresetAsync(directory, target, preset);
             KeepPhysicsDraft(selected.Card, selected.Character, preset);
             adjustedPhysics.Remove(target.Slot);
-            status.Text = "已提交预设，参数会在下一次求值时生效。";
+            status.Text = preset["capsule_groups"] is JsonArray { Count: > 0 }
+                ? "物理参数已提交，胶囊布局将在下次开演时应用。"
+                : "已提交预设，参数会在下一次求值时生效。";
         }
         catch (Exception error) { status.Text = error.Message; }
         finally { editingPhysics = false; RefreshPhysicsSettings(); }
@@ -731,7 +744,8 @@ public sealed partial class MainWindow
     private static string Value(double? number) => number?.ToString("0.###", CultureInfo.InvariantCulture) ?? "暂无数据";
     private sealed record GravityPart(string Root, string? Name, IReadOnlyList<int> Bones);
     private sealed record PhysicsSelection(PhysicsGroup Group, PhysicsChain? Chain, IReadOnlyList<PhysicsBone> Bones, IReadOnlyList<GravityPart> GravityParts);
-    private sealed record LivePhysicsTarget(uint Slot, OwnedCharacterSelection Character, IReadOnlyList<JsonObject> Groups, JsonObject? Preview, IReadOnlyList<JsonObject> Parts);
+    private sealed record LivePhysicsTarget(uint Slot, OwnedCharacterSelection Character, IReadOnlyList<JsonObject> Groups, JsonObject? Preview, IReadOnlyList<JsonObject> Parts,
+        string? CapsuleLayoutError, bool CapsuleLayoutPending, bool CapsuleLayoutApplied);
     private sealed record PhysicsParameterRow(Slider Slider, Button Apply, Button Reset, TextBlock Readback);
     private sealed record PhysicsGravityRow(CheckBox Toggle, Slider Slider, Button Apply, Button Reset, TextBlock Readback)
     {

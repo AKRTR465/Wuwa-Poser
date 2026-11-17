@@ -122,6 +122,7 @@ public sealed partial class PlaybackSessionService
         {
             if (!bySlot.TryGetValue(actor["slot"]?.GetValue<uint>() ?? 1, out var selected)) throw new InvalidDataException("演员集合已更改，需要重新准备。");
             actor["placement"] = PlaybackAssets.Placement(selected.Placement); OwnedMmdPlaybackService.SetStage(actor, selected.Stage);
+            OwnedMmdPlaybackService.SetCapsuleLayout(actor, selected.PhysicsPreset);
             foreach (var key in new[] { "native_physics", "physics_enabled" }) actor[key] = mixed[key]!.DeepClone();
         }
         OwnedMmdPlaybackService.ConfigureStage(mixed, request.SpacingCm, request.FormationNative, request.GroundHeightCm);

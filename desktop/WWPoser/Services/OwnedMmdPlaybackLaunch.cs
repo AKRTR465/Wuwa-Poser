@@ -87,6 +87,8 @@ public sealed partial class OwnedMmdPlaybackService
 
     internal static string? StartupFailure(JsonObject? terminal)
     {
+        if (CapsuleStartupFailure(terminal?["worker_result"]?["mmd_result"]) is { } capsuleFailure)
+            return capsuleFailure;
         var reason = terminal?["reason"]?.GetValue<string>();
         if (reason != "selected window thread is not registered GameThread") return reason;
         return terminal?["worker_result"]?["game_thread_check"]?["status"]?.GetValue<string>() switch
@@ -96,6 +98,15 @@ public sealed partial class OwnedMmdPlaybackService
             "thread_id_mismatch" => "当前兼容配置读取到的游戏线程 ID 与窗口线程 ID 不一致",
             _ => "无法确认当前鸣潮窗口线程是游戏线程"
         };
+    }
+
+    private static string? CapsuleStartupFailure(JsonNode? state)
+    {
+        if (state?["actors"] is not JsonArray actors) return null;
+        foreach (var actor in actors.OfType<JsonObject>())
+            if (actor["capsule_layout_error"]?.GetValue<string>() is { Length: > 0 } error)
+                return $"演员 {actor["slot"]} 的预编辑胶囊未应用：{error}";
+        return null;
     }
 
     public async Task<JsonObject> LaunchAsync(string prepared, CancellationToken cancellation = default, bool startPaused = false)
@@ -121,9 +132,9 @@ public sealed partial class OwnedMmdPlaybackService
                     if (restored) ActiveSession = null;
                     var terminalPath = Path.Combine(directory, "session_result.json");
                     var terminal = File.Exists(terminalPath) ? JsonData.ReadObject(terminalPath) : null;
-                    var reason = terminal?["reason"]?.GetValue<string>();
+                    var reason = StartupFailure(terminal) ?? CapsuleStartupFailure(Status(directory));
                     var message = restored ? "角色与动作已停止，恢复结果已确认" : "安装器已退出，尚未确认角色与动作恢复";
-                    if (!string.IsNullOrWhiteSpace(reason)) message = "本次启动未完成：" + StartupFailure(terminal) + (restored ? "；恢复已完成。" : "；请继续停止恢复。");
+                    if (!string.IsNullOrWhiteSpace(reason)) message = "本次启动未完成：" + reason + (restored ? "；恢复已完成。" : "；请继续停止恢复。");
                     return new JsonObject { ["session_dir"] = directory, ["loaded"] = false, ["state"] = "terminal_record_available", ["cleanup_restored"] = restored, ["reason"] = reason, ["message"] = message };
                 }
                 if (routes.Count > 0 && !nativePrepared && File.Exists(Path.Combine(directory, "native_targets.json")))
@@ -146,6 +157,7 @@ public sealed partial class OwnedMmdPlaybackService
                     LaunchStage = "native_body_warmup";
                 }
                 var state = Status(directory);
+                if (CapsuleStartupFailure(state) is { } layoutFailure) throw new InvalidDataException(layoutFailure);
                 if (Contract.True(state, "failed")) throw new InvalidOperationException("演员播放器初始化失败，保留会话等待恢复");
                 if (Contract.True(state, "ready") && Contract.True(state, "session_active"))
                 {

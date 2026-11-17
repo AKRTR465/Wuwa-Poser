@@ -29,6 +29,7 @@ namespace ob=v20_publish_observer;
 namespace id=ww_object;
 namespace fb=wwp_ue::full_body;
 namespace clip=wwp_playback::local_clip;
+namespace collision=wwp_playback::kawaii_collision;
 namespace play=wwp_playback;
 namespace vmt=v20_vmt_slot_patch;
 namespace features=unified_player_features;
@@ -46,7 +47,7 @@ struct ActorRuntime {
     std::vector<std::array<float,3>> positions;std::vector<std::array<float,4>> rotations;
     std::vector<uint8_t> positionMask,rotationMask;
     clip::Clip motion;fb::Topology topology;fb::Request request;play::placement::Settings placement;
-    features::ActorFeatures features;native::Actor native;
+    features::ActorFeatures features;collision::PrototypeBank capsulePrototypes;native::Actor native;
     native_animation_target::AuthoritySnapshot authority{};
     std::atomic<bool> nativePrepared{false};std::atomic<uint64_t> writes{0};
 };
@@ -122,7 +123,7 @@ inline play::ControlCode ApplyNativeCommand(const play::Command& command,double 
         if(shape==capsules.shapes.end()||(!shape->geometry_available&&command.kind<play::CommandKind::ResetNativeCapsule))return invalid;
         const auto code=accept();if(code!=ok)return code;
         if(command.kind==play::CommandKind::SetNativeCapsuleActive)shape->enabled=command.value!=0;
-        else if(command.kind==play::CommandKind::ResetNativeCapsule){shape->enabled=true;shape->edited=0;}
+        else if(command.kind==play::CommandKind::ResetNativeCapsule){shape->enabled=shape->baseline_enabled;shape->edited=0;}
         else{
             const auto field=unsigned(command.kind)-unsigned(play::CommandKind::SetNativeCapsuleRadius);
             shape->requested[field]=float(command.value);shape->edited|=1u<<field;
@@ -306,11 +307,103 @@ inline bool NativeAuthority(void* user,const native::Access& access){
 }
 inline void NativeCommitted(void* user,uint32_t count){static_cast<ActorRuntime*>(user)->writes.fetch_add(count);}
 inline bool NeedsNative(){for(const auto& actor:runtime.actors)if(actor->nativePhysics)return true;return false;}
+inline std::vector<std::string> CapsuleRootNames(std::vector<std::string> roots){
+    for(auto& root:roots)root=native::LowerBoneName(std::move(root));
+    std::sort(roots.begin(),roots.end());
+    roots.erase(std::unique(roots.begin(),roots.end()),roots.end());
+    return roots;
+}
+inline int32_t CapsuleDriverBone(const Json& value,const std::vector<std::string>& bones){
+    if(value.is_null())return -1;
+    const auto driver=native::LowerBoneName(value.get<std::string>());
+    int32_t found=-1;
+    for(size_t i=0;i<bones.size();++i)if(native::LowerBoneName(bones[i])==driver){
+        Require(found<0,"capsule layout driver bone name is ambiguous");
+        found=int32_t(i);
+    }
+    Require(found>=0,"capsule layout driver bone is missing from the actor skeleton");
+    return found;
+}
+inline collision::AuthoredShape CapsuleLayoutShape(const Json& row,const std::vector<std::string>& bones,unsigned id){
+    collision::AuthoredShape result;
+    auto& shape=result.shape;
+    Require(row.at("array").is_number_unsigned(),"capsule layout array must be A or B");
+    const auto array=row.at("array").get<uint64_t>();
+    Require(array<2,"capsule layout array must be A or B");
+    result.array=unsigned(array);
+    if(row.contains("source_id")&&!row.at("source_id").is_null()){
+        Require(row.at("source_id").is_number_unsigned(),"capsule layout source ID is invalid");
+        const auto source=row.at("source_id").get<uint64_t>();
+        Require(source>0&&source<collision::kFirstAuthoredId,"capsule layout source ID is invalid");
+        result.source_id=unsigned(source);
+    }
+    shape.id=id;shape.bone=CapsuleDriverBone(row.at("bone"),bones);
+    shape.baseline_enabled=row.value("enabled",true);
+    shape.enabled=shape.baseline_enabled;
+    Require(row.at("offset").is_array()&&row.at("offset").size()==3&&
+        row.at("rotation").is_array()&&row.at("rotation").size()==3,"capsule layout offset or rotation is invalid");
+    const auto offset=row.at("offset").get<std::array<float,3>>();
+    shape.baseline={row.at("radius").get<float>(),row.at("length").get<float>(),offset[0],offset[1],offset[2]};
+    shape.rotation=row.at("rotation").get<std::array<float,3>>();
+    shape.geometry_available=collision::ValidGeometry(shape);
+    Require(shape.geometry_available,"capsule layout contains out-of-range dimensions, offset, or rotation");
+    return result;
+}
+inline void PrepareCapsuleLayouts(ActorRuntime& actor){
+    if(!actor.config.contains("capsule_groups"))return;
+    const auto& groups=actor.config.at("capsule_groups");
+    Require(groups.is_array()&&groups.size()<=actor.native.binding.group_count,"capsule layout group list is invalid");
+    if(groups.empty())return;
+    Require(actor.native.capsules_verified,"capsule layouts require verified native collision support");
+    for(unsigned i=0;i<actor.native.binding.group_count;++i)actor.native.capsules[i].prototype_bank=&actor.capsulePrototypes;
+    for(const auto& row:groups){
+        const auto curve=native::LowerBoneName(row.at("curve_name").get<std::string>());
+        const auto roots=CapsuleRootNames(row.at("root_bones").get<std::vector<std::string>>());
+        auto& binding=actor.native.binding;
+        unsigned group=binding.group_count;
+        for(unsigned i=0;i<binding.group_count;++i){
+            const auto& candidate=binding.groups[i];
+            if(native::LowerBoneName(candidate.curve_name)!=curve||CapsuleRootNames(candidate.root_bones)!=roots)continue;
+            Require(group==binding.group_count,"capsule layout matches more than one native physics group");
+            group=i;
+        }
+        Require(group<binding.group_count,"capsule layout does not match the actor's native physics group");
+        auto& state=actor.native.capsules[group];
+        Require(!state.layout,"capsule layout repeats a physics group");
+        auto& layout=state.layout.emplace();
+        layout.replace_stock=row.value("replace_stock",true);
+        const auto& shapes=row.at("shapes");
+        Require(shapes.is_array()&&shapes.size()<=2*collision::kMaxCapsulesPerArray,"capsule layout has too many shapes");
+        layout.shapes.reserve(shapes.size());
+        std::array<size_t,2> counts{};
+        for(const auto& shape:shapes){
+            auto parsed=CapsuleLayoutShape(shape,actor.boneNames,collision::kFirstAuthoredId+unsigned(layout.shapes.size()));
+            Require(++counts[parsed.array]<=collision::kMaxCapsulesPerArray,"capsule layout has too many shapes in one array");
+            layout.shapes.push_back(std::move(parsed));
+        }
+        if(row.contains("stock_baseline")&&!row.at("stock_baseline").is_null()){
+            const auto& stock=row.at("stock_baseline");
+            Require(stock.is_array()&&stock.size()<=2*collision::kMaxCapsulesPerArray,"capsule layout original baseline is invalid");
+            auto& baseline=layout.stock_baseline.emplace();
+            baseline.reserve(stock.size());
+            std::array<std::array<bool,collision::kMaxCapsulesPerArray>,2> seen{};
+            for(const auto& shape:stock){
+                auto parsed=CapsuleLayoutShape(shape,actor.boneNames,0);
+                Require(parsed.source_id>0&&(parsed.source_id-1)/collision::kArraySpan==parsed.array,"capsule layout original source ID or array differs");
+                const auto index=(parsed.source_id-1)%collision::kArraySpan;
+                Require(index<collision::kMaxCapsulesPerArray&&!seen[parsed.array][index],"capsule layout original source ID is invalid or duplicated");
+                seen[parsed.array][index]=true;
+                baseline.push_back(std::move(parsed));
+            }
+        }
+    }
+}
 inline void PrepareNative(){auto& r=runtime;auto reader=CurrentProcess();
     for(auto& actor:r.actors){auto& a=*actor;if(!a.nativePhysics)continue;
         const auto directory=r.directory/L"native_inputs"/std::to_string(a.slot);
         std::ifstream input(directory/L"native_playback.json");Require(bool(input),"actor native playback input missing");const auto config=Json::parse(input);
         native::PrepareFromConfig(a.native,reader,config,directory,a.motion,a.topology,a.request,r.epoch,&NativeAuthority,&a);
+        PrepareCapsuleLayouts(a);
         a.native.on_commit=&NativeCommitted;a.native.external_writing=&r.writing;
         Require(native::RegisterActor(a.native),"actor native registration failed");a.nativeRegistered=true;a.nativePrepared=true;
     }
@@ -477,7 +570,23 @@ inline Json ActorStatus(const ActorRuntime& a,bool pending,uint64_t frames,uint6
         {"frames",frames},{"writes",writes},{"native_physics",a.nativePhysics},{"physics_enabled",a.physicsEnabled},{"physics_available",a.features.physics_available},
         {"expression_enabled",a.features.face_enabled},{"restoration_complete",!pending},
         {"placement",{{"offset_x_cm",a.placement.x},{"offset_y_cm",a.placement.y},{"height_cm",a.placement.height},{"yaw_degrees",a.placement.yaw_degrees},{"in_place",a.placement.in_place}}}};
-    if(a.nativePrepared)native::Stats(a.native,actor);
+    if(a.nativePrepared){
+        native::Stats(a.native,actor);
+        bool configured=false,pendingLayout=false;
+        for(unsigned i=0;i<a.native.binding.group_count;++i){
+            const auto& state=a.native.capsules[i];
+            std::lock_guard<std::mutex> lock(state.edit);
+            if(!state.layout)continue;
+            configured=true;
+            pendingLayout|=!state.layout_applied;
+            if(state.layout_error&&!actor.contains("capsule_layout_error"))
+                actor["capsule_layout_error"]=a.native.binding.groups[i].curve_name+": "+state.layout_error;
+        }
+        if(configured){
+            actor["capsule_layout_pending"]=pendingLayout&&!actor.contains("capsule_layout_error");
+            actor["capsule_layout_applied"]=!pendingLayout&&!actor.contains("capsule_layout_error");
+        }
+    }
     actor["gravity_parts"]=Json::array();
     for(const auto& part:a.features.gravity_parts)
         actor["gravity_parts"].push_back({{"id",part.id},{"root",part.root},{"strength",part.strength},{"sampled_revision",part.sampled},{"moved_bones",part.moved_bones}});
@@ -489,20 +598,22 @@ inline bool HooksRestored(){const auto& r=runtime;const auto& hub=native::hub;
 }
 inline Json Status(){auto& r=runtime;WorkerLock lock;if(r.payloadReleased)return r.terminalStatus;const auto state=r.transport.State();const auto& hub=native::hub;
     Json actors=Json::array();uint64_t frames=0,writes=0,nativeFrames=0;size_t borrowed=0;uint32_t nativeError=0;
-    bool allObserved=!r.actors.empty(),face=false,allPhysics=true,anyNative=false,actorPending=false;
+    bool allObserved=!r.actors.empty(),face=false,allPhysics=true,anyNative=false,actorPending=false,layoutsApplied=true;
     for(const auto& entry:r.actors){const auto& a=*entry;
         const auto count=a.nativePhysics?a.native.frames.load():a.features.frames;const auto writeCount=a.nativePhysics?a.writes.load():a.features.writes;
         frames+=count;writes+=writeCount;face=face||a.features.face_enabled;allPhysics=allPhysics&&a.features.physics_available;anyNative=anyNative||a.nativePhysics;allObserved=allObserved&&count>0;
         const bool pending=features::ActorPending(a.features)||(a.nativePrepared&&!native::Restored(a.native));actorPending=actorPending||pending;
         if(a.ownership==native_animation_target::OwnerPolicy::SceneTeamMember)++borrowed;
         if(a.nativePrepared){nativeFrames+=a.native.frames.load();if(a.native.error.load())nativeError=a.native.error.load();}
-        actors.push_back(ActorStatus(a,pending,count,writeCount));
+        auto actor=ActorStatus(a,pending,count,writeCount);
+        layoutsApplied=layoutsApplied&&actor.value("capsule_layout_applied",true);
+        actors.push_back(std::move(actor));
     }
     const auto& camera=r.cameraFeatures;
     const bool initialPoseReady=allObserved&&(!camera.available||camera.applied_frames.load()!=0);
     const bool active=r.writing.load()&&!r.closing.load();
     Json value={{"schema",3},{"actor_count",r.actors.size()},{"borrowed_count",borrowed},{"created_count",r.actors.size()-borrowed},{"actors",actors},
-        {"all_actors_observed",allObserved},{"initialized",r.initialized},{"ready",Ready()&&(!r.startPaused||initialPoseReady)},{"start_paused",r.startPaused},
+        {"all_actors_observed",allObserved},{"initialized",r.initialized},{"ready",Ready()&&layoutsApplied&&(!r.startPaused||initialPoseReady)},{"start_paused",r.startPaused},
         {"initial_pose_ready",initialPoseReady},{"failed",Failed()},{"error_code",r.error.load()?r.error.load():nativeError},
         {"restoration_complete",r.closed.load()&&!actorPending&&!features::CameraPending(camera)},{"hooks_restored",HooksRestored()},
         {"callbacks_quiescent",!r.active.load()&&!r.work.load()&&!r.observing.load()&&!camera.callbacks.load()&&!camera.work.load()&&!camera.observing.load()&&

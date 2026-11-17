@@ -2,7 +2,10 @@ using System.Numerics;
 
 namespace WWPoser.Services;
 
-internal sealed record PhysicsBone(string Name, int Parent, Vector3 Position);
+internal sealed record PhysicsBone(string Name, int Parent, Vector3 Position)
+{
+    public Matrix4x4 ReferenceTransform { get; init; } = Matrix4x4.Identity;
+}
 internal sealed record PhysicsChain(string Root, string Part, IReadOnlyList<int> Bones);
 internal sealed record PhysicsGroup(string Source, string Node, string? Curve, IReadOnlyList<PhysicsChain> Chains,
     double? Damping, double? Stiffness, double? LimitAngle);
@@ -89,6 +92,7 @@ internal sealed class PhysicsPartCatalog(string repositoryRoot)
             .ToDictionary(bone => bone.Name, bone => bone.index, StringComparer.OrdinalIgnoreCase);
         var world = new Matrix4x4[names.Count];
         var output = new PhysicsBone[names.Count];
+        var swapAxes = new Matrix4x4(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
         for (var i = 0; i < output.Length; i++)
         {
             var name = names[i]!.GetValue<string>();
@@ -99,7 +103,9 @@ internal sealed class PhysicsPartCatalog(string repositoryRoot)
                 Matrix4x4.CreateFromQuaternion(Quaternion.Normalize(new Quaternion(Component(rotation, "X"), Component(rotation, "Y"), Component(rotation, "Z"), Component(rotation, "W")))) *
                 Matrix4x4.CreateTranslation(Vector(pose["Translation"]!));
             world[i] = parent < 0 ? local : local * world[parent];
-            output[i] = new PhysicsBone(name, parent, world[i].Translation);
+            var reference = swapAxes * world[i] * swapAxes;
+            reference.Translation *= .01f;
+            output[i] = new PhysicsBone(name, parent, world[i].Translation) { ReferenceTransform = reference };
         }
         return output;
     }

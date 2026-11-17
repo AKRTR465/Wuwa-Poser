@@ -78,12 +78,13 @@ public sealed partial class MainWindow
     private void SetPhysicsView(bool preferModel)
     {
         modelViewPreferred = preferModel;
-        var visible = preferModel && physicsModel is not null;
+        var capsuleReference = capsuleMode && session is null && capsuleDraftProfile is not null;
+        var visible = preferModel && (physicsModel is not null || capsuleReference);
         physicsModelView.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
         physicsSkeleton.Visibility = visible ? Visibility.Collapsed : Visibility.Visible;
         togglePhysicsPreview.Visibility = visible ? Visibility.Collapsed : Visibility.Visible;
-        toggleModelView.IsEnabled = physicsModel is not null;
-        toggleModelView.Content = visible ? "看骨架" : "看模型";
+        toggleModelView.IsEnabled = physicsModel is not null || capsuleReference;
+        toggleModelView.Content = visible ? "看骨架" : capsuleReference && physicsModel is null ? "看胶囊" : "看模型";
         RefreshPhysicsSettings();
     }
 
@@ -93,6 +94,11 @@ public sealed partial class MainWindow
         {
             if (modelViewPreferred && (modelLoading || modelUnavailable is not null))
                 physicsPreviewHeading.Text += modelLoading ? " · 正在载入模型" : " · " + modelUnavailable;
+            return;
+        }
+        if (physicsModel is null)
+        {
+            physicsPreviewHeading.Text = "胶囊 · 参考骨架";
             return;
         }
         var live = sessionControllable && SelectedLivePhysicsActor() is not null;

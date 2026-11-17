@@ -32,14 +32,24 @@ public sealed partial class MainWindow
         {
             capsuleMode = toggle.IsChecked == true;
             capsuleInspector.Visibility = capsuleMode ? Visibility.Visible : Visibility.Collapsed;
-            if (capsuleMode && physicsModel is not null && physicsModelView.Visibility != Visibility.Visible) SetPhysicsView(true);
+            if (capsuleMode) SetPhysicsView(true);
+            else if (physicsModel is null) SetPhysicsView(modelViewPreferred);
             else RefreshPhysicsSettings();
         };
-        physicsModelView.CapsulePicked += key =>
+        physicsModelView.CapsulePickedWithModifiers += (key, additive) =>
         {
-            capsulePicker.SelectedValue = key;
+            if (CanDraftPhysics) PickDraftCapsule(key, additive);
+            else capsulePicker.SelectedValue = key;
         };
-        physicsModelView.CapsuleDragged += async (key, field, value) => await SendCapsuleEditAsync(key, CapsuleFields[field], value);
+        physicsModelView.CapsuleDragged += async (key, field, value) =>
+        {
+            if (CanDraftPhysics) RunCapsuleDraftAction(() => EditDraftCapsule(key, field, (float)value));
+            else await SendCapsuleEditAsync(key, CapsuleFields[field], value);
+        };
+        physicsModelView.CapsuleRotated += (key, axis, value) =>
+            RunCapsuleDraftAction(() => EditDraftCapsule(key, axis + 5, (float)value));
+        physicsModelView.CapsulePlaced += (key, offset) =>
+            RunCapsuleDraftAction(() => PlaceDraftCapsule(key, offset));
         views.Children.Add(toggle);
     }
 
@@ -49,6 +59,7 @@ public sealed partial class MainWindow
         capsuleState = Hint("");
         capsuleInspector.Children.Add(capsuleState);
         capsuleInspector.Children.Add(capsulePicker);
+        capsuleInspector.Children.Add(BuildCapsuleDraftTools());
         capsuleInspector.Children.Add(capsuleAll);
         capsuleInspector.Children.Add(capsuleActive);
         capsuleAll.Click += (_, _) => RefreshPhysicsSettings();
@@ -61,10 +72,15 @@ public sealed partial class MainWindow
         };
         capsuleActive.Click += async (_, _) =>
         {
+            if (CanDraftPhysics)
+            {
+                RunCapsuleDraftAction(() => EditSelectedDraftCapsules(shape => shape with { Enabled = capsuleActive.IsChecked == true }));
+                return;
+            }
             if (activeCapsule is { } key) await SendCapsuleEditAsync(key, "native_capsule_active", capsuleActive.IsChecked == true ? 1 : 0);
         };
 
-        var labels = new[] { "半径", "长度", "X 偏移", "Y 偏移", "Z 偏移" };
+        var labels = new[] { "半径", "长度", "X 偏移", "Y 偏移", "Z 偏移", "俯仰", "偏航", "滚转" };
         for (var i = 0; i < labels.Length; i++)
         {
             var index = i;
@@ -84,8 +100,9 @@ public sealed partial class MainWindow
             };
             capsuleFields.Add((number, apply));
             capsuleInspector.Children.Add(entry);
+            if (index >= 5) capsuleRotationFields.Add(entry);
         }
-        capsuleInspector.Children.Add(Hint("单位厘米。长度为两端球心间距，偏移沿驱动骨局部轴。"));
+        capsuleInspector.Children.Add(Hint("距离用厘米，长度为两端球心间距。旋转用度。"));
         capsuleReset = new Button { Content = "还原所选胶囊", Margin = new(0, 4, 0, 0) };
         capsuleReset.Click += async (_, _) =>
         {
@@ -102,6 +119,11 @@ public sealed partial class MainWindow
             physicsModelView.SetCapsules([], null, false);
             return;
         }
+        if (RefreshDraftCapsuleEditor(editable)) return;
+        capsuleDraftTools.Visibility = Visibility.Collapsed;
+        capsulePicker.Visibility = Visibility.Visible;
+        capsuleReset.Visibility = Visibility.Visible;
+        foreach (var field in capsuleRotationFields) field.Visibility = Visibility.Collapsed;
         if (capsuleSession != session || capsuleActor != (actor?.Slot ?? 0))
         {
             capsuleSession = session;
@@ -128,6 +150,8 @@ public sealed partial class MainWindow
         capsuleActive.IsEnabled = capsuleReset.IsEnabled = current is not null && editable;
         capsuleState.Text = actor is null ? "开演后读取原生胶囊。" : items.Length == 0 ? "等待原生碰撞求值。" :
             current is { Enabled: true, Active: false } ? $"共 {items.Length} 个 · 所选胶囊受本组开关控制" : $"共 {items.Length} 个原生胶囊";
+        if (actor?.CapsuleLayoutError is { } layoutError) capsuleState.Text = "胶囊布局未应用：" + layoutError;
+        else if (actor?.CapsuleLayoutPending == true) capsuleState.Text += "\n正在匹配预编辑布局。";
         float[] values = current is null ? [] : [current.Radius, current.Length, current.Offset.X, current.Offset.Y, current.Offset.Z];
         for (var i = 0; i < capsuleFields.Count; i++)
         {
@@ -157,7 +181,8 @@ public sealed partial class MainWindow
                 "bip001lforearm" => "左前臂", "bip001rforearm" => "右前臂", "" => "组件空间", _ => driver
             };
             var id = shape["id"]!.GetValue<uint>();
-            var suffix = (id > 65536 ? "B" : "A") + ((id - 1) % 65536 + 1).ToString(CultureInfo.InvariantCulture);
+            var suffix = shape["layout_index"]?.GetValue<uint>() is { } layoutIndex
+                ? $"预编辑 {layoutIndex}" : (id > 65536 ? "B" : "A") + ((id - 1) % 65536 + 1).ToString(CultureInfo.InvariantCulture);
             yield return new(new(groupId, id), $"{curve.Replace("Kawaii_alpha_", "", StringComparison.Ordinal)} · {label} · {suffix}",
                 shape["bone"]!.GetValue<int>(), Contract.True(shape, "enabled"), Contract.True(shape, "active"), values[0]!.GetValue<float>(), values[1]!.GetValue<float>(),
                 new Vector3(values[2]!.GetValue<float>(), values[3]!.GetValue<float>(), values[4]!.GetValue<float>()),
@@ -167,15 +192,17 @@ public sealed partial class MainWindow
 
     private async Task ApplyCapsuleFieldAsync(int field)
     {
-        if (activeCapsule is not { } key) return;
         var input = capsuleFields[field].Box.Text;
         if (!double.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) &&
             !double.TryParse(input, NumberStyles.Float, CultureInfo.CurrentCulture, out value))
         {
-            status.Text = "请输入以厘米为单位的数值。";
+            status.Text = field < 5 ? "请输入以厘米为单位的数值。" : "请输入以度为单位的数值。";
             return;
         }
-        await SendCapsuleEditAsync(key, CapsuleFields[field], value);
+        if (CanDraftPhysics)
+            RunCapsuleDraftAction(() => EditSelectedDraftCapsules(shape => WithCapsuleField(shape, field, (float)value)));
+        else if (field < CapsuleFields.Length && activeCapsule is { } key)
+            await SendCapsuleEditAsync(key, CapsuleFields[field], value);
     }
 
     private async Task SendCapsuleEditAsync(CapsuleKey key, string command, double value)

@@ -26,6 +26,7 @@ internal sealed partial class PhysicsModelView : Grid
 
     public PhysicsModelView()
     {
+        Focusable = true;
         Background = new SolidColorBrush(Color.FromRgb(26, 34, 47));
         instructions.Foreground = new SolidColorBrush(Color.FromRgb(181, 196, 216));
         viewport.Camera = camera;
@@ -39,7 +40,7 @@ internal sealed partial class PhysicsModelView : Grid
     public void SetModel(PhysicsPreviewModel? value)
     {
         model = value; scene.Children.Clear(); geometry = []; SetCapsulePose(null);
-        if (model is null) return;
+        if (model is null) { SetView(0); return; }
         scene.Children.Add(new AmbientLight(Color.FromRgb(110, 117, 128)));
         scene.Children.Add(new DirectionalLight(Color.FromRgb(215, 219, 225), new Vector3D(.2, -.55, -.86)));
         scene.Children.Add(new DirectionalLight(Color.FromRgb(98, 114, 144), new Vector3D(-.75, -.45, .5)));
@@ -152,6 +153,7 @@ internal sealed partial class PhysicsModelView : Grid
 
     public void SetView(int view)
     {
+        if (model is null) MeasureCapsuleReference();
         center = home; zoom = 1; pitch = view == 2 ? .17 : 0;
         yaw = view switch { 1 => Math.PI / 2, 2 => -.45, _ => 0 };
         UpdateCamera();
@@ -187,8 +189,17 @@ internal sealed partial class PhysicsModelView : Grid
     {
         base.OnMouseDown(e);
         if (e.ChangedButton is not (MouseButton.Left or MouseButton.Right)) return;
+        if (capsuleDrag is not null)
+        {
+            if (e.ChangedButton == MouseButton.Right && StopCapsuleDrag(false)) ReleaseMouseCapture();
+            e.Handled = true;
+            return;
+        }
+        if (dragging is not null) { e.Handled = true; return; }
+        Focus();
         origin = e.GetPosition(this);
-        if (e.ChangedButton == MouseButton.Left && SelectOrDragCapsule(origin)) { e.Handled = true; return; }
+        var additive = (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != 0;
+        if (e.ChangedButton == MouseButton.Left && SelectOrDragCapsule(origin, additive)) { e.Handled = true; return; }
         dragging = e.ChangedButton;
         CaptureMouse(); e.Handled = true;
     }
@@ -196,7 +207,14 @@ internal sealed partial class PhysicsModelView : Grid
     protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         base.OnMouseUp(e);
-        if (e.ChangedButton == MouseButton.Left && StopCapsuleDrag(true)) { ReleaseMouseCapture(); e.Handled = true; return; }
+        if (e.ChangedButton == MouseButton.Left && capsuleDrag is not null)
+        {
+            MoveCapsuleDrag(e.GetPosition(this));
+            StopCapsuleDrag(true);
+            ReleaseMouseCapture();
+            e.Handled = true;
+            return;
+        }
         if (dragging != e.ChangedButton) return;
         ReleaseMouseCapture(); e.Handled = true;
     }
@@ -221,7 +239,16 @@ internal sealed partial class PhysicsModelView : Grid
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
-        Zoom(e.Delta); e.Handled = true;
+        if (capsuleDrag is null) Zoom(e.Delta);
+        e.Handled = true;
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Key != Key.Escape || !StopCapsuleDrag(false)) return;
+        ReleaseMouseCapture();
+        e.Handled = true;
     }
 
     private static DiffuseMaterial MakeMaterial(Color color)

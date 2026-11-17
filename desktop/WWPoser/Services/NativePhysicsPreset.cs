@@ -11,7 +11,8 @@ internal static class NativePhysicsPreset
 
     public static bool HasOverrides(JsonObject? preset) => preset?["groups"] is JsonArray { Count: > 0 } ||
         preset?["sleeves"] is JsonArray { Count: > 0 } || preset?["disabled_capsules"] is JsonArray { Count: > 0 } ||
-        preset?["gravity"] is JsonArray { Count: > 0 } || preset?["part_gravity"] is JsonArray { Count: > 0 };
+        preset?["gravity"] is JsonArray { Count: > 0 } || preset?["part_gravity"] is JsonArray { Count: > 0 } ||
+        preset?["capsule_groups"] is JsonArray { Count: > 0 };
 
     public static void ValidateDraft(JsonObject preset, string? characterId, string? profileId = null)
     {
@@ -44,6 +45,7 @@ internal static class NativePhysicsPreset
             Contract.Require(double.IsFinite(strength) && strength is >= 0 and <= GravityMaximum, "预设中的重力强度越界。");
         }
         _ = ReadPartGravity(preset);
+        _ = CapsuleAuthoring.Read(preset);
 
         static void ValidateTarget(JsonNode entry)
         {

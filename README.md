@@ -4,9 +4,9 @@
 
 [下载 Windows 版](https://github.com/AKRTR465/Wuwa-Poser/releases) · [播放器指南](tools/MMD_PLAYER.md) · [构建说明](docs/BUILDING.md) · [问题反馈](https://github.com/AKRTR465/Wuwa-Poser/issues)
 
-当前版本为 **v0.2.10**，面向 Windows x64，适配鸣潮 3.8.0。角色目录包含 65 个配置、82 个角色与皮肤组合及 4 个独立形态选项。
+当前版本为 **v0.3.0**，面向 Windows x64，适配鸣潮 3.8.0。角色目录包含 65 个配置、82 个角色与皮肤组合及 4 个独立形态选项。
 
-v0.2.9 的物理编辑器支持实时 3D 预览、片段循环和原厂对照。播放时可按部件调节重力，也可编辑原生碰撞胶囊。完整变更见 [更新日志](CHANGELOG.md)。
+物理编辑器支持在开演前按演员编辑碰撞胶囊，可用 3D 视图移动、旋转和放置胶囊，并把布局保存到预设。完整变更见 [更新日志](CHANGELOG.md)。
 
 ## 下载与运行
 

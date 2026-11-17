@@ -99,6 +99,7 @@ public sealed partial class OwnedMmdPlaybackService
             var config = Config(actorDirectory);
             config["slot"] = actor.Slot; config["actor_directory"] = relative; SetStage(config, actor.Stage);
             config["session_epoch"] = epoch; config["enabled"] = true;
+            SetCapsuleLayout(config, actor.PhysicsPreset);
             var report = JsonData.ReadObject(Path.Combine(actorDirectory, "compiled_report.json"));
             anchorClip ??= Contract.O(report, "compiled_target_clip");
             bodyDuration = Math.Max(bodyDuration, Contract.D(config, "clip_duration_seconds"));
@@ -124,5 +125,16 @@ public sealed partial class OwnedMmdPlaybackService
         return new JsonObject { ["state"] = "prepared_not_run", ["session_dir"] = output, ["config"] = Path.Combine(output, "owned_mmd_config.json"),
             ["session_epoch"] = epoch, ["actor_count"] = actors.Count, ["duration_seconds"] = scene["duration_seconds"]!.DeepClone(),
             ["actors"] = actors.DeepClone(), ["message"] = $"{actors.Count} 名演员已准备；开始时优先使用编队中的原角色，其余另行创建。" };
+    }
+
+    internal static void SetCapsuleLayout(JsonObject config, JsonObject? preset)
+    {
+        if (preset?["capsule_groups"] is JsonArray { Count: > 0 } groups)
+        {
+            NativePhysicsPreset.ValidateDraft(preset, Contract.S(config, "character_id"), Contract.S(config, "profile_id"));
+            config["capsule_groups"] = groups.DeepClone();
+        }
+        else
+            config.Remove("capsule_groups");
     }
 }

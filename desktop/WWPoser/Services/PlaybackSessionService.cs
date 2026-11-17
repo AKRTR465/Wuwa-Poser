@@ -89,7 +89,10 @@ public sealed partial class PlaybackSessionService
         }
         Phase = PlaybackSessionPhase.Loading;
         var stagedPhysics = HasLaunchPhysics(ActiveRequest);
-        var result = await owned.LaunchAsync(preparedDirectory, cancellation, startPaused || stagedPhysics);
+        var hasCapsuleLayout = OwnedMmdPlaybackService.ActorConfigs(OwnedMmdPlaybackService.Config(preparedDirectory))
+            .Any(actor => (actor["native_physics"]?.GetValue<bool>() ?? true) && actor[CapsuleAuthoring.PropertyName] is JsonArray { Count: > 0 });
+        var holdForPhysics = stagedPhysics || hasCapsuleLayout;
+        var result = await owned.LaunchAsync(preparedDirectory, cancellation, startPaused || holdForPhysics);
         if (ActiveSession is { } directory)
         {
             if (ActiveRequest is not null) WriteRequest(directory, ActiveRequest);
@@ -97,12 +100,15 @@ public sealed partial class PlaybackSessionService
             if (Phase == PlaybackSessionPhase.Active)
             {
                 Snapshot = ReadStatus(directory);
-                if (stagedPhysics)
+                if (holdForPhysics)
                 {
                     try
                     {
-                        Progress?.Invoke("正在应用演员的物理预设…");
-                        await ApplyLaunchPhysicsAsync(directory, ActiveRequest!, Snapshot.Value.State, cancellation);
+                        if (stagedPhysics)
+                        {
+                            Progress?.Invoke("正在应用演员的物理预设…");
+                            await ApplyLaunchPhysicsAsync(directory, ActiveRequest!, Snapshot.Value.State, cancellation);
+                        }
                         if (!startPaused)
                         {
                             await SendAsync(directory, "play", cancellation: cancellation);
